@@ -106,7 +106,7 @@ evidência justamente aquele código, e por isso mudaram de **V** para **H**.
 
 Isso não os torna falsos, e vale ser preciso sobre o porquê: um princípio de projeto
 se sustenta pelo que foi observado ao construir, não por o artefato continuar de pé.
-O código está no histórico do branch `executor-em-node` e é inspecionável. Para um
+O código está no histórico, no commit `8b3cbdb`, e é inspecionável. Para um
 trabalho cuja contribuição são princípios, **artefato construído, medido e cortado é
 evidência mais forte que artefato mantido por precaução** — porque inclui o custo da
 decisão de cortar.
@@ -166,7 +166,7 @@ ficam declarados como raciocínio, o que é honesto e não invalida o resto.
 | Sai | Vira |
 |---|---|
 | A varredura dos 72 repositórios | Trabalhos relacionados. Trabalho excelente, e não é contribuição — mas alimenta as contagens dos princípios 1 e 2 |
-| Decisões de arquitetura do executor | Apêndice, com o código no histórico do branch `executor-em-node` |
+| Decisões de arquitetura do executor | Apêndice, com o código no histórico (`8b3cbdb`) |
 | O harness como produto | Instrumento e instanciação dos princípios |
 | Ablação regra a regra das 10 + 5 skills | **Cortado.** Escopo demais para 3 meses sozinho, e "não mudou nada" ×12 não sustenta um capítulo |
 

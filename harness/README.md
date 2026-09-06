@@ -123,9 +123,15 @@ outside that filter.
 - the agent "fixes" working code because a tool was missing from the environment
 - you stop trusting "done" and start re-running things yourself before reading
 
-The design is recorded in `docs/briefings/decisoes-do-harness.md` §10 and the code
-is in git history on the branch `executor-em-node`. Restoring is a checkout, not a
-rewrite.
+The design is recorded in `docs/briefings/decisoes-do-harness.md` §10. The code is in
+this repository's history: commit `8b3cbdb` is the last one that has the complete
+`verify/`, and `52395cd` is the removal.
+
+The executor and its 41 tests come back with `git checkout 8b3cbdb -- harness/verify`.
+The rest of the layer — the manifest, the two hooks, and the `CLAUDE.md` section that
+told the model it did not need to run the checks — is in that same commit and has to
+be copied back by hand, because the prose files were rewritten afterwards and a plain
+revert conflicts with them. The code is a checkout; the wiring is a decision.
 
 ---
 

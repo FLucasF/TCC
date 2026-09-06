@@ -14,7 +14,7 @@ a data; o raciocínio original ficou, inclusive onde o estado mudou depois.
 
 > **Leia a §11 antes das seções 2, 3, 8 e 9.** Elas descrevem a camada de verificação
 > no presente, e ela não existe mais. O raciocínio continua válido; a instanciação
-> não. O código está no branch `executor-em-node`.
+> não. O código está no histórico: `8b3cbdb` é o último commit que o tem inteiro.
 
 ---
 
@@ -496,7 +496,7 @@ nenhum dos quais nomeia o problema. Ver
 ## 11. A camada de verificação foi removida (06/09, noite)
 
 Construída de manhã, migrada para Node à tarde, removida à noite. O registro completo
-do que ela era está na §10 e no branch `executor-em-node`; esta seção é sobre o corte.
+do que ela era está na §10 e no commit `8b3cbdb`; esta seção é sobre o corte.
 
 ### O que saiu
 
