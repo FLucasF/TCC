@@ -188,6 +188,15 @@ def test_arquivo_do_backend_cai_na_boundary_backend():
     assert boundary_for(caminho, real)["id"] == "backend"
 
 
+def test_md_da_raiz_e_do_harness_md_de_apps_docs_e_de_docs():
+    """Regressão: "*.md" mandava a documentação do NutriPlan para a boundary do
+    harness, que respondia rodando o pytest do runner."""
+    real = runner.load_manifest()
+    assert boundary_for(norm("README.md"), real)["id"] == "harness"
+    assert boundary_for(norm("apps/docs/02-arquitetura.md"), real)["id"] == "docs"
+    assert boundary_for(norm("apps/dados/taco-4ed.xlsx"), real)["id"] == "dados"
+
+
 # ------------------------------------------------------- o portão de conclusão
 
 def test_gate_roda_a_boundary_inteira_por_id():
