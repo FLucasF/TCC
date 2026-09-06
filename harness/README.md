@@ -63,7 +63,8 @@ harness/
 │       ├── commit/              splitting changes, writing the message
 │       ├── testing/             what to assert, fakes over mocks
 │       ├── error-handling/      root cause, expected vs exceptional
-│       └── duplication-check/   does this already exist?
+│       ├── duplication-check/   does this already exist?
+│       └── execplan/            plans that outlive the session
 └── <your software>/
 ```
 
@@ -167,9 +168,10 @@ with it. Ten is the current count, verified by hand on 2026-09-06.
 
 A skill has a description, always in context, and a body loaded only when the task
 matches. That is what allows many practice guides without paying for all of them
-every turn. Measured on 2026-09-06: `CLAUDE.md` plus the skill descriptions is about
-830 tokens carried on every request; the skill bodies are around 9 KB and cost
-nothing until they fire.
+every turn. Measured on 2026-09-06 with four skills: `CLAUDE.md` plus the skill
+descriptions is about 830 tokens carried on every request; the skill bodies are
+around 9 KB and cost nothing until they fire. `execplan` was added the same day and
+the figures were not re-measured.
 
 Add one when you catch the agent getting a subject wrong repeatedly — not because
 you predict it might.
@@ -195,7 +197,7 @@ fill every row. It is to know which rows are empty and why.
 
 | Dimension | State here |
 |---|---|
-| **Skills** | Four, with progressive disclosure. Missing the paper's third attribute: revision driven by observed failure |
+| **Skills** | Five, with progressive disclosure. Missing the paper's third attribute: revision driven by observed failure |
 | **Verification / Control** | **Absent.** Built and removed on 2026-09-06 — see above |
 | **Permission** | **Partial.** Declarative deny/ask rules, not isolation — see below |
 | **Protocols** | Inherited via MCP. The hook contract went with the executor. Not designed |
