@@ -94,6 +94,12 @@ suite takes 203 seconds and a type check takes 3.
 The second is the completion gate: it blocks with exit code 2 and hands the failure
 back.
 
+Both hooks call the executor as `python`, resolved on PATH, so the harness runs
+wherever that name is a Python 3: the python.org installer adds it on Windows,
+Debian-family Linux needs the `python-is-python3` package, macOS has it through
+Homebrew. The executor's own tests need `pytest` in that same Python; that is the
+one Python package the harness asks for.
+
 **The gate fails open, and the distinction matters.** The per-edit check fires on
 every edit — there is nothing to bypass. The gate does not have that guarantee: it
 is skipped when the stop comes from a user interrupt, its output is ignored on an
