@@ -365,11 +365,16 @@ revisar, não para remover. O sinal que reverte está em §9.
   por previsão; e o núcleo está em dez exatos, então entrar exige tirar uma.
 - ~~SEM OBJETO desde a §11~~ — **Fase rápida do backend.** Medida em 2,9 s e não adotada. Gatilho: uma edição no
   backend chegar ao portão de 203 s com erro de compilação.
-- ~~SEM OBJETO desde a §11~~ — **Hook chamado como `node`.** Só se prova na próxima sessão: o Claude Code congela
-  a configuração de hooks na abertura. A prova é a primeira edição gravar uma linha
-  nova em `verify/.trace.jsonl`. Os três modos foram exercidos na mão em 06/09
-  (`--hook`, `--gate` verde e `--gate` bloqueando com exit 2), o que prova o executor,
-  não o registro do hook.
+- ~~SEM OBJETO desde a §11~~ — **Hook chamado como `node`.** Os três modos foram
+  exercidos na mão em 06/09 (`--hook`, `--gate` verde e `--gate` bloqueando com exit
+  2), o que prova o executor, não o registro do hook.
+
+  **Correção de um erro que circulou nesta sessão:** *"o Claude Code congela a
+  configuração de hooks na abertura"* é falso. Foi verificado em 06/09 que o app
+  **relê o `settings.json`**. O motivo de os hooks não terem disparado é outro e está
+  na §11: a sessão foi aberta em `J:\TCC`, e configuração de projeto só carrega de
+  `<cwd>/.claude/` — o harness está em `J:\TCC\harness`. A conclusão da §11 não muda;
+  a explicação errada, sim.
 - ~~SEM OBJETO desde a §11~~ — **`consumedBy` backend→frontend.** Inútil enquanto o `types.ts` for espelho escrito
   à mão — o comentário no topo do arquivo diz *"mirroring the backend DTOs"*.
   Gatilho: o dia em que os tipos passarem a ser gerados do OpenAPI, que o
