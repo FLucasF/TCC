@@ -163,22 +163,19 @@ Three fields are worth knowing, and `validation.example.json` shows all of them:
 - **`commands: []`** — a boundary with no executable validation. Reported as such;
   another boundary's suite is never substituted for it.
 
-### The one tool the harness asks you to install
+### The one tool the harness fetches for you
 
 Everything else here declares commands the project already has. `jscpd` is the
 exception, and it is worth naming as one.
 
 It detects duplicated code across 224 formats. It **tokenizes rather than
-executes**, so it needs no compiler, no runtime, and none of the project's
-toolchain — it is a self-contained binary that runs on a freshly cloned
-repository before anything is installed. That is why it earns the exception: it is
-the only check available before an environment exists.
+executes**, so it needs no compiler and none of the project's toolchain. That is
+why it earns the exception: it is a check that works before the environment does.
 
-```
-irm https://jscpd.dev/install.ps1 | iex
-```
-
-Add it to any boundary holding source code — the shape and the tuning notes are in
+Nothing is installed. The manifest runs it as `npx --yes jscpd`, so the only
+requirement is Node, which the frontend boundary already needs; the first run
+downloads the package and later runs use the cache. Add it to any boundary
+holding source code — the shape and the tuning notes are in
 `validation.example.json`.
 
 **What it does not do:** it finds copied, renamed, and lightly edited code. It does
