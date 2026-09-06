@@ -6,7 +6,10 @@ Python, que é o único pré-requisito garantido.
 
 from __future__ import annotations
 
+import json
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -14,6 +17,12 @@ import runner
 from runner import boundary_for, format_for_model, norm, truncate, verify
 
 PY = sys.executable
+
+
+@pytest.fixture(autouse=True)
+def traco_isolado(monkeypatch, tmp_path):
+    """Nenhum teste grava no .trace.jsonl real do harness."""
+    monkeypatch.setattr(runner, "TRACE", tmp_path / ".trace.jsonl")
 
 
 def manifest(**boundary) -> dict:
@@ -25,6 +34,14 @@ def manifest(**boundary) -> dict:
 def cmd(code: int, text: str = "") -> dict:
     script = f'import sys; sys.stdout.write({text!r}); sys.exit({code})'
     return {"run": f'"{PY}" -c "{script}"'}
+
+
+def relogio_fixo() -> datetime:
+    return datetime(2026, 9, 6, 12, 0, tzinfo=timezone.utc)
+
+
+def linhas(path: Path) -> list[dict]:
+    return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines()]
 
 
 # ---------------------------------------------------------------- as cinco saídas
@@ -182,3 +199,119 @@ def test_gate_com_boundary_verde_nao_reprova():
     m = manifest(id="backend", commands=[cmd(0)])
     result = runner.verify_boundaries(["backend"], phase="full", manifest=m)
     assert not result.failed
+
+
+# ----------------------------------------------------------------------- o traço
+
+CAMPOS = {"schema", "ts", "boundary", "phase", "command", "outcome",
+          "duration_s", "exit_code", "touched"}
+
+
+def test_traco_grava_um_registro_por_comando_com_os_campos(tmp_path):
+    traco = tmp_path / "t.jsonl"
+    m = manifest(commands=[cmd(0), cmd(0)])
+    verify(["x/a.py"], phase="full", manifest=m, trace=traco, now=relogio_fixo)
+    regs = linhas(traco)
+    assert len(regs) == 2
+    for r in regs:
+        assert set(r) == CAMPOS
+        assert r["schema"] == "harness.trace.v1"
+        assert r["ts"] == "2026-09-06T12:00:00+00:00"
+        assert r["boundary"] == "b"
+        assert r["phase"] == "full"
+        assert r["command"] == cmd(0)["run"]
+        assert r["outcome"] == "PASS"
+        assert r["exit_code"] == 0
+        assert isinstance(r["duration_s"], float) and r["duration_s"] >= 0
+        assert r["touched"] == ["x/a.py"]
+
+
+def test_traco_continua_jsonl_valido_apos_varias_execucoes(tmp_path):
+    traco = tmp_path / "t.jsonl"
+    for _ in range(3):
+        verify(["x/a.py"], phase="full", manifest=manifest(commands=[cmd(0)]),
+               trace=traco, now=relogio_fixo)
+    dados = traco.read_bytes()
+    assert b"\r" not in dados
+    bruto = dados.decode("utf-8").split("\n")
+    assert bruto[-1] == ""
+    assert len(bruto) == 4
+    for ln in bruto[:-1]:
+        assert isinstance(json.loads(ln), dict)
+
+
+def test_traco_output_head_so_em_fail(tmp_path):
+    traco = tmp_path / "t.jsonl"
+    informativo = {**cmd(0, "x/Alvo.java achou algo"), "reportOnly": True}
+    m = manifest(commands=[cmd(0), cmd(1, "boom: erro aqui"), informativo])
+    verify(["x/Alvo.java"], phase="full", manifest=m, trace=traco, now=relogio_fixo)
+    por_desfecho = {r["outcome"]: r for r in linhas(traco)}
+    assert set(por_desfecho) == {"PASS", "FAIL", "NOTE"}
+    assert "boom" in por_desfecho["FAIL"]["output_head"]
+    assert "output_head" not in por_desfecho["PASS"]
+    assert "output_head" not in por_desfecho["NOTE"]
+
+
+def test_traco_unmapped_e_no_checks_gravam_com_command_nulo(tmp_path):
+    traco = tmp_path / "t.jsonl"
+    verify(["fora/mapa.txt", "x/a.md"], phase="full", manifest=manifest(commands=[]),
+           trace=traco, now=relogio_fixo)
+    unmapped, no_checks = linhas(traco)
+    assert unmapped["outcome"] == "UNMAPPED"
+    assert unmapped["boundary"] is None
+    assert unmapped["phase"] == "full"
+    assert unmapped["touched"] == ["fora/mapa.txt"]
+    assert no_checks["outcome"] == "NO_CHECKS"
+    assert no_checks["boundary"] == "b"
+    assert no_checks["touched"] == ["x/a.md"]
+    for r in (unmapped, no_checks):
+        assert r["command"] is None
+        assert r["duration_s"] is None
+        assert r["exit_code"] is None
+
+
+def test_traco_blocked_nao_tem_duracao_nem_exit_code(tmp_path):
+    traco = tmp_path / "t.jsonl"
+    spec = {**cmd(0), "prerequisites": ["binario-que-nao-existe-aqui"]}
+    verify(["x/a.py"], phase="full", manifest=manifest(commands=[spec]),
+           trace=traco, now=relogio_fixo)
+    (r,) = linhas(traco)
+    assert r["outcome"] == "BLOCKED"
+    assert r["command"] == spec["run"]
+    assert r["duration_s"] is None
+    assert r["exit_code"] is None
+
+
+def test_traco_teto_descarta_o_mais_antigo_e_preserva_o_recente(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "MAX_TRACE_RECORDS", 3)
+    traco = tmp_path / "t.jsonl"
+    for i in range(1, 6):
+        result = verify([f"fora/{i}.txt"], manifest=manifest(), trace=traco, now=relogio_fixo)
+    assert result.notes == []
+    assert [r["touched"] for r in linhas(traco)] == [["fora/3.txt"], ["fora/4.txt"], ["fora/5.txt"]]
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_falha_ao_gravar_traco_nao_muda_o_resultado_e_emite_nota(tmp_path):
+    result = verify(["fora.txt"], manifest=manifest(), trace=tmp_path, now=relogio_fixo)
+    assert result.unmapped == ["fora.txt"]
+    assert not result.failed
+    assert len(result.notes) == 1
+    assert result.notes[0].startswith("traço não gravado em")
+    assert "traço não gravado" in format_for_model(result)
+
+
+def test_traco_exige_relogio_com_timezone(tmp_path):
+    with pytest.raises(ValueError):
+        verify(["fora.txt"], manifest=manifest(), trace=tmp_path / "t.jsonl",
+               now=lambda: datetime(2026, 9, 6, 12, 0))
+
+
+def test_gate_grava_traco_com_touched_vazio(tmp_path):
+    traco = tmp_path / "t.jsonl"
+    m = manifest(id="backend", commands=[cmd(0)])
+    runner.verify_boundaries(["backend"], phase="full", manifest=m, trace=traco, now=relogio_fixo)
+    (r,) = linhas(traco)
+    assert r["boundary"] == "backend"
+    assert r["phase"] == "full"
+    assert r["touched"] == []

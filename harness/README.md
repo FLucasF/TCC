@@ -219,8 +219,8 @@ fill every row. It is to know which rows are empty and why.
 | **Verification / Control** | Per-edit checks and a completion gate with a recursion bound. No turn or cost ceiling — in interactive use the human is the stop condition |
 | **Permission** | **Partial.** Declarative deny/ask rules, not isolation — see below |
 | **Protocols** | Inherited via MCP and the hook contract. Not designed |
-| **Memory** | Semantic (`CLAUDE.md`) and personalised (platform auto-memory). No episodic record, no working context |
-| **Observability** | **Absent.** `verify/.state.json` is coordination state, not a log: no history, no traces, no metrics |
+| **Memory** | Semantic (`CLAUDE.md`) and personalised (platform auto-memory). Episodic record present and deterministic (`verify/.trace.jsonl`). No working context |
+| **Observability** | **Partial.** `verify/.trace.jsonl` records every verification the runner performs — boundary, command, outcome, duration, exit code — deterministically, capped. Nothing reads it yet: no metrics, no report |
 
 ### Permission is policy, not isolation
 
@@ -239,7 +239,7 @@ blurred.
 
 | Deferred | Signal |
 |---|---|
-| Session logging and traces | The runner already knows the boundary, command, result and duration, and throws all of it away. Adding a JSONL is now a function, not a mechanism |
+| Trace reader | You want to know whether a failure has happened before and realise you cannot answer without opening `verify/.trace.jsonl` by hand |
 | Episodic memory | You catch yourself correcting the same thing a third time |
 | Code index | You watch it open eight files to answer one structural question |
 | Clean-context reviewer | Reviewing diffs yourself becomes the bottleneck |
