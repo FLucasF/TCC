@@ -127,11 +127,16 @@ The design is recorded in `docs/briefings/decisoes-do-harness.md` §10. The code
 this repository's history: commit `8b3cbdb` is the last one that has the complete
 `verify/`, and `52395cd` is the removal.
 
-The executor and its 41 tests come back with `git checkout 8b3cbdb -- harness/verify`.
-The rest of the layer — the manifest, the two hooks, and the `CLAUDE.md` section that
-told the model it did not need to run the checks — is in that same commit and has to
-be copied back by hand, because the prose files were rewritten afterwards and a plain
-revert conflicts with them. The code is a checkout; the wiring is a decision.
+`git checkout 8b3cbdb -- harness/verify` brings back the executor and its 41 tests.
+**They will not run yet** — verified: the suite loads the real `.claude/validation.json`
+and fails with `ENOENT` without it. The rest of the layer is in that same commit and
+has to be copied back deliberately: the manifest, the two hooks in `settings.json`,
+and the `CLAUDE.md` section that told the model it did not need to run the checks. A
+plain `git revert 52395cd` does not do it either, because the prose files were
+rewritten afterwards and conflict.
+
+The code is a checkout. The wiring is a decision, and it should be made again rather
+than restored by reflex.
 
 ---
 
