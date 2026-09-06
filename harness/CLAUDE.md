@@ -28,7 +28,8 @@ real variation exists.
 
 ## Correctness
 
-Validate at the boundary and fail immediately. Never swallow an error silently.
+Validate at the boundary, not in every layer, and fail immediately. Never swallow
+an error silently.
 
 Every call that leaves the process has a timeout. No exceptions — the default
 without one is infinite.
