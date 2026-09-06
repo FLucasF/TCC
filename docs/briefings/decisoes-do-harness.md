@@ -45,7 +45,7 @@ maioria das vezes*. Por isso a organização é **por quem garante**, não por a
 | Camada | Quem garante | Cobertura |
 |---|---|---|
 | Permissões | A plataforma | Toda chamada. Determinística |
-| Verificação | `verify/runner.py`, chamado por dois hooks (06/09) | Toda edição, determinística. O portão de conclusão é mais fraco — ver §8 |
+| Verificação | `verify/runner.mjs`, chamado por dois hooks (06/09) | Toda edição, determinística. O portão de conclusão é mais fraco — ver §8 |
 | Guia | O modelo, lendo | Probabilística |
 
 Uma prática só desce de camada quando a de cima não consegue expressá-la.
@@ -62,7 +62,7 @@ regras no núcleo; a décima primeira precisa expulsar uma.
 
 Desde 06/09 o teto é um teste, não uma intenção: regra é **um parágrafo com um
 imperativo independente** (uma unidade que sai sozinha sem quebrar outra), e
-`verify/test_rules.py` conta os parágrafos abaixo dos títulos e falha acima de dez.
+`verify/rules.test.mjs` conta os parágrafos abaixo dos títulos e falha acima de dez.
 O núcleo está em dez exatos — as duas regras de teste saíram para a skill `testing`,
 que já as tinha.
 
@@ -113,7 +113,7 @@ Isso é sustentado por evidência: nas ablações do SWE-agent, janela de 100 li
 | Natureza | Configuração declarativa mais **um** executor determinístico, chamado pelos hooks da plataforma. Sem loop próprio: rota nativa, decidida em 05/09 e confirmada em 06/09 |
 | Organização | Por quem garante o cumprimento |
 | Filtro do guia | Moderado, com teto de 10 no núcleo — verificado por teste desde 06/09 |
-| Executor (hook) | **Construído** (06/09): `verify/runner.py`; `PostToolUse` roda os `fast`, `Stop` roda os `commands` e bloqueia com exit 2. Chamado como `python` no PATH — portátil entre sistemas operacionais |
+| Executor (hook) | **Construído** (06/09): `verify/runner.mjs`; `PostToolUse` roda os `fast`, `Stop` roda os `commands` e bloqueia com exit 2. Chamado como `node` no PATH — a linguagem é derivada do manifesto, ver §10 |
 | Distribuição | **Container** — o harness é a raiz, o software mora dentro |
 | Permissões | Média — nega o irreversível, pergunta no caro-reversível |
 | Manifesto | `consumedBy`, comandos de frescor, `prerequisites`, `unmappedPathPolicy` |
@@ -359,9 +359,11 @@ revisar, não para remover. O sinal que reverte está em §9.
   por previsão; e o núcleo está em dez exatos, então entrar exige tirar uma.
 - **Fase rápida do backend.** Medida em 2,9 s e não adotada. Gatilho: uma edição no
   backend chegar ao portão de 203 s com erro de compilação.
-- **Hook chamado como `python`.** Só se prova na próxima sessão: o Claude Code congela
+- **Hook chamado como `node`.** Só se prova na próxima sessão: o Claude Code congela
   a configuração de hooks na abertura. A prova é a primeira edição gravar uma linha
-  nova em `verify/.trace.jsonl`.
+  nova em `verify/.trace.jsonl`. Os três modos foram exercidos na mão em 06/09
+  (`--hook`, `--gate` verde e `--gate` bloqueando com exit 2), o que prova o executor,
+  não o registro do hook.
 - **`consumedBy` backend→frontend.** Inútil enquanto o `types.ts` for espelho escrito
   à mão — o comentário no topo do arquivo diz *"mirroring the backend DTOs"*.
   Gatilho: o dia em que os tipos passarem a ser gerados do OpenAPI, que o
@@ -374,3 +376,106 @@ revisar, não para remover. O sinal que reverte está em §9.
 - **Testar regra a regra.** Rodar a mesma tarefa com e sem cada regra do núcleo e ver
   se o comportamento muda. É o que transformaria o guia de "o que eu acho que ajuda"
   em "o que eu vi mudar comportamento".
+
+---
+
+## 10. A linguagem do executor — migração de Python para Node (06/09, tarde)
+
+Registro da decisão que trocou `verify/runner.py` por `verify/runner.mjs`.
+
+### O critério, que virou o princípio 13
+
+> **O executor não deve introduzir um runtime. Ele reusa um que o projeto já exige.**
+
+A pergunta que começou a conversa era "qual linguagem está em toda máquina". Ela não
+tem resposta:
+
+| Candidato | Windows | Linux | macOS |
+|---|---|---|---|
+| POSIX `sh` | não, só com Git Bash ou WSL | sim | sim |
+| PowerShell | sim, 5.1 | não | não |
+| Python 3 | não | `python3` quase sempre; `python` só com `python-is-python3` | via Xcode CLT, não garantido |
+| Node | não | não | não |
+| Go, toolchain | não | não | não |
+| Binário compilado | sim | sim | sim, ao custo de distribuir artefato por plataforma |
+
+Verificado na máquina de desenvolvimento: `go` não está no PATH, e o TypeScript não
+está instalado globalmente — só no `node_modules` do frontend, 5.9.3.
+
+Como não há linguagem universal, o critério deixa de ser presença e passa a ser
+**custo marginal no projeto**:
+
+| Runtime | Já exigido pelo NutriPlan? | Por quê |
+|---|---|---|
+| `java`, `mvn` | sim | backend |
+| `node`, `npm`, `npx` | sim | frontend (`tsc`, `vite`) e o jscpd via `npx --yes` |
+| `python` + `pytest` | **não** | só o executor |
+
+O harness pedia duas dependências que nenhuma boundary tinha declarado, enquanto o
+README afirmava não trazer ferramenta nenhuma. A afirmação era falsa; a migração a
+tornou verdadeira.
+
+### Por que JSDoc e não TypeScript
+
+O Node 24 roda `.ts` direto por *type stripping*, sem instalar nada — testado. Mas
+duas coisas foram medidas junto:
+
+- um erro de tipo deliberado **rodou mesmo assim**, imprimindo `42` onde a assinatura
+  dizia `string`: o stripping apaga, não verifica
+- `enum` falhou com `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` — o subconjunto é só o
+  apagável
+
+Nas duas opções tipadas a verificação real é a mesma coisa: `tsc --noEmit`, rodado à
+parte. Então o TypeScript não compra segurança adicional — compra sintaxe, e cobra um
+piso de versão do Node (≥ 23.6) mais o subconjunto apagável. JSDoc em `.mjs` dá o
+mesmo checador sem nenhum dos dois custos. Testado: `tsc --checkJs` pegou exatamente
+o erro que o stripping deixou passar.
+
+### Onde a tipagem não protege, dito de frente
+
+As quatro entradas do executor são fronteiras de runtime — o payload do hook no
+stdin, o `validation.json`, o `.state.json` e a saída dos subprocessos. Ali o JSDoc
+vale zero, igual ao TypeScript valeria. Por isso cada uma tem guarda escrita à mão
+(`asManifest`, `pathsFromHook`, `loadState`), não `cast`. Quatro testes novos cobrem
+exatamente isso.
+
+### O que a migração custou e o que ela achou
+
+| | Antes | Depois |
+|---|---|---|
+| Dependências que nenhuma boundary pediu | `python` + `pytest` | nenhuma |
+| Testes | 32, pytest | **41**, `node:test` embutido |
+| Suíte | 1,3 s | **3,1 s** |
+| Verificação de tipo | não existia | `tsc --checkJs`, `strict`, limpo |
+
+**A suíte ficou 2,4× mais lenta, e isso é regressão real.** A causa é medida: cada
+comando sintético sobe um processo Node (~130 ms) onde o pytest subia um Python mais
+barato. Só pesa ao editar o próprio harness — a boundary `harness` é a única que roda
+esta suíte. Não foi otimizado; foi registrado.
+
+**O typecheck achou um erro de tipo real** no `traceRecords` antes de o ambiente estar
+pronto: `output_head` sendo atribuído a um literal cujo tipo inferido não tinha o
+campo. Sozinho, isso já paga o JSDoc.
+
+**Dependência de desenvolvimento não é dependência de execução.** Checar tipos precisa
+do TypeScript e dos tipos do Node, que não vêm com o Node e não são resolvíveis por
+`npx` — testado, o `tsc` buscado por `npx` não enxerga o `@types/node` do mesmo `npx`.
+Ficam declarados em `verify/package.json` e instalados com `npm install` dentro de
+`verify/`. Rodar o harness não precisa de nada disso, e enquanto não estiver instalado
+o typecheck reporta `BLOCKED`, nunca `FAIL` — o princípio 7 aplicado a ele mesmo.
+
+Para isso o `which` passou a resolver pré-requisito com separador **contra a raiz do
+harness**, e não contra o diretório de onde o hook disparou. Confirmado rodando o
+runner de dois diretórios diferentes com o mesmo resultado.
+
+### A assimetria, que é o achado
+
+O `validation.json` é agnóstico de linguagem porque não sabe o que é um teste. O
+executor **não pode ser**: é código, e código tem linguagem, que pode não existir no
+projeto que ele verifica. A única saída completa é distribuir binário em vez de fonte
+— o que troca genericidade por opacidade, e num TCC cuja contribuição são princípios
+de projeto, entregar a peça central como caixa-preta é mau negócio.
+
+Isso não foi resolvido. Foi reportado, e vale para os 72 repositórios da varredura,
+nenhum dos quais nomeia o problema. Ver
+[`pivo-principios-de-harness.md`](pivo-principios-de-harness.md), princípio 13.

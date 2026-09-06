@@ -6,7 +6,7 @@ the rest of the system expects.
 
 It is not a framework and not a library. There is nothing to import. It is
 configuration that a coding agent picks up and works under, plus one small
-deterministic executor, `verify/runner.py`, which the agent's own hooks call.
+deterministic executor, `verify/runner.mjs`, which the agent's own hooks call.
 
 The harness does not own the loop. It has no scheduler, no budget and no stop
 condition of its own; those stay with the platform. The alternative — a loop of
@@ -64,9 +64,11 @@ harness/
 │       ├── api-change/          what breaks silently
 │       └── duplication-check/   does this already exist?
 ├── verify/
-│   ├── runner.py                the executor the hooks call
-│   ├── test_runner.py           its tests: python -m pytest verify
-│   ├── test_rules.py            the rule cap, as a test
+│   ├── runner.mjs               the executor the hooks call
+│   ├── runner.test.mjs          its tests: node --test "verify/*.test.mjs"
+│   ├── rules.test.mjs           the rule cap, as a test
+│   ├── tsconfig.json            settings for the JSDoc type check
+│   ├── package.json             dev-only: the type checker. Not needed to run
 │   └── .trace.jsonl             one record per verification, not versioned
 └── <your software>/
 ```
@@ -81,7 +83,7 @@ the layers are not equally reliable.
 | Layer | Enforced by | Coverage |
 |---|---|---|
 | **Permissions** | The platform, outside the model | Every call. Deterministic. |
-| **Verification** | `verify/runner.py`, called from two hooks | Every edit, deterministically. The completion gate is weaker — see below. |
+| **Verification** | `verify/runner.mjs`, called from two hooks | Every edit, deterministically. The completion gate is weaker — see below. |
 | **Guide** | The model, reading | Probabilistic |
 
 Verification runs in two phases, split by cost — measured, not guessed: the backend
@@ -95,11 +97,51 @@ suite takes 203 seconds and a type check takes 3.
 The second is the completion gate: it blocks with exit code 2 and hands the failure
 back.
 
-Both hooks call the executor as `python`, resolved on PATH, so the harness runs
-wherever that name is a Python 3: the python.org installer adds it on Windows,
-Debian-family Linux needs the `python-is-python3` package, macOS has it through
-Homebrew. The executor's own tests need `pytest` in that same Python; that is the
-one Python package the harness asks for.
+Both hooks call the executor as `node`, resolved on PATH. Running the harness needs
+nothing else: `runner.mjs` imports only Node's standard library, and its tests use
+the built-in `node:test`.
+
+### Why the executor is written in the language it is
+
+**The executor must not introduce a runtime. It reuses one the project already
+requires.** Here that is Node — the frontend boundary needs it for `tsc` and `vite`,
+and the jscpd check runs through `npx`. The executor therefore adds nothing.
+
+This replaced Python on 2026-09-06. The Python version asked for `python` *and*
+`pytest`, neither of which any boundary had declared, while the README claimed the
+harness ships no tooling. The claim was false and the migration made it true.
+
+The rule generalises where a fixed choice would not: a Django project wants a Python
+executor, a Go project wants a compiled binary or none. **The language is derived
+from the manifest's own prerequisites, not decided in advance.**
+
+**And this is where the harness stops being language-agnostic.** `validation.json`
+genuinely is — it does not know what a test is, so `mvn test`, `go test` and
+`cargo test` are indistinguishable to it. The executor cannot be: it is code, and
+code has a language, which may not exist in the project it verifies. The only escape
+is shipping a compiled artifact instead of source, which trades genericity for
+opacity. The boundary between those two is the real limit of this design, and it is
+not resolved here — it is reported.
+
+### Types without a build step
+
+Types are JSDoc comments checked by `tsc --checkJs`, not TypeScript syntax. Node
+runs `.ts` directly by stripping types, but stripping only *erases* — it does not
+check — so TypeScript would buy nicer syntax at the price of a minimum Node version
+and the erasable-syntax-only subset. A plain `.mjs` file has neither cost and the
+same checking.
+
+The check is honest about what it does not cover. The four places the executor meets
+the outside world — the hook payload on stdin, `validation.json`, `.state.json`, and
+subprocess output — carry no types at runtime. Each is validated by a real guard
+(`asManifest`, `pathsFromHook`, `loadState`) rather than asserted with a cast,
+because a cast would only move the failure somewhere less obvious.
+
+Running the check needs TypeScript and the Node type declarations, which do not ship
+with Node. They are declared in `verify/package.json` and installed with
+`npm install` inside `verify/`. **This is a development dependency of the harness,
+not a runtime one** — the harness runs with none of it, the same way a jar runs
+without Maven. Until it is installed the typecheck reports `BLOCKED`, never `FAIL`.
 
 **The gate fails open, and the distinction matters.** The per-edit check fires on
 every edit — there is nothing to bypass. The gate does not have that guarantee: it
@@ -214,7 +256,7 @@ Two tests, both required:
 
 A rule is one paragraph holding one independent imperative — a unit that could be
 removed on its own without breaking another. Two ideas in one paragraph are two
-rules, and get two paragraphs. The count is a test, `verify/test_rules.py`: it
+rules, and get two paragraphs. The count is a test, `verify/rules.test.mjs`: it
 counts the paragraphs under the `##` headings and fails past ten, so the cap is an
 invariant rather than an intention. The blockquote under *Verification* is not a
 rule — it explains a mechanism the harness runs on its own — and is not counted.
