@@ -295,6 +295,7 @@ closed, and with a person in the loop, the person is the window.
 |---|---|
 | Trace reader | You want to know whether a failure has happened before and realise you cannot answer without opening `verify/.trace.jsonl` by hand |
 | Turning auto-memory off | A second model-written instruction steers a session. Then the store is an unreviewed guide layer: off in `settings.json`, with `settings.local.json` as the per-machine opt-in |
+| Backend fast correctness check | A backend edit reaches the 203 s gate with a compile error that `mvn -B -q -o test-compile` would have caught in seconds. Measured on 2026-09-06, offline: `test-compile` 2.9 s, `compile` 2.8 s. Not adopted, by decision; the backend's fast phase stays informational (jscpd) |
 | Episodic memory | You catch yourself correcting the same thing a third time |
 | Code index | You watch it open eight files to answer one structural question |
 | Clean-context reviewer | Reviewing diffs yourself becomes the bottleneck |
