@@ -70,8 +70,31 @@ the layers are not equally reliable.
 | Layer | Enforced by | Coverage |
 |---|---|---|
 | **Permissions** | The platform, outside the model | Every call. Deterministic. |
-| **Verification** | Tools the project already has, declared in the manifest | Whatever is checkable |
+| **Verification** | `verify/runner.py`, called from two hooks | Every edit, deterministically. The completion gate is weaker — see below. |
 | **Guide** | The model, reading | Probabilistic |
+
+Verification runs in two phases, split by cost — measured, not guessed: the backend
+suite takes 203 seconds and a type check takes 3.
+
+| When | Hook | What runs |
+|---|---|---|
+| After every edit | `PostToolUse` | the `fast` commands of the touched boundary |
+| Before accepting "done" | `Stop` | the full `commands`, if an edit went unverified |
+
+The second is the completion gate: it blocks with exit code 2 and hands the failure
+back.
+
+**The gate fails open, and the distinction matters.** The per-edit check fires on
+every edit — there is nothing to bypass. The gate does not have that guarantee: it
+is skipped when the stop comes from a user interrupt, its output is ignored on an
+API error, a callback that exceeds its timeout lets the turn end, and Claude Code
+overrides the hook after 8 consecutive blocks. The harness gives up at 4, below that
+ceiling, and says so rather than going quiet.
+
+So the gate **reduces the frequency** of "done" without verification. It does not
+make it impossible. Failing open is the right direction for a mechanism that could
+otherwise deadlock a session — but it is not a guarantee, and calling the whole
+layer deterministic would overstate it.
 
 A practice moves down a layer only when the layer above cannot express it. What a
 tool can check does not belong in prose — it belongs in the project's own linter,
@@ -180,22 +203,47 @@ you predict it might.
 
 ---
 
-## What is not built yet
+## Where this sits, and what is missing
 
-**Nothing executes the manifest automatically.** There is no hook, by choice. The
-agent is instructed to consult and run the declared commands, which means
-verification currently lives in the guide layer and carries the guide layer's
-reliability. The manifest format is ready for an executor whenever one is added;
-until then, the guarantee is probabilistic.
+The survey *Externalization in LLM Agents* (arXiv:2604.08224) decomposes a harness
+into six dimensions. It is worth stating plainly which of them this harness has,
+because two of the six are absent and one is weaker than it looks.
 
-**Deliberately deferred**, each with the signal that brings it back:
+The paper is explicit that this is **"an analytical framework for comparing harness
+architectures rather than an implementation checklist"** — so the goal is not to
+fill every row. It is to know which rows are empty and why.
+
+| Dimension | State here |
+|---|---|
+| **Skills** | Five, with progressive disclosure. Missing the paper's third attribute: revision driven by observed failure |
+| **Verification / Control** | Per-edit checks and a completion gate with a recursion bound. No turn or cost ceiling — in interactive use the human is the stop condition |
+| **Permission** | **Partial.** Declarative deny/ask rules, not isolation — see below |
+| **Protocols** | Inherited via MCP and the hook contract. Not designed |
+| **Memory** | Semantic (`CLAUDE.md`) and personalised (platform auto-memory). No episodic record, no working context |
+| **Observability** | **Absent.** `verify/.state.json` is coordination state, not a log: no history, no traces, no metrics |
+
+### Permission is policy, not isolation
+
+The paper describes this dimension as sandboxing, filesystem isolation and network
+restriction. What is here are permission *rules*, which is a weaker thing.
+
+Concretely: denying `curl` and `wget` by name does not close the network. A wrapper
+the matcher does not strip — `docker exec c curl ...` — is matched as a `docker`
+command and passes. Closing the network needs an allowlist-shaped policy or a real
+sandbox, neither of which is configured.
+
+The rules are worth having. They are not isolation, and the difference should not be
+blurred.
+
+### Deferred, each with the signal that brings it back
 
 | Deferred | Signal |
 |---|---|
-| Verification hook | You catch the agent skipping the declared commands |
+| Session logging and traces | The runner already knows the boundary, command, result and duration, and throws all of it away. Adding a JSONL is now a function, not a mechanism |
+| Episodic memory | You catch yourself correcting the same thing a third time |
 | Code index | You watch it open eight files to answer one structural question |
 | Clean-context reviewer | Reviewing diffs yourself becomes the bottleneck |
-| Session logging | You want to know what a task cost |
+| `consumedBy` between backend and frontend | The frontend types stop being hand-mirrored and start being generated from the contract |
 | Evaluation cases | You are changing rules and cannot tell whether they help |
 
 ---
