@@ -36,13 +36,10 @@ without one is infinite.
 
 ## Verification
 
-> The harness runs the commands declared in `.claude/validation.json` itself — the
-> fast ones after every edit, the full suite before accepting that you are done. You
-> do not need to run them, and a result arriving without you asking is not an error.
-
-What remains yours: never invent a build, lint, or test command, and never
-substitute one boundary's suite for another's. If a boundary has no checks, say so
-rather than borrowing another's.
+Never invent a build, lint, or test command — use what the project itself declares,
+in its `pom.xml`, `package.json` or equivalent. When a part of the project has no
+check of its own, say so instead of running another part's suite and reporting it
+as cover.
 
 ## Contracts
 

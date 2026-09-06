@@ -1,50 +1,54 @@
 # Harness
 
-A portable set of practices, checks, and permissions that keeps an agent's work
-consistent — with the request, with the code that already exists, and with what
-the rest of the system expects.
+A portable set of practices and permissions that keeps an agent's work consistent —
+with the request, with the code that already exists, and with what the rest of the
+system expects.
 
-It is not a framework and not a library. There is nothing to import. It is
-configuration that a coding agent picks up and works under, plus one small
-deterministic executor, `verify/runner.mjs`, which the agent's own hooks call.
+It is not a framework and not a library. There is nothing to import and nothing to
+run. It is configuration that a coding agent picks up and works under.
 
 The harness does not own the loop. It has no scheduler, no budget and no stop
-condition of its own; those stay with the platform. The alternative — a loop of
-its own over the Messages API — was cut on 2026-09-05 because everything it
-would add existed only to measure, and confirmed cut on 2026-09-06.
+condition of its own; those stay with the platform. The alternative — a loop of its
+own over the Messages API — was cut on 2026-09-05 because everything it would add
+existed only to measure, and confirmed cut on 2026-09-06.
+
+**It no longer owns an executor either.** A deterministic verification layer was
+built on 2026-09-06 and removed the same day. What that cost and what brings it
+back is in *What was removed, and the signal that reverses it*, below — that section
+is the most useful thing in this file.
 
 ---
 
 ## How to use it
 
 **You do not invoke the harness.** There is no command and no mode to switch on.
-You open this folder in your coding agent and work normally; the harness acts
-around you.
+You open this folder in your coding agent and work normally.
 
 ```
 1. Open J:\TCC\harness in Claude Code
 2. Build your software inside it
-3. Declare its boundary in .claude/validation.json
-4. Work
+3. Work
 ```
 
-That is the whole workflow. The agent starts every session already under the
-rules in `CLAUDE.md`, already unable to do what `settings.json` denies, and
-already told which commands verify this project.
+That is the whole workflow. The agent starts every session already under the rules
+in `CLAUDE.md` and already unable to do what `settings.json` denies.
 
-If it is working, the experience is *"the agent stopped doing the dumb things"* —
-it asks instead of inventing, it stays inside the scope you gave it, and it does
-not claim to be done without running what you declared.
+If it is working, the experience is *"the agent stopped doing the dumb things"* — it
+asks instead of inventing, and it stays inside the scope you gave it.
 
 ### Why software goes *inside* this folder
 
-Project configuration is read from the working directory only — there is no
-lookup in parent directories. Putting your project inside the harness makes the
-harness the working directory, so everything under it inherits the setup with no
-copying and nothing to keep in sync.
+Project configuration is read from the working directory only — there is no lookup
+in parent directories. Putting your project inside the harness makes the harness the
+working directory, so everything under it inherits the setup with no copying and
+nothing to keep in sync.
 
 The trade-off: a project that already has its own git history does not move in
 cleanly. For that case, copy `.claude/` and `CLAUDE.md` into it instead.
+
+This is not free, and it bit in practice: a session opened one directory up gets
+none of this. On 2026-09-06 an entire working session ran from the parent directory
+with the harness inert, and nothing said so.
 
 ---
 
@@ -54,187 +58,74 @@ cleanly. For that case, copy `.claude/` and `CLAUDE.md` into it instead.
 harness/
 ├── CLAUDE.md                    always-on rules (10, capped)
 ├── .claude/
-│   ├── settings.json            permissions: deny and ask; the two hooks
-│   ├── validation.json          the manifest for this project
-│   ├── validation.example.json  every field, with explanations
+│   ├── settings.json            permissions: deny and ask
 │   └── skills/
 │       ├── commit/              splitting changes, writing the message
 │       ├── testing/             what to assert, fakes over mocks
 │       ├── error-handling/      root cause, expected vs exceptional
-│       ├── api-change/          what breaks silently
 │       └── duplication-check/   does this already exist?
-├── verify/
-│   ├── runner.mjs               the executor the hooks call
-│   ├── runner.test.mjs          its tests: node --test "verify/*.test.mjs"
-│   ├── rules.test.mjs           the rule cap, as a test
-│   ├── tsconfig.json            settings for the JSDoc type check
-│   ├── package.json             dev-only: the type checker. Not needed to run
-│   └── .trace.jsonl             one record per verification, not versioned
 └── <your software>/
 ```
 
 ---
 
-## The three layers
+## The two layers
 
-Organized by **who enforces**, not by subject. The distinction matters because
-the layers are not equally reliable.
+Organized by **who enforces**, not by subject. The distinction matters because the
+layers are not equally reliable.
 
 | Layer | Enforced by | Coverage |
 |---|---|---|
-| **Permissions** | The platform, outside the model | Every call. Deterministic. |
-| **Verification** | `verify/runner.mjs`, called from two hooks | Every edit, deterministically. The completion gate is weaker — see below. |
+| **Permissions** | The platform, outside the model | Every call. Deterministic |
 | **Guide** | The model, reading | Probabilistic |
 
-Verification runs in two phases, split by cost — measured, not guessed: the backend
-suite takes 203 seconds and a type check takes 3.
+There used to be a third between them. Its absence is the defining fact about this
+harness now, so it is stated rather than implied: **nothing here checks the agent's
+work.** Whether a test ran, whether the build passes, whether "done" is true — all
+of that rests on the model choosing to do it.
 
-| When | Hook | What runs |
-|---|---|---|
-| After every edit | `PostToolUse` | the `fast` commands of the touched boundary |
-| Before accepting "done" | `Stop` | the full `commands`, if an edit went unverified |
+That ordering exists because text is the weakest lever available. Prompt formatting
+alone — with no change in content — has been measured to swing accuracy by tens of
+points, and adherence degrades as instructions accumulate. Permissions either fired
+or did not. Prose is followed *most* of the time.
 
-The second is the completion gate: it blocks with exit code 2 and hands the failure
-back.
-
-Both hooks call the executor as `node`, resolved on PATH. Running the harness needs
-nothing else: `runner.mjs` imports only Node's standard library, and its tests use
-the built-in `node:test`.
-
-### Why the executor is written in the language it is
-
-**The executor must not introduce a runtime. It reuses one the project already
-requires.** Here that is Node — the frontend boundary needs it for `tsc` and `vite`,
-and the jscpd check runs through `npx`. The executor therefore adds nothing.
-
-This replaced Python on 2026-09-06. The Python version asked for `python` *and*
-`pytest`, neither of which any boundary had declared, while the README claimed the
-harness ships no tooling. The claim was false and the migration made it true.
-
-The rule generalises where a fixed choice would not: a Django project wants a Python
-executor, a Go project wants a compiled binary or none. **The language is derived
-from the manifest's own prerequisites, not decided in advance.**
-
-**And this is where the harness stops being language-agnostic.** `validation.json`
-genuinely is — it does not know what a test is, so `mvn test`, `go test` and
-`cargo test` are indistinguishable to it. The executor cannot be: it is code, and
-code has a language, which may not exist in the project it verifies. The only escape
-is shipping a compiled artifact instead of source, which trades genericity for
-opacity. The boundary between those two is the real limit of this design, and it is
-not resolved here — it is reported.
-
-### Types without a build step
-
-Types are JSDoc comments checked by `tsc --checkJs`, not TypeScript syntax. Node
-runs `.ts` directly by stripping types, but stripping only *erases* — it does not
-check — so TypeScript would buy nicer syntax at the price of a minimum Node version
-and the erasable-syntax-only subset. A plain `.mjs` file has neither cost and the
-same checking.
-
-The check is honest about what it does not cover. The four places the executor meets
-the outside world — the hook payload on stdin, `validation.json`, `.state.json`, and
-subprocess output — carry no types at runtime. Each is validated by a real guard
-(`asManifest`, `pathsFromHook`, `loadState`) rather than asserted with a cast,
-because a cast would only move the failure somewhere less obvious.
-
-Running the check needs TypeScript and the Node type declarations, which do not ship
-with Node. They are declared in `verify/package.json` and installed with
-`npm install` inside `verify/`. **This is a development dependency of the harness,
-not a runtime one** — the harness runs with none of it, the same way a jar runs
-without Maven. Until it is installed the typecheck reports `BLOCKED`, never `FAIL`.
-
-**The gate fails open, and the distinction matters.** The per-edit check fires on
-every edit — there is nothing to bypass. The gate does not have that guarantee: it
-is skipped when the stop comes from a user interrupt, its output is ignored on an
-API error, a callback that exceeds its timeout lets the turn end, and Claude Code
-overrides the hook after 8 consecutive blocks. The harness gives up at 4, below that
-ceiling, and says so rather than going quiet.
-
-So the gate **reduces the frequency** of "done" without verification. It does not
-make it impossible. Failing open is the right direction for a mechanism that could
-otherwise deadlock a session — but it is not a guarantee, and calling the whole
-layer deterministic would overstate it.
-
-A practice moves down a layer only when the layer above cannot express it. What a
-tool can check does not belong in prose — it belongs in the project's own linter,
-and the result comes back as a fact rather than a reminder.
-
-One rule in `CLAUDE.md` is the exception, and it is worth naming: *every call that
-leaves the process has a timeout* is something a linter could check, and it stays
-in prose only because no boundary here has one for it — neither the Maven build
-nor the TypeScript toolchain ships such a check. The day a boundary gains one, the
-rule moves down and the paragraph goes.
-
-This ordering exists because text is the weakest lever available. Prompt
-formatting alone — with no change in content — has been measured to swing accuracy
-by tens of points, and adherence degrades as instructions accumulate. Permissions
-and commands either fired or did not. Prose is followed *most* of the time.
-
-So the guide is the last resort, used for what genuinely cannot be enforced any
-other way.
+So the guide is doing work it is not well suited to, and that is a known,
+deliberate position rather than an oversight.
 
 ---
 
-## The manifest
+## What was removed, and the signal that reverses it
 
-`.claude/validation.json` maps changed paths to boundaries, and boundaries to the
-commands that already exist in the project.
+On 2026-09-06 this harness had a `verify/` directory: a manifest mapping changed
+paths to commands, an executor called from two hooks, per-edit checks, a completion
+gate that blocked with exit code 2, and a JSONL trace. It was removed the same day.
 
-It is what makes the harness language-agnostic: the manifest does not know what a
-test is. It runs what you declare. `mvn test`, `pytest`, `go test`, `cargo test`
-are indistinguishable to it, so the harness ships no tooling and no
-language-specific configuration.
+**Why.** The verification layer was never observed changing an outcome. During the
+session that built it, the hooks never fired — the session had been opened one
+directory up — and every check ran anyway, by choice. That is one session and not
+evidence of much, but the harness's own filter is subtractive: what the model does
+on its own does not belong here. Nothing had been measured that put verification
+outside that filter.
 
-### Adding a boundary
+**What it cost to remove.** Three things it did are not recoverable by prose:
 
-When you create software inside the harness, add its boundary:
+1. **The gate made "done" contingent rather than declared.** A claim that survived
+   an `exit 2` is a different object from a claim. Prose asks; it cannot refuse.
+2. **`BLOCKED` never became `FAIL`.** With Maven absent the model reads "failed" and
+   goes on to *fix healthy code*. That is a specific destructive behavior, and the
+   distinction only existed because it was written down in code.
+3. **Output filtered to the touched file.** It is what made a duplication check cost
+   ~30 tokens instead of a full report. Without an executor there is no filter.
 
-```json
-{
-  "id": "api",
-  "paths": ["api/**"],
-  "workingDirectory": "api",
-  "commands": [
-    { "run": "go test ./...", "prerequisites": ["go"] }
-  ]
-}
-```
+**The signal that brings it back.** Any one of:
 
-Three fields are worth knowing, and `validation.example.json` shows all of them:
+- you find a commit where the suite did not run and should have
+- the agent "fixes" working code because a tool was missing from the environment
+- you stop trusting "done" and start re-running things yourself before reading
 
-- **`prerequisites`** — what must exist for the command to mean anything. Missing
-  prerequisite yields `BLOCKED`, never `FAIL`. This is what stops the agent from
-  "fixing" healthy code because Docker was not running.
-- **`consumedBy`** — other boundaries that depend on this one. Editing the
-  producer also runs the consumer's checks, so a backend change that breaks the
-  frontend surfaces immediately.
-- **`commands: []`** — a boundary with no executable validation. Reported as such;
-  another boundary's suite is never substituted for it.
-
-### The one tool the harness fetches for you
-
-Everything else here declares commands the project already has. `jscpd` is the
-exception, and it is worth naming as one.
-
-It detects duplicated code across 224 formats. It **tokenizes rather than
-executes**, so it needs no compiler and none of the project's toolchain. That is
-why it earns the exception: it is a check that works before the environment does.
-
-Nothing is installed. The manifest runs it as `npx --yes jscpd`, so the only
-requirement is Node, which the frontend boundary already needs; the first run
-downloads the package and later runs use the cache. Add it to any boundary
-holding source code — the shape and the tuning notes are in
-`validation.example.json`.
-
-**What it does not do:** it finds copied, renamed, and lightly edited code. It does
-not find the same idea implemented differently — the hard case, which currently has
-no reliable tool in any language. Only a fresh-eyes read of the diff catches that.
-
-**Not adopted, on purpose:** jscpd also ships an MCP server and a `dry-refactoring`
-skill. The MCP server would add tool definitions to every request in exchange for an
-occasional lookup, against a project whose first priority is token cost. The skill
-guides toward eliminating duplication, which works against this harness's own rule
-to prefer duplication over the wrong abstraction.
+The design is recorded in `docs/briefings/decisoes-do-harness.md` §10 and the code
+is in git history on the branch `executor-em-node`. Restoring is a checkout, not a
+rewrite.
 
 ---
 
@@ -244,31 +135,39 @@ to prefer duplication over the wrong abstraction.
 
 Two tests, both required:
 
-1. **Does it contradict what the model does by default?** If the model already
-   does it, the rule is noise — it costs context and dilutes the rules that
-   remain. This is why there is no "follow SOLID" here: the model already knows
-   SOLID, and its failure mode is applying it too eagerly. The rule that changes
-   behavior is the inverse — *do not create an extension point before real
-   variation exists*.
+1. **Does it contradict what the model does by default?** If the model already does
+   it, the rule is noise — it costs context and dilutes the rules that remain. This
+   is why there is no "follow SOLID" here: the model already knows SOLID, and its
+   failure mode is applying it too eagerly. The rule that changes behavior is the
+   inverse — *do not create an extension point before real variation exists*.
 
-2. **Is there a cap?** Ten rules. The eleventh has to evict one. Practices that
-   do not make the cut become skills, which cost nothing until loaded.
+2. **Is there a cap?** Ten rules. The eleventh has to evict one. Practices that do
+   not make the cut become skills, which cost nothing until loaded.
 
 A rule is one paragraph holding one independent imperative — a unit that could be
 removed on its own without breaking another. Two ideas in one paragraph are two
-rules, and get two paragraphs. The count is a test, `verify/rules.test.mjs`: it
-counts the paragraphs under the `##` headings and fails past ten, so the cap is an
-invariant rather than an intention. The blockquote under *Verification* is not a
-rule — it explains a mechanism the harness runs on its own — and is not counted.
+rules, and get two paragraphs.
+
+**The cap is an intention again, not an invariant.** It used to be a test that
+counted the paragraphs and failed past ten; the test lived in `verify/` and went
+with it. Ten is the current count, verified by hand on 2026-09-06.
 
 ### Adding a skill
 
 A skill has a description, always in context, and a body loaded only when the task
 matches. That is what allows many practice guides without paying for all of them
-every turn.
+every turn. Measured on 2026-09-06: `CLAUDE.md` plus the skill descriptions is about
+830 tokens carried on every request; the skill bodies are around 9 KB and cost
+nothing until they fire.
 
 Add one when you catch the agent getting a subject wrong repeatedly — not because
 you predict it might.
+
+The same test applies to skills that already exist elsewhere. A skill shipped by the
+platform is not missing, and copying it here forks it: the copy goes stale and the
+name collides. *"The model already does it"* has a sibling — *"the platform already
+ships it"* — and the second is easier to miss, because it looks like something you
+could build.
 
 ---
 
@@ -276,8 +175,8 @@ you predict it might.
 
 The survey *Externalization in LLM Agents* (arXiv:2604.08224) decomposes a harness
 into six dimensions. It is worth stating plainly which of them this harness has,
-because three of the six are only partly there, and a row that just said
-*present* would hide which part is missing.
+because most of the rows are now empty, and a row that just said *present* would
+hide which part is missing.
 
 The paper is explicit that this is **"an analytical framework for comparing harness
 architectures rather than an implementation checklist"** — so the goal is not to
@@ -285,12 +184,16 @@ fill every row. It is to know which rows are empty and why.
 
 | Dimension | State here |
 |---|---|
-| **Skills** | Five, with progressive disclosure. Missing the paper's third attribute: revision driven by observed failure |
-| **Verification / Control** | Per-edit checks and a completion gate with a recursion bound. No turn or cost ceiling — in interactive use the human is the stop condition |
+| **Skills** | Four, with progressive disclosure. Missing the paper's third attribute: revision driven by observed failure |
+| **Verification / Control** | **Absent.** Built and removed on 2026-09-06 — see above |
 | **Permission** | **Partial.** Declarative deny/ask rules, not isolation — see below |
-| **Protocols** | Inherited via MCP and the hook contract. Not designed |
-| **Memory** | Semantic: `CLAUDE.md`, the skills and this file, all reviewed. Episodic: `verify/.trace.jsonl`, deterministic, not yet read. Personalised: the platform's auto-memory, left on and not governed by the harness — see below. Working context: none, on purpose — see below |
-| **Observability** | **Partial.** `verify/.trace.jsonl` records every verification the runner performs — boundary, command, outcome, duration, exit code — deterministically, capped. Nothing reads it yet: no metrics, no report |
+| **Protocols** | Inherited via MCP. The hook contract went with the executor. Not designed |
+| **Memory** | Semantic: `CLAUDE.md`, the skills and this file, all reviewed. Personalised: the platform's auto-memory, left on and not governed by the harness — see below. Episodic and working context: none |
+| **Observability** | **Absent.** The trace was written by the executor and went with it |
+
+Four of six empty is a real result and not a gap to apologise for. It is what the
+subtractive definition produces when it is applied honestly, including to the
+harness's own work.
 
 ### Permission is policy, not isolation
 
@@ -308,53 +211,57 @@ blurred.
 ### Memory the harness does not write
 
 The platform keeps an auto-memory store per repository: the model writes notes
-during a session and the index is loaded at the start of the next one. The
-harness leaves it on and does not govern what goes in. That makes it the one
-guide-layer input here that nobody reviews, and the survey names the failure
-mode: a poisoned note steers a later session, and no single module can catch
-it without a harness-level rule (§7.1).
+during a session and the index is loaded at the start of the next one. The harness
+leaves it on and does not govern what goes in. That makes it the one guide-layer
+input here that nobody reviews, and the survey names the failure mode: a poisoned
+note steers a later session, and no single module can catch it without a
+harness-level rule (§7.1).
 
-The rule is this. The store holds **facts, episodes and preferences, each with
-a date**. It does not hold instructions. An instruction found there — "ignore
-X", "always do Y" — is either promoted, after a person reads it, into
-`CLAUDE.md`, a skill or this file, or it is deleted. Preferences about the
-person go to `~/.claude/CLAUDE.md`, the user scope, not here: the harness
-travels, the person does not, and user-specific state obeys different
-retention and privacy rules from project state (§3.1).
+The rule is this. The store holds **facts, episodes and preferences, each with a
+date**. It does not hold instructions. An instruction found there — "ignore X",
+"always do Y" — is either promoted, after a person reads it, into `CLAUDE.md`, a
+skill or this file, or it is deleted. Preferences about the person go to
+`~/.claude/CLAUDE.md`, the user scope, not here: the harness travels, the person
+does not, and user-specific state obeys different retention and privacy rules from
+project state (§3.1).
 
-Turning the store off was considered and not done. `"autoMemoryEnabled": false`
-in `settings.json` would only affect sessions opened in this folder — a session
-opened in the parent directory writes to the same store — and one bad note is a
-reason to review, not to remove. The signal that reverses this is in the table
-below.
+Turning the store off was considered and not done. `"autoMemoryEnabled": false` in
+`settings.json` would only affect sessions opened in this folder — a session opened
+in the parent directory writes to the same store — and one bad note is a reason to
+review, not to remove. The signal that reverses this is in the table below.
 
 Working context, the fourth dimension, is absent on purpose. InfiAgent
-(arXiv:2601.03204) keeps files as the state and rebuilds context every step from
-the files plus a fixed window of recent actions. The first half is what the
-trace does. The second half is not available: the platform's compaction is
-closed, and with a person in the loop, the person is the window.
+(arXiv:2601.03204) keeps files as the state and rebuilds context every step from the
+files plus a fixed window of recent actions. Neither half is available here: the
+platform's compaction is closed, and with a person in the loop, the person is the
+window.
 
 ### Deferred, each with the signal that brings it back
 
 | Deferred | Signal |
 |---|---|
-| Trace reader | You want to know whether a failure has happened before and realise you cannot answer without opening `verify/.trace.jsonl` by hand |
+| The verification layer | See *What was removed*, above — three signals, any one of them |
 | Turning auto-memory off | A second model-written instruction steers a session. Then the store is an unreviewed guide layer: off in `settings.json`, with `settings.local.json` as the per-machine opt-in |
-| Backend fast correctness check | A backend edit reaches the 203 s gate with a compile error that `mvn -B -q -o test-compile` would have caught in seconds. Measured on 2026-09-06, offline: `test-compile` 2.9 s, `compile` 2.8 s. Not adopted, by decision; the backend's fast phase stays informational (jscpd) |
 | Episodic memory | You catch yourself correcting the same thing a third time |
 | Code index | You watch it open eight files to answer one structural question |
-| Clean-context reviewer | Reviewing diffs yourself becomes the bottleneck |
-| `consumedBy` between backend and frontend | The frontend types stop being hand-mirrored and start being generated from the contract |
+| Clean-context reviewer | Reviewing diffs yourself becomes the bottleneck. Note that the platform already ships one; this row is a reminder to check before building |
 | Evaluation cases | You are changing rules and cannot tell whether they help |
 
 ---
 
 ## Design notes
 
-**The definition is subtractive on purpose.** "What the model does not do on its
-own" generates a small harness by construction. An earlier version defined it as
-an action interface, context selection, a control loop, and guards — three of
-which are software, which is why that version generated software.
+**The definition is subtractive on purpose.** "What the model does not do on its own"
+generates a small harness by construction. An earlier version defined it as an
+action interface, context selection, a control loop, and guards — three of which are
+software, which is why that version generated software.
+
+**The subtraction was eventually applied to the harness's own code.** A verification
+layer was built, measured, and cut in one day. That is the definition working rather
+than failing, but it is worth naming the asymmetry it exposes: the filter asks
+whether the model does something on its own, and *"the model usually does it"* and
+*"the model always does it"* are different answers that the filter cannot tell apart.
+Everything the removed layer did lived in that gap.
 
 **Rules are curated against defaults, not copied from a style guide.** Most of a
 best-practices document confirms what a capable model already does. The parts that
@@ -364,6 +271,5 @@ that was not stated.
 
 **Asking has a cost curve.** The agent stops for what is expensive to reverse or
 whose effect does not show up where the change is — a breaking change that fails
-nothing qualifies; a comment you can delete after reading the diff does not. Ask
-too often and the questions stop protecting anything, because you stop reading
-them.
+nothing qualifies; a comment you can delete after reading the diff does not. Ask too
+often and the questions stop protecting anything, because you stop reading them.
