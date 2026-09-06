@@ -73,8 +73,8 @@ def load_manifest(path: Path = MANIFEST) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def norm(raw: str) -> str:
-    """Path relative to the harness root, forward slashes.
+def norm(raw: str) -> str | None:
+    """Path relative to the harness root, forward slashes; None when outside it.
 
     Tool input arrives with backslashes on Windows; a guard written with forward
     slashes silently matches nothing.
@@ -82,12 +82,18 @@ def norm(raw: str) -> str:
     Only absolute paths are resolved. Path.resolve() on a relative path anchors it
     to the process working directory, which is wherever the hook happened to be
     invoked from — not the harness root.
+
+    An absolute path outside the root is not the harness's business: a glob such
+    as "*.md" would otherwise match a note in ~/.claude and run this project's
+    checks on it.
     """
     p = Path(raw)
     if p.is_absolute():
         try:
             p = p.resolve().relative_to(HARNESS_ROOT)
-        except (ValueError, OSError):
+        except ValueError:
+            return None
+        except OSError:
             return p.as_posix()
     text = p.as_posix()
     return text[2:] if text.startswith("./") else text
@@ -188,6 +194,8 @@ def verify(
     grouped: dict[str, tuple[dict, list[str]]] = {}
     for raw in paths:
         path = norm(raw)
+        if path is None:
+            continue
         boundary = boundary_for(path, manifest)
         if boundary is None:
             if manifest.get("unmappedPathPolicy", "report") == "report":

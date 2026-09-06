@@ -155,6 +155,16 @@ def test_norm_devolve_barra_normal():
     assert "\\" not in norm("x\\sub\\a.py")
 
 
+def test_caminho_fora_da_raiz_do_harness_nao_e_verificado(tmp_path):
+    """Regressão: "*.md" casava uma nota em ~/.claude e rodava a suíte do harness
+    nela, além de gravar o caminho externo no traço."""
+    fora = tmp_path / "nota.md"
+    assert norm(str(fora)) is None
+    result = verify([str(fora)], manifest=manifest(paths=["*.md"]))
+    assert result.boundaries == []
+    assert result.unmapped == []
+
+
 # --------------------------------------------------- o manifesto real é válido
 
 def test_manifesto_do_projeto_carrega_e_tem_as_boundaries_esperadas():
