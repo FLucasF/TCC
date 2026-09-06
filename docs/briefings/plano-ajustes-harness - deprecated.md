@@ -1,3 +1,7 @@
+> **Deprecated em 2026-09-06.** As cinco tarefas e os achados menores foram executados nesse
+> dia; a Tarefa 4 foi medida (2,9 s) e não adotada, por decisão. Estado atual em
+> `decisoes-do-harness.md`. Vale como registro, não como guia.
+
 # Plano de ajustes — harness
 
 Cinco tarefas independentes, em ordem. **Uma por sessão do Claude Code.** Cada uma

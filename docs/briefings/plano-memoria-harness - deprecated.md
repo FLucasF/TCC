@@ -1,3 +1,9 @@
+> **Deprecated em 2026-09-06.** Executado por inteiro nesse dia (traço no runner, política da
+> auto memory, promoção dos fatos). Duas afirmações daqui caíram: o store da auto memory é por
+> repositório git, não por diretório; e a recomendação de desligá-la não foi adotada — ficou
+> ligada, com política. Estado atual em `decisoes-do-harness.md` (§3, §8, §9) e no README do
+> harness. Vale como registro, não como guia.
+
 # Memória no harness — briefing para análise
 
 **Público deste documento:** um agente de código sem nenhum contexto prévio deste
