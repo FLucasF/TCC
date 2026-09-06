@@ -1,0 +1,5 @@
+- figma
+	- plugin: Figma to Code do bernadete
+- gemini para perguntas teoricas superfulas
+- Codex CLI
+- context7
