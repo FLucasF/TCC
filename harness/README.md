@@ -117,6 +117,12 @@ A practice moves down a layer only when the layer above cannot express it. What 
 tool can check does not belong in prose — it belongs in the project's own linter,
 and the result comes back as a fact rather than a reminder.
 
+One rule in `CLAUDE.md` is the exception, and it is worth naming: *every call that
+leaves the process has a timeout* is something a linter could check, and it stays
+in prose only because no boundary here has one for it — neither the Maven build
+nor the TypeScript toolchain ships such a check. The day a boundary gains one, the
+rule moves down and the paragraph goes.
+
 This ordering exists because text is the weakest lever available. Prompt
 formatting alone — with no change in content — has been measured to swing accuracy
 by tens of points, and adherence degrades as instructions accumulate. Permissions
