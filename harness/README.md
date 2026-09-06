@@ -4,9 +4,14 @@ A portable set of practices, checks, and permissions that keeps an agent's work
 consistent — with the request, with the code that already exists, and with what
 the rest of the system expects.
 
-It is not a framework and not a library. There is nothing to import and, right
-now, nothing to run. It is configuration that a coding agent picks up and works
-under.
+It is not a framework and not a library. There is nothing to import. It is
+configuration that a coding agent picks up and works under, plus one small
+deterministic executor, `verify/runner.py`, which the agent's own hooks call.
+
+The harness does not own the loop. It has no scheduler, no budget and no stop
+condition of its own; those stay with the platform. The alternative — a loop of
+its own over the Messages API — was cut on 2026-09-05 because everything it
+would add existed only to measure, and confirmed cut on 2026-09-06.
 
 ---
 
@@ -49,14 +54,19 @@ cleanly. For that case, copy `.claude/` and `CLAUDE.md` into it instead.
 harness/
 ├── CLAUDE.md                    always-on rules (10, capped)
 ├── .claude/
-│   ├── settings.json            permissions: deny and ask
+│   ├── settings.json            permissions: deny and ask; the two hooks
 │   ├── validation.json          the manifest for this project
 │   ├── validation.example.json  every field, with explanations
 │   └── skills/
 │       ├── commit/              splitting changes, writing the message
 │       ├── testing/             what to assert, fakes over mocks
 │       ├── error-handling/      root cause, expected vs exceptional
-│       └── api-change/          what breaks silently
+│       ├── api-change/          what breaks silently
+│       └── duplication-check/   does this already exist?
+├── verify/
+│   ├── runner.py                the executor the hooks call
+│   ├── test_runner.py           its tests: python -m pytest verify
+│   └── .trace.jsonl             one record per verification, not versioned
 └── <your software>/
 ```
 
@@ -207,7 +217,8 @@ you predict it might.
 
 The survey *Externalization in LLM Agents* (arXiv:2604.08224) decomposes a harness
 into six dimensions. It is worth stating plainly which of them this harness has,
-because two of the six are absent and one is weaker than it looks.
+because three of the six are only partly there, and a row that just said
+*present* would hide which part is missing.
 
 The paper is explicit that this is **"an analytical framework for comparing harness
 architectures rather than an implementation checklist"** — so the goal is not to
@@ -219,7 +230,7 @@ fill every row. It is to know which rows are empty and why.
 | **Verification / Control** | Per-edit checks and a completion gate with a recursion bound. No turn or cost ceiling — in interactive use the human is the stop condition |
 | **Permission** | **Partial.** Declarative deny/ask rules, not isolation — see below |
 | **Protocols** | Inherited via MCP and the hook contract. Not designed |
-| **Memory** | Semantic (`CLAUDE.md`) and personalised (platform auto-memory). Episodic record present and deterministic (`verify/.trace.jsonl`). No working context |
+| **Memory** | Semantic: `CLAUDE.md`, the skills and this file, all reviewed. Episodic: `verify/.trace.jsonl`, deterministic, not yet read. Personalised: the platform's auto-memory, left on and not governed by the harness — see below. Working context: none, on purpose — see below |
 | **Observability** | **Partial.** `verify/.trace.jsonl` records every verification the runner performs — boundary, command, outcome, duration, exit code — deterministically, capped. Nothing reads it yet: no metrics, no report |
 
 ### Permission is policy, not isolation
@@ -235,11 +246,41 @@ sandbox, neither of which is configured.
 The rules are worth having. They are not isolation, and the difference should not be
 blurred.
 
+### Memory the harness does not write
+
+The platform keeps an auto-memory store per repository: the model writes notes
+during a session and the index is loaded at the start of the next one. The
+harness leaves it on and does not govern what goes in. That makes it the one
+guide-layer input here that nobody reviews, and the survey names the failure
+mode: a poisoned note steers a later session, and no single module can catch
+it without a harness-level rule (§7.1).
+
+The rule is this. The store holds **facts, episodes and preferences, each with
+a date**. It does not hold instructions. An instruction found there — "ignore
+X", "always do Y" — is either promoted, after a person reads it, into
+`CLAUDE.md`, a skill or this file, or it is deleted. Preferences about the
+person go to `~/.claude/CLAUDE.md`, the user scope, not here: the harness
+travels, the person does not, and user-specific state obeys different
+retention and privacy rules from project state (§3.1).
+
+Turning the store off was considered and not done. `"autoMemoryEnabled": false`
+in `settings.json` would only affect sessions opened in this folder — a session
+opened in the parent directory writes to the same store — and one bad note is a
+reason to review, not to remove. The signal that reverses this is in the table
+below.
+
+Working context, the fourth dimension, is absent on purpose. InfiAgent
+(arXiv:2601.03204) keeps files as the state and rebuilds context every step from
+the files plus a fixed window of recent actions. The first half is what the
+trace does. The second half is not available: the platform's compaction is
+closed, and with a person in the loop, the person is the window.
+
 ### Deferred, each with the signal that brings it back
 
 | Deferred | Signal |
 |---|---|
 | Trace reader | You want to know whether a failure has happened before and realise you cannot answer without opening `verify/.trace.jsonl` by hand |
+| Turning auto-memory off | A second model-written instruction steers a session. Then the store is an unreviewed guide layer: off in `settings.json`, with `settings.local.json` as the per-machine opt-in |
 | Episodic memory | You catch yourself correcting the same thing a third time |
 | Code index | You watch it open eight files to answer one structural question |
 | Clean-context reviewer | Reviewing diffs yourself becomes the bottleneck |
