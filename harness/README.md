@@ -66,6 +66,7 @@ harness/
 ├── verify/
 │   ├── runner.py                the executor the hooks call
 │   ├── test_runner.py           its tests: python -m pytest verify
+│   ├── test_rules.py            the rule cap, as a test
 │   └── .trace.jsonl             one record per verification, not versioned
 └── <your software>/
 ```
@@ -207,6 +208,13 @@ Two tests, both required:
 
 2. **Is there a cap?** Ten rules. The eleventh has to evict one. Practices that
    do not make the cut become skills, which cost nothing until loaded.
+
+A rule is one paragraph holding one independent imperative — a unit that could be
+removed on its own without breaking another. Two ideas in one paragraph are two
+rules, and get two paragraphs. The count is a test, `verify/test_rules.py`: it
+counts the paragraphs under the `##` headings and fails past ten, so the cap is an
+invariant rather than an intention. The blockquote under *Verification* is not a
+rule — it explains a mechanism the harness runs on its own — and is not counted.
 
 ### Adding a skill
 
