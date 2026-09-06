@@ -65,22 +65,23 @@ O critério já existe; falta aplicá-lo com evidência em vez de intuição.
 ## 3. O catálogo
 
 Doze princípios extraídos do que já está registrado. Nível de evidência:
-**M** = medido com número · **V** = verificado em fonte ou código · **R** =
+**M** = medido com número · **V** = verificado em fonte ou código vigente · **H** =
+verificado em código que existiu e foi removido, hoje no histórico do git · **R** =
 raciocínio, ainda sem evidência.
 
 | # | Princípio | Classe | Evidência hoje | O que falta |
 |---|---|---|---|---|
 | 1 | Definição subtrativa: se o modelo já faz, não entra | — | R + o caso SOLID | Contagem: quantos dos 72 harnesses violam isso |
-| 2 | Organizar por quem garante, não por assunto | II | V (as três camadas) | Quantos dos 72 organizam por assunto |
+| 2 | Organizar por quem garante, não por assunto | II | V — duas camadas hoje, três até 06/09 | Quantos dos 72 organizam por assunto |
 | 3 | Prática só desce de camada quando a de cima não a expressa | II | V (o caso do timeout, em prosa por falta de linter) | Um caso de descida executado — Semgrep |
-| 4 | Teto declarado e verificado como teste | I | V (`test_rules.py`, 10 exatos) | — |
+| 4 | Teto declarado e verificado como teste | I | **H** (`rules.test.mjs`); hoje o teto é intenção, conferido à mão | Reinstalar o teste, se a camada voltar |
 | 5 | Unidade de contagem definida (regra = 1 parágrafo, 1 imperativo) | — | V | — |
-| 6 | Manifesto que não conhece a linguagem | II | V (`validation.json`) | **Prova em 2ª stack** — ver §4 |
-| 7 | `prerequisites` → `BLOCKED`, nunca `FAIL` | II | V | Um caso observado de "conserto" indevido |
-| 8 | Trabalho global é da ferramenta; local é do modelo | II | **M** (jscpd: ~30 tokens filtrado vs. 5–20k explorando) | — |
+| 6 | Manifesto que não conhece a linguagem | II | **H** (`validation.json`) | **Prova em 2ª stack** — ver §4 |
+| 7 | Ambiente ausente é `BLOCKED`, nunca `FAIL` | II | **H** (`prerequisites`) | Um caso observado de "conserto" indevido |
+| 8 | Trabalho global é da ferramenta; local é do modelo | II | **M** (jscpd: ~30 tokens filtrado vs. 5–20k explorando) | O filtro exigia executor; sem ele o número não se reproduz |
 | 9 | O gatilho precisa ser observável pelo agente | II | R, com o contraexemplo circular nomeado | — |
 | 10 | Perguntar tem curva de custo | I | R | — |
-| 11 | Falhar aberto, e dizer em vez de silenciar | II | V (portão desiste em 4, teto do Claude Code é 8) | — |
+| 11 | Falhar aberto, e dizer em vez de silenciar | II | **H** (portão desistia em 4, teto do Claude Code é 8) | — |
 | 12 | Adiar com o sinal nomeado que traz de volta | — | V (tabela de adiados) | — |
 
 **O princípio 8 é o mais forte que o projeto tem.** É o único com medição de
@@ -94,6 +95,34 @@ genéricas de boas práticas não alteram a saída porque o modelo já as segue"
 governança, não escrita" são duas linhas de resultado sob o princípio 1. A
 evidência da segunda já existe: a nota escrita pelo modelo em 05/09 que mandava
 ignorar crítica acadêmica e contradisse o trabalho do dia seguinte.
+
+---
+
+### O que a remoção do executor faz com este catálogo
+
+Em 06/09, depois de escrito o que está acima, a camada de verificação do harness foi
+construída e removida no mesmo dia. Cinco princípios — 2, 4, 6, 7 e 11 — tinham como
+evidência justamente aquele código, e por isso mudaram de **V** para **H**.
+
+Isso não os torna falsos, e vale ser preciso sobre o porquê: um princípio de projeto
+se sustenta pelo que foi observado ao construir, não por o artefato continuar de pé.
+O código está no histórico do branch `executor-em-node` e é inspecionável. Para um
+trabalho cuja contribuição são princípios, **artefato construído, medido e cortado é
+evidência mais forte que artefato mantido por precaução** — porque inclui o custo da
+decisão de cortar.
+
+O que a remoção de fato tira é a instanciação vigente. A consequência prática é a
+§4: a prova de genericidade na segunda stack agora exige reinstalar a camada antes,
+ou ser reescrita como comparação de manifestos e não de execuções.
+
+E ela acrescenta um princípio que não estava na lista, porque só aparece quando se
+corta algo:
+
+> **13. A linguagem do executor é derivada dos pré-requisitos que o projeto já
+> declara, não escolhida de antemão.** Corolário, e é onde a genericidade termina: o
+> manifesto pode ser agnóstico porque não sabe o que é um teste; o executor não pode,
+> porque é código e código tem linguagem. A única saída completa é distribuir binário
+> em vez de fonte, trocando genericidade por opacidade.
 
 ---
 
@@ -137,7 +166,7 @@ ficam declarados como raciocínio, o que é honesto e não invalida o resto.
 | Sai | Vira |
 |---|---|
 | A varredura dos 72 repositórios | Trabalhos relacionados. Trabalho excelente, e não é contribuição — mas alimenta as contagens dos princípios 1 e 2 |
-| Decisões de arquitetura do `runner.py` | Apêndice |
+| Decisões de arquitetura do executor | Apêndice, com o código no histórico do branch `executor-em-node` |
 | O harness como produto | Instrumento e instanciação dos princípios |
 | Ablação regra a regra das 10 + 5 skills | **Cortado.** Escopo demais para 3 meses sozinho, e "não mudou nada" ×12 não sustenta um capítulo |
 

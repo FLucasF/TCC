@@ -8,8 +8,13 @@ foi **verificado** em documentação ou código aparece com a fonte; o resto é
 raciocínio e está marcado como tal.
 
 **Atualizado em 2026-09-06** com o que foi construído depois da sessão de projeto:
-executor, traço episódico, política de memória, teto de regras como teste. As
-mudanças de estado estão marcadas com a data; o raciocínio original ficou.
+executor, traço episódico, política de memória, teto de regras como teste — **e com a
+remoção do executor no mesmo dia, na §11.** As mudanças de estado estão marcadas com
+a data; o raciocínio original ficou, inclusive onde o estado mudou depois.
+
+> **Leia a §11 antes das seções 2, 3, 8 e 9.** Elas descrevem a camada de verificação
+> no presente, e ela não existe mais. O raciocínio continua válido; a instanciação
+> não. O código está no branch `executor-em-node`.
 
 ---
 
@@ -45,7 +50,7 @@ maioria das vezes*. Por isso a organização é **por quem garante**, não por a
 | Camada | Quem garante | Cobertura |
 |---|---|---|
 | Permissões | A plataforma | Toda chamada. Determinística |
-| Verificação | `verify/runner.mjs`, chamado por dois hooks (06/09) | Toda edição, determinística. O portão de conclusão é mais fraco — ver §8 |
+| ~~Verificação~~ | ~~`verify/runner.mjs`, chamado por dois hooks~~ | **Removida em 06/09 — ver §11.** Ficaram duas camadas |
 | Guia | O modelo, lendo | Probabilística |
 
 Uma prática só desce de camada quando a de cima não consegue expressá-la.
@@ -60,9 +65,10 @@ Duas condições, uma delas basta:
 O resto é ruído: ocupa contexto e dilui as regras que ficam. Teto declarado de dez
 regras no núcleo; a décima primeira precisa expulsar uma.
 
-Desde 06/09 o teto é um teste, não uma intenção: regra é **um parágrafo com um
-imperativo independente** (uma unidade que sai sozinha sem quebrar outra), e
-`verify/rules.test.mjs` conta os parágrafos abaixo dos títulos e falha acima de dez.
+Em 06/09 o teto virou um teste, e voltou a ser intenção quando o `verify/` saiu:
+regra é **um parágrafo com um imperativo independente** (uma unidade que sai sozinha
+sem quebrar outra), e o `rules.test.mjs` contava os parágrafos abaixo dos títulos,
+falhando acima de dez. Hoje a contagem é à mão — dez exatos, conferidos em 06/09.
 O núcleo está em dez exatos — as duas regras de teste saíram para a skill `testing`,
 que já as tinha.
 
@@ -348,7 +354,7 @@ revisar, não para remover. O sinal que reverte está em §9.
 
 ## 9. Em aberto
 
-- **Leitor do traço.** O traço existe desde 06/09; ninguém o lê. Gatilho: querer saber
+- ~~SEM OBJETO desde a §11~~ — **Leitor do traço.** O traço existe desde 06/09; ninguém o lê. Gatilho: querer saber
   se uma falha já aconteceu e não conseguir responder sem abrir o arquivo na mão.
 - **Memória episódica para o modelo.** Gatilho: você se pegar corrigindo a mesma coisa
   pela terceira vez.
@@ -357,14 +363,14 @@ revisar, não para remover. O sinal que reverte está em §9.
   false` no `settings.json`, com `settings.local.json` como opt-in por máquina.
 - **Regra de escrita de memória para o modelo** (fato datado, não instrução). Não entra
   por previsão; e o núcleo está em dez exatos, então entrar exige tirar uma.
-- **Fase rápida do backend.** Medida em 2,9 s e não adotada. Gatilho: uma edição no
+- ~~SEM OBJETO desde a §11~~ — **Fase rápida do backend.** Medida em 2,9 s e não adotada. Gatilho: uma edição no
   backend chegar ao portão de 203 s com erro de compilação.
-- **Hook chamado como `node`.** Só se prova na próxima sessão: o Claude Code congela
+- ~~SEM OBJETO desde a §11~~ — **Hook chamado como `node`.** Só se prova na próxima sessão: o Claude Code congela
   a configuração de hooks na abertura. A prova é a primeira edição gravar uma linha
   nova em `verify/.trace.jsonl`. Os três modos foram exercidos na mão em 06/09
   (`--hook`, `--gate` verde e `--gate` bloqueando com exit 2), o que prova o executor,
   não o registro do hook.
-- **`consumedBy` backend→frontend.** Inútil enquanto o `types.ts` for espelho escrito
+- ~~SEM OBJETO desde a §11~~ — **`consumedBy` backend→frontend.** Inútil enquanto o `types.ts` for espelho escrito
   à mão — o comentário no topo do arquivo diz *"mirroring the backend DTOs"*.
   Gatilho: o dia em que os tipos passarem a ser gerados do OpenAPI, que o
   `springdoc` já produz em runtime.
@@ -479,3 +485,70 @@ de projeto, entregar a peça central como caixa-preta é mau negócio.
 Isso não foi resolvido. Foi reportado, e vale para os 72 repositórios da varredura,
 nenhum dos quais nomeia o problema. Ver
 [`pivo-principios-de-harness.md`](pivo-principios-de-harness.md), princípio 13.
+
+---
+
+## 11. A camada de verificação foi removida (06/09, noite)
+
+Construída de manhã, migrada para Node à tarde, removida à noite. O registro completo
+do que ela era está na §10 e no branch `executor-em-node`; esta seção é sobre o corte.
+
+### O que saiu
+
+`verify/` inteiro — executor, 41 testes, typecheck, traço —, o `validation.json`, o
+`validation.example.json`, os dois hooks do `settings.json`, e a skill `api-change`.
+Sobraram: permissões, dez regras no `CLAUDE.md`, quatro skills.
+
+### O que motivou
+
+Nenhuma observação de a camada ter mudado um resultado. O fato que pesou é
+desconfortável e está medido: **na sessão que a construiu, os hooks nunca
+dispararam** — a sessão tinha sido aberta um diretório acima, e a configuração de
+hooks só carrega de `<cwd>/.claude/`. Dezenas de edições, zero registros automáticos
+no traço. E mesmo assim a suíte, o typecheck e os três modos do executor rodaram,
+porque o modelo os rodou por conta.
+
+É uma sessão só, e é o cenário de maior incentivo possível — a tarefa *era* o
+executor, com o autor olhando. Não prova que a camada é dispensável numa terça-feira
+qualquer. Mas o filtro do harness é subtrativo, e nada tinha sido medido que
+colocasse a verificação fora dele.
+
+### O que o corte custou, nomeado em vez de minimizado
+
+Três coisas que prosa não recupera:
+
+1. **O portão tornava "pronto" contingente em vez de declarado.** Uma afirmação que
+   sobreviveu a um `exit 2` é objeto diferente de uma afirmação. Prosa pede, não impede.
+2. **`BLOCKED` nunca virava `FAIL`.** Sem Maven, o modelo lê "falhou" e vai consertar
+   código são. É comportamento destrutivo específico, e a distinção só existia porque
+   estava escrita em código.
+3. **O filtro por arquivo tocado.** É o que fazia a checagem de duplicação custar ~30
+   tokens em vez do relatório inteiro. Sem executor não há filtro — e é justamente a
+   evidência do princípio 8, o mais forte do catálogo.
+
+O sinal que reverte está no README, em *What was removed*. Restaurar é um checkout,
+não uma reescrita.
+
+### O que isso ensina, que é o que interessa ao TCC
+
+**A definição subtrativa foi aplicada ao próprio código do harness**, e não só ao
+guia. Isso é a definição funcionando, não falhando.
+
+Mas o corte expõe uma fraqueza dela que não estava escrita em lugar nenhum:
+
+> O filtro pergunta se o modelo já faz aquilo sozinho. **"O modelo quase sempre faz"
+> e "o modelo sempre faz" são respostas diferentes que o filtro não distingue.** Tudo
+> o que a camada removida fazia morava exatamente nessa distância.
+
+Enquanto o filtro tiver uma resposta binária para uma pergunta que é de frequência,
+ele vai cortar mecanismo de garantia toda vez. Refinar isso é trabalho para o
+catálogo de princípios — e é mais valioso do que a camada que foi cortada.
+
+### O estado das seis dimensões, depois
+
+Quatro das seis do survey ficam vazias: Verification/Control, Observability, e as
+partes episódica e de working context da Memory. Protocols perde o contrato dos
+hooks e fica só com o MCP herdado.
+
+Isso é resultado, não lacuna a pedir desculpa: é o que a definição subtrativa produz
+quando é aplicada com honestidade, inclusive contra o trabalho do próprio dia.
