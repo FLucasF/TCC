@@ -36,7 +36,8 @@ jscpd <source-root> --min-tokens 100 --reporters ai
 If `jscpd` is not installed, **say so and stop**. Do not silently skip the check,
 and do not fall back to a grep: a grep that finds nothing is not evidence that
 nothing exists, and reporting "no duplication found" on that basis is worse than
-reporting nothing.
+reporting nothing. `sh scripts/install-jscpd.sh` installs the pinned version — offer
+it and let the user decide; never run it on your own.
 
 ## Two traps, both measured on a real codebase
 

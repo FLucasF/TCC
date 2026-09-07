@@ -44,7 +44,9 @@ working directory, so everything under it inherits the setup with no copying and
 nothing to keep in sync.
 
 The trade-off: a project that already has its own git history does not move in
-cleanly. For that case, copy `.claude/` and `CLAUDE.md` into it instead.
+cleanly. For that case, copy `.claude/`, `CLAUDE.md`, `scripts/` and `.gitattributes`
+into it instead — the skills name paths under `scripts/`, and `.gitattributes` is what
+keeps those scripts LF on a Windows checkout.
 
 This is not free, and it bit in practice: a session opened one directory up gets
 none of this. On 2026-09-06 an entire working session ran from the parent directory
@@ -64,7 +66,9 @@ harness/
 │       ├── testing/             what to assert, fakes over mocks
 │       ├── error-handling/      root cause, expected vs exceptional
 │       ├── duplication-check/   does this already exist?
+│       ├── impact-analysis/     what breaks if I change this?
 │       └── execplan/            plans that outlive the session
+├── scripts/                     pinned installers for the two external tools
 └── <your software>/
 ```
 
