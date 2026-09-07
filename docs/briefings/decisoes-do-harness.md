@@ -1,3 +1,10 @@
+> **Deprecated em 2026-09-07.** Não dirige mais o harness, por decisão. O estado real
+> está nos próprios arquivos: `harness/CLAUDE.md`, `harness/.claude/` e o
+> `harness/README.md`. Duas contagens daqui já caíram — são onze regras e seis skills,
+> não dez e quatro (§"O que saiu") — e o teto de dez regras foi removido do README do
+> harness no mesmo dia. O raciocínio e as medições continuam valendo como registro,
+> não como guia.
+
 # Decisões e ideias — sessão de projeto do harness
 
 Registro do raciocínio por trás do `harness/`. O `README.md` de lá diz **o que** é;

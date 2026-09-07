@@ -1,3 +1,7 @@
+> **Deprecated em 2026-09-07.** Material de pesquisa, não guia. A inspeção direta dos
+> 72 repositórios continua correta como levantamento; ela não dirige mais nenhuma
+> decisão do harness. Vale como registro para o TCC.
+
 # Análise dos 72 repositórios da varredura
 
 Passe de verificação sobre `varredura-harnesses.md`. A varredura foi feita por agentes

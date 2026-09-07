@@ -1,3 +1,7 @@
+> **Deprecated em 2026-09-07.** O pivô de escopo continua valendo; este documento não.
+> Ele aponta `decisoes-do-harness.md` como fonte, e aquele arquivo também foi
+> deprecado nesta data. Vale como registro para o TCC.
+
 # Pivô de foco — de "o harness" para "os princípios de projeto de um harness"
 
 **Escrito em 2026-09-06.** Três meses até a entrega. Este documento existe para

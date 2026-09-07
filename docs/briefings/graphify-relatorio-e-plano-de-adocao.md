@@ -1,3 +1,9 @@
+> **Deprecated em 2026-09-07.** O plano foi executado nesta data: `graphifyy 0.9.56`
+> instalado, grafo gerado em `harness/apps/graphify-out/` (2.278 nós, 8.448 arestas,
+> 9s) e a skill `impact-analysis` escrita com a regra de roteamento medida. O gatilho
+> registrado aqui — mais de ~20 arquivos — já estava satisfeito com folga: 207
+> arquivos de código. Vale como registro para o TCC.
+
 # Graphify — relatório e plano de adoção
 
 ## Context

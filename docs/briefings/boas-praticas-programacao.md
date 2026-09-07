@@ -1,3 +1,8 @@
+> **Deprecated em 2026-09-07.** Foi a fonte de onde as regras do `CLAUDE.md` e as
+> skills foram curadas. O resultado dessa curadoria vive nos próprios arquivos do
+> harness; este guia não é mais consultado para decidir nada. Vale como registro
+> para o TCC.
+
 # Boas Práticas de Programação — Guia Geral
 
 > Documento agnóstico de linguagem, framework e domínio. Os exemplos usam pseudocódigo

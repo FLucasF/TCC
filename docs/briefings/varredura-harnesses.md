@@ -1,3 +1,7 @@
+> **Deprecated em 2026-09-07.** Levantamento de 72 repositórios, corrigido em oito
+> pontos por `analise-repositorios.md`. Material de pesquisa; não dirige mais decisão
+> nenhuma. Vale como registro para o TCC.
+
 # Varredura de harnesses existentes
 
 Levantamento de 2026-09-05/06. Metadados verificados via `gh api repos/OWNER/REPO`

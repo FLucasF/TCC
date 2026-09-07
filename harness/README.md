@@ -128,9 +128,8 @@ outside that filter.
 - the agent "fixes" working code because a tool was missing from the environment
 - you stop trusting "done" and start re-running things yourself before reading
 
-The design is recorded in `docs/briefings/decisoes-do-harness.md` §10. The code is in
-this repository's history: commit `8b3cbdb` is the last one that has the complete
-`verify/`, and `52395cd` is the removal.
+The code is in this repository's history: commit `8b3cbdb` is the last one that has
+the complete `verify/`, and `52395cd` is the removal.
 
 `git checkout 8b3cbdb -- harness/verify` brings back the executor and its 41 tests.
 **They will not run yet** — verified: the suite loads the real `.claude/validation.json`
