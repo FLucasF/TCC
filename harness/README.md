@@ -58,7 +58,7 @@ with the harness inert, and nothing said so.
 
 ```
 harness/
-├── CLAUDE.md                    always-on rules (10, capped)
+├── CLAUDE.md                    always-on rules
 ├── .claude/
 │   ├── settings.json            permissions: deny and ask
 │   └── skills/
@@ -149,33 +149,28 @@ than restored by reflex.
 
 ### Adding a rule to `CLAUDE.md`
 
-Two tests, both required:
+One test: **does it contradict what the model does by default?** If the model already
+does it, the rule is noise — it costs context and dilutes the rules that remain. This
+is why there is no "follow SOLID" here: the model already knows SOLID, and its
+failure mode is applying it too eagerly. The rule that changes behavior is the
+inverse — *do not create an extension point before real variation exists*.
 
-1. **Does it contradict what the model does by default?** If the model already does
-   it, the rule is noise — it costs context and dilutes the rules that remain. This
-   is why there is no "follow SOLID" here: the model already knows SOLID, and its
-   failure mode is applying it too eagerly. The rule that changes behavior is the
-   inverse — *do not create an extension point before real variation exists*.
-
-2. **Is there a cap?** Ten rules. The eleventh has to evict one. Practices that do
-   not make the cut become skills, which cost nothing until loaded.
+A practice that does not pass becomes a skill, which costs nothing until loaded.
 
 A rule is one paragraph holding one independent imperative — a unit that could be
 removed on its own without breaking another. Two ideas in one paragraph are two
 rules, and get two paragraphs.
-
-**The cap is an intention again, not an invariant.** It used to be a test that
-counted the paragraphs and failed past ten; the test lived in `verify/` and went
-with it. Ten is the current count, verified by hand on 2026-09-06.
 
 ### Adding a skill
 
 A skill has a description, always in context, and a body loaded only when the task
 matches. That is what allows many practice guides without paying for all of them
 every turn. Measured on 2026-09-06 with four skills: `CLAUDE.md` plus the skill
-descriptions is about 830 tokens carried on every request; the skill bodies are
-around 9 KB and cost nothing until they fire. `execplan` was added the same day and
-the figures were not re-measured.
+descriptions was about 830 tokens carried on every request, and the bodies were
+around 9 KB. Two skills were added since — `execplan` and `impact-analysis`. The
+always-on part is now 3.7 KB of source, `CLAUDE.md` at 2,429 bytes plus 1,243 of
+descriptions, against about 21 KB of bodies that cost nothing until they fire.
+Those last figures are file sizes; the 830 was a context reading and was not retaken.
 
 Add one when you catch the agent getting a subject wrong repeatedly — not because
 you predict it might.

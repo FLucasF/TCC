@@ -41,6 +41,12 @@ in its `pom.xml`, `package.json` or equivalent. When a part of the project has n
 check of its own, say so instead of running another part's suite and reporting it
 as cover.
 
+## Searching
+
+Choose the output by what the answer is for: a file list when the question is scope,
+a count when it is quantity, matching lines only when you will read the lines. The
+same question answered in content mode costs an order of magnitude more.
+
 ## Contracts
 
 Before changing the unit, semantics, default ordering, default value, or accepted
@@ -50,6 +56,8 @@ change both sides or preserve compatibility.
 
 ## Communication
 
-Explain the change in your reply, not in the code. Leave a comment in the source
-only for a non-obvious external constraint that outlives this session — the kind
-nobody rediscovers by reading the code. Never leave commented-out code.
+Explain the change in your reply, not in the code — the outcome and what it costs
+the caller, never a narration of the steps taken or a restatement of what the diff
+already shows. Leave a comment in the source only for a non-obvious external
+constraint that outlives this session — the kind nobody rediscovers by reading the
+code. Never leave commented-out code.
