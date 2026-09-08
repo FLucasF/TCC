@@ -1,0 +1,24 @@
+- opus 5 rodar por um longo período de tempo
+- modelo não parece ser mais suscetível a injenção de prompt?
+- interpretabilidade mecanística de Chrisola
+- system prompt 
+	- apagados, muitas coisas serviam para corrigir coisas que o modelo precisava saber, agora o opus já faz isso, então não é mais necessário
+	- system-prompt e definir qualquer prompt que quiser
+	- modo simples Claude, CLAUDE_CODE_SIMPLE = 1, ele deletara todos system prompt e ferramentas e o modelo é um pouco mais inteligente
+- algo feito em um modelo antigo a pouco meses atras pode não se aplicar a um modelo mais novo
+- apaga coisa para descobrir o impacto(pq não utilizar eval?)
+- "fique confortável e aperte DELETAR, teste, experimente"
+- a cada 6 meses deletem suas ferramentas e experimente para ver se realmente é necessário
+- montar **peça por peça**: 
+	- **deletar -> usar -> não adivinhe qual isntrução o modelo precisa**, execute rode e vê onde ele falha e o que ele faz bem, onde ele sai bem em seu código ou onde ele tropeça
+	- quando você notar que ele repete o erro ai sim muda, mas não quer fazer isso cedo, pois o modelo vai ler essa instrução toda vez que ele for executar, ter certeza que o modelo precisa disso
+- quando monta sistemas estamos acostumados a montar algo bem feito desde do inicio, pensa em tudo, arquitetura, designer o modelo não é assim, o modelo é algo mais **orgânico**, cada geração do modelo tem uma maneira de **pensar diferente um comportamento diferente**
+	- cada modelo novo testar ele, testar se ele realmente precisa das ferramentas colocadas ou não mais
+	- **empirico**, ve o resultado e acrescenta, **VE O RESULTADO**
+- **limite da avaliação??** (**eval**?), avaliações sobrevivem ao longo da implementação mas não tanto, precisam ser adaptadas, duram uma, duas ou tres gerações
+- o modelo esta fazendo algo e você só esta atrapalhando, **sobrecarga de produto**, **overengeneering**
+- expressar capacidade do modelo
+- modelos modernos são muito bons, a sobrecarga de produto as vezes atrapalha
+- de ao modelo tarefas um ==pouco== mais dificeis do que você imagina que ele deve fazer
+- instruções extremamente especificas, modelos modernos voce deve ser mais abrangente
+	- você descreve a tarefa, as diretrizes, os criterios de conclusão e deixam o modelo trabalhar (**custo???**)
