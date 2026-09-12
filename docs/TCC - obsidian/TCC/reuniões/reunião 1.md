@@ -1,3 +1,6 @@
+---
+feature: projetos/UFPB.2026.2/disciplinas/TCC/Lucas/TCC-Lucas/docs/TCC - obsidian/TCC/img/Pasted image 20260826103708.png
+---
 manda ele planejar utilizando opus 5 e implementa com o sonnet
 
 Smoke test -<

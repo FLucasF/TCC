@@ -1,3 +1,6 @@
+---
+feature: projetos/UFPB.2026.2/disciplinas/TCC/Lucas/TCC-Lucas/docs/TCC - obsidian/TCC/img/Pasted image 20260907101933.png
+---
 https://www.youtube.com/watch?v=tAhmBB_LSsc&t=1s
 
 ![[Pasted image 20260907101933.png]]
