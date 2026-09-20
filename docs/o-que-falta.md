@@ -172,6 +172,34 @@ Onze itens marcados de 143. A maioria dos não marcados já foi feita.
 
 ---
 
+## Feito em 20/09/2026
+
+| item | o que saiu |
+|---|---|
+| **C1** `git init` | feito. `runs/` passou a ser versionada menos `target/`: 483 MB de build fora, 11 MB de dado dentro |
+| **A2**, prioridade 1 | `casos/precedencia-erros.json`, sete casos. Para isso o `comparar.mjs` precisou aprender a expressar erro — eram dois defeitos somados, e o sexto e sétimo da família do A4 |
+| **A4**, parcial | `ferramentas/autoteste.mjs`, cinco variantes de app com defeito conhecido. Cobre o comparador; **não** cobre o pipeline inteiro em Docker |
+| **B2** esqueleto | resolvido: removido. Versões passaram a ser pedidas no enunciado |
+| **D1, D2, D3** | `plano.md` alinhado à realidade em dezenove seções |
+
+Ainda não feito, e agora com dado novo:
+
+- **A1**, a rubrica, continua sendo o bloqueador do desfecho primário.
+- **B1** (P6, `enum` com método por constante) continua aberta e bloqueia A1.
+- **B3** (`effort`) continua aberta: as duas únicas runs em `high` são FUMACA.
+- **B5** (`n` por célula) continua aberta.
+- **B4** vira outra coisa sem esqueleto: não existe pom de partida, então
+  `dependencias.acrescentadas` passa a ser a lista inteira do que o agente
+  declarou. O que decidir agora é o que fazer com quem **desobedece as versões
+  pedidas no enunciado**, não com quem acrescenta biblioteca.
+- **Novo:** o `meta.json` não grava `repeticao`, e o 13.2 do plano contradiz o
+  paralelismo de `par.sh` e `rodada.sh`. As duas precisam ser fechadas antes do
+  lote.
+- **Novo:** a H2 está com a direção contradita pelas próprias medições, e
+  precisa ser redigida de novo antes do pré-registro.
+
+---
+
 ## Ordem sugerida
 
 1. `git init` — antes de qualquer edição, porque tudo abaixo mexe em arquivo.

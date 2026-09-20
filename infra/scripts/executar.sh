@@ -6,7 +6,7 @@
 #   infra/scripts/executar.sh FUMACA-01 claude-haiku-4-5 SEM
 #
 # Variáveis opcionais:
-#   IMAGEM     padrão experimento-harness:v2
+#   IMAGEM     padrão experimento-harness:v3
 #   EFFORT     padrão high, conforme D8 do plano
 #   PROMPT_ARQ padrão experimento/prompt/prompt.md
 #
@@ -24,7 +24,7 @@ morrer() { printf '\033[31mERRO: %s\033[0m\n' "$*" >&2; exit 1; }
 RUN_ID="$1"; MODELO="$2"; COND="$3"
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-IMAGEM="${IMAGEM:-experimento-harness:v2}"
+IMAGEM="${IMAGEM:-experimento-harness:v3}"
 # Web LIBERADA desde 20/09/2026, nas duas condições. Subagente continua
 # bloqueado: aquilo é controle de troca de modelo, não de acesso à internet.
 FERRAMENTAS_BLOQUEADAS="Agent,Task"

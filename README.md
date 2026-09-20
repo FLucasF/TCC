@@ -57,7 +57,7 @@ runs/logs/       saída de terminal de cada execução
    ```
 4. Construir a imagem, a partir da raiz:
    ```bash
-   docker build -f infra/docker/Dockerfile -t experimento-harness:v1 .
+   docker build -f infra/docker/Dockerfile -t experimento-harness:v3 .
    ```
 
 ## Rodar

@@ -220,6 +220,12 @@ roda em Java 11 — e MED-07 Haiku escolheu 3.1.0 contra 3.1.5. A linha no
 enunciado existe para fechar isso, e a taxa de obediência passa a ser um dado:
 `fundacao.spring_boot` e `fundacao.java` no `meta.json`.
 
+**A imagem virou `experimento-harness:v3`.** O Dockerfile mudou, e a regra da
+bancada é que linha alterada no Dockerfile significa tag nova. `executar.sh`,
+`conferir-exemplos.sh` e o README já apontam para a v3; enquanto ela não for
+construída, o preflight do `executar.sh` falha com mensagem clara em vez de
+rodar na imagem errada.
+
 **O aquecimento do `~/.m2` mudou de casa.** Saiu de `experimento/skeleton/` para
 `infra/docker/aquecimento/`, que agora é um projeto Spring Boot próprio e
 mínimo. As versões dele têm que acompanhar as do enunciado: se divergirem, o

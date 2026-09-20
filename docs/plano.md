@@ -2,7 +2,7 @@
 tags: [tcc, experimento, harness, claude-code, design-patterns]
 status: rascunho
 recorte: "Construir software × Design de baixo nível"
-atualizado: 2026-09-17
+atualizado: 2026-09-20
 ---
 
 # Plano do experimento: Claude Code com harness × sem harness
@@ -11,12 +11,24 @@ atualizado: 2026-09-17
 > Verificar se um **harness configurado** (`CLAUDE.md`) faz os modelos Claude **reconhecerem e implementarem corretamente o padrão Strategy** em **três pontos de dificuldade crescente** (fácil, média, difícil) ao **construir** uma API Java/Spring Boot de checkout, comparado ao **Claude Code de fábrica**, controlando tudo o que não é objeto de estudo.
 
 > [!info] Arquivos relacionados
-> - `prompt-experimento.md`: prompt enviado ao modelo (vai para `prompt/prompt.md`)
-> - `gabarito-avaliador.md`: localização dos pontos de Strategy, soluções esperadas e casos reservados (**confidencial**, nunca entra no container)
+> - `experimento/prompt/prompt.md`: o enunciado enviado ao modelo
+> - `avaliacao/gabarito-avaliador.md`: localização dos pontos de Strategy, soluções esperadas e casos reservados (**confidencial**, nunca entra no container)
+> - `docs/harness-notas.md`: o harness, as fontes de cada regra e o diário de versões do enunciado
+> - `docs/o-que-falta.md`: o que ainda bloqueia o lote
 
 ---
 
 ## 0. Como usar este documento
+
+> [!info] Revisão de 20/09/2026
+> Este documento estava descrevendo uma bancada que não existe mais. Foram
+> alinhados à realidade: D1, D10, D13, 5.3, 6.2, 7, 9.1, 9.2, 9.4, 10.1, 11.1,
+> 11.2, 11.3, 11.4, 12, 13.2, 14.3, 16 e 18.
+>
+> Ficaram **de fora de propósito**, porque são decisões e não alinhamento: a
+> direção da H2 (que as próprias medições contradizem, ver 2.4), o `effort`
+> `high` contra `medium` (B3 de `o-que-falta.md`), o paralelismo de 13.2 contra
+> 6.2, e o campo `repeticao`. Todas precisam ser fechadas antes do lote.
 
 - `- [ ]` são tarefas. Marque conforme for fazendo.
 - `> [!question]` são **decisões pendentes**. Resolva antes da fase indicada.
@@ -79,10 +91,22 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 | ID | Hipótese |
 |---|---|
 | H1 | Com harness, a proporção de pontos com Strategy correto é maior que sem harness, nos três modelos |
-| H2 | Com harness, o consumo de tokens e o tempo são maiores (há skill carregada e hook de verificação) |
+| H2 | Com harness, o consumo de tokens e o tempo são maiores (há skill carregada e hook de verificação) — **a redigir**: a justificativa caiu junto com a skill e o hook, e as medições apontam ao contrário. Ver abaixo |
 | H3 | O ganho do harness é maior no Haiku 4.5 do que no Opus 5 |
 | H4 | Nas duas condições, a taxa de acerto cai com a dificuldade (P1 > P2 > P3) |
 | H5 | O ganho do harness é maior em P2 e P3 do que em P1 (onde o modelo puro já tende a acertar) |
+
+> [!warning] A H2 precisa ser redigida de novo antes do lote
+> A justificativa entre parênteses não existe mais: a skill foi descartada e o
+> hook adiado, então o harness é só texto — de 0,6% a 1,1% da entrada total.
+> E a direção está contradita pelas execuções de medição: com esqueleto, o
+> Opus gastou 874.604 tokens de entrada no braço `SEM` contra 507.169 no `COM`
+> (−42%), e o Sonnet 2.056.553 contra 1.134.373 (−45%). É n=1 em cada, então
+> não prova a direção contrária — mas pré-registrar "maiores" é pré-registrar
+> uma hipótese que a própria medição já contraria. O mecanismo plausível está
+> em `harness-notas.md`: o harness reduz retrabalho, e retrabalho custa turno.
+> Opções: deixar não-direcional ("o harness altera o consumo"), ou inverter com
+> o mecanismo declarado.
 
 > [!note] Natureza do estudo
 > Com 3 repetições por combinação, o estudo é **exploratório e descritivo**. Reportar valores individuais, médias e variação. **Não** afirmar significância estatística.
@@ -93,7 +117,7 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 
 | # | Decisão | Escolha | Justificativa |
 |---|---|---|---|
-| D1 | Condição "sem harness" | Claude Code **como vem de fábrica**: sem `CLAUDE.md`, sem auto memory, sem skill, hook, plugin ou MCP do projeto. As skills e os slash commands embutidos no CLI continuam disponíveis, nas duas condições | Isolar o efeito da camada que o autor acrescenta. O braço não é um ambiente vazio: a FUMACA-01 registrou 18 skills embutidas, 51 slash commands e 5 agents com `~/.claude` vazio |
+| D1 | Condição "sem harness" | Claude Code **como vem de fábrica**: sem `CLAUDE.md`, sem auto memory, e sem skill, hook, plugin ou MCP **do projeto**. As skills e os slash commands embutidos no CLI continuam disponíveis, nas duas condições | Isolar o efeito da camada que o autor acrescenta. O braço não é um ambiente vazio: a FUMACA-01 registrou 18 skills embutidas, 51 slash commands e 5 agents com `~/.claude` vazio |
 | D2 | Condição "com harness" | Claude Code + **`CLAUDE.md`**, com quatro regras de projeto em tom geral. Sem skill (ver 10.3). Hook adiado até medir o custo por edição | O harness é integralmente advisory, e a taxa de cumprimento passa a fazer parte do que se mede |
 | D3 | Modo de execução | **Headless** (`claude -p`) | Remove a interferência humana e gera métricas em JSON |
 | D4 | Tarefa | **Projeto novo**: API Java + Spring Boot de **resumo de checkout** de loja online | Recorte "construir software"; domínio realista com várias regras que variam |
@@ -104,10 +128,10 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 | D7 | Modelos | `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5` | Uma faixa de cada |
 | D8 | Raciocínio | `--effort high` em todos | Igualdade entre modelos (padrão do Claude Code é `xhigh`) |
 | D9 | Isolamento | **Docker, um container novo por execução** | Garantia de ambiente idêntico e descartável |
-| D10 | Ferramentas | Ferramentas nativas do Claude Code nas duas condições; **web e subagentes bloqueados** nas duas | Evitar ajuda externa não controlada e troca de modelo |
+| D10 | Ferramentas | Ferramentas nativas do Claude Code nas duas condições. **Web liberada** nas duas, revisto em 20/09/2026. **Subagentes bloqueados** nas duas | Web: validade externa — quem usa o Claude Code no dia a dia tem web. Subagente: impedir troca de modelo. O custo da liberação está em 16 e no diário |
 | D11 | Repetições | **3 por modelo × condição** | Escolha do autor; estudo exploratório |
 | D12 | Ordem | **Bloco por modelo**; dentro do bloco, condições **alternadas em ordem sorteada** | Protege contra a cota acabar e mantém com/sem no mesmo período |
-| D13 | Ponto de partida | **Esqueleto fixo** (Spring Initializr) | Remove ruído de versões e dependências |
+| D13 | Ponto de partida | **Pasta vazia.** Java 21 e Spring Boot 4.1.1 são **pedidos no enunciado**, em "Observações do time técnico" | Revisto em 20/09/2026. O esqueleto do Spring Initializr trazia `CheckoutApplication.java`, e um pacote raiz imposto já é decisão de estrutura. Virou pedido, não garantia: a obediência é dado, em `fundacao.spring_boot` e `fundacao.java` |
 | D14 | Contrato da API | **Fixo no anexo do prompt** ("combinado com o desenvolvedor do site"): endpoint, JSON, erros com precedência, arredondamento; design interno livre | Permite a suíte de testes escondida sem quebrar a voz de não-programador no restante |
 | D15 | Testes pelo modelo | **Não pedidos** | Testes estão fora do recorte |
 | D16 | Banco de dados | **Nenhum** | Banco está fora do recorte |
@@ -119,7 +143,7 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 ## 4. Decisões pendentes
 
 > [!success] P1: Domínio da tarefa (resolvido)
-> **Resumo de checkout** com três pontos de Strategy: entrega, cupons e pagamento. Ver `prompt-experimento.md`.
+> **Resumo de checkout** com três pontos de Strategy: entrega, cupons e pagamento. Ver `experimento/prompt/prompt.md`.
 
 > [!question] P6: Regras de aceitação na rubrica (resolver antes da Fase 7)
 > - `enum` em que cada constante implementa métodos próprios conta como Strategy? (Recomendado: **sim**, anotar em observações.)
@@ -153,15 +177,15 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 | Categoria | O que fica fixo | Como garantir |
 |---|---|---|
 | Prompt | Texto idêntico nas duas condições | Arquivo `prompt.md` versionado + hash SHA-256 |
-| Projeto inicial | Esqueleto idêntico | Pasta `skeleton/` versionada + hash |
+| Projeto inicial | **Pasta vazia** nas duas condições | O `executar.sh` cria o workspace vazio; o `~/.m2` da imagem é aquecido nas versões que o enunciado pede |
 | Harness | Arquivos idênticos em todas as execuções `COM` | Pasta `harness/` versionada + hash |
 | Claude Code | Mesma versão do início ao fim | Versão fixa na imagem + `DISABLE_AUTOUPDATER=1` |
 | Java / Maven / SO | Mesmas versões | Tag fixa da imagem base + hash da imagem |
 | Modelo | ID completo, nunca alias | `--model claude-opus-5` etc. |
 | Raciocínio | `high` | `--effort high` |
-| Ferramentas | Mesmas nas duas condições | `--disallowedTools` igual nas duas |
-| Web | Bloqueada | Ferramentas bloqueadas + auditoria de comandos (ver 9.4) |
-| Dependências | Livres, e registradas | `meta.json.dependencias` compara o `pom.xml` que entrou com o que sobrou: hash, acrescentadas, removidas |
+| Ferramentas | Mesmas nas duas condições | `--disallowedTools "Agent,Task"` igual nas duas |
+| Web | **Liberada** nas duas condições | Idêntica nos dois braços. O uso é registrado, não impedido: `chamadas_por_ferramenta` e `auditoria.comandos_suspeitos` no `meta.json` |
+| Dependências | Livres, e registradas | Sem pom de partida, `meta.json.dependencias.acrescentadas` passa a ser a lista inteira do que o agente declarou |
 | Memória e sessões | Nenhuma | Container novo + sem persistência de sessão |
 | Configuração do usuário | Nenhuma | `HOME` limpo dentro do container |
 | Troca de modelo | Proibida | Sem `--fallback-model`; subagentes bloqueados; auditoria do uso por modelo |
@@ -196,23 +220,23 @@ Mais o **piloto** (seção 11), cujas execuções **não** entram na análise.
 
 ### 6.2 Ordem de execução
 
-1. Sortear a **ordem dos blocos de modelo** com semente fixa (registrar a semente).
-2. Dentro de cada bloco, sortear a ordem das 6 execuções (3 `COM` + 3 `SEM`), **com a restrição de não haver mais de 2 da mesma condição seguidas**.
-3. Salvar a ordem em `schedule.csv` **antes** de começar e **não alterar**.
+Revisto em 19/09/2026. A ordem sorteada com `schedule.csv` foi **abandonada** em
+favor de rodar `SEM` e `COM` **ao mesmo tempo**, no mesmo par. Sortear a ordem
+protege contra o efeito de horário e carga de servidor; rodar simultâneo
+**elimina** esse efeito em vez de distribuí-lo, o que é melhor.
 
-Exemplo de `schedule.csv`:
+- `infra/scripts/par.sh <prefixo> <modelo>` roda o par `SEM` e `COM` juntos.
+- `infra/scripts/rodada.sh <prefixo>` roda os três modelos nas duas condições,
+  seis execuções em paralelo.
 
-```csv
-ordem,run_id,modelo,condicao,repeticao
-1,R01,claude-sonnet-5,COM,1
-2,R02,claude-sonnet-5,SEM,1
-3,R03,claude-sonnet-5,SEM,2
-4,R04,claude-sonnet-5,COM,2
-5,R05,claude-sonnet-5,COM,3
-6,R06,claude-sonnet-5,SEM,3
-7,R07,claude-haiku-4-5,SEM,1
-...
-```
+> [!warning] Isso contradiz o 13.2, e a contradição está em aberto
+> O 13.2 diz "não usar o Claude Code na mesma conta em paralelo". Os scripts
+> fazem exatamente isso, de propósito. A decisão de qual das duas regras vale,
+> e o custo declarado da escolhida, ainda precisa ser tomada antes do lote.
+
+> [!warning] Falta `repeticao` no dado
+> O id da run codifica prefixo, modelo e condição, e o `meta.json` não grava qual
+> repetição é cada uma. Com n=3 por célula isso precisa existir antes do lote.
 
 > [!warning] Cota da assinatura
 > Se a cota acabar **no meio** de uma execução, ela é **descartada e refeita do zero** no mesmo lugar da ordem. Nunca continuar uma execução interrompida. Registrar no diário de bordo.
@@ -224,50 +248,48 @@ ordem,run_id,modelo,condicao,repeticao
 
 ## 7. Estrutura de pastas do experimento
 
+A divisão é por **quem enxerga o quê**. Reescrita em 20/09/2026: a estrutura
+anterior, com `prompt/`, `skeleton/`, `docker/`, `scripts/` e `analise/` soltos
+na raiz, nunca existiu no disco.
+
 ```
-experimento-harness/
-├── README.md                     ← resumo + como reproduzir
-├── plano.md                      ← este documento
-├── diario-de-bordo.md            ← tudo que aconteceu fora do previsto
-├── prompt/
-│   └── prompt.md                 ← prompt único, idêntico nas duas condições
-├── skeleton/                     ← esqueleto Spring Boot fixo
-├── harness/                      ← só é copiado nas execuções COM
-│   ├── CLAUDE.md
-│   └── .claude/
-│       ├── settings.json         ← hook de build
-│       ├── hooks/verificar-build.sh
-│       └── skills/
-│           └── strategy/SKILL.md
-├── docker/
-│   └── Dockerfile
-├── scripts/
-│   ├── gerar-ordem.*             ← gera schedule.csv com semente
-│   ├── executar.*                ← roda uma linha do schedule
-│   ├── executar-bloco.*          ← roda um bloco de modelo
-│   ├── anonimizar.*              ← prepara pacotes para avaliação cega
-│   └── avaliar-automatico.*      ← build + testes escondidos + extensão
-├── avaliacao/
-│   ├── gabarito-avaliador.md     ← NUNCA entra no container
-│   ├── testes-escondidos/        ← NUNCA entra no container
-│   ├── testes-extensao/          ← DRONE, DEZOFF, CARTEIRA_DIGITAL
-│   ├── rubrica-strategy.md
-│   ├── mapa-anonimizacao.csv     ← guardado até o fim da avaliação
-│   ├── notas-autor.csv
-│   ├── notas-professor.csv
-│   └── consenso.csv
-├── runs/
-│   └── R01/
-│       ├── meta.json             ← log estruturado da execução
-│       ├── claude-output.jsonl   ← saída bruta do Claude Code
-│       ├── stderr.txt
-│       └── workspace/            ← projeto final gerado
-└── analise/
-    ├── resultados.csv
-    └── graficos/
+experimento/     copiado para dentro do workspace do agente
+  prompt/        prompt.md, o enunciado, idêntico nas duas condições
+  harness/       só na condição COM. Hoje: CLAUDE.md
+
+infra/           roda de fora, o agente nunca vê
+  docker/        Dockerfile fixado por versão + projeto de aquecimento do ~/.m2
+  scripts/       executar.sh, par.sh, rodada.sh, extrair-meta.mjs
+
+avaliacao/       NUNCA chega ao agente
+  gabarito-avaliador.md    onde estão P1, P2 e P3 e o que se espera
+  rotas-descobertas.md     o que os exemplos do enunciado não cobrem
+  casos/                   casos entrada->saida, em JSON
+  ferramentas/             comparar.mjs, conferir-exemplos.sh, autoteste.mjs
+
+docs/            plano.md, harness-notas.md, o-que-falta.md
+runs/<id>/       workspace/, claude-output.jsonl, stderr.txt, build.txt, meta.json
+runs/logs/       saída de terminal de cada execução
 ```
 
-- [ ] Criar repositório Git para `experimento-harness/`
+> [!warning] `experimento/harness/` é copiado inteiro
+> `cp -r experimento/harness/. workspace/`. Qualquer arquivo largado ali chega
+> ao agente. Anotação vai em `docs/harness-notas.md`, nunca ali dentro.
+
+O workspace do agente **nasce vazio**. O `.dockerignore` é lista branca: só
+`infra/docker/` entra no contexto de build da imagem.
+
+### 7.1 O que ainda não existe
+
+| item | de quem é exigido |
+|---|---|
+| `docs/diario-de-bordo.md` | 13.3 manda registrar toda exceção nele, 13.4 define o formato, 12.3 e 17 dependem dele. Hoje o conteúdo mora dentro de `harness-notas.md`, como "Diário de decisões da bancada" |
+| `avaliacao/rubrica-strategy.md` | 14.4 define a escala; falta o instrumento com âncoras, ver A1 de `o-que-falta.md` |
+| `avaliacao/testes-extensao/` | 14.5 |
+| `avaliacao/mapa-anonimizacao.csv` e as planilhas de notas | 14.2 e 14.6 |
+| agregador `meta.json` -> CSV, e a análise | 15 |
+
+- [x] Criar repositório Git — feito em 20/09/2026
 - [ ] Commitar cada artefato congelado com tag (ex.: `v1-congelado`)
 
 ---
@@ -332,7 +354,7 @@ Limites definidos explicitamente no prompt:
 Não podem aparecer: `padrão`, `pattern`, `strategy`, `estratégia`, `polimorfismo`, `GoF`, `SOLID`, `aberto/fechado`, `open/closed`, `extensível`, `interface`, `design`, `boas práticas`, `clean code`, `teste`, `testes`.
 
 > [!check] Verificação feita
-> Busca por essas palavras no `prompt-experimento.md`: **nenhuma ocorrência**. Repetir a busca a cada alteração do prompt.
+> Busca por essas palavras no `experimento/prompt/prompt.md`: **nenhuma ocorrência**. Repetir a busca a cada alteração do prompt.
 
 > [!tip] Cuidado com "padrão" no sentido de "valor padrão"
 > No prompt, usar "se não vier, considerar 1" em vez de "por padrão 1".
@@ -363,22 +385,43 @@ Todos os exemplos do prompt e os casos reservados do gabarito foram recalculados
 
 ---
 
-## 9. Fase 2: Esqueleto e ambiente Docker
+## 9. Fase 2: Ambiente Docker
 
-### 9.1 Esqueleto do projeto
+### 9.1 Ponto de partida: pasta vazia
 
-- [ ] Resolver **P2** (versões)
-- [ ] Gerar no Spring Initializr: Maven, Java 21, Spring Boot `<versão>`, dependências **Spring Web** e **Validation** apenas
-- [ ] Group/artifact/pacote base fixos (ex.: `br.tcc.checkout`)
-- [ ] Remover o teste de exemplo `*ApplicationTests` (testes estão fora do recorte e ele não deve induzir nada)
-- [ ] Garantir que **não existe** `CLAUDE.md`, `.claude/`, `README` com instruções ou `HELP.md` com dicas
-- [ ] `mvn verify` passa com o esqueleto vazio
-- [ ] Congelar `skeleton/` e registrar **hash** (ex.: hash do `.tar` da pasta)
+Revisto em 20/09/2026. O esqueleto do Spring Initializr foi **removido**.
 
-> [!warning] Dependências necessárias para avaliação
-> A suíte escondida precisará de `spring-boot-starter-test` (e ArchUnit, se usar). Opções:
-> - **(Recomendado)** Deixar esses pacotes **pré-baixados** no `~/.m2` da imagem de avaliação, **não** no esqueleto do modelo.
-> - Registrar a escolha no diário.
+Ele resolvia uma coisa real — fixar Java e Spring Boot — e entregava outra que
+não devia: `CheckoutApplication.java` em `br.tcc.checkout` impõe o pacote raiz, e
+pacote raiz já é decisão de estrutura, que é o que o experimento mede.
+
+No lugar dele, o enunciado pede as versões em "Observações do time técnico":
+
+> - Use Java 21 e Spring Boot 4.1.1.
+
+- [x] Workspace criado vazio pelo `executar.sh`
+- [x] Versões pedidas no enunciado, idênticas nas duas condições
+- [ ] Reportar a **taxa de obediência** como dado: `fundacao.spring_boot` e
+      `fundacao.java` no `meta.json`
+
+> [!warning] Virou pedido, não garantia
+> Nas quatro execuções sem esqueleto já coletadas, e **antes** de o enunciado
+> pedir as versões, dois pares divergiram de base dentro do mesmo modelo:
+> MED-06 Haiku escolheu Java 11 no braço COM e Java 17 no SEM, e o COM não
+> compilou; MED-07 Haiku escolheu 3.1.0 contra 3.1.5. A linha no enunciado
+> existe para fechar isso, e o efeito dela precisa ser conferido no piloto.
+
+> [!warning] O aquecimento do `~/.m2` tem que acompanhar
+> O projeto de aquecimento em `infra/docker/aquecimento/` usa as mesmas versões
+> que o enunciado pede. Se divergirem, o cache esquenta o que ninguém usa e só
+> paga download quem **obedecer** — vantagem de tempo para quem desobedece. Isso
+> já ocorreu: no MED-07, com cache em 4.1.1, o Opus escolheu 4.1.1 e não baixou
+> nada, e o Haiku escolheu 3.1.5 e registrou 46 `Downloaded from`.
+
+> [!note] Dependências da avaliação
+> A conferência é **caixa-preta por HTTP** (`avaliacao/ferramentas/`), não uma
+> suíte JUnit copiada para dentro do projeto — ver 14.3. Então nada precisa ser
+> acrescentado ao projeto do agente para avaliar.
 
 ### 9.2 Dockerfile: requisitos
 
@@ -389,10 +432,10 @@ Todos os exemplos do prompt e os casos reservados do gabarito foram recalculados
 - [ ] `ENV DISABLE_AUTOUPDATER=1`
 - [ ] `ENV CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`
 - [ ] Usuário **não-root** com `HOME` vazio (sem `.claude/`, sem `.gitconfig` pessoal)
-- [ ] `~/.m2` pré-populado compilando e testando o esqueleto durante o build da imagem
+- [x] `~/.m2` pré-populado compilando e testando `infra/docker/aquecimento/` durante o build da imagem, nas mesmas versões que o enunciado pede
 - [ ] **Sem** `settings.xml` com `<offline>true</offline>` — ver D17
-- [ ] Ferramentas básicas usadas por hooks (`bash`, `jq` se necessário)
-- [ ] Build da imagem, registrar **digest/hash** da imagem
+- [x] Ferramentas básicas (`bash`, `jq`, `git`)
+- [ ] Reconstruir como `experimento-harness:v3` (o Dockerfile mudou em 20/09/2026) e registrar o **digest** da imagem
 
 ### 9.3 Autenticação com a assinatura dentro do container
 
@@ -411,15 +454,32 @@ Todos os exemplos do prompt e os casos reservados do gabarito foram recalculados
 
 ### 9.4 Rede
 
-Bloquear WebSearch/WebFetch **não impede** o modelo de usar `curl` pelo terminal.
+Revisto em 20/09/2026: **web liberada nas duas condições**, e a escolha entre
+proxy e auditoria deixou de existir.
 
-| Opção | Como | Quando escolher |
-|---|---|---|
-| **A. Proxy com lista de permissão** | Container sem acesso direto à internet; saída só por um proxy que libera domínios da Anthropic | Quer garantia técnica e tem tempo para configurar |
-| **B. Auditoria** | Rede normal; após cada execução, procurar `curl`, `wget`, `http://`, `https://` nos comandos executados pelo modelo (no `claude-output.jsonl`) | Prazo curto; aceita marcar e analisar exceções |
+Antes, `WebSearch` e `WebFetch` eram bloqueados, e esta seção discutia como
+fechar a brecha do `curl` pelo terminal. Agora `--disallowedTools` é só
+`"Agent,Task"`: subagente continua bloqueado, porque aquilo é controle de troca
+de modelo, não de acesso à internet.
 
-- [ ] Escolher A ou B e registrar
-- [ ] Se B: script de auditoria + regra ("execução que acessou web externa é marcada e reportada; não é descartada silenciosamente")
+**O que se ganha:** validade externa. Quem usa o Claude Code no dia a dia tem
+web, e o experimento passa a medir a ferramenta como ela é usada.
+
+**O que se perde, e precisa estar no pré-registro:** está em 16, na tabela de
+ameaças. O resumo é que frete por modalidade, desconto por cupom e ajuste por
+forma de pagamento são os três exemplos canônicos com que Strategy é ensinado,
+e com busca liberada os dois braços podem convergir por terem lido o mesmo
+tutorial.
+
+**O que continua sendo registrado**, agora como descrição e não como violação:
+
+- `resultado_execucao.chamadas_por_ferramenta` — quantas vezes `WebSearch` e
+  `WebFetch` foram usados
+- `auditoria.comandos_suspeitos` — comandos de Bash que saem da máquina
+
+- [ ] Reportar o uso de web por braço e por modelo na análise
+- [ ] Declarar em 16 que as 24 execuções de medição rodaram com web **bloqueada**
+      e não são comparáveis com o lote nesse aspecto
 
 ---
 
@@ -428,15 +488,19 @@ Bloquear WebSearch/WebFetch **não impede** o modelo de usar `curl` pelo termina
 ### 10.1 Estrutura
 
 ```
-harness/
-├── CLAUDE.md
-└── .claude/
-    ├── settings.json
-    ├── hooks/verificar-build.sh
-    └── skills/strategy/SKILL.md
+experimento/harness/
+└── CLAUDE.md          ← as quatro regras. É tudo que existe hoje
 ```
 
-Na condição `COM`, esses arquivos são copiados para a raiz do workspace. Na condição `SEM`, nada é copiado.
+Na condição `COM` o conteúdo é copiado para a raiz do workspace. Na condição
+`SEM`, nada é copiado.
+
+> [!note] A skill e o hook saíram do harness
+> O desenho original previa três camadas: `CLAUDE.md`, uma skill e um hook. A
+> skill foi **descartada** em 19/09/2026 (ver 10.3) e o hook foi **adiado** (ver
+> 10.4). O D2 já registra isso. Onde este documento ainda falar de
+> `.claude/settings.json`, `skills/strategy/SKILL.md` ou `hooks/`, está descrevendo
+> um harness que não existe.
 
 ### 10.2 CLAUDE.md: diretrizes de conteúdo
 
@@ -535,35 +599,38 @@ Desenho pretendido, quando entrar:
 
 ```mermaid
 flowchart TD
-    A[Ler linha do schedule.csv] --> B[Criar pasta temporária]
-    B --> C[Copiar skeleton/]
-    C --> D{Condição}
-    D -- COM --> E[Copiar harness/]
+    A[par.sh ou rodada.sh] --> B[Criar runs/id/workspace VAZIO]
+    B --> D{Condição}
+    D -- COM --> E[Copiar experimento/harness/]
     D -- SEM --> F[Nada]
-    E --> G[Calcular hash do workspace inicial]
+    E --> G[Calcular hash do harness e do prompt]
     F --> G
-    G --> H[docker run --rm com workspace]
-    H --> I[claude -p com prompt.md]
-    I --> J[Salvar stdout JSONL, stderr, código de saída, tempos]
-    J --> K[Copiar workspace final para runs/Rxx/]
-    K --> L[Auditorias: modelo usado, web, limite atingido]
+    G --> H[docker run --rm, workspace montado]
+    H --> I[claude -p com o prompt na entrada padrao]
+    I --> J[Salvar stdout JSONL, stderr, codigo de saida, tempos]
+    J --> K[Build pos-execucao em container separado, sem token]
+    K --> L[extrair-meta.mjs: metricas, fundacao, auditorias]
     L --> M[Escrever meta.json]
-    M --> N{Erro de cota?}
-    N -- sim --> O[Marcar INVALIDA, parar bloco, registrar no diário]
-    N -- não --> P[Próxima linha]
 ```
 
 ### 11.2 Comando do Claude Code (referência)
 
+O que o `infra/scripts/executar.sh` roda de fato, dentro do container:
+
 ```bash
-claude -p "$(cat /experimento/prompt.md)" \
+claude -p \
   --model "$MODELO" \
-  --effort high \
+  --effort "$EFFORT" \
   --output-format stream-json --verbose \
-  --permission-mode bypassPermissions \
-  --disallowedTools "WebSearch,WebFetch,Agent,Task" \
-  --no-session-persistence
+  --dangerously-skip-permissions \
+  --disallowedTools "Agent,Task" \
+  --no-session-persistence \
+  < /experimento/prompt.md
 ```
+
+Corrigido em 20/09/2026. A versão anterior deste bloco não era o comando
+executado: dizia `--permission-mode bypassPermissions` e passava o enunciado
+como argumento.
 
 Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamento
 é manual, e interromper à mão é decisão registrada (ver 13.3).
@@ -571,10 +638,11 @@ Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamen
 | Flag | Por quê |
 |---|---|
 | `--model` com ID completo | Snapshot fixo; aliases mudam |
-| `--effort high` | Padrão do Claude Code é `xhigh` |
+| `--effort` | Padrão do Claude Code é `xhigh`. O D8 manda `high`; **22 das 24 execuções de medição saíram em `medium`**, e as duas famílias não se comparam. Decisão em aberto, ver B3 de `o-que-falta.md` |
 | `stream-json --verbose` | Registra **todos** os eventos: chamadas de ferramenta, comandos, uso por modelo |
-| `bypassPermissions` | Headless sem perguntas; seguro porque o container é descartável |
-| `--disallowedTools` | Bloqueia web e subagentes nas duas condições |
+| entrada padrão | O enunciado entra por stdin (`< /experimento/prompt.md`), montado somente leitura |
+| `--dangerously-skip-permissions` | Headless sem perguntas; seguro porque o container é descartável. O evento inicial registra `permissionMode: bypassPermissions`, que vai para `parametros.permission_mode_init` |
+| `--disallowedTools "Agent,Task"` | Bloqueia **subagente** nas duas condições, para impedir troca de modelo. Web ficou **liberada** em 20/09/2026, ver 9.4 |
 | `--no-session-persistence` | Nenhuma sessão reaproveitável |
 
 **Não usar:**
@@ -591,87 +659,54 @@ Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamen
 
 ### 11.3 `meta.json` (log por execução)
 
-```json
-{
-  "run_id": "R01",
-  "ordem": 1,
-  "valida": true,
-  "motivo_invalidade": null,
-  "modelo_solicitado": "claude-sonnet-5",
-  "modelos_observados": ["claude-sonnet-5"],
-  "condicao": "COM",
-  "repeticao": 1,
-  "semente_ordem": 20260917,
+Reescrito em 20/09/2026. Este documento **não** duplica mais o JSON inteiro: o
+exemplo anterior já divergia do arquivo real em vários campos. A forma
+autoritária é a que `infra/scripts/extrair-meta.mjs` escreve, e um exemplo vivo
+está em qualquer `runs/<id>/meta.json`.
 
-  "ambiente": {
-    "imagem_docker_digest": "sha256:...",
-    "claude_code_versao": "x.y.z",
-    "java_versao": "21.0.x",
-    "maven_versao": "3.9.x",
-    "hash_prompt": "sha256:...",
-    "hash_skeleton": "sha256:...",
-    "hash_harness": "sha256:... | null",
-    "commit_experimento": "abc1234",
-    "maquina": "PC-Lucas",
-    "rede": "casa-wifi"
-  },
+Os blocos, e para que cada um serve:
 
-  "parametros": {
-    "effort": "high",
-    "ferramentas_bloqueadas": ["WebSearch", "WebFetch", "Agent", "Task"],
-    "permission_mode": "bypassPermissions"
-  },
+| bloco | o que carrega | serve para |
+|---|---|---|
+| raiz | `run_id`, `condicao`, `modelo_solicitado`, `modelo_init`, `modelos_observados`, `valida` | identidade da run e auditoria de troca de modelo |
+| `ambiente` | imagem e `imagem_id`, versão do Claude Code, `hash_prompt`, `hash_harness`, `verificacoes_pre_execucao` | prova de que o ambiente foi o mesmo |
+| `parametros` | `effort`, `ferramentas_bloqueadas`, `permission_mode_init` | o que foi pedido ao CLI |
+| `tempo` | `duracao_s` (relógio), `duracao_cli_ms`, `duracao_api_ms` | H2. Em execução paralela, `duracao_api_ms` é a menos contaminada |
+| `resultado_execucao` | `encerramento`, `turnos`, `chamadas_por_ferramenta`, `build_pos_execucao_ok` | desfechos de apoio |
+| `dependencias` | `hash_depois`, `acrescentadas` | o que o agente declarou no `pom.xml` |
+| `fundacao` | `ferramenta`, `projeto_em`, `na_raiz`, `spring_boot`, `java`, `pacote_raiz`, `starters` | obediência às versões pedidas, e onde o projeto foi parar |
+| `tokens` | `entrada`, `saida`, `cache_leitura`, `cache_escrita`, `entrada_total`, `raciocinio` | H2 |
+| `isolamento_init` | `tools`, `skills`, `slash_commands`, `agents`, `mcp_servers`, `plugins` | prova de isolamento do braço `SEM` |
+| `auditoria` | `comandos_bash`, `comandos_suspeitos`, `ferramentas_bloqueadas_disponiveis`, `linhas_jsonl_invalidas` | ver 9.4 |
 
-  "tempo": {
-    "inicio": "2026-09-20T14:02:11-03:00",
-    "fim": "2026-09-20T14:19:40-03:00",
-    "duracao_s": 1049,
-    "duracao_api_s": null
-  },
+> [!warning] Reportar `entrada_total`, nunca `entrada`
+> `tokens.entrada` fica entre 38 e 345 nas execuções medidas, porque quase tudo
+> entra por cache: `cache_leitura` vai de 600 mil a 2 milhões. Uma tabela que
+> preencha "tokens de entrada" com o campo `entrada` publica um número sem
+> significado. O campo somado é `entrada_total`.
 
-  "resultado_execucao": {
-    "codigo_saida": 0,
-    "encerramento": "concluido | interrompido | erro | erro_sem_resultado",
-    "turnos": 0,
-    "chamadas_ferramenta": 0,
-    "bloqueios_hook": 0
-  },
+> [!warning] Campos que o plano exige e o extrator não grava
+> `ordem`, `repeticao` e `semente_ordem` saíram junto com o `schedule.csv` (ver
+> 6.2). Com n=3 por célula, `repeticao` precisa voltar antes do lote. `maquina` e
+> `rede` também não são gravados, e são parte da afirmação "mesma máquina, mesma
+> rede" de 5.3.
 
-  "dependencias": {
-    "alterado": false,
-    "hash_antes": "sha256 do pom que entrou",
-    "hash_depois": "sha256 do pom que sobrou",
-    "acrescentadas": [],
-    "removidas": []
-  },
-
-  "tokens": {
-    "fonte": "result | reconstruido",
-    "entrada": 0,
-    "saida": 0,
-    "cache_leitura": 0,
-    "cache_escrita": 0,
-    "raciocinio": 0,
-    "custo_estimado_usd": 0
-  },
-
-  "auditoria": {
-    "acesso_web_detectado": false,
-    "comandos_suspeitos": [],
-    "claude_md_carregado": true,
-    "skills_disponiveis": ["strategy"],
-    "dependencias_adicionadas": false
-  }
-}
-```
+> [!note] `saida` pode vir nula
+> Run interrompida não tem evento `result`, e o extrator reconstrói o que dá a
+> partir das mensagens. Entrada e cache batem; `output_tokens` não, então o
+> campo fica nulo em vez de receber número errado. `tokens.fonte` diz qual dos
+> dois caminhos foi usado.
 
 ### 11.4 Tarefas
 
-- [ ] `gerar-ordem` com semente fixa → `schedule.csv`
-- [ ] `executar` (uma linha)
-- [ ] `executar-bloco` (um modelo; para ao detectar erro de cota)
-- [ ] Extração automática de métricas do `claude-output.jsonl`
-- [ ] Auditorias automáticas (modelo, web, dependências, harness carregado ou não)
+- [x] `infra/scripts/executar.sh` — uma execução
+- [x] `infra/scripts/par.sh` — o par `SEM` e `COM` simultâneo
+- [x] `infra/scripts/rodada.sh` — os três modelos, seis execuções em paralelo
+- [x] `infra/scripts/extrair-meta.mjs` — métricas, fundação e auditorias
+- [ ] `gerar-ordem` com semente — **cancelado** em 19/09/2026, ver 6.2
+- [ ] Campo `repeticao` no `meta.json`, antes do lote
+- [ ] Agregador `meta.json` → CSV, e a análise estatística (C2 e C3 de `o-que-falta.md`)
+- [ ] Procedimento do campo `valida`: quem marca, quando, com que critério
 
 ---
 
@@ -682,7 +717,7 @@ Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamen
 ### 12.1 Escopo
 
 - **2 modelos** (Haiku 4.5 e Opus 5, os extremos) × **2 condições** × **1 repetição** = 4 execuções
-- Usar **o mesmo prompt, esqueleto e harness** do experimento real
+- Usar **o mesmo prompt e harness** do experimento real, e a mesma imagem
 
 ### 12.2 Checklist de validação
 
@@ -695,19 +730,22 @@ Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamen
 **Parâmetros**
 - [ ] Modelo observado = modelo solicitado, **sem uso de outro modelo** em nenhum evento
 - [ ] `effort` aplicado (e comportamento no Haiku registrado)
-- [ ] WebSearch, WebFetch e subagentes realmente indisponíveis
-- [ ] `pom.xml` conferido no fim: `dependencias.alterado` e `dependencias.acrescentadas` no `meta.json`
+- [ ] Subagente realmente indisponível (`ferramentas_bloqueadas_disponiveis` vazio)
+- [ ] `WebSearch` e `WebFetch` **disponíveis** nas duas condições, e o uso registrado em `chamadas_por_ferramenta`
+- [ ] `pom.xml` conferido no fim: `dependencias.acrescentadas` no `meta.json`
+- [ ] Versões pedidas obedecidas: `fundacao.spring_boot` = 4.1.1 e `fundacao.java` = 21. Se divergir, registrar a taxa em vez de descartar
 
 **Harness**
-- [ ] Skill foi carregada/consultada na condição `COM`
-- [ ] Hook dispara ao finalizar; bloqueia quando o build falha; proteção contra loop funciona
+- [ ] `CLAUDE.md` carregado na condição `COM`, visível no evento inicial do jsonl
+- [ ] Nada de skill nem de hook: os dois saíram do harness, ver 10.3 e 10.4
 
 **Coleta**
 - [ ] `meta.json` com **todos** os campos preenchidos
 - [ ] Workspace final copiado corretamente
 
 **Avaliação**
-- [ ] Suíte escondida roda sobre os workspaces do piloto
+- [ ] Suíte escondida roda sobre os workspaces do piloto (`avaliacao/ferramentas/conferir-exemplos.sh`)
+- [ ] `avaliacao/ferramentas/autoteste.mjs` passa antes de valer qualquer número da suíte
 - [ ] Rubrica aplicável sem ambiguidade nos 3 pontos (testar nos 4 resultados)
 - [ ] Nenhum teste escondido falha por ambiguidade do contrato (se falhar, corrigir o **prompt**, não o teste)
 - [ ] Observar se a dificuldade planejada aparece (ex.: P3 raramente detectado sem harness). Se P3 for detectado sempre ou P1 nunca, reavaliar o prompt **antes** de congelar
@@ -720,7 +758,7 @@ Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamen
 ### 12.3 Após o piloto
 
 - [ ] Corrigir problemas encontrados
-- [ ] Se mudou prompt/esqueleto/harness: **recongelar** e registrar novos hashes
+- [ ] Se mudou prompt ou harness: **recongelar** e registrar novos hashes no diário de versões de `harness-notas.md`
 - [ ] Registrar tudo no diário de bordo
 - [ ] Tag `v1-congelado` no Git
 - [ ] **A partir daqui, nada muda.**
@@ -739,7 +777,13 @@ Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamen
 ### 13.2 Durante
 
 - [ ] Rodar `executar-bloco` e **não interagir** com as execuções
-- [ ] Não usar o Claude Code na mesma conta em paralelo (consome a mesma cota e pode afetar limites)
+- [ ] Não usar o Claude Code na mesma conta em paralelo **para outra coisa** 
+
+> [!warning] Esta regra contradiz os scripts, e a contradição está em aberto
+> `par.sh` roda duas execuções simultâneas e `rodada.sh` roda seis, todas na
+> mesma conta, de propósito (ver 6.2): é o que iguala horário e carga entre os
+> braços. A regra original proibia exatamente isso. Decidir qual das duas vale,
+> e declarar o custo da escolhida, antes do lote.
 
 ### 13.3 Regras de exceção
 
@@ -811,7 +855,7 @@ flowchart LR
 Para cada pacote:
 
 1. **Build:** `mvn verify` → compila? (sim/não)
-2. **Testes funcionais escondidos:** copiar `testes-escondidos/` para o projeto e rodar. Organizar em 4 grupos para reportar `% aprovados` **por grupo**:
+2. **Testes funcionais escondidos:** a suíte é **caixa-preta por HTTP**, não JUnit copiada para dentro do projeto — revisto em 19/09/2026, porque o pacote e a estrutura mudam a cada run e uma suíte copiada não compilaria. `avaliacao/ferramentas/conferir-exemplos.sh` sobe a app e `comparar.mjs` confere **campo a campo**. Os casos ficam em `avaliacao/casos/*.json`. Organizar em 4 grupos para reportar `% aprovados` **por grupo**:
 
    | Grupo | Casos |
    |---|---|
@@ -956,8 +1000,12 @@ Para cada extensão:
 | Interna | Mudança de versão do Claude Code/modelo durante o experimento | Versão fixa, sem atualização automática, janela curta |
 | Interna | Variação de carga/horário | Com/sem alternados dentro do bloco |
 | Interna | Viés do avaliador | Anonimização + dois avaliadores independentes + rubrica com regras derivadas |
-| Interna | Contaminação do harness com a solução | Exemplos da skill em outro domínio; revisão 10.5 |
-| Interna | Acesso a web via terminal | Proxy (A) ou auditoria (B) |
+| Interna | Contaminação do harness com a solução | Checagem de palavras proibidas em `harness/`; revisão 10.5. A skill, que era a maior fonte de risco aqui, foi descartada |
+| Interna | **Web liberada** nas duas condições (revisto em 20/09/2026) | Idêntica nos dois braços, então não favorece um. Uso registrado em `chamadas_por_ferramenta` e reportado por braço. Declarar que as 24 execuções de medição rodaram com web **bloqueada** e não são comparáveis nesse aspecto |
+| Constructo | Os três pontos avaliados — frete por modalidade, desconto por cupom, ajuste por forma de pagamento — são os **exemplos canônicos** com que Strategy é ensinado. Com web liberada, os dois braços podem convergir por terem lido o mesmo tutorial | Declarar. Vale mesmo com web bloqueada, porque o exemplo já está no treino. Reportar o uso de web por braço, e conferir se quem pesquisou acertou mais |
+| Interna | Resultado de busca muda de um dia para o outro | Entrada não controlada que varia entre repetições. Par `SEM`/`COM` simultâneo reduz, não elimina. Declarar |
+| Interna | Versões de Java e Spring Boot são **pedidas**, não impostas | Reportar a taxa de obediência por modelo e condição. Base cai fora do pedido, a run continua válida e é marcada |
+| Interna | Execuções em paralelo na mesma conta (`par.sh`, `rodada.sh`) contra o 13.2 | **Em aberto.** Elimina o efeito de horário e carga, e introduz disputa de CPU e possível limite de taxa da conta. Decidir e declarar antes do lote |
 | Constructo | Rubrica não captura "Strategy correto" | Critérios baseados na definição do padrão + teste de extensão objetivo |
 | Constructo | Pistas no prompt ("quase toda semana entra uma opção nova", "marketing adora inventar promoção") induzem o padrão | São requisitos de negócio realistas e idênticos nas duas condições; a variação da força da pista é **intencional** (dificuldade) |
 | Constructo | A classificação fácil/média/difícil é do autor, não medida | Justificar pelos critérios de construção (seção 8.3); verificar na análise se a ordem de acerto observada confirma a classificação |
@@ -969,7 +1017,7 @@ Para cada extensão:
 | Externa | Resultado vale para a versão X do Claude Code e snapshots dos modelos | Registrar versões; declarar |
 | Externa | Temperatura não controlável no Claude Code | Declarar; repetições como compensação |
 | Externa | Haiku 4.5 não aceita effort | Declarar comportamento observado no piloto |
-| Externa | Harness específico (um CLAUDE.md, uma skill, um hook) | Descrever integralmente no apêndice; "quanto harness" como trabalho futuro |
+| Externa | Harness específico: **um `CLAUDE.md` de quatro regras**, sem skill e sem hook | Descrever integralmente no apêndice; "quanto harness" como trabalho futuro |
 
 ---
 
@@ -1000,34 +1048,34 @@ Para cada extensão:
 - [x] Regras de negócio + exemplos numéricos
 - [x] Contrato completo
 - [x] Revisão de palavras proibidas
-- [ ] Recalcular exemplos de forma independente
+- [x] Recalcular exemplos de forma independente — 20/09/2026, os quatro do enunciado mais E5 e E6, todos conferem
 - [ ] Revisão por terceiro
 - [ ] Congelar + hash
 
-### Fase 2: Esqueleto e Docker
-- [ ] Gerar e limpar esqueleto
-- [ ] Congelar + hash
-- [ ] Dockerfile com versões exatas
-- [ ] Maven online, com `~/.m2` aquecido
-- [ ] Autenticação da assinatura no container
-- [ ] Decidir rede (A ou B)
-- [ ] Build da imagem + digest
+### Fase 2: Ambiente Docker
+- [x] Workspace vazio; versões pedidas no enunciado
+- [x] Dockerfile com versões exatas
+- [x] Maven online, com `~/.m2` aquecido em `infra/docker/aquecimento/`
+- [x] Autenticação da assinatura no container (`CLAUDE_CODE_OAUTH_TOKEN` via `.env`)
+- [x] Rede: web liberada, ver 9.4
+- [ ] Reconstruir como `experimento-harness:v3` + registrar digest
 
 ### Fase 3: Harness
-- [ ] CLAUDE.md
-- [ ] Skill Strategy (outro domínio)
-- [ ] Hook + proteção contra loop
-- [ ] Revisão de contaminação
+- [x] CLAUDE.md, quatro regras
+- [x] Skill: **descartada**, ver 10.3
+- [x] Hook: **adiado**, ver 10.4
+- [x] Revisão de contaminação
 - [ ] Congelar + hash
 
 ### Fase 4: Scripts
-- [ ] Gerar ordem com semente
-- [ ] Executar linha / bloco
-- [ ] Extração de métricas
-- [ ] Auditorias
+- [x] Executar uma run, o par e a rodada
+- [x] Extração de métricas
+- [x] Auditorias
+- [ ] Campo `repeticao`
+- [ ] Agregador CSV + análise
 
 ### Avaliação (preparar antes de rodar)
-- [ ] Testes escondidos nos 4 grupos (entrega, cupons, pagamento, validação)
+- [ ] Testes escondidos nos 4 grupos (entrega, cupons, pagamento, validação). **Precedência dos erros feita** em 20/09/2026
 - [ ] Testes de extensão `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`
 - [ ] Resolver regras de aceitação (P6)
 - [ ] Rubrica final por ponto

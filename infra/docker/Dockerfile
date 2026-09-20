@@ -1,5 +1,5 @@
 # Imagem única do experimento. Build a partir da raiz de experimento-harness/:
-#   docker build -f infra/docker/Dockerfile -t experimento-harness:v1 .
+#   docker build -f infra/docker/Dockerfile -t experimento-harness:v3 .
 #
 # Tudo com versão exata. Mudou qualquer linha = nova tag da imagem + registro no diário.
 

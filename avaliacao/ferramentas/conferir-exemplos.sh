@@ -16,7 +16,7 @@ set -uo pipefail
 [ $# -ge 1 ] || { echo "uso: $0 <run_id> [run_id ...]" >&2; exit 2; }
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-IMAGEM="${IMAGEM:-experimento-harness:v2}"
+IMAGEM="${IMAGEM:-experimento-harness:v3}"
 CASOS="${CASOS:-$RAIZ/avaliacao/casos/exemplos-enunciado.json}"
 [ -f "$CASOS" ] || { echo "arquivo de casos não encontrado: $CASOS" >&2; exit 2; }
 COMPARADOR="$RAIZ/avaliacao/ferramentas/comparar.mjs"
