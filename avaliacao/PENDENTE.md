@@ -12,12 +12,14 @@ conferência de 19/09/2026 mostrou `avaliacao/`, `docs/`, `runs/`, `.env` e
 | `rotas-descobertas.md` | o que os quatro exemplos do enunciado **não** cobrem, por ordem de risco |
 | `ferramentas/conferir-exemplos.sh` | roda os quatro exemplos contra a app de uma run |
 | `casos/rotas-sem-exemplo.json` | a rota do `FRETEGRATIS`, que nenhum exemplo cobre. Passe em `CASOS=` |
+| `casos/precedencia-erros.json` | sete casos de precedência dos oito códigos de erro, escritos em 20/09/2026 |
+| `ferramentas/autoteste.mjs` | testa o testador: sobe app de mentira com defeito conhecido e confere se o `comparar.mjs` acusa. `node avaliacao/ferramentas/autoteste.mjs` |
 
 ## Falta criar
 
 | item | o que é | prioridade |
 |---|---|---|
-| `testes-escondidos/` | suíte contra o contrato, que o modelo nunca vê. Começar pela precedência dos oito erros, que tem zero cobertura nos exemplos | **alta** |
+| `testes-escondidos/` | o resto da suíte contra o contrato. A precedência dos erros já saiu; falta fronteiras (5,00 kg, R$ 300, R$ 1.000, 3× e 12×), empates de arredondamento e combinações de `LEVE3PAGUE2` | **alta** |
 | `rubrica-strategy.md` | escala 0/1/2 por ponto, com exemplo-âncora de cada nível | **alta** |
 | `testes-extensao/` | um caso novo por ponto — `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`. Mede se estender toca código existente | média |
 | `mapa-anonimizacao.csv` | id cego → run. Só abrir depois de fechar as notas | depois |

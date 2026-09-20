@@ -44,6 +44,21 @@ Casos a testar:
 - cupom inexistente **e** parcelas inválidas → `CUPOM_INVALIDO` (4 antes de 7)
 - cupom existe mas não aplicável **e** boleto acima do limite → `CUPOM_NAO_APLICAVEL` (5 antes de 8)
 
+> [!check] Escritos em 20/09/2026
+> `avaliacao/casos/precedencia-erros.json`, sete casos, cobrindo 1, 2, 3, 4, 5
+> e 6 como vencedores da precedência. Rodar com
+> `CASOS=avaliacao/casos/precedencia-erros.json`.
+>
+> **Um dos cinco acima saiu diferente.** "Cupom não aplicável **e** boleto acima
+> do limite" não é construível de forma realista: `CUPOM_NAO_APLICAVEL` só
+> acontece com `MENOS50` abaixo de R$ 300,00 em produtos, e o cupom não
+> aplicado significa total do pedido = produtos + frete. Para passar de
+> R$ 1.000,00 com produtos abaixo de 300, o frete teria que passar de R$ 700 —
+> um pedido de umas 150 kg na `EXPRESSA`, ou 345 kg na `ECONOMICA`. Um caso
+> assim testaria a tolerância da implementação a peso absurdo, não a
+> precedência. No lugar dele ficou **5 antes de 7**: `MENOS50` com produtos
+> 299,00 mais `PIX` em 2x, que é realista e exercita a mesma ordem relativa.
+
 ## 2. FRETEGRATIS: o único cupom sem exemplo
 
 Já medido nas dez execuções de Haiku: **quatro erram**, em duas formas
@@ -105,8 +120,8 @@ outras variações. Vale um caso por modalidade isolando o prazo: 7, 2, 1 e 0.
 
 ## Prioridade
 
-1. **Precedência de erros** — oito códigos, ordem explícita, zero exemplos. É
-   onde mais implementações vão divergir, e é barato de testar.
+1. ~~**Precedência de erros**~~ — coberto em 20/09/2026 por
+   `casos/precedencia-erros.json`, sete casos.
 2. **FRETEGRATIS** — já comprovado que erra em 4 de 10.
 3. **Fronteiras** — 5,00 kg, R$ 300,00, R$ 1.000,00, 3× e 12×.
 4. **Empates de arredondamento** — silenciosos e de um centavo.
