@@ -6,7 +6,7 @@ confidencial: true
 # Gabarito do avaliador: pontos de Strategy no prompt
 
 > [!warning] Nunca entra no container
-> Este arquivo não pode ficar em `skeleton/`, `harness/` nem em nenhuma pasta copiada para as execuções.
+> Este arquivo não pode ficar em `experimento/harness/`, `experimento/prompt/` nem em nenhuma pasta copiada para as execuções. O `.dockerignore` é lista branca e já barra `avaliacao/` do contexto de build.
 
 ## Visão geral
 

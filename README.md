@@ -13,7 +13,6 @@ A divisão é por **quem enxerga o quê**:
 experimento/     copiado para dentro do workspace do agente
   prompt/        o enunciado, idêntico nas duas condições
   harness/       só na condição COM. Vira a raiz do projeto sob teste
-  skeleton/      ponto de partida, idêntico nas duas condições
 
 infra/           roda de fora, o agente nunca vê
   docker/        imagem fixada por versão
@@ -36,7 +35,14 @@ runs/logs/       saída de terminal de cada execução
 | imagem base | `maven:3.9.16-eclipse-temurin-21` |
 | Node | `24.19.0` |
 | Claude Code | `2.1.269` |
-| Spring Boot | `4.1.1` |
+| Spring Boot | `4.1.1`, **pedido no enunciado** |
+
+> [!note] O workspace nasce vazio
+> Até 20/09/2026 havia um esqueleto Spring Boot como ponto de partida. Ele saiu,
+> e Java 21 e Spring Boot 4.1.1 passaram a ser **pedidos no enunciado**, em
+> "Observações do time técnico". É pedido, não garantia: o que o agente de fato
+> escolheu fica em `fundacao.spring_boot` e `fundacao.java` no `meta.json`, e o
+> `~/.m2` da imagem é aquecido com essas mesmas versões.
 
 ## Preparação
 

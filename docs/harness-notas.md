@@ -136,6 +136,24 @@ move o custo de texto de forma perceptível.
 
 ---
 
+# Diário de versões do enunciado
+
+O nome do arquivo mudou; o hash é a identidade. Runs antigas só são
+rastreáveis por esta tabela.
+
+| hash | quando | arquivo | o que era | runs produzidas |
+|---|---|---|---|---|
+| `4e225fb7…44b97d5a` | até 19/09/2026 | `prompt.md` | com esqueleto, Maven offline, "não adicione bibliotecas novas" | FUMACA-01/02, MED-01 a MED-05 |
+| `c0bba536…d568a955` | 19/09/2026 | `prompt.md` | com esqueleto, Maven online | nenhuma |
+| `4edd89f9…8477c06` | 19/09/2026 | `prompt-sem-esqueleto.md` | pasta vazia | MED-06, MED-07 |
+| `53db3424…841bfd124` | 20/09/2026 | `prompt.md` | pasta vazia + "Use Java 21 e Spring Boot 4.1.1" | nenhuma ainda |
+
+O `prompt.md` com esqueleto (`c0bba536`) foi **apagado** em 20/09/2026, e o
+`prompt-sem-esqueleto.md` tomou o nome `prompt.md`. As duas famílias com
+esqueleto continuam recuperáveis pelo git.
+
+---
+
 # Diário de decisões da bancada
 
 Mudanças que não são do harness, mas afetam a comparabilidade das execuções.
@@ -184,3 +202,50 @@ faria por conta própria; silêncio é o que mede "se ele achar necessário".
 A `v1` continua no disco com o mesmo digest (`sha256:2bd0792b…`), então as dez
 execuções de 19/09 seguem reproduzíveis. Elas usaram o enunciado antigo e o
 Maven offline: **não são comparáveis com o que vier depois.**
+
+## 20/09/2026 — esqueleto removido, e versões pedidas no enunciado
+
+**Antes:** `experimento/skeleton/` era copiado para o workspace: `pom.xml` com
+Spring Boot 4.1.1 e Java 21, mais `CheckoutApplication.java` em
+`br.tcc.checkout` e um `application.properties`.
+
+**Agora:** o workspace nasce vazio. O enunciado ganhou a linha "Use Java 21 e
+Spring Boot 4.1.1" em "Observações do time técnico".
+
+**O que isso custa, e precisa estar no pré-registro.** Virou pedido, não
+garantia. Nas quatro execuções sem esqueleto já coletadas, dois pares
+divergiram de base **dentro do mesmo modelo**: MED-06 Haiku escolheu Java 11 no
+braço COM e Java 17 no SEM — e o COM não compilou, porque Spring Boot 3.x não
+roda em Java 11 — e MED-07 Haiku escolheu 3.1.0 contra 3.1.5. A linha no
+enunciado existe para fechar isso, e a taxa de obediência passa a ser um dado:
+`fundacao.spring_boot` e `fundacao.java` no `meta.json`.
+
+**O aquecimento do `~/.m2` mudou de casa.** Saiu de `experimento/skeleton/` para
+`infra/docker/aquecimento/`, que agora é um projeto Spring Boot próprio e
+mínimo. As versões dele têm que acompanhar as do enunciado: se divergirem, o
+cache esquenta o que ninguém usa, e só paga download quem **obedecer** — o que
+seria vantagem de tempo para quem desobedece. Isso já aconteceu de fato: no
+MED-07, com o cache em 4.1.1, o Opus escolheu 4.1.1 e baixou nada, enquanto o
+Haiku escolheu 3.1.5 e registrou 46 `Downloaded from` na transcrição.
+
+## 20/09/2026 — web liberada nas duas condições
+
+**Antes:** `--disallowedTools "WebSearch,WebFetch,Agent,Task"`. O D10 bloqueava
+web para impedir ajuda externa não controlada, e o §9.4 escolhia entre proxy e
+auditoria.
+
+**Agora:** `--disallowedTools "Agent,Task"`. Subagente segue bloqueado, porque
+aquilo é controle de troca de modelo, não de acesso à internet.
+
+**O que isso custa, e precisa estar no pré-registro.** Ganha validade externa:
+quem usa o Claude Code no dia a dia tem web. Perde controle interno, e o risco
+é específico desta tarefa: frete por modalidade, desconto por cupom e ajuste por
+forma de pagamento são os três exemplos canônicos com que o padrão Strategy é
+ensinado. Com busca liberada, os dois braços podem convergir por terem lido o
+mesmo tutorial, e o contraste que o experimento mede encolhe. Somado a isso,
+resultado de busca muda de um dia para o outro, o que é variação não controlada
+entre repetições, cara com n=3.
+
+Consequência para a auditoria: `auditoria.acesso_web_suspeito` deixa de ser
+marca de violação e passa a ser registro descritivo. Para as 24 execuções de
+medição, que rodaram com web bloqueada, ela continua sendo prova de isolamento.

@@ -1,4 +1,4 @@
-Oi! Tenho uma loja online de roupas e acessórios e preciso do serviço que calcula o resumo da compra na hora de finalizar o pedido. Não sou programador, então vou explicar como o negócio funciona e o que eu preciso que aconteça. Já tem um projeto criado nesta pasta, é só construir em cima dele.
+Oi! Tenho uma loja online de roupas e acessórios e preciso do serviço que calcula o resumo da compra na hora de finalizar o pedido. Não sou programador, então vou explicar como o negócio funciona e o que eu preciso que aconteça. A pasta está vazia, então é montar tudo do começo.
 
 ## Como funciona a compra
 
@@ -140,6 +140,7 @@ A resposta de erro é sempre `{ "erro": "CODIGO" }`. Verificar nesta ordem e dev
 ## Observações do time técnico
 
 - Não use banco de dados.
-- O projeto precisa continuar funcionando com `mvn verify`.
+- Use Java 21 e Spring Boot 4.1.1.
+- O projeto precisa funcionar com `mvn verify`.
 
 Quando terminar, responda apenas "CONCLUÍDO".

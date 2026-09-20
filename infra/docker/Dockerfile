@@ -37,9 +37,7 @@ WORKDIR /home/experimento
 #
 # O Maven continua ONLINE nas execuções: o agente pode acrescentar dependência
 # se julgar necessário, e isso é registrado no meta.json em vez de impedido.
-COPY --chown=experimento experimento/skeleton/pom.xml /tmp/aquecimento/pom.xml
-COPY --chown=experimento experimento/skeleton/src/main /tmp/aquecimento/src/main
-COPY --chown=experimento infra/docker/aquecimento/AquecimentoTest.java /tmp/aquecimento/src/test/java/aquecimento/AquecimentoTest.java
+COPY --chown=experimento infra/docker/aquecimento/ /tmp/aquecimento/
 RUN cd /tmp/aquecimento && mvn -B -q verify && rm -rf /tmp/aquecimento
 
 

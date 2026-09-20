@@ -9,7 +9,7 @@ O projeto sob teste nasce em `runs/<id>/workspace/` a cada execução.
 
 | pasta | o agente enxerga? |
 |---|---|
-| `experimento/` | **sim.** `prompt/`, `harness/` e `skeleton/` são copiados para dentro do workspace |
+| `experimento/` | **sim.** `prompt/` e `harness/` são copiados para dentro do workspace. O workspace em si nasce vazio |
 | `infra/` | não. Dockerfile e scripts rodam de fora |
 | `avaliacao/` | **nunca.** Gabarito, rotas de teste e notas |
 | `docs/` | não |

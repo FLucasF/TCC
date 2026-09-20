@@ -8,8 +8,13 @@
 # Variáveis opcionais:
 #   IMAGEM     padrão experimento-harness:v2
 #   EFFORT     padrão high, conforme D8 do plano
-#   ESQUELETO  padrão sim. "nao" começa com o workspace vazio
 #   PROMPT_ARQ padrão experimento/prompt/prompt.md
+#
+# O workspace nasce VAZIO. Até 20/09/2026 havia um esqueleto Spring Boot como
+# ponto de partida, e a variável ESQUELETO escolhia entre os dois modos. O
+# esqueleto saiu, e as versões de Java e Spring Boot passaram a ser pedidas no
+# próprio enunciado — pedido, não garantia: o que o agente de fato escolheu fica
+# em `fundacao` no meta.json.
 
 set -uo pipefail
 
@@ -20,11 +25,10 @@ RUN_ID="$1"; MODELO="$2"; COND="$3"
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 IMAGEM="${IMAGEM:-experimento-harness:v2}"
-FERRAMENTAS_BLOQUEADAS="WebSearch,WebFetch,Agent,Task"
+# Web LIBERADA desde 20/09/2026, nas duas condições. Subagente continua
+# bloqueado: aquilo é controle de troca de modelo, não de acesso à internet.
+FERRAMENTAS_BLOQUEADAS="Agent,Task"
 EFFORT="${EFFORT:-high}"
-# ESQUELETO=nao começa com o workspace vazio. Nesse caso o enunciado também
-# precisa mudar, porque o padrão diz que já existe um projeto na pasta.
-ESQUELETO="${ESQUELETO:-sim}"
 
 RUN_DIR="$RAIZ/runs/$RUN_ID"
 WS="$RUN_DIR/workspace"
@@ -52,29 +56,16 @@ hash_arvore() { # hash estável de uma pasta: caminhos + conteúdo
 }
 
 # ------------------------------------------------------------------ workspace
-mkdir -p "$RUN_DIR"
-if [ "$ESQUELETO" = "sim" ]; then
-    cp -r "$RAIZ/experimento/skeleton" "$WS"
-    HASH_SKELETON="$(hash_arvore "$RAIZ/experimento/skeleton")"
-    HASH_POM="$(sha256sum "$RAIZ/experimento/skeleton/pom.xml" | cut -d' ' -f1)"
-else
-    mkdir -p "$WS"
-    HASH_SKELETON="vazio"
-    HASH_POM=""
-fi
+mkdir -p "$RUN_DIR" "$WS"
 HASH_HARNESS=""
 if [ "$COND" = "COM" ]; then
     cp -r "$RAIZ/experimento/harness/." "$WS/"
     HASH_HARNESS="$(hash_arvore "$RAIZ/experimento/harness")"
 fi
 HASH_PROMPT="$(sha256sum "$PROMPT" | cut -d' ' -f1)"
-# Dependencias declaradas no pom de partida, para o extrator comparar no fim.
+# Não existe pom de partida: `dependencias.acrescentadas` no meta.json passa a
+# ser a lista inteira do que o agente declarou, que é o dado que interessa agora.
 DEPS_ANTES="[]"
-if [ "$ESQUELETO" = "sim" ]; then
-DEPS_ANTES="$(node -e 'const t=require("fs").readFileSync(process.argv[1],"utf8");
-const b=t.match(/<dependencies>([\s\S]*?)<\/dependencies>/);
-console.log(JSON.stringify(b?[...b[1].matchAll(/<groupId>\s*([^<]+?)\s*<\/groupId>\s*<artifactId>\s*([^<]+?)\s*<\/artifactId>/g)].map(m=>m[1]+":"+m[2]).sort():[]));' "$(cygpath -w "$RAIZ/experimento/skeleton/pom.xml")")"
-fi
 IMAGEM_ID="$(docker image inspect --format '{{.Id}}' "$IMAGEM")"
 
 WS_WIN="$(cygpath -w "$WS")"
@@ -138,5 +129,5 @@ node "$(cygpath -w "$RAIZ/infra/scripts/extrair-meta.mjs")" "$(cygpath -w "$RUN_
     --codigo_saida "$RC" --build_codigo "$BUILD_RC" \
     --ferramentas_bloqueadas "$FERRAMENTAS_BLOQUEADAS" --effort "$EFFORT" \
     --imagem "$IMAGEM" --imagem_id "$IMAGEM_ID" \
-    --hash_prompt "$HASH_PROMPT" --hash_skeleton "$HASH_SKELETON" --hash_harness "$HASH_HARNESS" \
-    --hash_pom "$HASH_POM" --deps_antes "$DEPS_ANTES" --esqueleto "$ESQUELETO"
+    --hash_prompt "$HASH_PROMPT" --hash_harness "$HASH_HARNESS" \
+    --deps_antes "$DEPS_ANTES"

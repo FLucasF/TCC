@@ -110,7 +110,11 @@ const rel = (p) => p.slice(raizWs.length + 1).split("\\").join("/");
 const caminhoPom = arquivos.filter((a) => a.nome === "pom.xml").sort((a, b) => a.prof - b.prof)[0]?.caminho ?? null;
 const gradle = arquivos.find((a) => a.nome === "build.gradle" || a.nome === "build.gradle.kts");
 
-const pom = { alterado: null, hash_antes: arg.hash_pom || null, hash_depois: null, acrescentadas: [], removidas: [] };
+// Sem esqueleto não existe pom de partida, então `hash_antes` e `alterado`
+// ficam nulos e `acrescentadas` passa a ser a lista inteira do que o agente
+// declarou. Os campos foram mantidos para as 24 execuções de medição, que
+// rodaram com esqueleto, continuarem com a mesma forma de arquivo.
+const pom = { alterado: null, hash_antes: null, hash_depois: null, acrescentadas: [], removidas: [] };
 const fundacao = {
   ferramenta: caminhoPom ? "maven" : gradle ? "gradle" : null,
   projeto_em: caminhoPom ? rel(caminhoPom) : gradle ? rel(gradle.caminho) : null,
@@ -171,13 +175,11 @@ const meta = {
     imagem_id: arg.imagem_id,
     claude_code_versao: init?.claude_code_version ?? null,
     hash_prompt: arg.hash_prompt,
-    hash_skeleton: arg.hash_skeleton,
     hash_harness: arg.hash_harness || null,
     verificacoes_pre_execucao: pre,
   },
   parametros: {
     effort: arg.effort ?? "high",
-    esqueleto: arg.esqueleto ?? "sim",
     ferramentas_bloqueadas: arg.ferramentas_bloqueadas.split(","),
     permission_mode_init: init?.permissionMode ?? null,
   },
