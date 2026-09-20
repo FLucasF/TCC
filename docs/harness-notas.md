@@ -255,3 +255,95 @@ entre repetições, cara com n=3.
 Consequência para a auditoria: `auditoria.acesso_web_suspeito` deixa de ser
 marca de violação e passa a ser registro descritivo. Para as 24 execuções de
 medição, que rodaram com web bloqueada, ela continua sendo prova de isolamento.
+
+## 20/09/2026 — a suíte escondida rodou de verdade pela primeira vez
+
+Com a imagem `v3`, os 60 casos contra as seis execuções do `MED-07`. São
+aplicações Java reais, não app de mentira.
+
+| execução | |
+|---|---|
+| `MED-07-VAZIO-OPUS-COM` | 60/60 |
+| `MED-07-VAZIO-OPUS-SEM` | 60/60 |
+| `MED-07-VAZIO-SONNET-COM` | 60/60 |
+| `MED-07-VAZIO-SONNET-SEM` | 60/60 |
+| `MED-07-VAZIO-HAIKU-COM` | **57/60** |
+| `MED-07-VAZIO-HAIKU-SEM` | **59/60** |
+
+### O que isso diz sobre o instrumento
+
+Quatro de seis passam tudo. **Correção funcional satura**, que é exatamente a
+premissa do experimento: o que separa os modelos aqui não é se a conta fecha, é
+como o código está organizado. A suíte escondida é controle, não o desfecho.
+
+Mas ela **não é inútil**: pegou dois defeitos reais que os quatro exemplos do
+enunciado não pegavam.
+
+### Defeito 1 — Haiku COM: a parcela sai da base errada
+
+Três casos, um único bug.
+
+| caso | total do pedido | esperado | veio |
+|---|---|---|---|
+| `exemplo-2` | 425,30 | 75,90 | 81,27 |
+| `pag-cartao-4x` | 200,00 | 52,51 | 55,15 |
+| `pag-cartao-12x` | 200,00 | 18,90 | 21,43 |
+
+A fórmula Price está escrita **corretamente** no código. Errada é a base: ele
+calcula a parcela sobre o total **já com juros**, aplicando a fórmula na própria
+saída dela. Confere exato — `price(455,40; 1,99%; 6) = 81,27`,
+`price(210,04; 1,99%; 4) = 55,15`, `price(226,80; 1,99%; 12) = 21,43`.
+
+Duas coisas valem registrar:
+
+**Ele erra o `exemplo-2`, que estava no enunciado.** O modelo recebeu o caso
+resolvido, com "6× de 75,90" escrito, e entregou 81,27.
+
+**O `totalFinal` está certo.** Só o `valorParcela` diverge. Uma suíte que
+comparasse apenas o total aprovaria essa aplicação — que é a regra escrita no
+`PENDENTE.md` depois das dez execuções de 19/09, "conferir campo a campo, nunca
+só o totalFinal", se provando sozinha num caso que ninguém tinha rodado.
+
+### Defeito 2 — Haiku SEM: o limite do boleto nunca foi implementado
+
+`pag-boleto-100001` devolve HTTP 200 onde deveria devolver 400 com
+`FORMA_PAGAMENTO_INDISPONIVEL`. O código entrega o motivo por escrito, em
+comentário que o próprio modelo deixou:
+
+```java
+// Adiciona frete (precisa saber qual modalidade... mas não temos aqui)
+// Vamos pegar do request original que está sendo passado
+// Na verdade o erro de boleto só aparece se total > 1000
+// Vou verificar na chamada do service
+```
+
+O "vou verificar na chamada do service" nunca aconteceu. É pensamento em voz
+alta deixado no código de produção, e matéria-prima para a análise qualitativa.
+
+### O oitavo defeito de ferramenta, achado no caminho
+
+`cygpath -w` sobre caminho **relativo** devolve caminho relativo, o Docker
+recusa o bind mount com "is not a valid Windows path" e sai com código 125 — e
+o `conferir-exemplos.sh` somava o 125 como "125 casos com erro". O exemplo
+relativo documentado no `README.md` nunca teria funcionado.
+
+Corrigido em duas frentes, porque o defeito tem duas causas:
+
+1. `CASOS` passa a ser resolvido para caminho absoluto.
+2. Os códigos de erro do próprio Docker (125, 126, 127) deixam de ser somados
+   como contagem de casos, e viram uma coluna própria no resumo. É a mesma
+   família do 66, que já tinha dado esse problema em 19/09: **nem todo código de
+   saída é contagem**.
+
+E o stderr do container deixou de ser descartado: vai para
+`runs/logs/conferir-<run_id>.err`. Sem isso, este defeito continuaria invisível
+— só se via o número 125 sem nenhuma explicação.
+
+### Junto veio uma melhoria
+
+`CASOS` aceita **pasta**, e aí todos os `.json` de dentro rodam contra a mesma
+subida da aplicação. Seis grupos num boot, em vez de seis boots:
+
+```bash
+CASOS=avaliacao/casos avaliacao/ferramentas/conferir-exemplos.sh <run_id>
+```

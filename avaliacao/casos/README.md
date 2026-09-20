@@ -20,6 +20,12 @@ Rodar um conjunto contra a aplicação de uma execução:
 CASOS=avaliacao/casos/pagamento.json avaliacao/ferramentas/conferir-exemplos.sh <run_id>
 ```
 
+Ou a pasta inteira, que sobe a aplicação **uma vez** e roda os seis grupos:
+
+```bash
+CASOS=avaliacao/casos avaliacao/ferramentas/conferir-exemplos.sh <run_id> [run_id ...]
+```
+
 ---
 
 ## Os arquivos, e o grupo da §14.3 a que pertencem

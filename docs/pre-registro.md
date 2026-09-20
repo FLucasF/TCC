@@ -1,6 +1,6 @@
 ---
 tags: [tcc, experimento, pre-registro]
-status: aguardando o digest da imagem v3
+status: fechado, exceto a P4 (do professor)
 fechado: 2026-09-20
 ---
 
@@ -12,15 +12,12 @@ Não repete o `plano.md`: aponta para ele. Duplicar texto foi exatamente o que
 produziu a divergência da §11.3, onde o exemplo de `meta.json` descrevia um
 arquivo que não existia mais.
 
-> [!warning] Ainda não está fechado
-> Falta o **digest da imagem `experimento-harness:v3`**. O Dockerfile mudou em
-> 20/09/2026 e a imagem não foi reconstruída. Sem o digest, o ambiente não está
-> fixado, e a tag `v1-congelado` não deve ser criada.
->
-> ```bash
-> docker build -f infra/docker/Dockerfile -t experimento-harness:v3 .
-> docker image inspect --format '{{.Id}}' experimento-harness:v3
-> ```
+> [!success] Imagem construída e fixada em 20/09/2026
+> `experimento-harness:v3`, digest
+> `sha256:f43d75c8af9a80ec0bff4465990bf584fa6cce2405959ca1b3f31e095abcfee0`.
+> O projeto de aquecimento novo, em `infra/docker/aquecimento/`, compilou e
+> rodou os testes durante o build — o que confirma que a remoção do esqueleto
+> não quebrou a imagem.
 
 ---
 
@@ -65,7 +62,7 @@ contra `COM`. Ver `plano.md` §2.4.
 | `experimento/prompt/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
 | `experimento/harness/` (árvore) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
 | `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
-| imagem `experimento-harness:v3` | **pendente** — ver o aviso no topo |
+| imagem `experimento-harness:v3` | `sha256:f43d75c8af9a80ec0bff4465990bf584fa6cce2405959ca1b3f31e095abcfee0` |
 
 | parâmetro | valor |
 |---|---|
@@ -159,6 +156,20 @@ Declarado para não virar descoberta disfarçada depois:
   produzir uma que as 24 execuções de medição não produziram
 - A âncora de **C2 = 1**, que nenhuma execução produziu até agora
 - Qualquer corte, agrupamento ou teste estatístico não listado na §5
+
+## 9a. Validado de ponta a ponta antes de fechar
+
+Em 20/09/2026, com a imagem `v3`, a suíte inteira rodou contra as execuções de
+calibração do `MED-07` — aplicações Java reais, não app de mentira. O resultado
+está em `docs/harness-notas.md`.
+
+Isso revelou o **oitavo** defeito de ferramenta: `cygpath -w` sobre caminho
+relativo devolve caminho relativo, o Docker recusa com código 125, e o script
+somava o 125 como "125 casos com erro". O exemplo relativo documentado no
+`README` nunca teria funcionado. Corrigido em duas frentes: `CASOS` passa a ser
+resolvido para absoluto, e os códigos de erro do próprio Docker (125, 126, 127)
+deixam de ser somados como contagem de casos — mesma família do 66, que já
+tinha dado esse problema em 19/09.
 
 ## 10. O que muda depois disto
 

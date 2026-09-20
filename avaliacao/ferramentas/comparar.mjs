@@ -1,7 +1,10 @@
 // Roda DENTRO do container. Espera a aplicação subir, chama cada caso e
 // compara campo a campo com o esperado.
 //
-// Uso: node /comparar.mjs /casos.json
+// Uso: node /comparar.mjs /casos/a.json [/casos/b.json ...]
+//
+// Aceita varios arquivos para a aplicacao subir UMA vez e ser conferida contra
+// todos os grupos. O resumo sai por arquivo e no total.
 //
 // Sai com código igual ao número de casos que falharam, e 66 se a aplicação
 // nunca respondeu.
@@ -18,7 +21,8 @@
 import { readFileSync } from "node:fs";
 
 const URL_ALVO = process.env.URL_ALVO ?? "http://localhost:8080/checkout/resumo";
-const casos = JSON.parse(readFileSync(process.argv[2], "utf8"));
+const arquivos = process.argv.slice(2);
+if (!arquivos.length) { console.log("uso: node comparar.mjs <casos.json> [casos.json ...]"); process.exit(2); }
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -48,7 +52,12 @@ async function subiu() {
 }
 
 async function comparar() {
-let falharam = 0;
+let falharam = 0, total = 0;
+for (const arquivo of arquivos) {
+const casos = JSON.parse(readFileSync(arquivo, "utf8"));
+const nome = arquivo.split("/").pop();
+let falharamAqui = 0;
+if (arquivos.length > 1) console.log(`--- ${nome}`);
 for (const caso of casos) {
   let corpo = null, status = null, bruto = null;
   try {
@@ -65,7 +74,7 @@ for (const caso of casos) {
     if (bruto) { try { corpo = JSON.parse(bruto); } catch { corpo = null; } }
   } catch (e) {
     console.log(`${caso.id.padEnd(16)} FALHA  sem resposta: ${e.message}`);
-    falharam++;
+    falharam++; falharamAqui++;
     continue;
   }
 
@@ -80,13 +89,15 @@ for (const caso of casos) {
   if (erros.length === 0) {
     console.log(`${caso.id.padEnd(16)} ok     ${caso.descricao}`);
   } else {
-    falharam++;
+    falharam++; falharamAqui++;
     console.log(`${caso.id.padEnd(16)} ERRO   ${caso.descricao}`);
     for (const e of erros) console.log(`${" ".repeat(23)}${e}`);
   }
 }
-
-console.log(`${casos.length - falharam}/${casos.length} casos corretos`);
+total += casos.length;
+if (arquivos.length > 1) console.log(`    ${casos.length - falharamAqui}/${casos.length} em ${nome}`);
+}
+console.log(`${total - falharam}/${total} casos corretos`);
 return falharam;
 }
 
