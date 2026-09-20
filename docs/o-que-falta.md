@@ -83,11 +83,22 @@ Precisa de apps de referência com defeito conhecido, para provar que a
 ferramenta acusa o que deve acusar. As 24 execuções servem de base: dá para
 pegar uma correta e introduzir um erro de propósito.
 
-### A5. Anonimização
+### A5. Anonimização — **feito em 20/09/2026**
 
-Se a pontuação for às cegas, falta o script que tira `CLAUDE.md`, `.claude/` e
-identificadores de run, mais o mapa id cego → run, aberto só depois de fechar
-as notas.
+`avaliacao/ferramentas/anonimizar.mjs`. Tira `CLAUDE.md`, `.claude/`, `target/`,
+o `.git` do agente, `meta.json`, transcrição e log de build; normaliza as datas
+de modificação, porque arquivo do braço COM nasce depois do harness ser copiado;
+embaralha a ordem com semente registrada antes de atribuir o código cego; e
+gera as quatro planilhas com uma linha por pacote × ponto, sem sobrescrever
+nota já preenchida.
+
+De brinde, conta as **pistas que o modelo deixou** — comentário citando
+`CLAUDE.md`, harness, orientações de projeto ou skill. A §14.2 manda registrar e
+não remover, e o número vai para as ameaças à validade. Ensaiado nas seis runs
+do MED-07: zero pistas, inclusive nos três READMEs que os modelos escreveram por
+conta própria.
+
+O mapa está no `.gitignore`, porque o autor é um dos dois avaliadores.
 
 ---
 

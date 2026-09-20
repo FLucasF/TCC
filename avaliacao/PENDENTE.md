@@ -17,15 +17,14 @@ conferência de 19/09/2026 mostrou `avaliacao/`, `docs/`, `runs/`, `.env` e
 | `rubrica-strategy.md` | o instrumento do desfecho primário, com âncoras de código real em C1, C2, C3 e C5. Escrito em 20/09/2026 |
 | `testes-extensao/` | `DRONE`, `DEZOFF` e `CARTEIRA_DIGITAL`, 11 casos, mais o procedimento de contagem. Escrito em 20/09/2026 |
 | `casos/` | 60 casos nos quatro grupos da §14.3, gerados por `ferramentas/gerar-casos.mjs` com BigInt. Ver `casos/README.md` |
+| `ferramentas/anonimizar.mjs` | prepara os pacotes para a avaliação às cegas, gera o mapa e as planilhas, e conta as pistas que o modelo deixou |
+| `README.md` | o fluxo da §14 em ordem, e o que cada ferramenta faz |
 
 ## Falta criar
 
 | item | o que é | prioridade |
 |---|---|---|
-| `mapa-anonimizacao.csv` | id cego → run. Só abrir depois de fechar as notas | depois |
-| `notas-autor.csv` | suas notas, às cegas | depois |
-| `notas-professor.csv` | avaliação independente | depois |
-| `consenso.csv` | divergências resolvidas | depois |
+| planilhas de notas | geradas pelo `anonimizar.mjs` na hora de avaliar o lote | depois |
 
 ## Regras que as dez execuções de 19/09 já ensinaram
 
