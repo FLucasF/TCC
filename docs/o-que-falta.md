@@ -14,15 +14,21 @@ Sem isto você roda o lote e não consegue pontuá-lo. É a lição do piloto de
 setembro se repetindo: *"tudo que avalia precisa existir e ser testado antes de
 rodar"*.
 
-### A1. `avaliacao/rubrica-strategy.md`
+### A1. `avaliacao/rubrica-strategy.md` — **feito em 20/09/2026**
 
-A nota de design é o desfecho primário e não existe escala escrita.
+Critérios instanciados por ponto, catálogo das seis formas observadas, e
+âncoras de código real em C1, C2, C3 e C5, todas conferidas contra o arquivo da
+run. C4 e C6 ficaram em prosa, por escolha.
 
-Precisa de: escala por ponto (entrega, cupons, pagamento), com exemplo-âncora
-de cada nível tirado das 24 execuções que já existem — elas dão material real
-em vez de exemplo inventado.
+Duas lacunas registradas no próprio arquivo:
 
-Bloqueia A3, porque os testes de extensão medem justamente o nível 2.
+- **C2 = 1 não tem âncora.** Nenhuma das 24 execuções isolou parte das variantes
+  de um mesmo ponto deixando as outras soltas.
+- **As três extensões de hoje não separam "parametrizado" de "uma classe por
+  variante".** `DEZOFF` é da mesma família de regra do `MENOS50`, então num
+  desenho parametrizado ele entra como uma linha de dado e pontua C5 = 2 sem
+  classe nova. Para distinguir, seria preciso uma segunda extensão por ponto que
+  exigisse comportamento de família nova. Decidir antes do lote.
 
 ### A2. `avaliacao/casos/` — os testes escondidos
 

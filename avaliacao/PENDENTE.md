@@ -14,13 +14,13 @@ conferência de 19/09/2026 mostrou `avaliacao/`, `docs/`, `runs/`, `.env` e
 | `casos/rotas-sem-exemplo.json` | a rota do `FRETEGRATIS`, que nenhum exemplo cobre. Passe em `CASOS=` |
 | `casos/precedencia-erros.json` | sete casos de precedência dos oito códigos de erro, escritos em 20/09/2026 |
 | `ferramentas/autoteste.mjs` | testa o testador: sobe app de mentira com defeito conhecido e confere se o `comparar.mjs` acusa. `node avaliacao/ferramentas/autoteste.mjs` |
+| `rubrica-strategy.md` | o instrumento do desfecho primário, com âncoras de código real em C1, C2, C3 e C5. Escrito em 20/09/2026 |
 
 ## Falta criar
 
 | item | o que é | prioridade |
 |---|---|---|
 | `testes-escondidos/` | o resto da suíte contra o contrato. A precedência dos erros já saiu; falta fronteiras (5,00 kg, R$ 300, R$ 1.000, 3× e 12×), empates de arredondamento e combinações de `LEVE3PAGUE2` | **alta** |
-| `rubrica-strategy.md` | escala 0/1/2 por ponto, com exemplo-âncora de cada nível | **alta** |
 | `testes-extensao/` | um caso novo por ponto — `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`. Mede se estender toca código existente | média |
 | `mapa-anonimizacao.csv` | id cego → run. Só abrir depois de fechar as notas | depois |
 | `notas-autor.csv` | suas notas, às cegas | depois |
@@ -39,12 +39,19 @@ gravidade muito diferente, e somar as duas apaga o sinal.
 
 ## Decisões de rubrica ainda abertas (P6 do plano)
 
-**`enum` com método por constante conta como Strategy?** Deixou de ser
-hipotética: nas execuções de 19/09 o braço sem harness usou `String` com
-`switch`, e o com harness usou método por constante. Se a resposta for "não
-conta", os dois caem em zero e a escala perde justamente a distinção que o
-experimento produziu. Recomendação: **sim**, com anotação de que foi por
-constante e não por classe.
+**Resolvidas em 20/09/2026**, na §14.4a do plano e na `rubrica-strategy.md`.
 
-- Regra genérica parametrizada conta, se a seleção não usar condicional?
-- Condicional concentrada num único ponto conta como "sem Strategy"?
+A varredura das 24 execuções mostrou que a pergunta era mais larga do que
+parecia: não são duas formas, são **seis**. A nota antiga aqui dizia que o
+braço sem harness usou `String` com `switch` — no `MED-05-HAIKU-SEM` ele usou
+um `Map<String, EntregaConfig>` de dados com casos especiais por identidade, e o
+`switch` puro só aparece no `MED-07`.
+
+| forma | como pontua |
+|---|---|
+| classes por variante | C1/C2/C3 = 2, **C5 = 2** |
+| `enum` com corpo por constante | C1/C2/C3 = 2, **C5 = 1** |
+| regra parametrizada / mapa de dados | C1 = 1; C3 ≤ 1 se sobrar caso especial por identidade |
+| `enum` só com as constantes | C1 = 1: nomeia a variante, não abstrai o comportamento |
+| `switch` com a lógica dentro | C1 = 0 |
+| condicional concentrada em P3 | "sem Strategy", anotando concentrada ou espalhada |
