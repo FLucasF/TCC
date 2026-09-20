@@ -1,0 +1,16 @@
+package com.loja.checkout.dominio;
+
+public enum ErroCheckout {
+    PEDIDO_INVALIDO,
+    MODALIDADE_INVALIDA,
+    MODALIDADE_INDISPONIVEL,
+    CUPOM_INVALIDO,
+    CUPOM_NAO_APLICAVEL,
+    FORMA_PAGAMENTO_INVALIDA,
+    PARCELAMENTO_INVALIDO,
+    FORMA_PAGAMENTO_INDISPONIVEL;
+
+    public ErroCheckoutException excecao() {
+        return new ErroCheckoutException(this);
+    }
+}

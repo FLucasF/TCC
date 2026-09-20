@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Sobe a aplicação de uma run e confere os casos campo a campo.
+#
+# Padrão: os quatro exemplos conferidos do enunciado. Outro conjunto de casos
+# entra por `CASOS=`, com o mesmo formato — ver `avaliacao/casos/`.
+#
+# Nada desta pasta entra no container do agente: o `.dockerignore` é lista
+# branca. Aqui os arquivos são montados só na hora de avaliar.
+#
+# Uso:  avaliacao/ferramentas/conferir-exemplos.sh <run_id> [run_id ...]
+#       CASOS=avaliacao/casos/outros.json avaliacao/ferramentas/conferir-exemplos.sh <run_id>
+#
+# Sai com o total de casos que falharam somando todas as runs.
+
+set -uo pipefail
+[ $# -ge 1 ] || { echo "uso: $0 <run_id> [run_id ...]" >&2; exit 2; }
+
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+IMAGEM="${IMAGEM:-experimento-harness:v2}"
+CASOS="${CASOS:-$RAIZ/avaliacao/casos/exemplos-enunciado.json}"
+[ -f "$CASOS" ] || { echo "arquivo de casos não encontrado: $CASOS" >&2; exit 2; }
+COMPARADOR="$RAIZ/avaliacao/ferramentas/comparar.mjs"
+export MSYS_NO_PATHCONV=1
+
+printf 'casos: %s\n\n' "$(basename "$CASOS")"
+TOTAL_FALHAS=0
+NAO_SUBIRAM=0
+
+for RUN_ID in "$@"; do
+    WS="$RAIZ/runs/$RUN_ID/workspace"
+    printf '\033[36m=== %s ===\033[0m\n' "$RUN_ID"
+    [ -d "$WS" ] || { echo "  workspace não encontrado"; TOTAL_FALHAS=$((TOTAL_FALHAS + 1)); continue; }
+
+    docker run --rm --name "conf-$RUN_ID" \
+        --mount "type=bind,source=$(cygpath -w "$WS"),target=/ws,readonly" \
+        --mount "type=bind,source=$(cygpath -w "$CASOS"),target=/casos.json,readonly" \
+        --mount "type=bind,source=$(cygpath -w "$COMPARADOR"),target=/comparar.mjs,readonly" \
+        "$IMAGEM" bash -c '
+# A run arquivada entra somente leitura e é copiada: avaliar não pode alterar o
+# que se quer preservar. O `target/` da execução original é descartado, senão
+# ele bloqueia a recompilação (aconteceu na FUMACA-01).
+cp -r /ws /tmp/app
+# O projeto pode não estar na raiz: sem esqueleto o agente escolhe onde põe.
+POM="$(find /tmp/app -name pom.xml -not -path "*/target/*" | awk -F/ "{print NF, \$0}" | sort -n | head -1 | cut -d" " -f2-)"
+[ -n "$POM" ] || { echo "sem pom no workspace"; exit 66; }
+cd "$(dirname "$POM")" && rm -rf target
+mvn -q spring-boot:run > /tmp/app.log 2>&1 &
+node /comparar.mjs /casos.json
+CODIGO=$?
+pkill -9 -f java 2>/dev/null || true
+exit $CODIGO
+' 2>/dev/null | sed 's/^/  /'
+
+    # 66 é "a aplicação não subiu", não 66 casos errados. Conta como run perdida.
+    FALHAS=${PIPESTATUS[0]}
+    if [ "$FALHAS" -eq 66 ]; then
+        NAO_SUBIRAM=$((NAO_SUBIRAM + 1))
+    else
+        TOTAL_FALHAS=$((TOTAL_FALHAS + FALHAS))
+    fi
+    echo
+done
+
+printf 'casos com erro: %s  |  apps que não subiram: %s\n' "$TOTAL_FALHAS" "$NAO_SUBIRAM"
+exit $((TOTAL_FALHAS + NAO_SUBIRAM))
