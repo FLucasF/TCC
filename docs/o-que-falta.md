@@ -185,18 +185,17 @@ Onze itens marcados de 143. A maioria dos não marcados já foi feita.
 Ainda não feito, e agora com dado novo:
 
 - **A1**, a rubrica, continua sendo o bloqueador do desfecho primário.
-- **B1** (P6, `enum` com método por constante) continua aberta e bloqueia A1.
-- **B3** (`effort`) continua aberta: as duas únicas runs em `high` são FUMACA.
+- ~~**B1** (P6)~~ **resolvido em 20/09/2026**, em 14.4a do plano: conta como Strategy, com 2 em C1/C2/C3 e **1 em C5**, porque variante nova exige editar o próprio `enum`. Tabela de dados com caso especial por identidade fica em C1=1 e C3=1. `switch` com lógica dentro é C1=0. **A1 está destravado.**
+- ~~**B3** (`effort`)~~ **resolvido em 20/09/2026**: o D8 passou para `medium`, por custo e não por desfecho, ver 3.1 do plano. Scripts, README e CLAUDE.md atualizados.
 - **B5** (`n` por célula) continua aberta.
 - **B4** vira outra coisa sem esqueleto: não existe pom de partida, então
   `dependencias.acrescentadas` passa a ser a lista inteira do que o agente
   declarou. O que decidir agora é o que fazer com quem **desobedece as versões
   pedidas no enunciado**, não com quem acrescenta biblioteca.
-- **Novo:** o `meta.json` não grava `repeticao`, e o 13.2 do plano contradiz o
-  paralelismo de `par.sh` e `rodada.sh`. As duas precisam ser fechadas antes do
-  lote.
-- **Novo:** a H2 está com a direção contradita pelas próprias medições, e
-  precisa ser redigida de novo antes do pré-registro.
+- O `meta.json` não grava `repeticao`. Continua aberto, e precisa existir antes
+  do lote. O paralelismo foi **resolvido**: fica, e o 13.2 foi reescrito.
+- ~~H2~~ **resolvida em 20/09/2026**: não-direcional, com o mecanismo plausível
+  declarado à parte em vez de assumido.
 
 ---
 

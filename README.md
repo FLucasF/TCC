@@ -78,11 +78,11 @@ infra/scripts/par.sh MED-06-HAIKU claude-haiku-4-5
 Os três modelos nas duas condições, seis execuções em paralelo:
 
 ```bash
-EFFORT=medium infra/scripts/rodada.sh MED-07
+infra/scripts/rodada.sh MED-07
 ```
 
-`EFFORT` é opcional e vale `high` por padrão, conforme D8 do plano. O valor
-usado vai para o `meta.json` de cada execução.
+`EFFORT` é opcional e vale `medium` por padrão, conforme o D8 do plano, revisto
+em 20/09/2026. O valor usado vai para o `meta.json` de cada execução.
 
 Para interromper, o container tem nome fixo:
 

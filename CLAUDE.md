@@ -39,8 +39,8 @@ infra/scripts/par.sh <prefixo> <modelo>                 # o par SEM || COM junto
 EFFORT=medium infra/scripts/rodada.sh <prefixo>         # os três modelos, 6 de uma vez
 ```
 
-`EFFORT` é opcional e vale `high` por padrão, conforme D8 do plano. O valor
-usado vai para o `meta.json` de cada run.
+`EFFORT` é opcional e vale `medium` por padrão, conforme o D8 do plano, revisto
+em 20/09/2026. O valor usado vai para o `meta.json` de cada run.
 
 Runs com prefixo `FUMACA-` são teste de infraestrutura e não entram na análise.
 Prefixo `MED-` é rodada de medição, também fora do conjunto.

@@ -7,7 +7,7 @@
 #
 # Variáveis opcionais:
 #   IMAGEM     padrão experimento-harness:v3
-#   EFFORT     padrão high, conforme D8 do plano
+#   EFFORT     padrão medium, conforme D8 do plano (revisto em 20/09/2026)
 #   PROMPT_ARQ padrão experimento/prompt/prompt.md
 #
 # O workspace nasce VAZIO. Até 20/09/2026 havia um esqueleto Spring Boot como
@@ -28,7 +28,7 @@ IMAGEM="${IMAGEM:-experimento-harness:v3}"
 # Web LIBERADA desde 20/09/2026, nas duas condições. Subagente continua
 # bloqueado: aquilo é controle de troca de modelo, não de acesso à internet.
 FERRAMENTAS_BLOQUEADAS="Agent,Task"
-EFFORT="${EFFORT:-high}"
+EFFORT="${EFFORT:-medium}"
 
 RUN_DIR="$RAIZ/runs/$RUN_ID"
 WS="$RUN_DIR/workspace"

@@ -179,7 +179,7 @@ const meta = {
     verificacoes_pre_execucao: pre,
   },
   parametros: {
-    effort: arg.effort ?? "high",
+    effort: arg.effort ?? "medium",
     ferramentas_bloqueadas: arg.ferramentas_bloqueadas.split(","),
     permission_mode_init: init?.permissionMode ?? null,
   },

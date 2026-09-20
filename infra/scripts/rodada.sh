@@ -2,8 +2,8 @@
 # Roda uma rodada inteira: os três modelos, nas duas condições, TODOS ao mesmo
 # tempo. Seis execuções em paralelo, seis containers.
 #
-# Uso:  scripts/rodada.sh <prefixo>
-#       EFFORT=medium scripts/rodada.sh MED-01
+# Uso:  infra/scripts/rodada.sh <prefixo>
+#       EFFORT=high infra/scripts/rodada.sh MED-01
 #
 # Simultâneo de propósito: horário, carga de servidor e fila ficam iguais para
 # todas as seis. Em compensação, a duração de relógio fica contaminada pela
@@ -15,7 +15,7 @@ set -uo pipefail
 PREFIXO="$1"
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 EXEC="$RAIZ/infra/scripts/executar.sh"
-EFFORT="${EFFORT:-high}"
+EFFORT="${EFFORT:-medium}"
 
 MODELOS="OPUS:claude-opus-5 SONNET:claude-sonnet-5 HAIKU:claude-haiku-4-5"
 

@@ -25,10 +25,13 @@ atualizado: 2026-09-20
 > alinhados à realidade: D1, D10, D13, 5.3, 6.2, 7, 9.1, 9.2, 9.4, 10.1, 11.1,
 > 11.2, 11.3, 11.4, 12, 13.2, 14.3, 16 e 18.
 >
-> Ficaram **de fora de propósito**, porque são decisões e não alinhamento: a
-> direção da H2 (que as próprias medições contradizem, ver 2.4), o `effort`
-> `high` contra `medium` (B3 de `o-que-falta.md`), o paralelismo de 13.2 contra
-> 6.2, e o campo `repeticao`. Todas precisam ser fechadas antes do lote.
+> Quatro decisões foram fechadas no mesmo dia, depois do alinhamento: a redação
+> da H2 (2.4), o `effort` do D8 (3.1), as regras de aceitação da rubrica (14.4a)
+> e o paralelismo (6.2 e 13.2).
+> 
+> **Continua em aberto:** o campo `repeticao` no `meta.json`, o procedimento do
+> campo `valida`, e o que fazer quando o agente desobedecer as versões pedidas
+> no enunciado.
 
 - `- [ ]` são tarefas. Marque conforme for fazendo.
 - `> [!question]` são **decisões pendentes**. Resolva antes da fase indicada.
@@ -91,22 +94,26 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 | ID | Hipótese |
 |---|---|
 | H1 | Com harness, a proporção de pontos com Strategy correto é maior que sem harness, nos três modelos |
-| H2 | Com harness, o consumo de tokens e o tempo são maiores (há skill carregada e hook de verificação) — **a redigir**: a justificativa caiu junto com a skill e o hook, e as medições apontam ao contrário. Ver abaixo |
+| H2 | O harness **altera** o consumo de tokens e o tempo. Sem direção declarada. Redigida assim em 20/09/2026, ver abaixo |
 | H3 | O ganho do harness é maior no Haiku 4.5 do que no Opus 5 |
 | H4 | Nas duas condições, a taxa de acerto cai com a dificuldade (P1 > P2 > P3) |
 | H5 | O ganho do harness é maior em P2 e P3 do que em P1 (onde o modelo puro já tende a acertar) |
 
-> [!warning] A H2 precisa ser redigida de novo antes do lote
-> A justificativa entre parênteses não existe mais: a skill foi descartada e o
-> hook adiado, então o harness é só texto — de 0,6% a 1,1% da entrada total.
-> E a direção está contradita pelas execuções de medição: com esqueleto, o
-> Opus gastou 874.604 tokens de entrada no braço `SEM` contra 507.169 no `COM`
-> (−42%), e o Sonnet 2.056.553 contra 1.134.373 (−45%). É n=1 em cada, então
-> não prova a direção contrária — mas pré-registrar "maiores" é pré-registrar
-> uma hipótese que a própria medição já contraria. O mecanismo plausível está
-> em `harness-notas.md`: o harness reduz retrabalho, e retrabalho custa turno.
-> Opções: deixar não-direcional ("o harness altera o consumo"), ou inverter com
-> o mecanismo declarado.
+> [!note] Por que a H2 é não-direcional
+> Resolvido em 20/09/2026. A redação anterior dizia "são **maiores**", e
+> justificava com "há skill carregada e hook de verificação". Os dois saíram do
+> harness em 19/09: hoje ele é só texto, de 0,6% a 1,1% da entrada total.
+>
+> E a direção está contradita pelas execuções de medição. Com esqueleto, tokens
+> de entrada somados, `SEM` contra `COM`: Opus 874.604 → 507.169 (−42%), Sonnet
+> 2.056.553 → 1.134.373 (−45%), Haiku misto. É n=1 em Opus e Sonnet, então não
+> prova a direção contrária — mas pré-registrar "maiores" seria pré-registrar
+> uma hipótese que a própria medição já contraria.
+>
+> **Mecanismo plausível, declarado e não assumido:** o harness reduz retrabalho,
+> e retrabalho custa turno. As runs de 19/09 mostram o Haiku quebrando o build
+> de 4 a 6 vezes por execução, quase tudo compilação, contra zero do Opus com
+> harness. A análise reporta a direção observada; a hipótese não a assume.
 
 > [!note] Natureza do estudo
 > Com 3 repetições por combinação, o estudo é **exploratório e descritivo**. Reportar valores individuais, médias e variação. **Não** afirmar significância estatística.
@@ -126,7 +133,7 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 | D5b | Pontos de Strategy | **3 pontos**: entrega (fácil), cupons (média), pagamento (difícil) | Permite analisar o efeito do harness por dificuldade |
 | D6 | Autenticação | **Assinatura Claude** (login no Claude Code) | Escolha do autor |
 | D7 | Modelos | `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5` | Uma faixa de cada |
-| D8 | Raciocínio | `--effort high` em todos | Igualdade entre modelos (padrão do Claude Code é `xhigh`) |
+| D8 | Raciocínio | `--effort medium` em todos | Revisto em 20/09/2026. Igualdade entre modelos continua sendo o ponto (o padrão do Claude Code é `xhigh`), mas o nível passa de `high` para `medium`. Ver 3.1 |
 | D9 | Isolamento | **Docker, um container novo por execução** | Garantia de ambiente idêntico e descartável |
 | D10 | Ferramentas | Ferramentas nativas do Claude Code nas duas condições. **Web liberada** nas duas, revisto em 20/09/2026. **Subagentes bloqueados** nas duas | Web: validade externa — quem usa o Claude Code no dia a dia tem web. Subagente: impedir troca de modelo. O custo da liberação está em 16 e no diário |
 | D11 | Repetições | **3 por modelo × condição** | Escolha do autor; estudo exploratório |
@@ -138,6 +145,32 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 | D17 | Maven | **Online**. O agente pode acrescentar dependência se julgar necessário; o `~/.m2` vem aquecido só para o tempo de download não entrar na medição | Revisto em 19/09/2026. A pinagem de versão já vem do `spring-boot-starter-parent`, então o offline não protegia contra deriva: protegia contra dependência nova, e isso virou **registro** em `meta.json.dependencias` no lugar de proibição |
 | D18 | Avaliação | Testes escondidos + rubrica de Strategy **por ponto (P1, P2, P3)**, **às cegas** + teste de extensão **por ponto**; **autor avalia, depois o professor avalia de forma independente** | Objetividade e confiabilidade entre avaliadores |
 
+### 3.1 Por que o D8 passou de `high` para `medium`
+
+Resolvido em 20/09/2026. A decisão original era `high`; **22 das 24 execuções de
+medição saíram em `medium`**, e as duas únicas em `high` são as FUMACA, que estão
+declaradamente fora da análise.
+
+Dois motivos, nenhum deles olhando desfecho:
+
+1. **Toda a calibração de custo vale para `medium`.** A estimativa de "~8% da
+   janela de cinco horas por rodada de seis" foi medida em `medium`. Em `high`
+   ela precisaria ser refeita do zero.
+2. **`medium` compra mais repetições.** Com orçamento de cota fixo, `n` é a
+   dimensão mais fraca do estudo — 3 por célula, exploratório, sem inferência.
+   Trocar profundidade de raciocínio por `n` melhora mais o trabalho.
+
+> [!important] Isso não é escolher depois de ver o resultado
+> A justificativa é **medição de custo**, não de desfecho: nenhuma rubrica foi
+> aplicada, nenhum ponto de Strategy foi pontuado. Mudar parâmetro por custo
+> antes do lote é legítimo; mudar por resultado não seria. A distinção precisa
+> estar no pré-registro, porque é ela que separa os dois casos.
+
+> [!check] Continua por validar no piloto
+> Se `--effort` tem efeito no **Haiku 4.5**. O `meta.json` registra
+> `tokens.raciocinio`, mas sem um A/B proposital não dá para dizer se o nível
+> mudou alguma coisa nesse modelo.
+
 ---
 
 ## 4. Decisões pendentes
@@ -145,22 +178,34 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 > [!success] P1: Domínio da tarefa (resolvido)
 > **Resumo de checkout** com três pontos de Strategy: entrega, cupons e pagamento. Ver `experimento/prompt/prompt.md`.
 
-> [!question] P6: Regras de aceitação na rubrica (resolver antes da Fase 7)
-> - `enum` em que cada constante implementa métodos próprios conta como Strategy? (Recomendado: **sim**, anotar em observações.)
-> - Em P2, regras genéricas parametrizadas (ex.: "percentual" usado por vários cupons) contam como correto? (Recomendado: **sim**, se a seleção não usar condicional por código.)
-> - Em P3, condicionais **concentradas em um único lugar** contam como "sem Strategy"? (Recomendado: **sim**, anotar se concentrada ou espalhada.)
+> [!success] P6: Regras de aceitação na rubrica (resolvido em 20/09/2026)
+> As três respostas estão em 14.4a, ancoradas nas formas que aparecem de fato
+> nas execuções de medição.
 
-> [!question] P2: Versões exatas (resolver antes da Fase 2)
-> Java (sugestão: **21 LTS**), Spring Boot (sugestão: a versão estável mais recente no Spring Initializr no dia), Maven, Claude Code.
+> [!success] P2: Versões exatas (resolvido)
+> Fixadas na imagem: base `maven:3.9.16-eclipse-temurin-21`, Node `24.19.0`,
+> Claude Code `2.1.269`. Java 21 e Spring Boot 4.1.1 são **pedidos no enunciado**
+> desde 20/09/2026 e aquecidos no `~/.m2`; ver D13 e 9.1.
 
-> [!question] P3: Limites por execução (resolver no piloto)
-> Máximo de turnos e tempo máximo. Sugestão: **2× o maior valor observado no piloto**.
+> [!success] P3: Limites por execução (resolvido)
+> **Não há limite automático.** Sem `timeout` e sem `--max-turns`: a execução
+> corre até o fim, e interromper à mão é julgamento registrado, com o risco de
+> viés descrito em 13.3.
 
 > [!question] P4: Significado do "1" na imagem (confirmar com o professor)
 > Ver seção 1.1.
 
-> [!question] P5: Conteúdo exato do harness (resolver na Fase 3)
-> Texto final do CLAUDE.md e da skill, revisado contra as regras de contaminação.
+> [!success] P5: Conteúdo exato do harness (resolvido)
+> `experimento/harness/CLAUDE.md`, quatro regras, 14 linhas, hash
+> `56057792…ea24b882`. Sem skill e sem hook, ver 10.3 e 10.4. A fonte de cada
+> regra e o diário de versões estão em `docs/harness-notas.md`.
+
+> [!question] P7: Desobediência às versões pedidas (resolver antes do lote)
+> Java e Spring Boot são pedidos no enunciado, não impostos. O que fazer quando
+> `fundacao.spring_boot` ou `fundacao.java` divergirem: covariável, critério de
+> exclusão, ou só taxa reportada? Recomendado: **taxa reportada**, porque
+> excluir apaga o dado e porque a desobediência pode ela própria diferir entre
+> os braços. Decidir **antes** de ver o resultado.
 
 ---
 
@@ -229,10 +274,8 @@ protege contra o efeito de horário e carga de servidor; rodar simultâneo
 - `infra/scripts/rodada.sh <prefixo>` roda os três modelos nas duas condições,
   seis execuções em paralelo.
 
-> [!warning] Isso contradiz o 13.2, e a contradição está em aberto
-> O 13.2 diz "não usar o Claude Code na mesma conta em paralelo". Os scripts
-> fazem exatamente isso, de propósito. A decisão de qual das duas regras vale,
-> e o custo declarado da escolhida, ainda precisa ser tomada antes do lote.
+> [!success] A contradição com o 13.2 foi resolvida em 20/09/2026
+> O paralelismo fica, e o 13.2 foi reescrito. O custo declarado está lá e em 16.
 
 > [!warning] Falta `repeticao` no dado
 > O id da run codifica prefixo, modelo e condição, e o `meta.json` não grava qual
@@ -638,7 +681,7 @@ Sem `timeout` e sem `--max-turns`: a execução corre até o fim. O acompanhamen
 | Flag | Por quê |
 |---|---|
 | `--model` com ID completo | Snapshot fixo; aliases mudam |
-| `--effort` | Padrão do Claude Code é `xhigh`. O D8 manda `high`; **22 das 24 execuções de medição saíram em `medium`**, e as duas famílias não se comparam. Decisão em aberto, ver B3 de `o-que-falta.md` |
+| `--effort medium` | Padrão do Claude Code é `xhigh`. O D8 passou de `high` para `medium` em 20/09/2026, ver 3.1. As 22 execuções de medição em `medium` passam a ser calibração válida do custo |
 | `stream-json --verbose` | Registra **todos** os eventos: chamadas de ferramenta, comandos, uso por modelo |
 | entrada padrão | O enunciado entra por stdin (`< /experimento/prompt.md`), montado somente leitura |
 | `--dangerously-skip-permissions` | Headless sem perguntas; seguro porque o container é descartável. O evento inicial registra `permissionMode: bypassPermissions`, que vai para `parametros.permission_mode_init` |
@@ -777,13 +820,21 @@ Os blocos, e para que cada um serve:
 ### 13.2 Durante
 
 - [ ] Rodar `executar-bloco` e **não interagir** com as execuções
-- [ ] Não usar o Claude Code na mesma conta em paralelo **para outra coisa** 
+- [ ] **Não** usar o Claude Code na mesma conta para **outra coisa** durante a rodada
 
-> [!warning] Esta regra contradiz os scripts, e a contradição está em aberto
-> `par.sh` roda duas execuções simultâneas e `rodada.sh` roda seis, todas na
-> mesma conta, de propósito (ver 6.2): é o que iguala horário e carga entre os
-> braços. A regra original proibia exatamente isso. Decidir qual das duas vale,
-> e declarar o custo da escolhida, antes do lote.
+> [!success] Resolvido em 20/09/2026: o paralelismo fica
+> A regra original dizia "não usar o Claude Code na mesma conta em paralelo", e
+> proibia exatamente o que `par.sh` e `rodada.sh` fazem de propósito.
+> 
+> **Vale o paralelismo.** Numa comparação pareada o que importa é os dois braços
+> enfrentarem *as mesmas* condições, e rodar `SEM` e `COM` ao mesmo tempo iguala
+> horário, fila e carga de servidor em vez de distribuir o efeito deles. A
+> disputa de CPU que isso introduz é **simétrica dentro do par**.
+> 
+> **O que se perde, e vai declarado:** a comparação de **duração entre modelos**
+> fica contaminada, porque seis containers disputam a mesma máquina. É desfecho
+> secundário, e a medida reportada é `duracao_api_ms`, não `duracao_s`. Limite
+> de taxa da conta afetaria as seis igualmente, mas não foi medido.
 
 ### 13.3 Regras de exceção
 
@@ -884,8 +935,55 @@ Cada critério recebe **0 (ausente)**, **1 (parcial)** ou **2 (correto)**.
 
 **Pontuação:** 0 a 12 **por ponto**; 0 a 36 no pacote.
 
-> [!important] Resolver P6 antes de avaliar
-> Regras de aceitação para `enum` com comportamento, cupons parametrizados e condicionais concentradas em P3. Ver seção 4 e o gabarito.
+#### 14.4a Regras de aceitação (P6, resolvido em 20/09/2026)
+
+Três formas aparecem nas execuções de medição, e a escala precisa separar as três.
+
+**Forma 1 — `enum` com corpo por constante.** Exemplo real, `MED-05-HAIKU-COM`:
+cada constante de `ModalidadeEntrega` sobrescreve `calcularFrete`, e `MOTOBOY`
+ainda sobrescreve `temLimitacao` e `getLimitePeso`. O serviço fica com **zero**
+condicional por modalidade, e com metade das linhas do braço `SEM`: 166 contra
+332.
+
+> **Conta como Strategy.** A JLS compila cada constante com corpo numa subclasse
+> anônima, então o comportamento está isolado de fato. Ganha **2 em C1, C2 e C3**.
+>
+> **Mas ganha 1 em C5, não 2.** Acrescentar `DRONE` exige editar um arquivo que
+> já existe, o próprio `enum`. É exatamente o que o teste de extensão de 14.5
+> mede, e é o que separa esta forma de uma implementação por classe, onde a
+> variante nova é um arquivo novo e nada mais.
+>
+> Anotar em observações: **por constante**, não por classe.
+
+**Forma 2 — tabela de dados mais cálculo genérico.** Exemplo real,
+`MED-05-HAIKU-SEM`: um `Map<String, EntregaConfig>` guarda taxa e prazo e o
+cálculo é genérico, mas o comportamento que não cabe na tabela volta como caso
+especial por identidade, espalhado pelo serviço.
+
+> **Conta como correto só se a seleção não usar condicional por código**, que era
+> a recomendação original e vale. O critério é mecânico: se o comportamento de
+> alguma variante exige condicional sobre a identidade dela **fora da seleção**,
+> então **C3 ≤ 1**.
+>
+> Uma tabela de dados sem nenhum caso especial é correta, e é até melhor para
+> variantes novas com a mesma regra. A do `MED-05-HAIKU-SEM`, com dois casos
+> especiais por identidade, fica em **C1=1 e C3=1**: a abstração existe, mas só
+> para os dados.
+
+**Forma 3 — `switch` com a lógica dentro.** Exemplo real,
+`MED-07-VAZIO-HAIKU-SEM`: `switch` por modalidade e por forma de pagamento
+dentro de um serviço único, devolvendo o resultado inline.
+
+> **Sem Strategy**, C1=0. Em P3 especificamente, condicional **concentrada num
+> único lugar** também fica como "sem Strategy", e o campo de observação anota se
+> está concentrada (1 lugar) ou espalhada (vários). Isso permite a análise
+> qualitativa sem afrouxar a regra.
+
+> [!warning] Decidido antes de pontuar
+> Estas regras foram fechadas em 20/09/2026, **antes** de qualquer rubrica ser
+> aplicada. As formas citadas vieram das execuções de medição, que estão
+> declaradamente fora da análise: usar o que elas produziram para ancorar a
+> escala é legítimo; usar o lote seria escolher a régua depois do resultado.
 
 **Classificação final (derivada, não opinativa):**
 
@@ -1005,7 +1103,7 @@ Para cada extensão:
 | Constructo | Os três pontos avaliados — frete por modalidade, desconto por cupom, ajuste por forma de pagamento — são os **exemplos canônicos** com que Strategy é ensinado. Com web liberada, os dois braços podem convergir por terem lido o mesmo tutorial | Declarar. Vale mesmo com web bloqueada, porque o exemplo já está no treino. Reportar o uso de web por braço, e conferir se quem pesquisou acertou mais |
 | Interna | Resultado de busca muda de um dia para o outro | Entrada não controlada que varia entre repetições. Par `SEM`/`COM` simultâneo reduz, não elimina. Declarar |
 | Interna | Versões de Java e Spring Boot são **pedidas**, não impostas | Reportar a taxa de obediência por modelo e condição. Base cai fora do pedido, a run continua válida e é marcada |
-| Interna | Execuções em paralelo na mesma conta (`par.sh`, `rodada.sh`) contra o 13.2 | **Em aberto.** Elimina o efeito de horário e carga, e introduz disputa de CPU e possível limite de taxa da conta. Decidir e declarar antes do lote |
+| Interna | Execuções em paralelo na mesma conta (`par.sh`, `rodada.sh`) | Decidido em 20/09/2026, ver 13.2: fica, porque iguala horário e carga entre os braços e a disputa de CPU é simétrica dentro do par. Duração **entre modelos** fica contaminada e é declarada; a medida reportada é `duracao_api_ms` |
 | Constructo | Rubrica não captura "Strategy correto" | Critérios baseados na definição do padrão + teste de extensão objetivo |
 | Constructo | Pistas no prompt ("quase toda semana entra uma opção nova", "marketing adora inventar promoção") induzem o padrão | São requisitos de negócio realistas e idênticos nas duas condições; a variação da força da pista é **intencional** (dificuldade) |
 | Constructo | A classificação fácil/média/difícil é do autor, não medida | Justificar pelos critérios de construção (seção 8.3); verificar na análise se a ordem de acerto observada confirma a classificação |
