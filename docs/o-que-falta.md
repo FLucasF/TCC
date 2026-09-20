@@ -60,6 +60,8 @@ ferramentas de medição, três achados por acaso:
 | defeito | o que teria reportado |
 |---|---|
 | auditoria marcava `curl localhost` como web | acesso externo em quase toda run |
+| auditoria marcava URL em heredoc de `pom.xml` (achado em 20/09) | acesso externo nas duas runs de Opus, e só nelas |
+| `comparar.mjs` não sabia expressar caso de erro (achado em 20/09) | precedência dos oito códigos impossível de testar |
 | build procurava o pom só na raiz | app que funciona marcada como quebrada |
 | avaliador montava o arquivo em modo escrita | corrompeu a FUMACA-01 |
 | contador somava o código 66 como 66 casos | 70 erros onde havia 4 |

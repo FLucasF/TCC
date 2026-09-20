@@ -516,9 +516,18 @@ tutorial.
 
 **O que continua sendo registrado**, agora como descrição e não como violação:
 
-- `resultado_execucao.chamadas_por_ferramenta` — quantas vezes `WebSearch` e
-  `WebFetch` foram usados
+- `auditoria.chamadas_web` — soma de `WebSearch` e `WebFetch`, e o detalhe por
+  ferramenta fica em `resultado_execucao.chamadas_por_ferramenta`
 - `auditoria.comandos_suspeitos` — comandos de Bash que saem da máquina
+
+> [!note] A regra do detector mora em módulo próprio, e tem teste
+> `infra/scripts/auditoria-web.mjs`, com
+> `node infra/scripts/auditoria-web.teste.mjs`. Ela teve dois defeitos: marcava
+> o agente conferindo a própria app em `localhost`, e depois marcava URL em
+> qualquer lugar do comando — inclusive namespaces XML dentro do heredoc que
+> escreve o `pom.xml`. Como só o Opus escreve o pom assim, o segundo defeito
+> marcava um modelo inteiro. Agora o corpo de heredoc é descartado e a URL só
+> conta se houver verbo de rede no comando.
 
 - [ ] Reportar o uso de web por braço e por modelo na análise
 - [ ] Declarar em 16 que as 24 execuções de medição rodaram com web **bloqueada**
@@ -728,11 +737,14 @@ Os blocos, e para que cada um serve:
 > preencha "tokens de entrada" com o campo `entrada` publica um número sem
 > significado. O campo somado é `entrada_total`.
 
-> [!warning] Campos que o plano exige e o extrator não grava
-> `ordem`, `repeticao` e `semente_ordem` saíram junto com o `schedule.csv` (ver
-> 6.2). Com n=3 por célula, `repeticao` precisa voltar antes do lote. `maquina` e
-> `rede` também não são gravados, e são parte da afirmação "mesma máquina, mesma
-> rede" de 5.3.
+> [!success] `repeticao`, `maquina` e `rede` — resolvido em 20/09/2026
+> `repeticao` é o **quarto argumento** do `executar.sh`, validado como inteiro
+> positivo e propagado por `par.sh` e `rodada.sh`. Fica `null` nas FUMACA e MED,
+> que não têm repetição; **é obrigatório no lote**. `maquina` vem do `hostname`
+> do host, e `rede` da variável de ambiente `REDE`.
+>
+> `ordem` e `semente_ordem` **não voltam**: saíram junto com o `schedule.csv` em
+> 6.2, porque o par simultâneo elimina a ordem em vez de sorteá-la.
 
 > [!note] `saida` pode vir nula
 > Run interrompida não tem evento `result`, e o extrator reconstrói o que dá a
@@ -747,7 +759,7 @@ Os blocos, e para que cada um serve:
 - [x] `infra/scripts/rodada.sh` — os três modelos, seis execuções em paralelo
 - [x] `infra/scripts/extrair-meta.mjs` — métricas, fundação e auditorias
 - [ ] `gerar-ordem` com semente — **cancelado** em 19/09/2026, ver 6.2
-- [ ] Campo `repeticao` no `meta.json`, antes do lote
+- [x] Campo `repeticao` no `meta.json` — 4º argumento do `executar.sh`
 - [ ] Agregador `meta.json` → CSV, e a análise estatística (C2 e C3 de `o-que-falta.md`)
 - [ ] Procedimento do campo `valida`: quem marca, quando, com que critério
 
@@ -1169,7 +1181,7 @@ Para cada extensão:
 - [x] Executar uma run, o par e a rodada
 - [x] Extração de métricas
 - [x] Auditorias
-- [ ] Campo `repeticao`
+- [x] Campo `repeticao`
 - [ ] Agregador CSV + análise
 
 ### Avaliação (preparar antes de rodar)

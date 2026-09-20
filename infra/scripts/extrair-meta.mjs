@@ -3,6 +3,8 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import { hostname } from "node:os";
+import { externo } from "./auditoria-web.mjs";
 
 const [runDir, ...resto] = process.argv.slice(2);
 const arg = {};
@@ -35,22 +37,8 @@ for (const e of eventos) {
   }
 }
 
-// Acesso à rede pelo Bash, contornando o bloqueio de WebSearch/WebFetch.
-//
-// O agente sobe a própria aplicação e chama o endereço dela para conferir os
-// resultados contra os exemplos do enunciado — na FUMACA-01 foram seis `curl`
-// para `localhost:8080`. Isso é o agente se verificando, não acesso externo, e
-// marcava toda run. Só conta o que sai da máquina.
-const ENDERECO_LOCAL = /^(localhost|127(\.\d+){3}|\[::1\]|0\.0\.0\.0|host\.docker\.internal)(:\d+)?$/i;
-const externo = (c) => {
-  const urls = c.match(/\bhttps?:\/\/[^\s"'`)]+/gi) ?? [];
-  const alvos = urls.filter((u) => {
-    try { return !ENDERECO_LOCAL.test(new URL(u).host); } catch { return true; }
-  });
-  if (alvos.length) return true;
-  // `curl`/`wget` sem URL http explícita: só é suspeito se não for endereço local.
-  return /\b(curl|wget)\b/i.test(c) && !urls.length && !/\b(localhost|127\.0\.0\.1|::1)\b/i.test(c);
-};
+// Acesso à rede pelo Bash. A regra mora em `auditoria-web.mjs`, em módulo
+// separado para poder ser testada: `node infra/scripts/auditoria-web.teste.mjs`.
 const suspeitos = comandosBash.filter(externo);
 const num = (v) => (typeof v === "number" ? v : 0);
 
@@ -170,6 +158,9 @@ const meta = {
     uso_por_modelo: result?.modelUsage ? Object.keys(result.modelUsage) : [],
   },
   condicao: arg.condicao,
+  // `null` nas execuções FUMACA e MED, que não têm repetição. Obrigatório no
+  // lote: com n=3 por célula, sem ele não dá para dizer qual run é qual.
+  repeticao: arg.repeticao ? Number(arg.repeticao) : null,
   ambiente: {
     imagem: arg.imagem,
     imagem_id: arg.imagem_id,
@@ -177,6 +168,8 @@ const meta = {
     hash_prompt: arg.hash_prompt,
     hash_harness: arg.hash_harness || null,
     verificacoes_pre_execucao: pre,
+    maquina: hostname(),
+    rede: arg.rede ?? null,
   },
   parametros: {
     effort: arg.effort ?? "medium",
@@ -226,6 +219,8 @@ const meta = {
     : null,
   auditoria: {
     comandos_bash: comandosBash.length,
+    // Web liberada desde 20/09/2026: isto é registro descritivo, não violação.
+    chamadas_web: (ferramentas.WebSearch ?? 0) + (ferramentas.WebFetch ?? 0),
     acesso_web_suspeito: suspeitos.length > 0,
     comandos_suspeitos: suspeitos,
     ferramentas_bloqueadas_disponiveis: (init?.tools ?? []).filter((t) =>

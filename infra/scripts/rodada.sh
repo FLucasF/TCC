@@ -2,7 +2,7 @@
 # Roda uma rodada inteira: os três modelos, nas duas condições, TODOS ao mesmo
 # tempo. Seis execuções em paralelo, seis containers.
 #
-# Uso:  infra/scripts/rodada.sh <prefixo>
+# Uso:  infra/scripts/rodada.sh <prefixo> [repeticao]
 #       EFFORT=high infra/scripts/rodada.sh MED-01
 #
 # Simultâneo de propósito: horário, carga de servidor e fila ficam iguais para
@@ -11,8 +11,8 @@
 
 set -uo pipefail
 
-[ $# -eq 1 ] || { echo "uso: $0 <prefixo>" >&2; exit 2; }
-PREFIXO="$1"
+case $# in 1|2) ;; *) { echo "uso: $0 <prefixo> [repeticao]" >&2; exit 2; } ;; esac
+PREFIXO="$1"; REPETICAO="${2:-}"
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 EXEC="$RAIZ/infra/scripts/executar.sh"
 EFFORT="${EFFORT:-medium}"
@@ -34,7 +34,7 @@ for m in $MODELOS; do
     apelido="${m%%:*}"; modelo="${m#*:}"
     for c in SEM COM; do
         id="$PREFIXO-$apelido-$c"
-        EFFORT="$EFFORT" "$EXEC" "$id" "$modelo" "$c" > "$RAIZ/runs/logs/$id.log" 2>&1 &
+        EFFORT="$EFFORT" "$EXEC" "$id" "$modelo" "$c" ${REPETICAO:+"$REPETICAO"} > "$RAIZ/runs/logs/$id.log" 2>&1 &
         PIDS="$PIDS $!"; IDS="$IDS $id"
         echo "  lançada: $id"
     done

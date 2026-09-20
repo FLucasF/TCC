@@ -4,11 +4,13 @@
 # Uso (Git Bash, a partir de qualquer pasta):
 #   infra/scripts/executar.sh <run_id> <modelo> <SEM|COM>
 #   infra/scripts/executar.sh FUMACA-01 claude-haiku-4-5 SEM
+#   infra/scripts/executar.sh LOTE-01-HAIKU-COM claude-haiku-4-5 COM 2
 #
 # Variáveis opcionais:
 #   IMAGEM     padrão experimento-harness:v3
 #   EFFORT     padrão medium, conforme D8 do plano (revisto em 20/09/2026)
 #   PROMPT_ARQ padrão experimento/prompt/prompt.md
+#   REDE       rótulo da rede, gravado no meta.json (ex.: casa-wifi)
 #
 # O workspace nasce VAZIO. Até 20/09/2026 havia um esqueleto Spring Boot como
 # ponto de partida, e a variável ESQUELETO escolhia entre os dois modos. O
@@ -20,8 +22,12 @@ set -uo pipefail
 
 morrer() { printf '\033[31mERRO: %s\033[0m\n' "$*" >&2; exit 1; }
 
-[ $# -eq 3 ] || morrer "uso: $0 <run_id> <modelo> <SEM|COM>"
+case $# in 3|4) ;; *) morrer "uso: $0 <run_id> <modelo> <SEM|COM> [repeticao]" ;; esac
 RUN_ID="$1"; MODELO="$2"; COND="$3"
+# A repetição é obrigatória no lote e vazia nas FUMACA e MED. Com n=3 por
+# célula, sem ela não dá para dizer qual das três é cada run.
+REPETICAO="${4:-}"
+case "$REPETICAO" in ""|[1-9]|[1-9][0-9]) ;; *) morrer "repetição deve ser inteiro positivo: '$REPETICAO'" ;; esac
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 IMAGEM="${IMAGEM:-experimento-harness:v3}"
@@ -130,4 +136,4 @@ node "$(cygpath -w "$RAIZ/infra/scripts/extrair-meta.mjs")" "$(cygpath -w "$RUN_
     --ferramentas_bloqueadas "$FERRAMENTAS_BLOQUEADAS" --effort "$EFFORT" \
     --imagem "$IMAGEM" --imagem_id "$IMAGEM_ID" \
     --hash_prompt "$HASH_PROMPT" --hash_harness "$HASH_HARNESS" \
-    --deps_antes "$DEPS_ANTES"
+    --deps_antes "$DEPS_ANTES" --repeticao "$REPETICAO" --rede "${REDE:-}"
