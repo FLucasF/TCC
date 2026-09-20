@@ -231,6 +231,8 @@ sozinho, sem tocar na seleção.
 É o critério que o teste de extensão da §14.5 confirma com número. A regra é de
 contagem, não de opinião.
 
+A contagem sai mecânica do procedimento em `testes-extensao/README.md`.
+
 **0 — a variante nova exige alterar várias classes existentes**
 
 Forma `switch`: acrescentar `DRONE` obriga a mexer no cálculo do frete, na
@@ -260,9 +262,12 @@ interface."*
 > extensões de hoje **não** distinguem "parametrizado" de "uma classe por
 > variante", e distinguem as duas de `enum+corpo` e de `switch`.
 >
-> Se você quiser essa distinção, precisa de uma segunda extensão por ponto que
-> exija comportamento de **família nova** — por exemplo um cupom cujo desconto
-> dependa da modalidade de entrega escolhida. Decidir antes do lote.
+> **Decidido em 20/09/2026: aceitar o empate e declarar.** O motivo é que ele
+> está certo pela própria definição de C5 — um desenho parametrizado que absorve
+> a variante como dado faz **menos** que "criar uma implementação", não mais. A
+> segunda extensão por ponto, de família nova, ficou como trabalho futuro:
+> dobraria o trabalho manual do avaliador, de 54 aplicações para 108. Ver
+> `avaliacao/testes-extensao/README.md`.
 
 ### C6 · Coesão das implementações
 
@@ -325,5 +330,5 @@ codigo_cego,ponto,C1,C2,C3,C4,C5,C6,total,classe,forma,outro_padrao,excesso_enge
 |---|---|
 | Âncora para **C2 = 1** | Nenhuma execução produziu isolamento parcial dentro de um ponto. Registrar se aparecer no lote |
 | C4 e C6 sem âncora | Por escolha. Se o kappa vier baixo nesses dois, ancorar antes do consenso |
-| Extensão que separe parametrizado de por-classe | Ver o aviso em C5. Decidir antes do lote |
+| Extensão que separe parametrizado de por-classe | Decidido: aceitar o empate, ver C5. Trabalho futuro |
 | Calibração dos dois avaliadores | §14.6: pontuar juntos 1 ou 2 pacotes das execuções de medição, nunca do lote |

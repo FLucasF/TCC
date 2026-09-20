@@ -15,13 +15,13 @@ conferência de 19/09/2026 mostrou `avaliacao/`, `docs/`, `runs/`, `.env` e
 | `casos/precedencia-erros.json` | sete casos de precedência dos oito códigos de erro, escritos em 20/09/2026 |
 | `ferramentas/autoteste.mjs` | testa o testador: sobe app de mentira com defeito conhecido e confere se o `comparar.mjs` acusa. `node avaliacao/ferramentas/autoteste.mjs` |
 | `rubrica-strategy.md` | o instrumento do desfecho primário, com âncoras de código real em C1, C2, C3 e C5. Escrito em 20/09/2026 |
+| `testes-extensao/` | `DRONE`, `DEZOFF` e `CARTEIRA_DIGITAL`, 11 casos, mais o procedimento de contagem. Escrito em 20/09/2026 |
 
 ## Falta criar
 
 | item | o que é | prioridade |
 |---|---|---|
 | `testes-escondidos/` | o resto da suíte contra o contrato. A precedência dos erros já saiu; falta fronteiras (5,00 kg, R$ 300, R$ 1.000, 3× e 12×), empates de arredondamento e combinações de `LEVE3PAGUE2` | **alta** |
-| `testes-extensao/` | um caso novo por ponto — `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`. Mede se estender toca código existente | média |
 | `mapa-anonimizacao.csv` | id cego → run. Só abrir depois de fechar as notas | depois |
 | `notas-autor.csv` | suas notas, às cegas | depois |
 | `notas-professor.csv` | avaliação independente | depois |

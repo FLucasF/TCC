@@ -46,11 +46,16 @@ Falta, por ordem de risco (ver `avaliacao/rotas-descobertas.md`):
 Formato já resolvido: JSON com `requisicao` e `esperado`, rodando pela
 ferramenta que existe. Acrescentar caso é editar JSON.
 
-### A3. `avaliacao/testes-extensao/`
+### A3. `avaliacao/testes-extensao/` — **feito em 20/09/2026**
 
-Um caso novo por ponto — `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`. Mede
-diretamente "acrescentar um caso toca código existente?", que é o nível 2 da
-rubrica. Hoje isso seria julgado lendo código, o que é lento e subjetivo.
+Onze casos nos três arquivos, com os valores conferidos pela mesma rotina
+validada contra os exemplos do enunciado. Mais o procedimento em
+`testes-extensao/README.md`: congelar o original com `git init`, implementar a
+menor alteração que funcione, rodar os casos, e contar com `git status` e
+`git diff --numstat`. A contagem virou mecânica.
+
+A limitação das três extensões serem todas de família já existente ficou
+declarada lá, e a decisão de aceitar está registrada.
 
 ### A4. Casos de referência para testar as ferramentas
 
