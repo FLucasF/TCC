@@ -147,9 +147,29 @@ if ([130, 137, 143].includes(codigoSaida)) encerramento = "interrompido";
 else if (!result) encerramento = "erro_sem_resultado";
 else if (result.is_error) encerramento = result.subtype === "error_max_turns" ? "limite_turnos" : "erro";
 
+// `valida` é humano, mas deixou de depender da memória. O extrator PROPÕE a
+// partir do que já registra, e a pessoa confirma ou sobrescreve com motivo.
+// Resolvido em 20/09/2026, depois de as 24 execuções de medição ficarem com o
+// campo nulo porque ninguém tinha definido quem marca.
+//
+// Build quebrado NÃO invalida: a §13.3 diz que modelo que não entregou nada
+// conta como resultado. Só falha de infraestrutura invalida.
+function proporValida() {
+  if (["interrompido", "erro_sem_resultado", "erro", "limite_turnos"].includes(encerramento))
+    return { valida: false, motivo: `encerramento: ${encerramento}` };
+  const outros = [...modelosNasMensagens].filter((m) => m && m !== arg.modelo);
+  if (outros.length) return { valida: false, motivo: `outro modelo observado: ${outros.join(", ")}` };
+  return { valida: true, motivo: "concluido, sem troca de modelo" };
+}
+const proposta = proporValida();
+
 const meta = {
   run_id: arg.run_id,
-  valida: null, // decidido por humano, conforme as regras de exceção do plano
+  // Decisão humana, conforme a tabela de exceções da §13.3. Começa nula de
+  // propósito: preencher exige olhar.
+  valida: null,
+  valida_proposta: proposta.valida,
+  motivo_proposta: proposta.motivo,
   motivo_invalidade: null,
   modelo_solicitado: arg.modelo,
   modelo_init: init?.model ?? null,
@@ -194,7 +214,17 @@ const meta = {
     build_pos_execucao_ok: Number(arg.build_codigo) === 0,
   },
   dependencias: pom,
-  fundacao,
+  fundacao: {
+    ...fundacao,
+    // P7, resolvido em 20/09/2026: as versões são PEDIDAS no enunciado, não
+    // impostas. Desobedecer não invalida a run; vira taxa reportada por modelo
+    // e condição. O MED-06 mostrou o caso extremo: Java 11 com Spring Boot 3.x
+    // nem compila.
+    obedeceu_versoes:
+      fundacao.spring_boot == null && fundacao.java == null
+        ? null
+        : fundacao.spring_boot === "4.1.1" && fundacao.java === "21",
+  },
   tokens: {
     fonte: fonteTokens,
     entrada,

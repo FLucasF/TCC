@@ -139,7 +139,14 @@ entre modelos for desfecho declarado.
 O D8 diz `high`. **Vinte e duas das 24 execuções foram `medium`.** Precisa
 decidir e fixar; os números das duas famílias não se comparam.
 
-### B4. Dependência acrescentada: covariável ou exclusão
+### B4. Dependência acrescentada — **resolvido junto com a P7 em 20/09/2026**
+
+Sem esqueleto não existe pom de partida, então `dependencias.acrescentadas`
+passou a ser a lista inteira do que o agente declarou. A pergunta que sobrou —
+o que fazer com quem **desobedece as versões pedidas** — foi decidida como
+**taxa reportada**: a run continua válida e a desobediência vira dado.
+
+O levantamento original segue abaixo, para histórico.
 
 O Maven agora é online e o agente pode acrescentar biblioteca. O `meta.json`
 registra em `dependencias.acrescentadas`. Falta decidir o que fazer quando
@@ -177,9 +184,12 @@ execuções dá; para o lote, não.
 O `analise.py` do piloto foi apagado na limpeza — tinha Mann-Whitney exato
 conferido contra o scipy. Precisa voltar, adaptado ao `meta.json`.
 
-### C4. Procedimento do campo `valida`
+### C4. Procedimento do campo `valida` — **feito em 20/09/2026**
 
-Está `null` nas 24. Ninguém definiu quem marca, quando e com que critério.
+O extrator grava `valida_proposta` e `motivo_proposta` a partir do
+`encerramento` e da troca de modelo. `valida` continua sendo decisão humana, e
+divergir da proposta exige motivo escrito. Build quebrado **não** invalida,
+conforme a §13.3.
 
 ---
 

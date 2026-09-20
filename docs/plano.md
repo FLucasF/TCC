@@ -200,12 +200,14 @@ Dois motivos, nenhum deles olhando desfecho:
 > `56057792…ea24b882`. Sem skill e sem hook, ver 10.3 e 10.4. A fonte de cada
 > regra e o diário de versões estão em `docs/harness-notas.md`.
 
-> [!question] P7: Desobediência às versões pedidas (resolver antes do lote)
-> Java e Spring Boot são pedidos no enunciado, não impostos. O que fazer quando
-> `fundacao.spring_boot` ou `fundacao.java` divergirem: covariável, critério de
-> exclusão, ou só taxa reportada? Recomendado: **taxa reportada**, porque
-> excluir apaga o dado e porque a desobediência pode ela própria diferir entre
-> os braços. Decidir **antes** de ver o resultado.
+> [!success] P7: Desobediência às versões pedidas (resolvido em 20/09/2026)
+> **Taxa reportada.** A execução continua válida e a desobediência vira dado,
+> em `fundacao.obedeceu_versoes`, reportado por modelo e condição.
+>
+> É consistente com a §13.3, que já conta build quebrado como resultado válido
+> — e o `MED-06` mostrou o caso extremo, com o Haiku escolhendo Java 11 sob
+> Spring Boot 3.x, que nem compila. Excluir apagaria o dado; covariável não tem
+> poder com n=3.
 
 ---
 
@@ -249,7 +251,9 @@ Dois motivos, nenhum deles olhando desfecho:
 | Tokens de entrada, saída e cache | Secundária | JSON do Claude Code |
 | Duração total (s) | Secundária | JSON + relógio do script |
 | Número de turnos / chamadas de ferramenta | Secundária | JSON / stream de eventos |
-| Execução concluída / limite atingido / erro | Controle | Script de execução |
+| Execução concluída / limite atingido / erro | Controle | `resultado_execucao.encerramento` |
+| `valida` | Controle | **Humano**, pela tabela de 13.3. O extrator propõe em `valida_proposta` |
+| Obediência às versões pedidas | Controle | `fundacao.obedeceu_versoes` (P7) |
 
 ---
 
@@ -760,8 +764,12 @@ Os blocos, e para que cada um serve:
 - [x] `infra/scripts/extrair-meta.mjs` — métricas, fundação e auditorias
 - [ ] `gerar-ordem` com semente — **cancelado** em 19/09/2026, ver 6.2
 - [x] Campo `repeticao` no `meta.json` — 4º argumento do `executar.sh`
+- [x] Procedimento do campo `valida` — o extrator propõe, o humano confirma
 - [ ] Agregador `meta.json` → CSV, e a análise estatística (C2 e C3 de `o-que-falta.md`)
-- [ ] Procedimento do campo `valida`: quem marca, quando, com que critério
+- [x] Procedimento do campo `valida`: o extrator grava `valida_proposta` e
+      `motivo_proposta` a partir do `encerramento` e da troca de modelo; `valida`
+      continua humano, e divergir da proposta exige motivo escrito. Build
+      quebrado **não** invalida, conforme 13.3
 
 ---
 
@@ -1093,6 +1101,8 @@ Para cada extensão:
 - [ ] **H5:** o ganho do harness é maior em P2 e P3 do que em P1?
 - [ ] **Pergunta 3:** Haiku COM × Opus SEM
 - [ ] **Custo-benefício:** tokens por ponto com Strategy correto
+- [ ] **Taxa de obediência às versões** por modelo e condição (P7)
+- [ ] **Uso de web** por braço e por modelo: `auditoria.chamadas_web`
 - [ ] Mostrar **todos os valores individuais** (3 execuções por grupo), não só médias
 - [ ] Análise qualitativa por ponto: o que os modelos fizeram no lugar do Strategy? Em P3, as condicionais ficaram concentradas ou espalhadas?
 - [ ] Verificar se a **dificuldade planejada** se confirmou (P1 mais acertado que P2, P2 mais que P3). Se não, discutir no TCC
