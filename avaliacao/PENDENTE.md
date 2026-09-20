@@ -16,12 +16,12 @@ conferência de 19/09/2026 mostrou `avaliacao/`, `docs/`, `runs/`, `.env` e
 | `ferramentas/autoteste.mjs` | testa o testador: sobe app de mentira com defeito conhecido e confere se o `comparar.mjs` acusa. `node avaliacao/ferramentas/autoteste.mjs` |
 | `rubrica-strategy.md` | o instrumento do desfecho primário, com âncoras de código real em C1, C2, C3 e C5. Escrito em 20/09/2026 |
 | `testes-extensao/` | `DRONE`, `DEZOFF` e `CARTEIRA_DIGITAL`, 11 casos, mais o procedimento de contagem. Escrito em 20/09/2026 |
+| `casos/` | 60 casos nos quatro grupos da §14.3, gerados por `ferramentas/gerar-casos.mjs` com BigInt. Ver `casos/README.md` |
 
 ## Falta criar
 
 | item | o que é | prioridade |
 |---|---|---|
-| `testes-escondidos/` | o resto da suíte contra o contrato. A precedência dos erros já saiu; falta fronteiras (5,00 kg, R$ 300, R$ 1.000, 3× e 12×), empates de arredondamento e combinações de `LEVE3PAGUE2` | **alta** |
 | `mapa-anonimizacao.csv` | id cego → run. Só abrir depois de fechar as notas | depois |
 | `notas-autor.csv` | suas notas, às cegas | depois |
 | `notas-professor.csv` | avaliação independente | depois |

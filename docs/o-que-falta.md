@@ -30,7 +30,14 @@ Duas lacunas registradas no próprio arquivo:
   classe nova. Para distinguir, seria preciso uma segunda extensão por ponto que
   exigisse comportamento de família nova. Decidir antes do lote.
 
-### A2. `avaliacao/casos/` — os testes escondidos
+### A2. `avaliacao/casos/` — os testes escondidos — **feito em 20/09/2026**
+
+60 casos nos quatro grupos da §14.3, contra os 4 que o enunciado dá. Os valores
+saem de `ferramentas/gerar-casos.mjs`, em BigInt, e o gerador se confere contra
+os quatro exemplos do enunciado e contra E5 e E6 antes de escrever — conferido
+adulterando a taxa do cartão, ele acusou e não escreveu.
+
+O que segue abaixo é o levantamento original, mantido para histórico.
 
 Existe: os quatro exemplos do enunciado e a rota do `FRETEGRATIS`.
 

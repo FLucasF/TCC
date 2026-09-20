@@ -118,14 +118,17 @@ outras variações. Vale um caso por modalidade isolando o prazo: 7, 2, 1 e 0.
 
 ---
 
-## Prioridade
+## Prioridade — tudo coberto em 20/09/2026
 
-1. ~~**Precedência de erros**~~ — coberto em 20/09/2026 por
-   `casos/precedencia-erros.json`, sete casos.
-2. **FRETEGRATIS** — já comprovado que erra em 4 de 10.
-3. **Fronteiras** — 5,00 kg, R$ 300,00, R$ 1.000,00, 3× e 12×.
-4. **Empates de arredondamento** — silenciosos e de um centavo.
-5. O resto.
+1. ~~**Precedência de erros**~~ → `casos/precedencia-erros.json`, 7 casos
+2. ~~**FRETEGRATIS**~~ → `casos/rotas-sem-exemplo.json` e três casos em `cupons.json`
+3. ~~**Fronteiras**~~ → `entrega.json` (5,00 e 5,01 kg), `cupons.json` (299,99 e 300,00), `pagamento.json` (1.000,00 e 1.000,01; 0×, 1×, 3×, 4×, 12× e 13×)
+4. ~~**Empates de arredondamento**~~ → `arredondamento.json`, um por etapa do cálculo
+5. ~~**O resto**~~ → `opcionais-validacao.json` e `cupons.json`
+
+**60 casos**, contra os 4 que o enunciado dá. Todos calculados por
+`ferramentas/gerar-casos.mjs`, que se confere contra os quatro exemplos do
+enunciado e contra E5 e E6 antes de escrever. Ver `casos/README.md`.
 
 > [!warning] Conferir campo a campo, nunca só o total
 > Duas das dez execuções acertam o `totalFinal` e erram `frete` e
