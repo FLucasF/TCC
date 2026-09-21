@@ -326,8 +326,24 @@ codigo_cego,ponto,C1,C2,C3,C4,C5,C6,total,classe,forma,outro_padrao,excesso_enge
 
 ## 7. O que esta rubrica ainda não tem
 
+> [!warning] Testada em 21/09/2026, e não decidiu em três pontos
+> A régua foi aplicada aos pacotes `FUMACA-03-OPUS-COM` e `FUMACA-03-HAIKU-SEM`,
+> os dois fora da análise. A maior parte dos julgamentos decidiu sozinha — o
+> C5=1 do `enum`, o `if` sobre parâmetro que não conta como condicional por
+> variação, e os dois pontos do segundo pacote que são cadeia de `if` por código.
+>
+> Em **três** foi preciso escolher uma leitura para conseguir continuar. As três
+> estão na tabela abaixo, **sem decisão**, por escolha de 21/09/2026: primeiro
+> gerar dado, decidir depois.
+>
+> **Elas precisam ser fechadas antes de o primeiro pacote do lote ser aberto.**
+> Depois disso, escolher a leitura vira escolher olhando o resultado.
+
 | lacuna | o que fazer |
 |---|---|
+| **C1 — comportamento como dado, não como método** | O nível 1 diz "cobre só parte dos comportamentos, **ou só os dados**", e não diz o que fazer quando *parte* dos comportamentos é método e outra é dado por variante que a determina sozinha — o `prazoDias` no construtor de um `enum`. **Em aberto** |
+| **C2 — tabela de dados com cálculo genérico** | Uma linha de tabela é "uma implementação por variação"? A âncora da Forma 2 fixa C1=1 e C3≤1 e **é silenciosa sobre C2** — e como a classificação derivada usa `C2=0`, a resposta **inverte o resultado** entre "parcial" e "sem Strategy". **Em aberto** |
+| **C6 — quando não existe implementação** | Os três níveis falam de "implementações". Se está tudo num serviço único, não há o que pontuar, e o C6 entra no total 0–12. **Em aberto** |
 | Âncora para **C2 = 1** | Nenhuma execução produziu isolamento parcial dentro de um ponto. Registrar se aparecer no lote |
 | C4 e C6 sem âncora | Por escolha. Se o kappa vier baixo nesses dois, ancorar antes do consenso |
 | Extensão que separe parametrizado de por-classe | Decidido: aceitar o empate, ver C5. Trabalho futuro |
