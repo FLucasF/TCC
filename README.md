@@ -19,7 +19,7 @@ infra/           roda de fora, o agente nunca vê
   scripts/       executar / par / rodada / extração
 
 avaliacao/       nunca chega ao agente. Gabarito, rotas de teste, notas
-docs/            plano, notas do harness
+docs/            plano, pré-registro, diário de bordo, notas do harness
 runs/<id>/       workspace, transcrição, build, meta.json
 runs/logs/       saída de terminal de cada execução
 ```

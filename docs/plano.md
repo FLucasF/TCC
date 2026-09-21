@@ -328,9 +328,11 @@ O workspace do agente **nasce vazio**. O `.dockerignore` é lista branca: só
 
 ### 7.1 O que ainda não existe
 
+`docs/diario-de-bordo.md` saiu desta lista em 21/09/2026: foi criado, e os
+registros datados que moravam em `harness-notas.md` foram para lá.
+
 | item | de quem é exigido |
 |---|---|
-| `docs/diario-de-bordo.md` | 13.3 manda registrar toda exceção nele, 13.4 define o formato, 12.3 e 17 dependem dele. Hoje o conteúdo mora dentro de `harness-notas.md`, como "Diário de decisões da bancada" |
 | `avaliacao/rubrica-strategy.md` | 14.4 define a escala; falta o instrumento com âncoras, ver A1 de `o-que-falta.md` |
 | `avaliacao/testes-extensao/` | 14.5 |
 | `avaliacao/mapa-anonimizacao.csv` e as planilhas de notas | 14.2 e 14.6 |
@@ -822,7 +824,7 @@ Os blocos, e para que cada um serve:
 
 - [ ] Corrigir problemas encontrados
 - [ ] Se mudou prompt ou harness: **recongelar** e registrar novos hashes no diário de versões de `harness-notas.md`
-- [ ] Registrar tudo no diário de bordo
+- [ ] Registrar tudo em `docs/diario-de-bordo.md`
 - [ ] Tag `v1-congelado` no Git
 - [ ] **A partir daqui, nada muda.**
 
@@ -884,10 +886,13 @@ Os blocos, e para que cada um serve:
 
 ### 13.4 Diário de bordo (modelo de entrada)
 
+O arquivo é `docs/diario-de-bordo.md`, criado em 21/09/2026, e já tem os
+registros anteriores ao lote.
+
 ```markdown
-### 2026-09-20 14:25, R03
+### 2026-09-22 14:25, LOTE-03-HAIKU-COM
 - Situação: cota atingida no turno 14
-- Ação: execução descartada; refeita às 19:10 como R03 (tentativa 2)
+- Ação: execução descartada; refeita às 19:10, mesma posição
 - Impacto: nenhum na configuração
 ```
 

@@ -209,6 +209,12 @@ conforme a §13.3.
 
 ## D. Documentos desatualizados
 
+### D0. `diario-de-bordo.md` — **criado em 21/09/2026**
+
+Três seções do plano o exigiam e ele não existia; o conteúdo morava dentro do
+`harness-notas.md`, em duas seções. Agora a divisão é explícita: **eventos** no
+diário, em ordem cronológica; o **harness como artefato** no harness-notas.
+
 ### D1. Seção 6.2 do plano
 
 Descreve ordem sorteada com `schedule.csv` e a restrição de não repetir
