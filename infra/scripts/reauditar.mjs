@@ -85,7 +85,17 @@ for (const r of readdirSync("runs").sort()) {
   for (const m of mudancas) console.log(`    ${m}`);
 
   if (gravar) {
-    meta.reauditado_em = "2026-09-21";
+    // Lista, nao campo unico: as duas execucoes de Opus do MED-07 ja tinham
+    // sido reauditadas em 20/09, e sobrescrever apagaria esse registro. O
+    // historico completo esta no git, mas o arquivo tambem deve contar a
+    // propria historia. Absorve tambem o `auditoria.reauditado_em`, que a
+    // versao anterior do script gravava um nivel abaixo.
+    const hoje = "2026-09-21";
+    const antigos = [meta.reauditado_em, meta.auditoria?.reauditado_em]
+      .flat()
+      .filter(Boolean);
+    delete meta.auditoria?.reauditado_em;
+    meta.reauditado_em = [...new Set([...antigos, hoje])].sort();
     writeFileSync(metaPath, JSON.stringify(meta, null, 2) + "\n");
   }
 }
