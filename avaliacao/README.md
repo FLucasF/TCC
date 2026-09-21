@@ -16,7 +16,7 @@ arquivos, nem os valores esperados, nem a rubrica, nem o gabarito.
 | `rotas-descobertas.md` | o que os quatro exemplos do enunciado não cobrem, e o que foi escrito para cobrir |
 | `casos/` | 60 casos da suíte escondida, nos quatro grupos da §14.3. Ver `casos/README.md` |
 | `testes-extensao/` | `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`, e o procedimento de contagem do C5 |
-| `ferramentas/` | os quatro scripts abaixo |
+| `ferramentas/` | os cinco scripts abaixo |
 
 ### As ferramentas
 
@@ -34,7 +34,7 @@ arquivos, nem os valores esperados, nem a rubrica, nem o gabarito.
 > node infra/scripts/auditoria-web.teste.mjs    # o detector de acesso externo
 > node avaliacao/ferramentas/gerar-casos.mjs    # o gerador, que se confere
 > ```
-> Em 19 e 20/09/2026 apareceram **sete** defeitos nas ferramentas de medição, e
+> Em 19 e 20/09/2026 apareceram **oito** defeitos nas ferramentas de medição, e
 > três deles foram achados por acaso. Ferramenta de medida sem teste próprio
 > reporta número errado em silêncio, e número errado vira resultado do TCC.
 
@@ -72,16 +72,12 @@ O script também **conta as pistas que o modelo deixou**: comentário citando
 ### 2 · Avaliação automática
 
 ```bash
-# o contrato inteiro, um grupo por vez
-CASOS=avaliacao/casos/entrega.json            avaliacao/ferramentas/conferir-exemplos.sh <run_id>
-CASOS=avaliacao/casos/cupons.json             avaliacao/ferramentas/conferir-exemplos.sh <run_id>
-CASOS=avaliacao/casos/pagamento.json          avaliacao/ferramentas/conferir-exemplos.sh <run_id>
-CASOS=avaliacao/casos/arredondamento.json     avaliacao/ferramentas/conferir-exemplos.sh <run_id>
-CASOS=avaliacao/casos/opcionais-validacao.json avaliacao/ferramentas/conferir-exemplos.sh <run_id>
-CASOS=avaliacao/casos/precedencia-erros.json  avaliacao/ferramentas/conferir-exemplos.sh <run_id>
+# a pasta inteira: uma subida da aplicacao, os seis grupos
+CASOS=avaliacao/casos avaliacao/ferramentas/conferir-exemplos.sh <run_id> [run_id ...]
 ```
 
-Reporta `% aprovados` por grupo. O build pós-execução (`mvn verify`) já rodou no
+Reporta `% aprovados` por grupo e grava uma linha por run × grupo em
+`analise/funcional.csv`, que é de onde a análise tira a tabela 15.1c. O build pós-execução (`mvn verify`) já rodou no
 `executar.sh` e está em `runs/<id>/build.txt`.
 
 ### 3 · Rubrica, às cegas
@@ -94,6 +90,22 @@ fazer a extensão primeiro influencia a nota de C5.
 
 Procedimento em [`testes-extensao/README.md`](testes-extensao/README.md). A
 contagem é mecânica, por `git diff --numstat`. Vai para `notas-extensao.csv`.
+
+### 4a · Agregar e analisar
+
+```bash
+node infra/scripts/agregar.mjs --prefixo LOTE   # meta.json -> analise/resultados.csv
+node infra/scripts/analisar.mjs --prefixo LOTE  # as tabelas da §15, em Markdown
+```
+
+O `conferir-exemplos.sh` já vai alimentando `analise/funcional.csv` a cada
+execução conferida, uma linha por run × grupo.
+
+A análise **não reporta p-valor**, de propósito: com n=3 por braço o menor p
+bicaudal alcançável num Mann-Whitney é 0,10, então p<0,05 é impossível por
+construção e o número só induziria a ler um "não significativo" que vem do
+desenho. No lugar dele, a medida de efeito é de pares: em quantos pares SEM/COM
+o braço COM supera o SEM.
 
 ### 5 · Dois avaliadores
 

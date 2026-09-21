@@ -33,6 +33,11 @@ printf 'casos: %s\n\n' "$(basename "$CASOS")"
 TOTAL_FALHAS=0
 NAO_SUBIRAM=0
 ERROS_DOCKER=0
+TMP_SAIDA="$(mktemp)"
+trap 'rm -f "$TMP_SAIDA"' EXIT
+FUNCIONAL="${FUNCIONAL:-$RAIZ/analise/funcional.csv}"
+mkdir -p "$(dirname "$FUNCIONAL")"
+[ -s "$FUNCIONAL" ] || echo "run_id,grupo,total,falhas,aprovados_pct" > "$FUNCIONAL"
 
 for RUN_ID in "$@"; do
     WS="$RAIZ/runs/$RUN_ID/workspace"
@@ -57,13 +62,20 @@ if [ -d /casos ]; then node /comparar.mjs /casos/*.json; else node /comparar.mjs
 CODIGO=$?
 pkill -9 -f java 2>/dev/null || true
 exit $CODIGO
-' 2>"$RAIZ/runs/logs/conferir-$RUN_ID.err" | sed 's/^/  /'
+' 2>"$RAIZ/runs/logs/conferir-$RUN_ID.err" > "$TMP_SAIDA"
+
+    FALHAS=${PIPESTATUS[0]}
+    grep -v '^#RESUMO' "$TMP_SAIDA" | sed 's/^/  /'
+    # As linhas #RESUMO viram analise/funcional.csv, uma por run x grupo.
+    while IFS=$'	' read -r _ grupo total falhas; do
+        printf '%s,%s,%s,%s,%s
+' "$RUN_ID" "${grupo%.json}" "$total" "$falhas"             "$(awk -v t="$total" -v f="$falhas" 'BEGIN{printf "%.1f", t?(t-f)*100/t:0}')" >> "$FUNCIONAL"
+    done < <(grep '^#RESUMO' "$TMP_SAIDA")
 
     # Nem todo codigo de saida e contagem de casos. 66 e "a aplicacao nao subiu";
     # 125, 126 e 127 sao erro do proprio docker. Somar qualquer um deles como
     # numero de casos publica um numero inventado — aconteceu com o 66 em
     # 19/09/2026 e com o 125 em 20/09.
-    FALHAS=${PIPESTATUS[0]}
     case "$FALHAS" in
         66) NAO_SUBIRAM=$((NAO_SUBIRAM + 1)) ;;
         125|126|127)

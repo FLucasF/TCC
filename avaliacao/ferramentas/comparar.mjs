@@ -96,6 +96,11 @@ for (const caso of casos) {
 }
 total += casos.length;
 if (arquivos.length > 1) console.log(`    ${casos.length - falharamAqui}/${casos.length} em ${nome}`);
+// Linha para maquina ler. O conferir-exemplos.sh recolhe e monta o
+// analise/funcional.csv; sem isso o resultado por grupo so existia como texto
+// na tela, e a analise nao teria de onde tirar o "% aprovados por grupo" que a
+// §14.3 pede.
+console.log(`#RESUMO	${nome}	${casos.length}	${falharamAqui}`);
 }
 console.log(`${total - falharam}/${total} casos corretos`);
 return falharam;

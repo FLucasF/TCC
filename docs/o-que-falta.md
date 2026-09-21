@@ -174,15 +174,29 @@ Não é repositório. Os cinco defeitos de hoje foram corrigidos editando arquiv
 por cima, sem rede. E o `.gitignore` que protege o `.env` não protege nada
 enquanto não houver git.
 
-### C2. Agregador de `meta.json` → CSV
+### C2. Agregador de `meta.json` → CSV — **feito em 20/09/2026**
 
-Não existe. Toda tabela desta sessão saiu de `node -e` improvisado. Para 24
-execuções dá; para o lote, não.
+`infra/scripts/agregar.mjs`: 44 colunas, uma linha por execução, com `--prefixo`
+para separar o lote. Deriva `obedeceu_versoes` e `chamadas_web` dos `meta.json`
+antigos em vez de exigir reprocessamento — deixando `obedeceu_versoes` vazio nas
+execuções com esqueleto, porque lá as versões vinham do pom e não de obediência.
 
-### C3. Análise estatística
+### C3. Análise — **feito em 20/09/2026, e sem Mann-Whitney**
 
-O `analise.py` do piloto foi apagado na limpeza — tinha Mann-Whitney exato
-conferido contra o scipy. Precisa voltar, adaptado ao `meta.json`.
+`infra/scripts/analisar.mjs` produz as tabelas da §15 em Markdown.
+
+**O Mann-Whitney não voltou, e a razão é aritmética.** Com n=3 por braço existem
+C(6,3)=20 arranjos possíveis, então o menor p bicaudal alcançável é **0,10**:
+p<0,05 é impossível mesmo com separação perfeita. Publicar o p só induziria a
+ler um "não significativo" que vem do desenho e não dos dados — e a §2.4 do
+plano já diz para não afirmar significância.
+
+Juntar os três modelos daria 9 por braço e tornaria o teste possível, mas
+ignoraria o fator de bloco, e a **H3 é exatamente sobre o efeito diferir por
+modelo**.
+
+No lugar: descritivo com mediana e faixa, e medida de efeito por pares — em
+quantos pares SEM/COM o braço COM supera o SEM.
 
 ### C4. Procedimento do campo `valida` — **feito em 20/09/2026**
 
