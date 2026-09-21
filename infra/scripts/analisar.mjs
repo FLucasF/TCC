@@ -64,8 +64,23 @@ if (!incluirInvalidas) runs = runs.filter((r) => r.valida !== "false");
 if (!runs.length) { console.error("nenhuma execucao apos os filtros"); process.exit(1); }
 
 const funcional = csv(join("analise", "funcional.csv")) ?? [];
-const notas = csv(join("avaliacao", "consenso.csv")) ?? csv(join("avaliacao", "notas-autor.csv")) ?? [];
-const notasPreenchidas = notas.filter((n) => n.C1 !== "" && n.C1 !== undefined);
+// Prefere o consenso, mas so quando ele TEM nota. O anonimizar.mjs cria os
+// quatro CSV vazios de uma vez, entao um `??` escolheria o consenso vazio e
+// esconderia as notas do autor. Defeito achado no teste sintetico do
+// cruzamento, em 21/09/2026.
+const comNota = (linhas) => (linhas ?? []).filter((n) => n.C1 !== "" && n.C1 !== undefined);
+const notasPreenchidas = [csv(join("avaliacao", "consenso.csv")), csv(join("avaliacao", "notas-autor.csv"))]
+  .map(comNota)
+  .find((a) => a.length) ?? [];
+
+// O mapa liga codigo cego -> run, e so entao da para cruzar as notas com
+// modelo e condicao. Ele esta no .gitignore de proposito: o autor e um dos
+// dois avaliadores, e versiona-lo antes das notas fecharem seria deixar o
+// gabarito da cegueira aberto. Sem ele, as tabelas por celula nao saem, e o
+// script diz por que em vez de quebrar.
+const mapa = csv(join("avaliacao", "mapa-anonimizacao.csv"));
+const runPorCodigo = new Map((mapa ?? []).map((m) => [m.codigo_cego, m.run_id]));
+const dadosPorRun = new Map(runs.map((r) => [r.run_id, r]));
 
 const modelos = [...new Set(runs.map((r) => r.modelo))];
 const celulas = [];
@@ -179,9 +194,11 @@ console.log(`\n## 15.1 · Strategy correto por ponto\n`);
 if (!notasPreenchidas.length) {
   console.log("Sem notas preenchidas. O desfecho primário sai de `avaliacao/consenso.csv`,");
   console.log("ou de `notas-autor.csv` enquanto o consenso não existir. Ver `avaliacao/README.md`.");
-} else {
-  console.log("As notas estão por **código cego**, e cruzar com modelo e condição exige o");
-  console.log("mapa de anonimização — que só deve ser reaberto depois das notas fecharem.\n");
+} else if (!mapa) {
+  console.log("Notas preenchidas, mas **sem o mapa de anonimização** — então não dá para");
+  console.log("cruzar com modelo e condição. Isso é esperado: o mapa fica fora do repositório");
+  console.log("até as notas fecharem. Traga `avaliacao/mapa-anonimizacao.csv` de volta depois");
+  console.log("do commit de `notas-autor.csv` e rode outra vez.\n");
   const porPonto = {};
   for (const n of notasPreenchidas) {
     porPonto[n.ponto] ??= { correto: 0, parcial: 0, sem: 0, totais: [] };
@@ -192,11 +209,63 @@ if (!notasPreenchidas.length) {
   console.log(linha(Array(6).fill("---")));
   for (const p of ["P1", "P2", "P3"]) {
     const d = porPonto[p];
-    if (!d) continue;
-    console.log(linha([p, d.correto ?? 0, d.parcial ?? 0, d.sem ?? 0, fmt(mediana(d.totais), 1), d.totais.length]));
+    if (d) console.log(linha([p, d.correto ?? 0, d.parcial ?? 0, d.sem ?? 0, fmt(mediana(d.totais), 1), d.totais.length]));
   }
+} else {
+  // Junta nota (por codigo cego) com execucao (por run), pelo mapa.
+  const cruzadas = [];
+  const orfas = new Set();
+  for (const n of notasPreenchidas) {
+    const runId = runPorCodigo.get(n.codigo_cego);
+    const dados = runId ? dadosPorRun.get(runId) : null;
+    if (!dados) { orfas.add(n.codigo_cego); continue; }
+    cruzadas.push({ ...n, run_id: runId, modelo: dados.modelo, condicao: dados.condicao });
+  }
+  if (orfas.size) console.log(`> ${orfas.size} código(s) cego(s) sem execução correspondente: ${[...orfas].join(", ")}\n`);
+
+  const nota = (m, c, p) => cruzadas.filter((x) => x.modelo === m && x.condicao === c && x.ponto === p);
+  const totais = (a) => a.map((n) => Number(n.total)).filter((v) => !Number.isNaN(v));
+
+  console.log(linha(["Modelo", "Condição", "P1 Entrega", "P2 Cupons", "P3 Pagamento", "Pontos corretos (média 0–3)"]));
+  console.log(linha(Array(6).fill("---")));
+  for (const c of celulas) {
+    const porP = ["P1", "P2", "P3"].map((p) => nota(c.modelo, c.condicao, p));
+    if (!porP.some((x) => x.length)) continue;
+    const corretos = porP.map((x) => `${x.filter((n) => n.classe === "correto").length}/${x.length}`);
+    // Media por EXECUCAO: quantos dos tres pontos ficaram corretos em cada uma.
+    const porExec = {};
+    for (const x of porP.flat()) porExec[x.run_id] = (porExec[x.run_id] ?? 0) + (x.classe === "correto" ? 1 : 0);
+    const v = Object.values(porExec);
+    console.log(linha([apelido(c.modelo), c.condicao, ...corretos, v.length ? fmt(v.reduce((s, x) => s + x, 0) / v.length, 2) : ""]));
+  }
+
+  console.log(`\n### 15.1b · Rubrica por ponto (mediana e faixa, 0–12)\n`);
+  console.log(linha(["Modelo", "Condição", "P1", "P2", "P3"]));
+  console.log(linha(Array(5).fill("---")));
+  for (const c of celulas) {
+    const cols = ["P1", "P2", "P3"].map((p) => {
+      const t = totais(nota(c.modelo, c.condicao, p));
+      return t.length ? `${fmt(mediana(t), 1)} (${faixa(t)})` : "";
+    });
+    if (cols.every((x) => !x)) continue;
+    console.log(linha([apelido(c.modelo), c.condicao, ...cols]));
+  }
+
+  console.log(`\n### 15.1d · Efeito do harness por dificuldade (COM − SEM, mediana 0–12)\n`);
+  console.log(linha(["Modelo", "Δ P1", "Δ P2", "Δ P3"]));
+  console.log(linha(Array(4).fill("---")));
+  for (const m of modelos) {
+    const d = ["P1", "P2", "P3"].map((p) => {
+      const com = totais(nota(m, "COM", p)), sem = totais(nota(m, "SEM", p));
+      if (!com.length || !sem.length) return "";
+      const delta = mediana(com) - mediana(sem);
+      return (delta > 0 ? "+" : "") + fmt(delta, 1);
+    });
+    if (d.every((x) => !x)) continue;
+    console.log(linha([apelido(m), ...d]));
+  }
+  console.log("\nDiferença de medianas, não teste. A medida de efeito está na seção de pares.");
 }
 
 console.log(`\n---\n`);
-console.log("Gerado por `infra/scripts/analisar.mjs`. As tabelas 15.1b e 15.1d saem daqui");
-console.log("quando as notas estiverem preenchidas e o mapa de anonimização reaberto.");
+console.log("Gerado por `infra/scripts/analisar.mjs`.");

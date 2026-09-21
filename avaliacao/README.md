@@ -32,10 +32,11 @@ arquivos, nem os valores esperados, nem a rubrica, nem o gabarito.
 > ```bash
 > node avaliacao/ferramentas/autoteste.mjs      # o comparador
 > node infra/scripts/auditoria-web.teste.mjs    # o detector de acesso externo
+> node infra/scripts/validade.teste.mjs         # a proposta de validade
 > node avaliacao/ferramentas/gerar-casos.mjs    # o gerador, que se confere
 > ```
-> Em 19 e 20/09/2026 apareceram **oito** defeitos nas ferramentas de medição, e
-> três deles foram achados por acaso. Ferramenta de medida sem teste próprio
+> Entre 19 e 21/09/2026 apareceram **nove** defeitos nas ferramentas de medição,
+> três deles achados por acaso e o último na própria rodada de fumaça. Ferramenta de medida sem teste próprio
 > reporta número errado em silêncio, e número errado vira resultado do TCC.
 
 ---

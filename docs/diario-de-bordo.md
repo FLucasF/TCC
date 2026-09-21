@@ -446,3 +446,41 @@ O **Haiku COM** falha nos mesmos três casos de cartão, mas com valores
 diferentes — 454,92 em vez de 455,40 — e ali o `totalFinal` também diverge. É
 uma terceira variante do mesmo ponto, o P3, que é o ponto difícil por desenho.
 
+## 21/09/2026 — as tabelas do desfecho primário, e o décimo defeito
+
+O `analisar.mjs` lia as notas e agregava por ponto, mas não cruzava com modelo e
+condição — e são justamente as tabelas **15.1, 15.1b e 15.1d** que carregam o
+desfecho primário. Faltava o `join` entre nota (por código cego) e execução (por
+run), pelo `mapa-anonimizacao.csv`.
+
+Eu tinha adiado alegando que não havia nota real para conferir. Isso estava
+errado: dá para conferir com **nota sintética de padrão conhecido**.
+
+**Como foi testado.** Anonimizei os seis pacotes do `FUMACA-03` e preenchi as
+notas com um padrão escolhido: `COM` com total 12, 11 e 10 em P1, P2 e P3;
+`SEM` com 6, 4 e 2. Três números distintos por ponto, de propósito — qualquer
+troca de coluna apareceria. A saída reproduziu exatamente: 15.1b com 12/11/10
+contra 6/4/2, e 15.1d com Δ **+6, +7, +8**. Os três caminhos do código foram
+exercitados: sem notas, com notas e sem mapa, e com código cego órfão. As notas
+sintéticas foram apagadas em seguida.
+
+Isso **não substitui** pontuar pacote de verdade. Prova que o cruzamento está
+certo; não prova que a régua é aplicável sem ambiguidade, que é o item que
+segue em branco no checklist do piloto, §12.2.
+
+### Décimo defeito, e o teste sintético o pegou
+
+O script escolhia a fonte das notas com `consenso.csv ?? notas-autor.csv`. Como
+o `anonimizar.mjs` cria os quatro CSV vazios de uma vez, o `??` pegava o
+consenso **vazio** e escondia as notas do autor — reportando "sem notas
+preenchidas" com 18 notas preenchidas no disco.
+
+Corrigido: a preferência passa a ser por quem **tem nota**, não por quem existe.
+
+### E seis correções de coisas que eu escrevi e envelheceram
+
+Contador de defeitos desatualizado em dois documentos; os blocos de autoteste
+listando três quando são quatro; o `README.md` descrevendo `infra/scripts/` com
+quatro scripts quando são onze; a linha de procedência do pré-registro; e a
+data chumbada no `reauditar.mjs`, que gravaria valor errado na próxima execução.
+

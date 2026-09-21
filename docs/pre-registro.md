@@ -134,10 +134,12 @@ gerador aborta se não reproduzir os quatro exemplos do enunciado e E5/E6.
 > ```bash
 > node avaliacao/ferramentas/autoteste.mjs      # 5/5
 > node infra/scripts/auditoria-web.teste.mjs    # 13/13
+> node infra/scripts/validade.teste.mjs         # 14/14
 > node avaliacao/ferramentas/gerar-casos.mjs    # 6/6 de referencia
 > ```
-> Sete defeitos apareceram nas ferramentas de medição em 19 e 20/09/2026, três
-> deles por acaso. Um instrumento sem teste próprio erra em silêncio.
+> Nove defeitos apareceram nas ferramentas de medição entre 19 e 21/09/2026,
+> três deles por acaso e o último na própria rodada de fumaça. Um instrumento
+> sem teste próprio erra em silêncio.
 
 ## 8. Avaliação
 
@@ -187,6 +189,7 @@ aconteceu com o detector de acesso externo em 20/09/2026.
 
 | | |
 |---|---|
-| commit no fechamento | `c48dcb9` |
+| commit no fechamento | `c48dcb9`, e os artefatos congelados seguem idênticos desde então — conferido em 21/09/2026, 16 de 16 |
+| última conferência dos hashes | 21/09/2026 |
 | execuções de calibração | `FUMACA-01`, `FUMACA-02`, `MED-01` a `MED-07`, **todas fora da análise** |
 | âncoras da rubrica | tiradas das execuções de calibração, nunca do lote |

@@ -90,7 +90,9 @@ for (const r of readdirSync("runs").sort()) {
     // historico completo esta no git, mas o arquivo tambem deve contar a
     // propria historia. Absorve tambem o `auditoria.reauditado_em`, que a
     // versao anterior do script gravava um nivel abaixo.
-    const hoje = "2026-09-21";
+    // Data de hoje, nao chumbada: a versao anterior gravava uma constante, que
+    // viraria mentira na proxima vez que o script rodasse.
+    const hoje = new Date().toISOString().slice(0, 10);
     const antigos = [meta.reauditado_em, meta.auditoria?.reauditado_em]
       .flat()
       .filter(Boolean);
