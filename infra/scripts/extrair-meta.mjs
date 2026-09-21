@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { hostname } from "node:os";
 import { externo } from "./auditoria-web.mjs";
+import { proporValida } from "./validade.mjs";
 
 const [runDir, ...resto] = process.argv.slice(2);
 const arg = {};
@@ -147,21 +148,13 @@ if ([130, 137, 143].includes(codigoSaida)) encerramento = "interrompido";
 else if (!result) encerramento = "erro_sem_resultado";
 else if (result.is_error) encerramento = result.subtype === "error_max_turns" ? "limite_turnos" : "erro";
 
-// `valida` é humano, mas deixou de depender da memória. O extrator PROPÕE a
-// partir do que já registra, e a pessoa confirma ou sobrescreve com motivo.
-// Resolvido em 20/09/2026, depois de as 24 execuções de medição ficarem com o
-// campo nulo porque ninguém tinha definido quem marca.
-//
-// Build quebrado NÃO invalida: a §13.3 diz que modelo que não entregou nada
-// conta como resultado. Só falha de infraestrutura invalida.
-function proporValida() {
-  if (["interrompido", "erro_sem_resultado", "erro", "limite_turnos"].includes(encerramento))
-    return { valida: false, motivo: `encerramento: ${encerramento}` };
-  const outros = [...modelosNasMensagens].filter((m) => m && m !== arg.modelo);
-  if (outros.length) return { valida: false, motivo: `outro modelo observado: ${outros.join(", ")}` };
-  return { valida: true, motivo: "concluido, sem troca de modelo" };
-}
-const proposta = proporValida();
+// A proposta de validade mora em `validade.mjs`, com teste proprio em
+// `validade.teste.mjs`. A decisao final continua sendo humana, pela §13.3.
+const proposta = proporValida({
+  encerramento,
+  modeloSolicitado: arg.modelo,
+  modelosObservados: [...modelosNasMensagens],
+});
 
 const meta = {
   run_id: arg.run_id,

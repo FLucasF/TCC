@@ -377,3 +377,72 @@ No lugar: mediana e faixa, e medida de efeito por pares.
 **Os testes funcionais viraram dado.** O comparador emite uma linha por grupo e o
 `conferir-exemplos.sh` recolhe em `analise/funcional.csv`. Antes o resultado por
 grupo só existia como texto na tela, e a tabela 15.1c não teria de onde sair.
+
+## 21/09/2026 — FUMACA-03: a bancada rodou inteira depois da refatoração
+
+Rodada de fumaça com a configuração nova: imagem `v3`, workspace vazio,
+enunciado com a linha das versões, web liberada, `effort medium`. Seis
+execuções em paralelo, **607s, zero falhas**, `build_ok` nas seis.
+
+Fora da análise, por ser `FUMACA-`.
+
+### O que se confirmou
+
+**Isolamento**, pelo evento inicial das seis: `WebSearch` e `WebFetch`
+**disponíveis**, `Agent` **bloqueado**, `~/.claude` do container vazio, nenhum
+`CLAUDE.md` fora do workspace, e o harness presente só nas três `COM`.
+
+**A linha das versões funcionou.** As seis escolheram Spring Boot 4.1.1 e Java
+21. Antes dela, sem esqueleto, o `MED-06` e o `MED-07` produziram 3.1.0, 3.1.5,
+3.2.0 e 3.3.4, com Java 11, 17 e 21 — e o Haiku chegou a escolher Java 11 sob
+Spring Boot 3.x, que nem compila. Travar por texto em vez de por esqueleto se
+sustentou.
+
+**A web liberada não mudou o comportamento.** `chamadas_web: 0` nas seis, com as
+ferramentas disponíveis. A preocupação de que a busca pudesse fazer os dois
+braços convergirem por terem lido o mesmo tutorial de Strategy não se
+materializou aqui. É n=1 por célula; vale acompanhar no lote.
+
+### Nono defeito de ferramenta, e este era meu
+
+Duas execuções saíram com `valida_proposta: false`, motivo "outro modelo
+observado: `claude-haiku-4-5-20251001`". Isso é o **snapshot datado do mesmo
+modelo**: o Haiku reporta o id datado nas mensagens, Opus 5 e Sonnet 5 reportam
+o id simples. A comparação estrita teria mandado descartar duas execuções boas —
+que é o erro mais caro que este campo pode cometer.
+
+A lógica saiu para `infra/scripts/validade.mjs`, com 14 casos em
+`validade.teste.mjs`, incluindo o limite que importa: `claude-opus-5-1` **não** é
+`claude-opus-5`, então um `startsWith` ingênuo não serviria. Só o sufixo de data
+de oito dígitos é removido.
+
+O `reauditar-web.mjs` virou `reauditar.mjs` e passou a recalcular todos os campos
+derivados, não só a auditoria de rede.
+
+### A suíte, e a regra de conferir campo a campo se provando de novo
+
+| execução | |
+|---|---|
+| Opus COM / SEM | 60/60 |
+| Sonnet COM / SEM | 60/60 |
+| Haiku COM | **57/60** |
+| Haiku SEM | **53/60** |
+
+As sete falhas do **Haiku SEM** têm uma propriedade que vale registrar:
+**`totalFinal` está correto em todas as sete**. Uma suíte que comparasse só o
+total teria dado 60/60 para essa aplicação.
+
+Quatro delas são o `FRETEGRATIS` **exatamente como o `rotas-descobertas.md`
+previa**, no defeito que ele chama de "apresentação": a app zera o campo `frete`
+em vez de lançar o desconto. Como o total é `produtos − 0 + 0`, ele fecha certo,
+e o resumo contraria o contrato. Era o defeito medido em 4 de 10 execuções em
+19/09, reproduzindo e sendo pego.
+
+As outras três são a parcela do cartão com juros, com **os mesmos números** do
+`MED-07-VAZIO-HAIKU-COM`: 81,27 · 55,15 · 21,43. O mesmo bug reproduzindo em
+outra execução e no outro braço.
+
+O **Haiku COM** falha nos mesmos três casos de cartão, mas com valores
+diferentes — 454,92 em vez de 455,40 — e ali o `totalFinal` também diverge. É
+uma terceira variante do mesmo ponto, o P3, que é o ponto difícil por desenho.
+
