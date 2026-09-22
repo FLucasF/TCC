@@ -11,6 +11,9 @@
 #   EFFORT     padrão medium, conforme D8 do plano (revisto em 20/09/2026)
 #   PROMPT_ARQ padrão experimento/prompt/prompt.md
 #   REDE       rótulo da rede, gravado no meta.json (ex.: casa-wifi)
+#   BLOQUEADAS lista negra, padrao Agent,Task
+#   PERMITIDAS lista BRANCA; quando preenchida, substitui a negra
+#   SKILLS     sim|nao; nao acrescenta --disable-slash-commands
 #
 # O workspace nasce VAZIO. Até 20/09/2026 havia um esqueleto Spring Boot como
 # ponto de partida, e a variável ESQUELETO escolhia entre os dois modos. O
@@ -33,8 +36,29 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 IMAGEM="${IMAGEM:-experimento-harness:v3}"
 # Web LIBERADA desde 20/09/2026, nas duas condições. Subagente continua
 # bloqueado: aquilo é controle de troca de modelo, não de acesso à internet.
-FERRAMENTAS_BLOQUEADAS="Agent,Task"
+#
+# A lista é variável de ambiente para poder ser medida antes de ser fixada. O
+# padrão é o mínimo que defende um controle já declarado; BLOQUEADAS= com outra
+# lista testa configurações diferentes sem alterar a bancada.
+FERRAMENTAS_BLOQUEADAS="${BLOQUEADAS:-Agent,Task}"
+
+# PERMITIDAS liga a LISTA BRANCA, e quando esta preenchida substitui a lista
+# negra. Existe porque o conjunto de ferramentas NAO e o mesmo entre modelos:
+# medido em 21/09/2026, o Haiku recebe 29 e o Opus e o Sonnet 25, e as quatro
+# a mais sao TaskCreate, TaskGet, TaskList e TaskUpdate. Lista negra nao
+# consegue igualar o que nao se sabe que existe; lista branca iguala por
+# construcao.
+PERMITIDAS="${PERMITIDAS:-}"
 EFFORT="${EFFORT:-medium}"
+
+# SKILLS=nao acrescenta --disable-slash-commands, que tira as 18 skills
+# embutidas do ambiente. Vale nos DOIS bracos, entao nao quebra a simetria.
+# Existe porque entre as embutidas ha uma chamada `design`, mais `code-review`
+# e `simplify`: orientacao de projeto vinda de fonte que nao e o harness.
+# Nenhuma das 30 execucoes ate 21/09/2026 chamou a ferramenta `Skill`, mas a
+# ativacao e escolha do modelo, nao garantia.
+SKILLS="${SKILLS:-sim}"
+case "$SKILLS" in sim|nao) ;; *) morrer "SKILLS deve ser sim ou nao" ;; esac
 
 RUN_DIR="$RAIZ/runs/$RUN_ID"
 WS="$RUN_DIR/workspace"
@@ -93,15 +117,18 @@ docker run --rm --name "exp-$RUN_ID" \
         echo "[pre] claude $(claude --version)" >&2
         echo "[pre] conteudo de ~/.claude: [$(ls -A "$HOME/.claude" 2>/dev/null | tr "\n" " ")]" >&2
         echo "[pre] CLAUDE.md fora do workspace: [$(find / -name CLAUDE.md -not -path "/workspace/*" -not -path "/proc/*" 2>/dev/null | tr "\n" " ")]" >&2
+        EXTRA=""
+        [ "$3" = "nao" ] && EXTRA="--disable-slash-commands"
+        if [ -n "$4" ]; then FERR="--allowedTools $4"; else FERR="--disallowedTools $1"; fi
         claude -p \
             --model "$0" \
             --effort "$2" \
             --output-format stream-json --verbose \
             --dangerously-skip-permissions \
-            --disallowedTools "$1" \
-            --no-session-persistence \
+            $FERR \
+            --no-session-persistence $EXTRA \
             < /experimento/prompt.md
-    ' "$MODELO" "$FERRAMENTAS_BLOQUEADAS" "$EFFORT" \
+' "$MODELO" "$FERRAMENTAS_BLOQUEADAS" "$EFFORT" "$SKILLS" "$PERMITIDAS" \
     > "$RUN_DIR/claude-output.jsonl" 2> "$RUN_DIR/stderr.txt"
 RC=$?
 
@@ -136,4 +163,4 @@ node "$(cygpath -w "$RAIZ/infra/scripts/extrair-meta.mjs")" "$(cygpath -w "$RUN_
     --ferramentas_bloqueadas "$FERRAMENTAS_BLOQUEADAS" --effort "$EFFORT" \
     --imagem "$IMAGEM" --imagem_id "$IMAGEM_ID" \
     --hash_prompt "$HASH_PROMPT" --hash_harness "$HASH_HARNESS" \
-    --deps_antes "$DEPS_ANTES" --repeticao "$REPETICAO" --rede "${REDE:-}"
+    --deps_antes "$DEPS_ANTES" --repeticao "$REPETICAO" --rede "${REDE:-}" --skills "$SKILLS" --permitidas "$PERMITIDAS"

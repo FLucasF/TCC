@@ -34,7 +34,7 @@ for m in $MODELOS; do
     apelido="${m%%:*}"; modelo="${m#*:}"
     for c in SEM COM; do
         id="$PREFIXO-$apelido-$c"
-        EFFORT="$EFFORT" "$EXEC" "$id" "$modelo" "$c" ${REPETICAO:+"$REPETICAO"} > "$RAIZ/runs/logs/$id.log" 2>&1 &
+        EFFORT="$EFFORT" SKILLS="${SKILLS:-sim}" PERMITIDAS="${PERMITIDAS:-}" BLOQUEADAS="${BLOQUEADAS:-}" "$EXEC" "$id" "$modelo" "$c" ${REPETICAO:+"$REPETICAO"} > "$RAIZ/runs/logs/$id.log" 2>&1 &
         PIDS="$PIDS $!"; IDS="$IDS $id"
         echo "  lançada: $id"
     done

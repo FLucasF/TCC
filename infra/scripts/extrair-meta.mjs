@@ -186,6 +186,10 @@ const meta = {
   },
   parametros: {
     effort: arg.effort ?? "medium",
+    // "nao" quer dizer que a execucao rodou com --disable-slash-commands.
+    skills: arg.skills ?? "sim",
+    // Lista branca quando preenchida; a negra so vale quando esta vazia.
+    ferramentas_permitidas: arg.permitidas ? arg.permitidas.split(",") : null,
     ferramentas_bloqueadas: arg.ferramentas_bloqueadas.split(","),
     permission_mode_init: init?.permissionMode ?? null,
   },
