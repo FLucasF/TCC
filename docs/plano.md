@@ -26,8 +26,8 @@ atualizado: 2026-09-20
 > 11.2, 11.3, 11.4, 12, 13.2, 14.3, 16 e 18.
 >
 > Quatro decisões foram fechadas no mesmo dia, depois do alinhamento: a redação
-> da H2 (2.4), o `effort` do D8 (3.1), as regras de aceitação da rubrica (14.4a)
-> e o paralelismo (6.2 e 13.2).
+> da H2 (2.4), o `effort` do D8 (3.1), as regras de aceitação da rubrica (então
+> em 14.4a, removidas em 21/09 junto com ela) e o paralelismo (6.2 e 13.2).
 > 
 > **Continua em aberto:** o campo `repeticao` no `meta.json`, o procedimento do
 > campo `valida`, e o que fazer quando o agente desobedecer as versões pedidas
@@ -143,7 +143,7 @@ Detalhes, soluções esperadas e sinais de ausência: `gabarito-avaliador.md`.
 | D15 | Testes pelo modelo | **Não pedidos** | Testes estão fora do recorte |
 | D16 | Banco de dados | **Nenhum** | Banco está fora do recorte |
 | D17 | Maven | **Online**. O agente pode acrescentar dependência se julgar necessário; o `~/.m2` vem aquecido só para o tempo de download não entrar na medição | Revisto em 19/09/2026. A pinagem de versão já vem do `spring-boot-starter-parent`, então o offline não protegia contra deriva: protegia contra dependência nova, e isso virou **registro** em `meta.json.dependencias` no lugar de proibição |
-| D18 | Avaliação | Testes escondidos + rubrica de Strategy **por ponto (P1, P2, P3)**, **às cegas** + teste de extensão **por ponto**; **autor avalia, depois o professor avalia de forma independente** | Objetividade e confiabilidade entre avaliadores |
+| D18 | Avaliação | Testes escondidos + **teste de extensão por ponto (P1, P2, P3)**, às cegas. Revisto em 21/09/2026: a rubrica saiu, ver 14.4 | Desfecho mecânico: contagem de arquivos, não nota. Dispensa segundo avaliador e kappa |
 
 ### 3.1 Por que o D8 passou de `high` para `medium`
 
@@ -161,8 +161,8 @@ Dois motivos, nenhum deles olhando desfecho:
    Trocar profundidade de raciocínio por `n` melhora mais o trabalho.
 
 > [!important] Isso não é escolher depois de ver o resultado
-> A justificativa é **medição de custo**, não de desfecho: nenhuma rubrica foi
-> aplicada, nenhum ponto de Strategy foi pontuado. Mudar parâmetro por custo
+> A justificativa é **medição de custo**, não de desfecho: nenhum pacote do lote
+> foi avaliado, nenhum ponto de Strategy foi pontuado. Mudar parâmetro por custo
 > antes do lote é legítimo; mudar por resultado não seria. A distinção precisa
 > estar no pré-registro, porque é ela que separa os dois casos.
 
@@ -178,9 +178,13 @@ Dois motivos, nenhum deles olhando desfecho:
 > [!success] P1: Domínio da tarefa (resolvido)
 > **Resumo de checkout** com três pontos de Strategy: entrega, cupons e pagamento. Ver `experimento/prompt/prompt.md`.
 
-> [!success] P6: Regras de aceitação na rubrica (resolvido em 20/09/2026)
-> As três respostas estão em 14.4a, ancoradas nas formas que aparecem de fato
-> nas execuções de medição.
+> [!success] P6: Regras de aceitação na rubrica (encerrado em 21/09/2026)
+> Deixou de existir junto com a rubrica, em 14.4. O desfecho primário passou a
+> ser contagem de arquivos, que não tem regra de aceitação a definir.
+>
+> Se a rubrica voltar, as três respostas — e as três ambiguidades que sobraram —
+> estão no arquivo removido, recuperável em
+> `git show aa71c81:avaliacao/rubrica-strategy.md`.
 
 > [!success] P2: Versões exatas (resolvido)
 > Fixadas na imagem: base `maven:3.9.16-eclipse-temurin-21`, Node `24.19.0`,
@@ -242,9 +246,10 @@ Dois motivos, nenhum deles olhando desfecho:
 
 | Métrica | Tipo | Fonte |
 |---|---|---|
-| **Strategy correto** (sim / parcial / não) **em P1, P2 e P3** | Principal | Rubrica por ponto, avaliação às cegas |
-| Pontuação da rubrica (0–12) **por ponto** | Principal | Rubrica |
-| Pontos com Strategy correto por execução (0–3) | Principal | Derivada da rubrica |
+| **Arquivos existentes alterados** para acrescentar uma variante, **em P1, P2 e P3** | Principal | Teste de extensão, 14.4 e 14.5 |
+| Arquivos criados e linhas alteradas nos existentes | Apoio | Mesma medição |
+| Extensão passou nos casos | Controle | `testes-extensao/`; extensão que não passa não conta |
+| Forma do código, em seis categorias | Secundária, descritiva | Classificação automática, 14.4 |
 | Testes funcionais escondidos (% aprovados, total e por área: entrega, cupons, pagamento, erros) | Principal | Suíte escondida |
 | Teste de extensão **por ponto** (arquivos criados/alterados) | Principal | Procedimento do avaliador |
 | Build compila (sim/não) | Apoio | `mvn verify` pós-execução, em container separado sem token |
@@ -333,9 +338,9 @@ registros datados que moravam em `harness-notas.md` foram para lá.
 
 | item | de quem é exigido |
 |---|---|
-| ~~`avaliacao/rubrica-strategy.md`~~ | escrita em 20/09 e **removida em 21/09/2026**. A 14.4 e a 14.4a descrevem uma escala que não está mais em uso |
+| ~~`avaliacao/rubrica-strategy.md`~~ | escrita em 20/09, **removida em 21/09/2026**. Por quê, e o que ficou no lugar: 14.4. Recuperável em `git show aa71c81:avaliacao/rubrica-strategy.md` |
 | `avaliacao/testes-extensao/` | 14.5 |
-| `avaliacao/mapa-anonimizacao.csv` e as planilhas de notas | 14.2 e 14.6 |
+| `avaliacao/mapa-anonimizacao.csv` e `notas-extensao.csv` | 14.2 e 14.6 |
 | agregador `meta.json` -> CSV, e a análise | 15 |
 
 - [x] Criar repositório Git — feito em 20/09/2026
@@ -811,7 +816,8 @@ Os blocos, e para que cada um serve:
 **Avaliação**
 - [ ] Suíte escondida roda sobre os workspaces do piloto (`avaliacao/ferramentas/conferir-exemplos.sh`)
 - [ ] `avaliacao/ferramentas/autoteste.mjs` passa antes de valer qualquer número da suíte
-- [ ] Rubrica aplicável sem ambiguidade nos 3 pontos (testar nos 4 resultados)
+- [ ] Teste de extensão aplicável nos 3 pontos, e o tempo por pacote medido
+      antes de dimensionar o `n`
 - [ ] Nenhum teste escondido falha por ambiguidade do contrato (se falhar, corrigir o **prompt**, não o teste)
 - [ ] Observar se a dificuldade planejada aparece (ex.: P3 raramente detectado sem harness). Se P3 for detectado sempre ou P1 nunca, reavaliar o prompt **antes** de congelar
 
@@ -907,8 +913,8 @@ flowchart LR
     A[runs/Rxx/workspace] --> B[Remover rastros de condição]
     B --> C[Renomear com código aleatório]
     C --> D[Avaliação automática]
-    C --> E[Avaliação do autor]
-    E --> F[Avaliação do professor]
+    C --> E[Teste de extensão]
+    E --> F[Conferência por amostra]
     D --> G[Consolidação]
     F --> G
     G --> H[Revelar mapa de anonimização]
@@ -943,93 +949,61 @@ Para cada pacote:
    Resultado: `% aprovados` total e por grupo.
 3. **Métricas de apoio (opcional):** número de classes; busca estática por `switch`/`if` sobre `modalidadeEntrega`, `cupom` e `formaPagamento`
 
-### 14.4 Rubrica de Strategy (avaliação humana)
+### 14.4 Desfecho primário: o teste de extensão
 
-A rubrica é aplicada **três vezes por pacote**: uma para **P1 (entrega)**, uma para **P2 (cupons)** e uma para **P3 (pagamento)**. Em cada critério, "variação" significa: opção de entrega (P1), regra de cupom (P2) ou forma de pagamento (P3).
+Revisto em 21/09/2026. Até aqui o desfecho primário era uma **rubrica**: seis
+critérios de 0 a 2 aplicados por um humano, mais um segundo avaliador e kappa de
+Cohen para medir concordância.
 
-Cada critério recebe **0 (ausente)**, **1 (parcial)** ou **2 (correto)**.
+**Ela saiu.** Foi aplicada a dois pacotes fora da análise, e em três critérios
+não decidiu sozinha — foi preciso escolher uma leitura para conseguir continuar.
+A mais grave, o C2 para tabela de dados com cálculo genérico, **invertia** a
+classificação entre "parcial" e "sem Strategy". Régua que produz número
+diferente de pessoa diferente não serve como desfecho primário, porque o número
+é o resultado do trabalho.
 
-| # | Critério | 0 | 1 | 2 |
-|---|---|---|---|---|
-| C1 | **Abstração da variação** | Não há abstração para o comportamento que varia | Abstração existe, mas cobre só parte dos comportamentos (ex.: só custo, sem prazo/disponibilidade) ou mistura responsabilidades | Abstração clara cobrindo os comportamentos que variam (ver gabarito) |
-| C2 | **Uma implementação por variação** | Lógica de todas as variações em um lugar | Algumas variações isoladas, outras não | Cada variação em sua própria implementação |
-| C3 | **Contexto sem condicional por variação** | Serviço/controller com `if`/`switch` por variação decidindo o comportamento | Condicional reduzida, mas ainda presente fora da seleção | Serviço apenas delega à implementação |
-| C4 | **Seleção da variação** | Seleção espalhada ou duplicada | Seleção centralizada, mas com condicional manual | Seleção sem condicional (ex.: `Map` injetado, registro por anotação, `enum` com comportamento) |
-| C5 | **Aberto para extensão** | Nova variação exige alterar várias classes existentes | Nova variação exige alterar 1 classe existente além de criar a nova | Nova variação exige **apenas** criar uma implementação (e, no máximo, um registro declarativo) |
-| C6 | **Coesão das implementações** | Implementações acessam HTTP/DTO de request ou montam respostas de erro da API | Pequenos vazamentos de responsabilidade | Implementações contêm apenas a regra de negócio da variação |
+O arquivo foi removido do repositório e é recuperável em
+`git show aa71c81:avaliacao/rubrica-strategy.md`.
 
-**Pontuação:** 0 a 12 **por ponto**; 0 a 36 no pacote.
+**No lugar dela**, o desfecho primário passa a ser o procedimento de 14.5, que
+já existia como confirmação objetiva e foi promovido: **quantos arquivos
+existentes precisam mudar para acrescentar uma variante nova**.
 
-#### 14.4a Regras de aceitação (P6, resolvido em 20/09/2026)
-
-Três formas aparecem nas execuções de medição, e a escala precisa separar as três.
-
-**Forma 1 — `enum` com corpo por constante.** Exemplo real, `MED-05-HAIKU-COM`:
-cada constante de `ModalidadeEntrega` sobrescreve `calcularFrete`, e `MOTOBOY`
-ainda sobrescreve `temLimitacao` e `getLimitePeso`. O serviço fica com **zero**
-condicional por modalidade, e com metade das linhas do braço `SEM`: 166 contra
-332.
-
-> **Conta como Strategy.** A JLS compila cada constante com corpo numa subclasse
-> anônima, então o comportamento está isolado de fato. Ganha **2 em C1, C2 e C3**.
->
-> **Mas ganha 1 em C5, não 2.** Acrescentar `DRONE` exige editar um arquivo que
-> já existe, o próprio `enum`. É exatamente o que o teste de extensão de 14.5
-> mede, e é o que separa esta forma de uma implementação por classe, onde a
-> variante nova é um arquivo novo e nada mais.
->
-> Anotar em observações: **por constante**, não por classe.
-
-**Forma 2 — tabela de dados mais cálculo genérico.** Exemplo real,
-`MED-05-HAIKU-SEM`: um `Map<String, EntregaConfig>` guarda taxa e prazo e o
-cálculo é genérico, mas o comportamento que não cabe na tabela volta como caso
-especial por identidade, espalhado pelo serviço.
-
-> **Conta como correto só se a seleção não usar condicional por código**, que era
-> a recomendação original e vale. O critério é mecânico: se o comportamento de
-> alguma variante exige condicional sobre a identidade dela **fora da seleção**,
-> então **C3 ≤ 1**.
->
-> Uma tabela de dados sem nenhum caso especial é correta, e é até melhor para
-> variantes novas com a mesma regra. A do `MED-05-HAIKU-SEM`, com dois casos
-> especiais por identidade, fica em **C1=1 e C3=1**: a abstração existe, mas só
-> para os dados.
-
-**Forma 3 — `switch` com a lógica dentro.** Exemplo real,
-`MED-07-VAZIO-HAIKU-SEM`: `switch` por modalidade e por forma de pagamento
-dentro de um serviço único, devolvendo o resultado inline.
-
-> **Sem Strategy**, C1=0. Em P3 especificamente, condicional **concentrada num
-> único lugar** também fica como "sem Strategy", e o campo de observação anota se
-> está concentrada (1 lugar) ou espalhada (vários). Isso permite a análise
-> qualitativa sem afrouxar a regra.
-
-> [!warning] Decidido antes de pontuar
-> Estas regras foram fechadas em 20/09/2026, **antes** de qualquer rubrica ser
-> aplicada. As formas citadas vieram das execuções de medição, que estão
-> declaradamente fora da análise: usar o que elas produziram para ancorar a
-> escala é legítimo; usar o lote seria escolher a régua depois do resultado.
-
-**Classificação final (derivada, não opinativa):**
-
-| Classe | Regra |
+| arquivos existentes alterados | leitura |
 |---|---|
-| ✅ **Strategy correto** | C1, C2, C3 = 2 **e** total ≥ 10 |
-| 🟡 **Strategy parcial** | C1 ≥ 1 **e** C2 ≥ 1, sem atingir "correto" |
-| ❌ **Sem Strategy** | C1 = 0 **ou** C2 = 0 |
+| 0, ou só um registro declarativo | a variante entra sem tocar no que existe |
+| 1 | um arquivo existente precisa mudar |
+| 2 ou mais | a variante está espalhada |
 
-A classificação é feita **por ponto**. Métrica derivada por pacote: **quantos pontos (0–3) estão com Strategy correto**.
+**Por que isso mede o que interessa.** "Aberto para extensão" não é efeito
+colateral do padrão Strategy: é a razão dele existir. Contar arquivos mede isso
+diretamente, em vez de inferir da forma do código.
 
-**Campos de observação (não pontuam), por ponto:**
-- Usou outro padrão no lugar? Qual?
-- Excesso de engenharia (padrões desnecessários empilhados)?
-- Comentários citando regras/skill?
-- Em P3: condicionais **concentradas** (1 lugar) ou **espalhadas** (vários lugares)?
-- Em P2: implementação **por cupom** ou **por regra genérica parametrizada**?
+**Desfecho secundário, descritivo:** a forma do código, classificada
+automaticamente em `classes`, `enum` com corpo, mapa de dados, regra
+parametrizada, `enum` sem comportamento, ou `switch`/`ifs`. Serve para a
+análise qualitativa de 15.3 — *o que os modelos fizeram no lugar do Strategy?*
+Não entra na comparação principal.
 
-### 14.5 Teste de extensão (procedimento objetivo)
+> [!warning] Duas coisas a confirmar com o professor
+> A extensão mede a **consequência** de ter usado Strategy, não o
+> **reconhecimento** de que era preciso — e 2.1 pergunta por "reconhecimento e
+> implementação".
+>
+> E 1.1 diz que Strategy é avaliado **"em profundidade"**. Contagem de arquivos
+> é objetiva, mas dificilmente é profundidade. É decisão de escopo dele.
 
-Executado pelo **avaliador** em cada pacote, **depois** da rubrica, **um por ponto** e sempre partindo do código original (desfazer a extensão anterior antes da próxima):
+> [!note] Ainda há julgamento, mais estreito
+> A contagem é mecânica, mas *implementar a menor alteração que funcione* é
+> decisão de quem implementa. É julgamento muito menor que seis critérios, e é
+> verificável — a extensão tem que passar nos casos de `testes-extensao/`. Mas
+> não é zero, e por isso a anonimização de 14.2 continua valendo.
+
+### 14.5 O procedimento, passo a passo
+
+Executado em cada pacote, **um ponto por vez** e sempre partindo do código
+original. O procedimento completo, com os comandos, está em
+`avaliacao/testes-extensao/README.md`.
 
 | Ponto | Extensão | Regra |
 |---|---|---|
@@ -1042,32 +1016,61 @@ Para cada extensão:
 2. Registrar: arquivos **criados**, arquivos existentes **alterados**, linhas alteradas em arquivos existentes
 3. Rodar os testes de `testes-extensao/` correspondentes
 
-> [!tip] Serve para confirmar o critério C5 com um número, não só com opinião.
+> [!warning] As três extensões não separam tudo
+> `DEZOFF` é o `MENOS50` sem mínimo, `DRONE` é o `MOTOBOY` com outro teto, e
+> `CARTEIRA_DIGITAL` é o `PIX` com limite. Num desenho de regra parametrizada as
+> três entram como **linha de dado**: zero arquivos alterados, igual a um desenho
+> de uma classe por variante. O teste separa esses dois de `enum` com corpo e de
+> `switch`, e **não separa os dois entre si**.
+>
+> Decidido em 20/09/2026: aceitar e declarar. Separar exigiria uma segunda
+> extensão por ponto, de família nova, dobrando o trabalho manual.
 
-> [!warning] Ordem de avaliação
-> Rubrica **antes** do teste de extensão. Fazer a extensão primeiro influencia a nota de C5.
+### 14.6 Conferência, sem segundo avaliador
 
-### 14.6 Dois avaliadores
+Revisto em 21/09/2026, como consequência de 14.4.
 
-1. **Autor avalia** todos os pacotes → `notas-autor.csv` → **commit** (congela antes de ver as notas do professor)
-2. **Professor avalia** de forma **independente**, sem acesso às notas do autor → `notas-professor.csv`
-3. **Concordância:**
-   - Por critério: % de concordância exata
-   - Na classificação final: % de concordância e **kappa de Cohen**
-4. **Divergências:** discussão entre os dois; decisão final registrada em `consenso.csv` **com justificativa**
-5. **Análise** usa `consenso.csv`; a concordância é reportada no TCC
+O desenho anterior tinha **dois avaliadores independentes** e **kappa de
+Cohen**, porque uma nota subjetiva precisa de prova de confiabilidade. Com
+contagem de arquivos isso deixa de fazer sentido: não há nota para concordar ou
+discordar, e `notas-professor.csv` e `consenso.csv` não existem mais.
 
-- [ ] Preparar planilha modelo com **uma linha por pacote × ponto** e colunas: `codigo, ponto (P1/P2/P3), C1..C6, total, classe, outro_padrao, excesso_engenharia, condicional_concentrada, observacoes`
-- [ ] Concordância calculada **por ponto** (P1, P2, P3) e no geral
-- [ ] Treino de calibração: avaliar juntos 1–2 pacotes **do piloto** (não do experimento) antes de começar
+O que fica:
 
----
+1. Autor aplica as extensões em todos os pacotes anonimizados →
+   `notas-extensao.csv` → **commit**
+2. Cada extensão só conta se **passar nos casos** de `testes-extensao/`. Extensão
+   que não passa é registrada como tal, e o pacote recebe a anotação
+3. A contagem sai de `git status --porcelain` e `git diff --numstat`, não de
+   leitura de código
+
+- [ ] Planilha com **uma linha por pacote × ponto**: `blind_code, point,
+      extension, cases_passed, files_created, files_modified, lines_changed, notes`
+- [ ] Calibração: aplicar as três extensões em 1 ou 2 pacotes das execuções de
+      calibração, **nunca do lote**, para medir quanto tempo leva antes de
+      dimensionar o `n`
+
+> [!note] O professor continua no circuito
+> O que muda é o papel. Ele deixa de ser **segundo avaliador** de uma escala
+> subjetiva e passa a conferir o **procedimento**: se a menor alteração foi
+> mesmo a menor, numa amostra dos pacotes. Divergência aí é achado sobre o
+> procedimento, não sobre a nota.
+
 
 ## 15. Fase 8: Análise
 
-### 15.1 Tabela principal: Strategy correto por ponto (execuções x/3)
+Revisto em 21/09/2026: as tabelas de 15.1 a 15.1d eram da rubrica. Foram
+refeitas sobre o desfecho de 14.4.
 
-| Modelo | Condição | 🟢 P1 Entrega | 🟡 P2 Cupons | 🔴 P3 Pagamento | Pontos corretos (média 0–3) |
+> [!important] Aqui **menos é melhor**
+> O desfecho é custo de extensão. Zero arquivo existente alterado é o melhor
+> resultado; 2 ou mais é o pior. Isso inverte o sinal de tudo que vem depois: se
+> o harness ajuda, o Δ de 15.1d é **negativo**. Escrever isso embaixo de cada
+> tabela no TCC, porque o leitor chega esperando o contrário.
+
+### 15.1 Tabela principal: arquivos existentes alterados por ponto (mediana e faixa)
+
+| Modelo | Condição | 🟢 P1 Entrega | 🟡 P2 Cupons | 🔴 P3 Pagamento | Mediana dos três |
 |---|---|---|---|---|---|
 | Opus 5 | SEM | | | | |
 | Opus 5 | COM | | | | |
@@ -1076,20 +1079,34 @@ Para cada extensão:
 | Haiku 4.5 | SEM | | | | |
 | Haiku 4.5 | COM | | | | |
 
-### 15.1b Rubrica por ponto (média ± desvio, 0–12)
+### 15.1b Distribuição das leituras (execuções x/3, na ordem 0 / 1 / 2+)
+
+A mediana de 15.1 esconde a forma da distribuição, e com `n` pequeno é a forma
+que interessa. As três leituras são as de 14.4.
 
 | Modelo | Condição | P1 | P2 | P3 |
 |---|---|---|---|---|
 
-### 15.1c Funcionamento e extensão
+### 15.1c Funcionamento: testes escondidos
 
-| Modelo | Condição | Testes total (%) | Entrega (%) | Cupons (%) | Pagamento (%) | Validação (%) | Extensão P1 (arq. alterados) | Extensão P2 | Extensão P3 |
-|---|---|---|---|---|---|---|---|---|---|
+Controle, não desfecho. Extensão em pacote que não compila ou não passa nos
+casos **não entra** em 15.1 — ver 14.6.
 
-### 15.1d Efeito do harness por dificuldade
+| Modelo | Condição | Build ok (x/3) | Testes total (%) | Entrega (%) | Cupons (%) | Pagamento (%) | Validação (%) |
+|---|---|---|---|---|---|---|---|
 
-| Modelo | Δ P1 (COM − SEM) | Δ P2 | Δ P3 |
+### 15.1d Efeito do harness por dificuldade (COM − SEM, mediana; negativo = harness ajudou)
+
+| Modelo | Δ P1 | Δ P2 | Δ P3 |
 |---|---|---|---|
+
+### 15.1e Forma do código, desfecho secundário (contagem por braço)
+
+Classificação automática de 14.4. Descritiva: alimenta a análise qualitativa de
+15.3, não entra na comparação principal.
+
+| Modelo | Condição | Ponto | classes | enum c/ corpo | mapa de dados | parametrizada | enum simples | switch/ifs |
+|---|---|---|---|---|---|---|---|---|
 
 ### 15.2 Tabela de custo
 
@@ -1099,18 +1116,20 @@ Para cada extensão:
 ### 15.3 Análises
 
 - [ ] **Efeito do harness por modelo:** diferença COM − SEM em cada métrica
-- [ ] **H1:** o harness aumentou "Strategy correto" nos 3 modelos?
+- [ ] **H1:** com harness, acrescentar uma variante exigiu alterar **menos
+      arquivos existentes**, nos 3 modelos?
 - [ ] **H2:** custo extra do harness (tokens, tempo)
 - [ ] **H3:** o efeito é maior no Haiku?
-- [ ] **H4:** a taxa de acerto cai de P1 para P3 nas duas condições?
+- [ ] **H4:** o custo de extensão **cresce** de P1 para P3 nas duas condições?
 - [ ] **H5:** o ganho do harness é maior em P2 e P3 do que em P1?
 - [ ] **Pergunta 3:** Haiku COM × Opus SEM
-- [ ] **Custo-benefício:** tokens por ponto com Strategy correto
+- [ ] **Custo-benefício:** tokens por ponto que ficou extensível sem alterar
+      arquivo existente
 - [ ] **Taxa de obediência às versões** por modelo e condição (P7)
 - [ ] **Uso de web** por braço e por modelo: `auditoria.chamadas_web`
 - [ ] Mostrar **todos os valores individuais** (3 execuções por grupo), não só médias
-- [ ] Análise qualitativa por ponto: o que os modelos fizeram no lugar do Strategy? Em P3, as condicionais ficaram concentradas ou espalhadas?
-- [ ] Verificar se a **dificuldade planejada** se confirmou (P1 mais acertado que P2, P2 mais que P3). Se não, discutir no TCC
+- [ ] Análise qualitativa por ponto, a partir de 15.1e: o que os modelos fizeram no lugar do Strategy? Em P3, as condicionais ficaram concentradas ou espalhadas?
+- [ ] Verificar se a **dificuldade planejada** se confirmou (P1 mais barato de estender que P2, P2 mais que P3). Se não, discutir no TCC
 
 > [!note] Linguagem dos resultados
 > Usar "observou-se", "nas execuções realizadas", "tendência". Evitar "comprova" ou "significativo".
@@ -1124,14 +1143,15 @@ Para cada extensão:
 | Interna | Ambiente contaminado (config pessoal, memória) | Docker + HOME limpo + prova pelo evento inicial |
 | Interna | Mudança de versão do Claude Code/modelo durante o experimento | Versão fixa, sem atualização automática, janela curta |
 | Interna | Variação de carga/horário | Com/sem alternados dentro do bloco |
-| Interna | Viés do avaliador | Anonimização + dois avaliadores independentes + rubrica com regras derivadas |
+| Interna | Viés de quem implementa a extensão | Anonimização; e a extensão só conta se passar nos casos, o que limita o espaço de implementações aceitáveis |
 | Interna | Contaminação do harness com a solução | Checagem de palavras proibidas em `harness/`; revisão 10.5. A skill, que era a maior fonte de risco aqui, foi descartada |
 | Interna | **Web liberada** nas duas condições (revisto em 20/09/2026) | Idêntica nos dois braços, então não favorece um. Uso registrado em `chamadas_por_ferramenta` e reportado por braço. Declarar que as 24 execuções de medição rodaram com web **bloqueada** e não são comparáveis nesse aspecto |
 | Constructo | Os três pontos avaliados — frete por modalidade, desconto por cupom, ajuste por forma de pagamento — são os **exemplos canônicos** com que Strategy é ensinado. Com web liberada, os dois braços podem convergir por terem lido o mesmo tutorial | Declarar. Vale mesmo com web bloqueada, porque o exemplo já está no treino. Reportar o uso de web por braço, e conferir se quem pesquisou acertou mais |
 | Interna | Resultado de busca muda de um dia para o outro | Entrada não controlada que varia entre repetições. Par `SEM`/`COM` simultâneo reduz, não elimina. Declarar |
 | Interna | Versões de Java e Spring Boot são **pedidas**, não impostas | Reportar a taxa de obediência por modelo e condição. Base cai fora do pedido, a run continua válida e é marcada |
 | Interna | Execuções em paralelo na mesma conta (`par.sh`, `rodada.sh`) | Decidido em 20/09/2026, ver 13.2: fica, porque iguala horário e carga entre os braços e a disputa de CPU é simétrica dentro do par. Duração **entre modelos** fica contaminada e é declarada; a medida reportada é `duracao_api_ms` |
-| Constructo | Rubrica não captura "Strategy correto" | Critérios baseados na definição do padrão + teste de extensão objetivo |
+| Constructo | A extensão mede a **consequência** de usar Strategy, não o **reconhecimento** de que era preciso | Declarado. A pergunta de 2.1 fala em "reconhecimento e implementação"; confirmar o recorte com o professor, ver 14.4 |
+| Constructo | As três extensões não separam "regra parametrizada" de "uma classe por variante" | Declarado em 14.5. Separar exigiria uma segunda extensão por ponto, de família nova |
 | Constructo | Pistas no prompt ("quase toda semana entra uma opção nova", "marketing adora inventar promoção") induzem o padrão | São requisitos de negócio realistas e idênticos nas duas condições; a variação da força da pista é **intencional** (dificuldade) |
 | Constructo | A classificação fácil/média/difícil é do autor, não medida | Justificar pelos critérios de construção (seção 8.3); verificar na análise se a ordem de acerto observada confirma a classificação |
 | Constructo | Em P3, condicionais concentradas podem ser uma solução defensável | Regra de aceitação definida antes (P6) + campo de observação "concentrada/espalhada" |
@@ -1156,7 +1176,7 @@ Para cada extensão:
 | Modelo acrescenta dependência | Média | Comparação estrutural fica frágil | Registrado em `meta.json.dependencias`. Decidir **antes do lote** se vira covariável ou exclusão |
 | Suíte escondida falha por ambiguidade do contrato | Média | Dados inválidos | Revisão do contrato por terceiro; validar no piloto |
 | Modelo retirado/alterado | Baixa | Invalida comparação | Janela curta; registrar datas |
-| Divergência grande entre avaliadores | Média | Enfraquece resultado | Calibração no piloto; consenso documentado |
+| Divergência em como a extensão foi implementada | Baixa | Contagem inconsistente | Calibração em pacotes de calibração; conferência do procedimento por amostra, ver 14.6 |
 
 ---
 
@@ -1203,7 +1223,7 @@ Para cada extensão:
 - [ ] Testes escondidos nos 4 grupos (entrega, cupons, pagamento, validação). **Precedência dos erros feita** em 20/09/2026
 - [ ] Testes de extensão `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`
 - [ ] Resolver regras de aceitação (P6)
-- [ ] Rubrica final por ponto
+- [ ] Casos de extensão congelados e conferidos
 - [ ] Script de anonimização
 - [ ] Planilhas de notas
 
@@ -1225,14 +1245,14 @@ Para cada extensão:
 - [ ] Avaliação automática
 - [ ] Avaliação do autor + commit
 - [ ] Avaliação do professor
-- [ ] Concordância + consenso
+- [ ] Conferência do procedimento por amostra
 
 ### Fase 8: Análise e escrita
 - [ ] Tabelas 15.1 a 15.2
 - [ ] Hipóteses H1–H5
 - [ ] Análise qualitativa
 - [ ] Ameaças à validade
-- [ ] Apêndice: prompt, harness completo, rubrica, versões e hashes
+- [ ] Apêndice: prompt, harness completo, casos de extensão, versões e hashes
 
 ---
 
