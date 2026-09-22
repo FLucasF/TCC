@@ -333,7 +333,7 @@ registros datados que moravam em `harness-notas.md` foram para lá.
 
 | item | de quem é exigido |
 |---|---|
-| `avaliacao/rubrica-strategy.md` | 14.4 define a escala; falta o instrumento com âncoras, ver A1 de `o-que-falta.md` |
+| ~~`avaliacao/rubrica-strategy.md`~~ | escrita em 20/09 e **removida em 21/09/2026**. A 14.4 e a 14.4a descrevem uma escala que não está mais em uso |
 | `avaliacao/testes-extensao/` | 14.5 |
 | `avaliacao/mapa-anonimizacao.csv` e as planilhas de notas | 14.2 e 14.6 |
 | agregador `meta.json` -> CSV, e a análise | 15 |

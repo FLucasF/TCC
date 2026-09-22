@@ -12,7 +12,7 @@ arquivos, nem os valores esperados, nem a rubrica, nem o gabarito.
 | | |
 |---|---|
 | `gabarito-avaliador.md` | onde estão P1, P2 e P3 no enunciado, e o que se espera de cada um |
-| `rubrica-strategy.md` | o instrumento do **desfecho primário**, com âncoras de código real |
+| ~~`rubrica-strategy.md`~~ | **removida** em 21/09/2026. O desfecho primário passou a ser o teste de extensão. Recuperável: `git show aa71c81:avaliacao/rubrica-strategy.md` |
 | `rotas-descobertas.md` | o que os quatro exemplos do enunciado não cobrem, e o que foi escrito para cobrir |
 | `casos/` | 60 casos da suíte escondida, nos quatro grupos da §14.3. Ver `casos/README.md` |
 | `testes-extensao/` | `DRONE`, `DEZOFF`, `CARTEIRA_DIGITAL`, e o procedimento de contagem do C5 |
@@ -81,11 +81,12 @@ Reporta `% aprovados` por grupo e grava uma linha por run × grupo em
 `analise/funcional.csv`, que é de onde a análise tira a tabela 15.1c. O build pós-execução (`mvn verify`) já rodou no
 `executar.sh` e está em `runs/<id>/build.txt`.
 
-### 3 · Rubrica, às cegas
+### 3 · ~~Rubrica~~ — removida em 21/09/2026
 
-Uma linha por pacote × ponto em `notas-autor.csv`, seguindo
-[`rubrica-strategy.md`](rubrica-strategy.md). **Antes** do teste de extensão:
-fazer a extensão primeiro influencia a nota de C5.
+O desfecho primário passou a ser o teste de extensão, do passo 4. Não há mais
+nota subjetiva, nem segundo avaliador, nem kappa de Cohen.
+
+Se a rubrica voltar: `git show aa71c81:avaliacao/rubrica-strategy.md`
 
 ### 4 · Teste de extensão
 

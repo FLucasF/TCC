@@ -112,7 +112,7 @@ contra `COM`. Ver `plano.md` §2.4.
 
 | instrumento | hash (16 primeiros) |
 |---|---|
-| `avaliacao/rubrica-strategy.md` | `06d9984b17667053` |
+| ~~`avaliacao/rubrica-strategy.md`~~ | **removida em 21/09/2026**, hash era `06d9984b17667053`. O desfecho primário passou a ser o teste de extensão; ver `docs/v2-desenho.md` §1a |
 | `avaliacao/gabarito-avaliador.md` | `06813eb530435427` |
 | `casos/exemplos-enunciado.json` | `ca0044ce27530b3a` |
 | `casos/entrega.json` | `27769cea0785594d` |

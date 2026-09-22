@@ -593,7 +593,7 @@ Instrumento custa caro e foi validado. Nada disto precisa ser refeito:
 
 | | |
 |---|---|
-| `rubrica-strategy.md` | **suspensa** em 21/09/2026, ver 1a. Preservada inteira: se voltar, volta de lá e não do zero |
+| ~~`rubrica-strategy.md`~~ | **removida** em 21/09/2026, ver 1a. Recuperável em `git show aa71c81:avaliacao/rubrica-strategy.md` |
 | `casos/` | **60 casos** nos quatro grupos, valores gerados em BigInt por um script que se recusa a escrever se não reproduzir os exemplos do enunciado |
 | `testes-extensao/` | 11 casos. **Promovido a desfecho primário** em 21/09/2026, ver 1a |
 | os quatro autotestes | comparador 5/5, detector de rede 13/13, validade 14/14, gerador 6/6 |
