@@ -36,12 +36,179 @@ Todo elemento do ambiente cai em **exatamente uma**:
 
 | caixa | regra | o que fazer |
 |---|---|---|
-| **tratamento** | difere entre `COM` e `SEM` | tem que ser **uma coisa só** |
+| **tratamento** | difere entre `CONTROL` e `HARNESS` | tem que ser **uma coisa só** |
 | **controle** | idêntico nos dois braços | **escolhido** para a comparação ficar limpa |
 | **declarado** | não dá para controlar | **nomeado** no método |
 
 Na v1 as três viraram uma pilha. Se um elemento não cabe claramente numa caixa,
 ele não está decidido — está pendente.
+
+---
+
+## 0 · Convenção de nomes: identificadores em inglês
+
+A prosa continua em português. **Todo identificador** — campo de `meta.json`,
+coluna de CSV, variável de ambiente, variável de script e valor de enumeração —
+passa a ser em inglês, em `snake_case`.
+
+**Por quê.** Três motivos, em ordem de peso:
+
+1. **O dado sai daqui.** `meta.json` é alimentado por campos do próprio Claude
+   Code, que são em inglês: `num_turns`, `duration_api_ms`, `modelUsage`,
+   `cache_read_input_tokens`. Traduzir metade produz objetos híbridos como
+   `tempo.duracao_api_ms` ao lado de `tokens.uso_por_modelo.cacheReadInputTokens`,
+   e quem lê não sabe qual metade é tradução.
+2. **O apêndice do TCC mostra o CSV.** Coluna misturando `entrada_total` e
+   `build_ok` é ruído para quem avalia.
+3. **Ferramenta de análise assume inglês.** Qualquer biblioteca de estatística,
+   planilha ou script que alguém escreva depois vai esbarrar em acento e cedilha
+   em nome de coluna.
+
+> [!warning] Isto é mudança da v2, e não se aplica retroativamente
+> Os 49 `meta.json` da v1 ficam como estão. Renomear campo em execução arquivada
+> quebraria as ferramentas que já leem aquele formato, e a v1 é a base de
+> evidência das âncoras da rubrica. As duas versões convivem, distinguidas pelo
+> prefixo do `run_id`.
+
+### Valores: booleano é booleano
+
+A v1 gravava `"sim"`/`"nao"` como **string** em `parametros.skills` e
+`parametros.esqueleto`. Na v2 isso vira `true`/`false` de verdade. Não é
+tradução, é conserto: string `"nao"` é verdadeira em JavaScript, e uma
+comparação distraída inverte o significado.
+
+### Mapa, para implementar sem ambiguidade
+
+**Condição e identidade**
+
+| v1 | v2 |
+|---|---|
+| `condicao` com `SEM` / `COM` | `condition` com `CONTROL` / `HARNESS` |
+| `repeticao` | `replicate` |
+| `valida` | `valid` |
+| `valida_proposta` / `motivo_proposta` | `valid_proposed` / `valid_proposed_reason` |
+| `motivo_invalidade` | `invalid_reason` |
+| `modelo_solicitado` / `modelo_init` | `model_requested` / `model_init` |
+| `modelos_observados` | `models_observed` |
+
+`CONTROL` e `HARNESS` em vez de `WITHOUT`/`WITH` porque é o vocabulário padrão
+de desenho experimental, e porque `WITHOUT` e `WITH` diferem em duas letras —
+ruim para ler em coluna de CSV e em nome de pasta.
+
+**Ambiente e parâmetros**
+
+| v1 | v2 |
+|---|---|
+| `ambiente` | `environment` |
+| `imagem` / `imagem_id` | `image` / `image_id` |
+| `hash_prompt` / `hash_harness` | `prompt_hash` / `harness_hash` |
+| `verificacoes_pre_execucao` | `preflight` |
+| `maquina` / `rede` | `machine` / `network` |
+| `parametros` | `parameters` |
+| `ferramentas_bloqueadas` | `tools_allowed` (lista branca, ver 2.1) |
+| `claude_code_versao` | `claude_code_version` |
+
+**Tempo e desfecho**
+
+| v1 | v2 |
+|---|---|
+| `tempo` | `timing` |
+| `inicio` / `fim` / `duracao_s` | `start` / `end` / `duration_s` |
+| `duracao_cli_ms` / `duracao_api_ms` | `duration_cli_ms` / `duration_api_ms` |
+| `resultado_execucao` | `outcome` |
+| `encerramento` | `termination` |
+| `turnos` | `turns` |
+| `chamadas_ferramenta` | `tool_calls` |
+| `chamadas_por_ferramenta` | `tool_calls_by_name` |
+| `build_pos_execucao_ok` | `build_ok` |
+| `resposta_final` | `final_message` |
+
+Valores de `termination`: `completed`, `interrupted`, `no_result`, `turn_limit`,
+`error`.
+
+**Fundação e dependências**
+
+| v1 | v2 |
+|---|---|
+| `fundacao` | `foundation` |
+| `ferramenta` | `build_tool` |
+| `projeto_em` / `na_raiz` | `project_at` / `at_root` |
+| `pacote_raiz` | `root_package` |
+| `obedeceu_versoes` | `versions_obeyed` |
+| `dependencias` | `dependencies` |
+| `acrescentadas` / `removidas` | `added` / `removed` |
+
+**Tokens**
+
+| v1 | v2 |
+|---|---|
+| `entrada` / `saida` | `input` / `output` |
+| `entrada_total` | `input_total` |
+| `cache_leitura` / `cache_escrita` | `cache_read` / `cache_write` |
+| `raciocinio` | `thinking` |
+| `custo_estimado_usd` | `cost_estimated_usd` |
+| `uso_por_modelo` | `usage_by_model` |
+| `fonte` | `source` |
+
+**Isolamento e auditoria**
+
+| v1 | v2 |
+|---|---|
+| `isolamento_init` | `isolation_init` |
+| `ferramentas_disponiveis` | `tools_available` |
+| `comandos_bash` | `bash_commands` |
+| `auditoria` | `audit` |
+| `acesso_web_suspeito` | `web_access_suspected` |
+| `comandos_suspeitos` | `suspect_commands` |
+| `chamadas_web` | `web_calls` |
+| `linhas_jsonl_invalidas` | `invalid_jsonl_lines` |
+| `reauditado_em` | `reaudited_on` |
+
+**Variáveis de ambiente e de script**
+
+| v1 | v2 |
+|---|---|
+| `IMAGEM` | `IMAGE` |
+| `MODELO` | `MODEL` |
+| `BLOQUEADAS` / `PERMITIDAS` | `TOOLS` (uma só, lista branca) |
+| `REDE` | `NETWORK` |
+| `PROMPT_ARQ` | `PROMPT_FILE` |
+| `SKILLS` | `SKILLS` (já em inglês) |
+| `EFFORT` | `EFFORT` (já em inglês) |
+
+**Planilhas da avaliação**
+
+| v1 | v2 |
+|---|---|
+| `codigo_cego` | `blind_code` |
+| `ponto` | `point` |
+| `total` / `classe` | `total` / `class` |
+| `forma` | `shape` |
+| `outro_padrao` | `other_pattern` |
+| `excesso_engenharia` | `over_engineered` |
+| `condicional` | `conditional` |
+| `implementacao_p2` | `p2_implementation` |
+| `observacoes` | `notes` |
+| `justificativa` | `rationale` |
+| `passou_nos_casos` | `cases_passed` |
+| `arquivos_criados` / `arquivos_alterados` | `files_created` / `files_modified` |
+| `linhas_alteradas` | `lines_changed` |
+| `C5_confirmado` | `c5_confirmed` |
+
+Valores de `class`: `correct`, `partial`, `none`.
+Valores de `shape`: `classes`, `enum_with_body`, `data_map`, `parameterized`,
+`enum_only`, `switch`, `ifs`, `other`.
+
+**Prefixos de `run_id`**
+
+| v1 | v2 |
+|---|---|
+| `FUMACA-` | `SMOKE-` |
+| `MED-` | `CALIB-` |
+| a definir | `BATCH-` |
+
+O prefixo do lote nunca foi decidido na v1. `BATCH-` fecha isso, e
+`agregar --prefix BATCH` separa o que conta do que não conta numa linha.
 
 ---
 
@@ -130,7 +297,7 @@ Do outro lado, o custo é agudo e específico deste domínio:
   que pesquisa encontra o tutorial do que está sendo medido
 
 **Se a decisão for manter a web**, ela precisa deixar de ser nota de rodapé:
-`chamadas_web` vira desfecho reportado por braço e por modelo, e o risco do
+`audit.web_calls` vira desfecho reportado por braço e por modelo, e o risco do
 exemplo canônico entra nas ameaças à validade com essa redação.
 
 ### 2.3 Skills e slash commands: desligados
@@ -222,7 +389,7 @@ o que a rubrica pontua. O esqueleto entregava parte da resposta.
 | sem a linha | **2 de 8** |
 
 Sem ela, o Haiku chegou a escolher Java 11 sob Spring Boot 3.x, que nem compila.
-É pedido, não garantia — e a obediência vira dado em `fundacao.obedeceu_versoes`.
+É pedido, não garantia — e a obediência vira dado em `foundation.versions_obeyed`.
 
 ### 2.9 Ambiente: imagem fixada por digest
 
@@ -259,8 +426,8 @@ mesmo instante: o que sobrar não pode ser horário.
 É mais forte que sortear a ordem, que **distribui** o efeito em vez de eliminar.
 
 **O que cobra, declarado:** seis containers disputam a CPU da máquina, então o
-relógio de parede fica contaminado. A medida reportada é `duracao_api_ms`, não
-`duracao_s`. E a comparação de duração **entre modelos** fica suja de qualquer
+relógio de parede fica contaminado. A medida reportada é `duration_api_ms`, não
+`duration_s`. E a comparação de duração **entre modelos** fica suja de qualquer
 jeito — é desfecho secundário.
 
 ---
@@ -284,9 +451,9 @@ O que não dá para controlar, e por isso é nomeado no método.
 > terços do lote.
 >
 > Redação correta: *"o modelo que produz o código é fixo e verificado em
-> `modelos_observados`. O Claude Code usa um modelo auxiliar de classe Haiku
+> `models_observed`. O Claude Code usa um modelo auxiliar de classe Haiku
 > para tarefa de background em toda execução, registrado em
-> `tokens.uso_por_modelo`. Não invalida execução."*
+> `tokens.usage_by_model`. Não invalida execução."*
 
 ### A variância, que é o achado mais importante da v1
 
@@ -372,13 +539,13 @@ do lote, e registradas antes de qualquer pacote ser pontuado.
 
 **Grave o que o ambiente devolveu, não o que você pediu.**
 
-O `meta.json` já guarda `isolamento_init.ferramentas_disponiveis`. Foi assim que
+O `meta.json` já guarda `isolation_init.tools_available`. Foi assim que
 o Haiku ter quatro ferramentas a mais apareceu, depois de 37 execuções —
 ninguém tinha olhado. Configuração pedida é intenção; a lista do evento inicial
 é o que aconteceu.
 
-O mesmo vale para `tokens.uso_por_modelo`, que revelou o Haiku auxiliar, e para
-`chamadas_por_ferramenta`, que prova que `Workflow` e `Skill` nunca foram
+O mesmo vale para `tokens.usage_by_model`, que revelou o Haiku auxiliar, e para
+`tool_calls_by_name`, que prova que `Workflow` e `Skill` nunca foram
 usados.
 
 **Corolário, e a v1 pagou por ele dez vezes:** toda ferramenta de medida ganha
