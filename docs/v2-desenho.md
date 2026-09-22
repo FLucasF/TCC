@@ -278,14 +278,20 @@ números diferentes de pessoas diferentes — e o número é o resultado do trab
 Cohen, nem segundo avaliador, nem `consenso.csv`. O trabalho manual cai de
 ~30 h para ~13 h.
 
-### O desfecho secundário: forma detectada automaticamente
+### O desfecho secundário: forma do código, anotada à mão
 
-Um script classifica cada ponto de cada pacote em uma de seis formas, sem
-humano nenhum: `classes`, `enum_with_body`, `data_map`, `parameterized`,
-`enum_only`, `switch`/`ifs`. Já funciona — classificou as 49 execuções da v1.
+Cada ponto de cada pacote recebe uma de seis formas: `classes`,
+`enum_with_body`, `data_map`, `parameterized`, `enum_only`, `switch`/`ifs`.
 
 Serve para a análise qualitativa: *o que os modelos fizeram no lugar do
 Strategy?* É descritivo, não entra na comparação principal.
+
+> [!warning] Corrigido em 21/09/2026
+> A redação anterior dizia que **um script** fazia isso "sem humano nenhum", e
+> que ele "já funciona — classificou as 49 execuções da v1". **Esse script não
+> existe e nunca existiu.** As seis categorias vieram de leitura manual dos
+> pacotes no alinhamento de 20–21/09. As categorias são reais; a automação não
+> era.
 
 ### As hipóteses, reescritas
 

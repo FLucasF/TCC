@@ -249,7 +249,7 @@ Dois motivos, nenhum deles olhando desfecho:
 | **Arquivos existentes alterados** para acrescentar uma variante, **em P1, P2 e P3** | Principal | Teste de extensão, 14.4 e 14.5 |
 | Arquivos criados e linhas alteradas nos existentes | Apoio | Mesma medição |
 | Extensão passou nos casos | Controle | `testes-extensao/`; extensão que não passa não conta |
-| Forma do código, em seis categorias | Secundária, descritiva | Classificação automática, 14.4 |
+| Forma do código, em seis categorias | Secundária, descritiva | Anotação manual ao abrir o pacote, 14.4 |
 | Testes funcionais escondidos (% aprovados, total e por área: entrega, cupons, pagamento, erros) | Principal | Suíte escondida |
 | Teste de extensão **por ponto** (arquivos criados/alterados) | Principal | Procedimento do avaliador |
 | Build compila (sim/não) | Apoio | `mvn verify` pós-execução, em container separado sem token |
@@ -979,11 +979,19 @@ existentes precisam mudar para acrescentar uma variante nova**.
 colateral do padrão Strategy: é a razão dele existir. Contar arquivos mede isso
 diretamente, em vez de inferir da forma do código.
 
-**Desfecho secundário, descritivo:** a forma do código, classificada
-automaticamente em `classes`, `enum` com corpo, mapa de dados, regra
+**Desfecho secundário, descritivo:** a forma do código, anotada **à mão** ao
+abrir cada pacote, em `classes`, `enum` com corpo, mapa de dados, regra
 parametrizada, `enum` sem comportamento, ou `switch`/`ifs`. Serve para a
 análise qualitativa de 15.3 — *o que os modelos fizeram no lugar do Strategy?*
 Não entra na comparação principal.
+
+> [!warning] Corrigido em 21/09/2026: não existe classificador automático
+> Uma redação anterior desta seção dizia "classificada automaticamente", e o
+> `v2-desenho.md` dizia que o script "já funciona" e "classificou as 49
+> execuções da v1". **Nunca existiu tal script.** As seis formas saíram de
+> leitura manual dos pacotes durante o alinhamento de 20–21/09. As seis
+> categorias continuam válidas, porque foram observadas de fato; o que era
+> falso era a alegação de automação.
 
 > [!warning] Duas coisas a confirmar com o professor
 > A extensão mede a **consequência** de ter usado Strategy, não o
@@ -1102,8 +1110,8 @@ casos **não entra** em 15.1 — ver 14.6.
 
 ### 15.1e Forma do código, desfecho secundário (contagem por braço)
 
-Classificação automática de 14.4. Descritiva: alimenta a análise qualitativa de
-15.3, não entra na comparação principal.
+Anotação manual de 14.4. Descritiva: alimenta a análise qualitativa de 15.3,
+não entra na comparação principal.
 
 | Modelo | Condição | Ponto | classes | enum c/ corpo | mapa de dados | parametrizada | enum simples | switch/ifs |
 |---|---|---|---|---|---|---|---|---|
