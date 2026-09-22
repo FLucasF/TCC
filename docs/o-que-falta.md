@@ -14,7 +14,14 @@ Sem isto você roda o lote e não consegue pontuá-lo. É a lição do piloto de
 setembro se repetindo: *"tudo que avalia precisa existir e ser testado antes de
 rodar"*.
 
-### A1. `avaliacao/rubrica-strategy.md` — **feito em 20/09/2026**
+### A1. `avaliacao/rubrica-strategy.md` — feito em 20/09, **SUSPENSO em 21/09**
+
+A régua foi aplicada a dois pacotes e, em três critérios, não decidiu sozinha.
+Em 21/09 ela saiu do desenho "por enquanto", e o **desfecho primário passou a
+ser o teste de extensão** — contagem de arquivos em vez de nota. O arquivo fica
+inteiro; se voltar, volta de lá. Ver a seção 1a de `docs/v2-desenho.md`.
+
+O levantamento original segue abaixo.
 
 Critérios instanciados por ponto, catálogo das seis formas observadas, e
 âncoras de código real em C1, C2, C3 e C5, todas conferidas contra o arquivo da

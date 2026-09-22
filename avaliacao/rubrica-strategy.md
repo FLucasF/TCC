@@ -6,6 +6,26 @@ criado: 2026-09-20
 
 # Rubrica de Strategy
 
+> [!danger] SUSPENSA em 21/09/2026 — não é o desfecho primário
+> Esta rubrica **não está em uso**. A decisão de hoje foi tirá-la do desenho
+> "por enquanto", e o desfecho primário passou a ser o **teste de extensão**,
+> que produz contagem de arquivos em vez de nota.
+>
+> **Por que foi suspensa.** Ela foi aplicada a dois pacotes em 21/09 e, em três
+> dos critérios, não decidiu sozinha — foi preciso escolher uma leitura para
+> conseguir continuar. As três estão na seção 7, em aberto. Uma régua que
+> produz números diferentes de pessoas diferentes não serve como desfecho
+> primário, e o número é o resultado do trabalho.
+>
+> **Por que não foi apagada.** O conteúdo continua válido e caro: critérios
+> instanciados por ponto, catálogo das seis formas observadas nas 49 execuções,
+> e âncoras de código real conferidas uma a uma contra o arquivo da run. Se a
+> rubrica voltar — por decisão do professor, ou porque a contagem de arquivos se
+> mostrar grosseira demais — ela volta daqui, não do zero.
+>
+> **O que falta para ela voltar:** fechar as três ambiguidades da seção 7, e
+> isso precisa ser feito **antes** de qualquer pacote do lote ser aberto.
+
 > [!danger] Nunca entra no container
 > Vale o mesmo que para o `gabarito-avaliador.md`. O `.dockerignore` é lista
 > branca e já barra `avaliacao/` do contexto de build.

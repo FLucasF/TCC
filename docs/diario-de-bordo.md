@@ -484,3 +484,37 @@ listando três quando são quatro; o `README.md` descrevendo `infra/scripts/` co
 quatro scripts quando são onze; a linha de procedência do pré-registro; e a
 data chumbada no `reauditar.mjs`, que gravaria valor errado na próxima execução.
 
+## 21/09/2026 — a rubrica sai do desenho, e o teste de extensão assume
+
+A régua foi aplicada a dois pacotes fora da análise — `FUMACA-03-OPUS-COM`, que
+é `enum` com corpo nos três pontos, e `FUMACA-03-HAIKU-SEM`, que é `enum` sem
+comportamento e cadeias de `if`. A maior parte dos julgamentos decidiu sozinha.
+Em **três** foi preciso escolher uma leitura para conseguir continuar, e a mais
+grave — o C2 para tabela de dados com cálculo genérico — **inverte** a
+classificação entre "parcial" e "sem Strategy".
+
+Decisão de hoje: **tirar a rubrica do desenho por enquanto.** O desfecho
+primário passa a ser o **teste de extensão**, que já existe, já tem 11 casos, e
+já é mecânico: quantos arquivos existentes precisam mudar para acrescentar
+`DRONE`, `DEZOFF` ou `CARTEIRA_DIGITAL`.
+
+**O que isso troca.** As cinco hipóteses continuam as mesmas perguntas, medidas
+por outro instrumento. Somem o kappa de Cohen, o segundo avaliador e o
+`consenso.csv`, e o trabalho manual cai de ~30 h para ~13 h. Some também a
+ambiguidade: contagem de arquivo não depende de quem conta.
+
+**O que isso custa, e vai ao professor.** A extensão mede a **consequência** de
+ter usado Strategy, não o **reconhecimento** de que era preciso — e a pergunta
+de pesquisa fala em "reconhecimento e implementação". E o recorte dele diz que
+Strategy é avaliado "em profundidade"; contagem de arquivos é objetiva, mas
+dificilmente é profundidade. É decisão de escopo, não de implementação.
+
+**A rubrica não foi apagada.** Ficou marcada como suspensa, com o motivo e o que
+falta para voltar. As âncoras dela apontam para código dentro das execuções da
+v1, que por isso também não podem ser apagadas.
+
+**Uma honestidade sobre o substituto:** a contagem é mecânica, mas *implementar
+a menor alteração que funcione* é julgamento. É julgamento muito mais estreito
+que seis critérios, e é verificável — a extensão tem que passar nos casos. Mas
+não é zero, e a anonimização continua valendo.
+

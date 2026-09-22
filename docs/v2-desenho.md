@@ -240,6 +240,90 @@ acrescentar depois.
 
 ---
 
+## 1a · O desfecho primário: contagem, não nota
+
+Decidido em 21/09/2026. **A rubrica sai do desenho.** O desfecho primário passa
+a ser o **teste de extensão**, que já existe e já é mecânico.
+
+### Como se mede
+
+Por pacote e por ponto, partindo do código original:
+
+1. `git init` numa cópia do workspace, commit inicial
+2. implementar a variante nova — `DRONE` em P1, `DEZOFF` em P2,
+   `CARTEIRA_DIGITAL` em P3 — fazendo a **menor alteração que funcione**
+3. rodar os casos de `avaliacao/testes-extensao/`
+4. contar com `git status --porcelain` e `git diff --numstat`
+
+Três números por ponto: **arquivos criados**, **arquivos existentes alterados**,
+**linhas alteradas nos existentes**. O desfecho primário é o do meio.
+
+| arquivos existentes alterados | leitura |
+|---|---|
+| 0, ou só um registro declarativo | a variante nova entra sem tocar no que existe |
+| 1 | um arquivo existente precisa mudar |
+| 2 ou mais | a variante está espalhada |
+
+### Por que isso substitui a rubrica
+
+**Porque mede o que Strategy serve para fazer.** "Aberto para extensão" não é um
+efeito colateral do padrão, é a razão dele existir. Contar arquivos é medir isso
+diretamente, em vez de inferir da forma do código.
+
+**Porque é número, não julgamento.** A rubrica foi aplicada a dois pacotes em
+21/09 e, em três critérios, não decidiu sozinha. Uma régua ambígua produz
+números diferentes de pessoas diferentes — e o número é o resultado do trabalho.
+
+**Porque some o aparato de confiabilidade.** Sem nota subjetiva, não há kappa de
+Cohen, nem segundo avaliador, nem `consenso.csv`. O trabalho manual cai de
+~30 h para ~13 h.
+
+### O desfecho secundário: forma detectada automaticamente
+
+Um script classifica cada ponto de cada pacote em uma de seis formas, sem
+humano nenhum: `classes`, `enum_with_body`, `data_map`, `parameterized`,
+`enum_only`, `switch`/`ifs`. Já funciona — classificou as 49 execuções da v1.
+
+Serve para a análise qualitativa: *o que os modelos fizeram no lugar do
+Strategy?* É descritivo, não entra na comparação principal.
+
+### As hipóteses, reescritas
+
+| | v1 (rubrica) | v2 (extensão) |
+|---|---|---|
+| **H1** | proporção de pontos com Strategy correto é maior com harness | com harness, acrescentar uma variante exige alterar **menos arquivos existentes** |
+| **H2** | o harness altera consumo e tempo — sem direção | inalterada |
+| **H3** | o ganho é maior no Haiku que no Opus | inalterada, medida pela extensão |
+| **H4** | o acerto cai de P1 para P3 nas duas condições | o custo de extensão **cresce** de P1 para P3 |
+| **H5** | o ganho do harness é maior em P2 e P3 | inalterada, medida pela extensão |
+
+As perguntas são as mesmas. O que muda é o instrumento.
+
+> [!warning] O que se perde, e precisa ir ao professor
+> **Nuance.** Um desenho pode ser extensível e mesmo assim vazar HTTP para
+> dentro das variantes. O C6 da rubrica pegava isso; contagem de arquivos não.
+>
+> **A palavra "reconhecimento".** A pergunta de pesquisa fala em *reconhecimento
+> e implementação* do padrão. A extensão mede a **consequência** de ter usado
+> Strategy, não se o modelo percebeu que precisava.
+>
+> **E o recorte.** A tabela do professor diz "Design de baixo nível", e o plano
+> traduz como *"Strategy é a única coisa avaliada **em profundidade**"*. Uma
+> contagem de arquivos é objetiva, mas dificilmente é "em profundidade". **Isso
+> é decisão de escopo dele, não de implementação.**
+
+> [!note] Ainda há humano no circuito, e isso precisa ser dito
+> A contagem é mecânica, mas *implementar a menor alteração que funcione* é
+> julgamento. Duas pessoas podem implementar diferente e chegar a contagens
+> diferentes.
+>
+> É julgamento **muito mais estreito** que os seis critérios da rubrica — e é
+> verificável, porque a extensão tem que passar nos casos de
+> `testes-extensao/`. Mas não é zero, e a anonimização continua valendo: quem
+> implementa não deve saber de que braço veio o pacote.
+
+---
+
 ## 2 · Controle
 
 ### 2.1 Ferramentas: lista branca
@@ -466,9 +550,11 @@ de categorias diferentes entre execuções:
 | rodada B | uma classe por variante |
 | rodada C | `enum` sem comportamento |
 
-Essas três categorias são exatamente as que a rubrica separa: **C5=1, C5=2 e
-C1=1**. A variância entre execuções idênticas é da **mesma ordem que o efeito
-que se quer medir**.
+Essas três formas custam coisas diferentes para estender: classe nova não
+toca em nada; `enum` com corpo obriga a editar o próprio `enum`; `enum` sem
+comportamento espalha a mudança. Ou seja, **a variância entre execuções
+idênticas atinge o desfecho primário diretamente**, e é da mesma ordem que o
+efeito que se quer medir.
 
 Nenhum controle de ambiente conserta isso. As saídas são `n` maior, ou aceitar e
 declarar — e essa decisão precisa ser tomada com o professor **antes** do lote.
@@ -507,17 +593,17 @@ Instrumento custa caro e foi validado. Nada disto precisa ser refeito:
 
 | | |
 |---|---|
-| `rubrica-strategy.md` | critérios por ponto, catálogo das seis formas, âncoras de código real conferidas contra o arquivo da run |
+| `rubrica-strategy.md` | **suspensa** em 21/09/2026, ver 1a. Preservada inteira: se voltar, volta de lá e não do zero |
 | `casos/` | **60 casos** nos quatro grupos, valores gerados em BigInt por um script que se recusa a escrever se não reproduzir os exemplos do enunciado |
-| `testes-extensao/` | 11 casos, contagem do C5 mecânica por `git diff --numstat` |
+| `testes-extensao/` | 11 casos. **Promovido a desfecho primário** em 21/09/2026, ver 1a |
 | os quatro autotestes | comparador 5/5, detector de rede 13/13, validade 14/14, gerador 6/6 |
 | `anonimizar.mjs` | normaliza datas, embaralha ordem com semente, conta as pistas que o modelo deixou |
 | `agregar.mjs` / `analisar.mjs` | `meta.json` → CSV → tabelas da §15 |
 
 > [!warning] As âncoras da rubrica apontam para execuções da v1
-> `MED-05-HAIKU-COM` para o C1=2, `FUMACA-01` para o C3=1,
-> `MED-07-VAZIO-OPUS-SEM` para o C5=2. Se as pastas da v1 sumirem, as âncoras
-> viram descrição sem referente. **A v1 não pode ser apagada.**
+> `MED-05-HAIKU-COM`, `FUMACA-01` e `MED-07-VAZIO-OPUS-SEM`. A rubrica está
+> suspensa, não apagada — se voltar, precisa desses pacotes.
+> **A v1 não pode ser apagada.**
 
 ---
 
@@ -528,7 +614,7 @@ do lote, e registradas antes de qualquer pacote ser pontuado.
 
 | | |
 |---|---|
-| **as três ambiguidades da rubrica** | C1 com comportamento como dado; C2 para tabela de dados com cálculo genérico (esta **inverte** a classificação entre "parcial" e "sem Strategy"); C6 quando não existe implementação |
+| **o recorte, com o professor** | o desfecho primário pode ser contagem objetiva em vez de rubrica qualitativa? Ver o aviso em 1a. Se a resposta for não, as três ambiguidades da rubrica voltam a ser bloqueio |
 | **o `n`** | à luz da variância da seção 3 |
 | **web dentro ou fora** | seção 2.2 |
 | **P4** | o significado do "1" na tabela do professor |
