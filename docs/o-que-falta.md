@@ -40,9 +40,10 @@ Duas lacunas registradas no próprio arquivo:
 ### A2. `avaliacao/casos/` — os testes escondidos — **feito em 20/09/2026**
 
 60 casos nos quatro grupos da §14.3, contra os 4 que o enunciado dá. Os valores
-saem de `ferramentas/gerar-casos.mjs`, em BigInt, e o gerador se confere contra
-os quatro exemplos do enunciado e contra E5 e E6 antes de escrever — conferido
-adulterando a taxa do cartão, ele acusou e não escreveu.
+saíram de `ferramentas/gerar-casos.mjs`, em BigInt, e o gerador se conferia
+contra os quatro exemplos do enunciado e contra E5 e E6 antes de escrever —
+conferido adulterando a taxa do cartão, ele acusou e não escreveu. O gerador foi
+removido em 22/09/2026, depois de ter feito o trabalho; os casos ficaram.
 
 O que segue abaixo é o levantamento original, mantido para histórico.
 
@@ -190,7 +191,10 @@ execuções com esqueleto, porque lá as versões vinham do pom e não de obedi�
 
 ### C3. Análise — **feito em 20/09/2026, e sem Mann-Whitney**
 
-`infra/scripts/analisar.mjs` produz as tabelas da §15 em Markdown.
+`infra/scripts/analisar.mjs` produzia as tabelas da §15 em Markdown. **Removido
+em 22/09/2026**, por decisão de quem avalia: as tabelas são montadas à mão a
+partir de `analise/resultados.csv`. Recuperável em
+`git show ee81dbf:infra/scripts/analisar.mjs`.
 
 **O Mann-Whitney não voltou, e a razão é aritmética.** Com n=3 por braço existem
 C(6,3)=20 arranjos possíveis, então o menor p bicaudal alcançável é **0,10**:
@@ -207,10 +211,12 @@ quantos pares SEM/COM o braço COM supera o SEM.
 
 ### C4. Procedimento do campo `valida` — **feito em 20/09/2026**
 
-O extrator grava `valida_proposta` e `motivo_proposta` a partir do
-`encerramento` e da troca de modelo. `valida` continua sendo decisão humana, e
-divergir da proposta exige motivo escrito. Build quebrado **não** invalida,
-conforme a §13.3.
+O extrator grava `valida: null` e **não opina**. Quem decide é humano, pela
+tabela de exceções da §13.3. Build quebrado **não** invalida.
+
+Até 21/09/2026 ele gravava também `valida_proposta` e `motivo_proposta`, de um
+módulo `validade.mjs`. Removidos em 22/09/2026 por decisão de quem avalia, e
+porque o palpite já tinha errado uma vez.
 
 ---
 

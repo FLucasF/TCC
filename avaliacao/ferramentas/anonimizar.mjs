@@ -111,17 +111,19 @@ writeFileSync(MAPA,
   "codigo_cego,run_id,arquivos,pistas_de_condicao,semente\n" +
   linhasMapa.map((l) => `${l.cod},${l.run},${l.arquivos},${l.pistas},${semente}`).join("\n") + "\n");
 
-// Planilhas de notas, já com uma linha por pacote x ponto, em ordem de código.
-const CAB_RUBRICA = "codigo_cego,ponto,C1,C2,C3,C4,C5,C6,total,classe,forma,outro_padrao,excesso_engenharia,condicional,implementacao_p2,observacoes";
-const CAB_EXTENSAO = "codigo_cego,ponto,extensao,passou_nos_casos,arquivos_criados,arquivos_alterados,linhas_alteradas,C5_confirmado,observacoes";
+// Planilha da avaliação, uma linha por pacote x ponto, em ordem de código.
+//
+// Até 21/09/2026 saíam QUATRO planilhas daqui: `notas-autor.csv`,
+// `notas-professor.csv` e `consenso.csv`, com os seis critérios da rubrica, mais
+// esta. A rubrica foi removida (§14.4) e com ela o segundo avaliador e o kappa,
+// então sobra uma só. `C5_confirmado` também saiu: era referência a critério da
+// rubrica. No lugar entrou `forma`, que é o desfecho secundário descritivo da
+// §14.4, anotado à mão ao abrir o pacote.
+const CAB_EXTENSAO = "codigo_cego,ponto,extensao,passou_nos_casos,arquivos_criados,arquivos_alterados,linhas_alteradas,forma,observacoes";
 const EXT = { P1: "DRONE", P2: "DEZOFF", P3: "CARTEIRA_DIGITAL" };
-const linhasRubrica = linhasMapa.flatMap((l) => ["P1", "P2", "P3"].map((p) => `${l.cod},${p},,,,,,,,,,,,,,`));
 const linhasExtensao = linhasMapa.flatMap((l) => ["P1", "P2", "P3"].map((p) => `${l.cod},${p},${EXT[p]},,,,,,`));
 
 for (const [arq, cab, linhas] of [
-  ["notas-autor.csv", CAB_RUBRICA, linhasRubrica],
-  ["notas-professor.csv", CAB_RUBRICA, linhasRubrica],
-  ["consenso.csv", CAB_RUBRICA + ",justificativa", linhasRubrica.map((l) => l + ",")],
   ["notas-extensao.csv", CAB_EXTENSAO, linhasExtensao],
 ]) {
   const caminho = join("avaliacao", arq);
@@ -148,6 +150,7 @@ if (vazamentos.length) {
 console.log(`
 PROXIMO PASSO, e ele e manual:
   1. Mover ${MAPA} para fora desta pasta, ou pelo menos nao abrir.
-  2. Avaliar, preenchendo avaliacao/notas-autor.csv.
-  3. git add + commit das notas do autor, congelando ANTES de ver as do professor.
+  2. Aplicar as tres extensoes em cada pacote, preenchendo
+     avaliacao/notas-extensao.csv. O procedimento esta na §14.5.
+  3. git add + commit, congelando a planilha.
   4. So entao reabrir o mapa.`);

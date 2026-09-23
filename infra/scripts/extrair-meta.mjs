@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { hostname } from "node:os";
 import { externo } from "./auditoria-web.mjs";
-import { proporValida } from "./validade.mjs";
 
 const [runDir, ...resto] = process.argv.slice(2);
 const arg = {};
@@ -148,21 +147,18 @@ if ([130, 137, 143].includes(codigoSaida)) encerramento = "interrompido";
 else if (!result) encerramento = "erro_sem_resultado";
 else if (result.is_error) encerramento = result.subtype === "error_max_turns" ? "limite_turnos" : "erro";
 
-// A proposta de validade mora em `validade.mjs`, com teste proprio em
-// `validade.teste.mjs`. A decisao final continua sendo humana, pela §13.3.
-const proposta = proporValida({
-  encerramento,
-  modeloSolicitado: arg.modelo,
-  modelosObservados: [...modelosNasMensagens],
-});
-
 const meta = {
   run_id: arg.run_id,
   // Decisão humana, conforme a tabela de exceções da §13.3. Começa nula de
   // propósito: preencher exige olhar.
+  //
+  // Até 21/09/2026 havia também `valida_proposta` e `motivo_proposta`, de um
+  // módulo `validade.mjs` que dava palpite a partir do encerramento e dos
+  // modelos observados. Removido em 22/09/2026, por decisão de quem avalia:
+  // validade é julgamento humano. O palpite já tinha errado uma vez — marcou
+  // `claude-haiku-4-5-20251001` como troca de modelo e teria descartado duas
+  // execuções boas. Recuperável em `git show ee81dbf:infra/scripts/validade.mjs`.
   valida: null,
-  valida_proposta: proposta.valida,
-  motivo_proposta: proposta.motivo,
   motivo_invalidade: null,
   modelo_solicitado: arg.modelo,
   modelo_init: init?.model ?? null,

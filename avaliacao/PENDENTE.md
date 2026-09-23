@@ -16,7 +16,7 @@ conferência de 19/09/2026 mostrou `avaliacao/`, `docs/`, `runs/`, `.env` e
 | `ferramentas/autoteste.mjs` | testa o testador: sobe app de mentira com defeito conhecido e confere se o `comparar.mjs` acusa. `node avaliacao/ferramentas/autoteste.mjs` |
 | ~~`rubrica-strategy.md`~~ | escrita em 20/09, **removida em 21/09/2026**. Recuperável em `git show aa71c81:avaliacao/rubrica-strategy.md` |
 | `testes-extensao/` | `DRONE`, `DEZOFF` e `CARTEIRA_DIGITAL`, 11 casos, mais o procedimento de contagem. Escrito em 20/09/2026 |
-| `casos/` | 60 casos nos quatro grupos da §14.3, gerados por `ferramentas/gerar-casos.mjs` com BigInt. Ver `casos/README.md` |
+| `casos/` | 60 casos nos quatro grupos da §14.3, gerados em 20/09 com BigInt. O gerador saiu em 22/09/2026, os casos ficaram. Ver `casos/README.md` |
 | `ferramentas/anonimizar.mjs` | prepara os pacotes para a avaliação às cegas, gera o mapa e as planilhas, e conta as pistas que o modelo deixou |
 | `README.md` | o fluxo da §14 em ordem, e o que cada ferramenta faz |
 

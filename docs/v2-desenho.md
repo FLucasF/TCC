@@ -86,7 +86,6 @@ comparação distraída inverte o significado.
 | `condicao` com `SEM` / `COM` | `condition` com `CONTROL` / `HARNESS` |
 | `repeticao` | `replicate` |
 | `valida` | `valid` |
-| `valida_proposta` / `motivo_proposta` | `valid_proposed` / `valid_proposed_reason` |
 | `motivo_invalidade` | `invalid_reason` |
 | `modelo_solicitado` / `modelo_init` | `model_requested` / `model_init` |
 | `modelos_observados` | `models_observed` |
@@ -602,9 +601,9 @@ Instrumento custa caro e foi validado. Nada disto precisa ser refeito:
 | ~~`rubrica-strategy.md`~~ | **removida** em 21/09/2026, ver 1a. Recuperável em `git show aa71c81:avaliacao/rubrica-strategy.md` |
 | `casos/` | **60 casos** nos quatro grupos, valores gerados em BigInt por um script que se recusa a escrever se não reproduzir os exemplos do enunciado |
 | `testes-extensao/` | 11 casos. **Promovido a desfecho primário** em 21/09/2026, ver 1a |
-| os quatro autotestes | comparador 5/5, detector de rede 13/13, validade 14/14, gerador 6/6 |
+| os autotestes | comparador 5/5 e detector de rede 13/13. Eram quatro: validade e gerador saíram em 22/09/2026 com os scripts que testavam |
 | `anonimizar.mjs` | normaliza datas, embaralha ordem com semente, conta as pistas que o modelo deixou |
-| `agregar.mjs` / `analisar.mjs` | `meta.json` → CSV → tabelas da §15 |
+| `agregar.mjs` | `meta.json` → CSV. As tabelas da §15 saem dele **à mão**: o `analisar.mjs` foi removido em 22/09/2026 |
 
 > [!warning] As âncoras da rubrica apontam para execuções da v1
 > `MED-05-HAIKU-COM`, `FUMACA-01` e `MED-07-VAZIO-OPUS-SEM`. A rubrica está

@@ -35,7 +35,6 @@ harness vai em `docs/harness-notas.md`, nunca ali dentro.
 
 ```bash
 infra/scripts/executar.sh <run_id> <modelo> <SEM|COM>   # uma execução
-infra/scripts/par.sh <prefixo> <modelo>                 # o par SEM || COM junto
 EFFORT=medium infra/scripts/rodada.sh <prefixo>         # os três modelos, 6 de uma vez
 ```
 

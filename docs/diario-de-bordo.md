@@ -518,3 +518,75 @@ a menor alteração que funcione* é julgamento. É julgamento muito mais estrei
 que seis critérios, e é verificável — a extensão tem que passar nos casos. Mas
 não é zero, e a anonimização continua valendo.
 
+
+---
+
+## 22/09/2026 — saem os scripts que davam palpite
+
+Decisão de quem avalia, dita assim: *"não quero esses scripts de validação
+também, quem vai validar sou eu, o professor e você também, mas não quero
+script."*
+
+Antes de apagar, fui ler os 16 arquivos de `infra/scripts/` e
+`avaliacao/ferramentas/`. Duas descobertas mudaram a conversa.
+
+**Primeira: nenhum script julgava desenho.** Nenhum abria código Java para
+decidir se era Strategy. O que existia fazia quatro coisas — ligar o container,
+transcrever o que aconteceu, conferir aritmética contra um gabarito, e preparar
+os pacotes cegos.
+
+**Segunda, e é um erro meu:** o `plano.md` dizia que a forma do código era
+"classificada automaticamente" em seis categorias, e o `v2-desenho.md` dizia que
+o script "já funciona — classificou as 49 execuções da v1". **Esse script nunca
+existiu.** As seis categorias saíram de leitura manual dos pacotes no
+alinhamento de 20–21/09. As categorias são reais; a automação era invenção na
+redação. Corrigido nos dois documentos, com aviso datado, antes de qualquer
+exclusão.
+
+### O que saiu, e por quê
+
+| arquivo | linhas | motivo |
+|---|---|---|
+| `analisar.mjs` | 271 | montava as tabelas da §15 — exatamente o trabalho que o autor e o orientador querem fazer. E já estava órfão: lia `consenso.csv`, que morreu com a rubrica |
+| `gerar-casos.mjs` | 322 | já tinha escrito os 60 casos, e o enunciado está congelado por hash. Não tem o que regerar |
+| `reauditar.mjs` | 106 | existia porque as regras de medida mudaram no meio do caminho. Com as regras congeladas antes do lote, não tem trabalho |
+| `validade.teste.mjs` | 61 | testava o de baixo |
+| `par.sh` | 38 | redundante: o `rodada.sh` roda os três pares |
+| `validade.mjs` | 37 | **propunha** validade. Nunca decidiu — gravava em campo separado e deixava `valida: null`. Mas é a única peça que dava palpite sobre descarte, e já tinha errado: marcou `claude-haiku-4-5-20251001` como troca de modelo e teria descartado duas execuções boas |
+
+**835 de 2076 linhas.** Recuperáveis a partir de `ee81dbf`.
+
+### O que isso obrigou a mexer
+
+- `extrair-meta.mjs`: sai o `import` do `validade.mjs` e saem os campos
+  `valida_proposta` e `motivo_proposta`. Sobra `valida: null`, que é humano
+- `agregar.mjs`: saem as duas colunas correspondentes — 44 para 42 — e o aviso
+  que mandava olhar a proposta
+- `anonimizar.mjs`: parou de gerar `notas-autor.csv`, `notas-professor.csv` e
+  `consenso.csv`, que eram planilhas da rubrica removida em 21/09. Sobra
+  `notas-extensao.csv`. Saiu também a coluna `C5_confirmado`, que era referência
+  a critério da rubrica, e entrou `forma`, o desfecho secundário da §14.4
+- onze documentos, para não sobrar comando que aponta para arquivo que não existe
+
+Conferido depois: `auditoria-web.teste.mjs` 13/13, `autoteste.mjs` 5/5, o
+extrator rodando contra a `FUMACA-01` numa cópia, e o agregador lendo as 49.
+
+### O que ficou, e o critério
+
+Dez arquivos, 1241 linhas. Nenhum julga desenho, nenhum dá nota, nenhum propõe
+descarte. O critério foi este: **fica o que liga o container, o que transcreve o
+que aconteceu, e o que confere aritmética contra um gabarito.** Sai o que
+interpreta.
+
+O `anonimizar.mjs` ficou por um motivo que vale registrar: ele ficou **mais**
+necessário, não menos. Enquanto a régua era uma rubrica escrita, o viés do
+avaliador tinha alguma trava. Agora quem decide "qual é a menor alteração que
+funciona" é humano, no olho. É o único script que protege o julgamento de quem
+avalia contra ele mesmo.
+
+### Em aberto
+
+O `auditoria-web.mjs` e o teste dele, 103 linhas, ficaram por decidir. Eles pegam
+o agente puxando coisa da internet por `curl` no Bash, canal que a contagem de
+`WebSearch`/`WebFetch` não vê. Com a web liberada nos dois braços isso virou dado
+descritivo, não violação.

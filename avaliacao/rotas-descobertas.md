@@ -126,9 +126,10 @@ outras variações. Vale um caso por modalidade isolando o prazo: 7, 2, 1 e 0.
 4. ~~**Empates de arredondamento**~~ → `arredondamento.json`, um por etapa do cálculo
 5. ~~**O resto**~~ → `opcionais-validacao.json` e `cupons.json`
 
-**60 casos**, contra os 4 que o enunciado dá. Todos calculados por
-`ferramentas/gerar-casos.mjs`, que se confere contra os quatro exemplos do
-enunciado e contra E5 e E6 antes de escrever. Ver `casos/README.md`.
+**60 casos**, contra os 4 que o enunciado dá. Todos calculados em 20/09/2026
+por `ferramentas/gerar-casos.mjs`, que se conferia contra os quatro exemplos do
+enunciado e contra E5 e E6 antes de escrever. O gerador saiu em 22/09; os casos
+e a prova de como foram calculados ficam em `casos/README.md`.
 
 > [!warning] Conferir campo a campo, nunca só o total
 > Duas das dez execuções acertam o `totalFinal` e erram `frete` e

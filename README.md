@@ -70,14 +70,8 @@ Uma execução:
 infra/scripts/executar.sh FUMACA-01 claude-haiku-4-5 SEM
 ```
 
-O par `SEM` e `COM` ao mesmo tempo — de propósito, para horário e carga de
-servidor ficarem iguais nos dois braços:
-
-```bash
-infra/scripts/par.sh MED-06-HAIKU claude-haiku-4-5
-```
-
-Os três modelos nas duas condições, seis execuções em paralelo:
+Os três modelos nas duas condições, seis execuções em paralelo — simultâneo de
+propósito, para horário e carga de servidor ficarem iguais nos dois braços:
 
 ```bash
 infra/scripts/rodada.sh MED-07

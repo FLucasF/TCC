@@ -257,7 +257,7 @@ Dois motivos, nenhum deles olhando desfecho:
 | Duração total (s) | Secundária | JSON + relógio do script |
 | Número de turnos / chamadas de ferramenta | Secundária | JSON / stream de eventos |
 | Execução concluída / limite atingido / erro | Controle | `resultado_execucao.encerramento` |
-| `valida` | Controle | **Humano**, pela tabela de 13.3. O extrator propõe em `valida_proposta` |
+| `valida` | Controle | **Humano**, pela tabela de 13.3. O extrator grava `null` e não opina |
 | Obediência às versões pedidas | Controle | `fundacao.obedeceu_versoes` (P7) |
 
 ---
@@ -279,9 +279,11 @@ favor de rodar `SEM` e `COM` **ao mesmo tempo**, no mesmo par. Sortear a ordem
 protege contra o efeito de horário e carga de servidor; rodar simultâneo
 **elimina** esse efeito em vez de distribuí-lo, o que é melhor.
 
-- `infra/scripts/par.sh <prefixo> <modelo>` roda o par `SEM` e `COM` juntos.
 - `infra/scripts/rodada.sh <prefixo>` roda os três modelos nas duas condições,
   seis execuções em paralelo.
+
+Havia também um `par.sh`, que rodava o par `SEM`/`COM` de **um** modelo.
+Removido em 22/09/2026 por redundância: o `rodada.sh` faz os três pares.
 
 > [!success] A contradição com o 13.2 foi resolvida em 20/09/2026
 > O paralelismo fica, e o 13.2 foi reescrito. O custo declarado está lá e em 16.
@@ -311,7 +313,7 @@ experimento/     copiado para dentro do workspace do agente
 
 infra/           roda de fora, o agente nunca vê
   docker/        Dockerfile fixado por versão + projeto de aquecimento do ~/.m2
-  scripts/       executar.sh, par.sh, rodada.sh, extrair-meta.mjs
+  scripts/       executar.sh, rodada.sh, extrair-meta.mjs, agregar.mjs
 
 avaliacao/       NUNCA chega ao agente
   gabarito-avaliador.md    onde estão P1, P2 e P3 e o que se espera
@@ -662,7 +664,7 @@ Desenho pretendido, quando entrar:
 
 ```mermaid
 flowchart TD
-    A[par.sh ou rodada.sh] --> B[Criar runs/id/workspace VAZIO]
+    A[rodada.sh] --> B[Criar runs/id/workspace VAZIO]
     B --> D{Condição}
     D -- COM --> E[Copiar experimento/harness/]
     D -- SEM --> F[Nada]
@@ -750,7 +752,7 @@ Os blocos, e para que cada um serve:
 
 > [!success] `repeticao`, `maquina` e `rede` — resolvido em 20/09/2026
 > `repeticao` é o **quarto argumento** do `executar.sh`, validado como inteiro
-> positivo e propagado por `par.sh` e `rodada.sh`. Fica `null` nas FUMACA e MED,
+> positivo e propagado pelo `rodada.sh`. Fica `null` nas FUMACA e MED,
 > que não têm repetição; **é obrigatório no lote**. `maquina` vem do `hostname`
 > do host, e `rede` da variável de ambiente `REDE`.
 >
@@ -766,17 +768,28 @@ Os blocos, e para que cada um serve:
 ### 11.4 Tarefas
 
 - [x] `infra/scripts/executar.sh` — uma execução
-- [x] `infra/scripts/par.sh` — o par `SEM` e `COM` simultâneo
 - [x] `infra/scripts/rodada.sh` — os três modelos, seis execuções em paralelo
 - [x] `infra/scripts/extrair-meta.mjs` — métricas, fundação e auditorias
+- [x] `infra/scripts/agregar.mjs` — os `meta.json` num CSV
 - [ ] `gerar-ordem` com semente — **cancelado** em 19/09/2026, ver 6.2
 - [x] Campo `repeticao` no `meta.json` — 4º argumento do `executar.sh`
-- [x] Procedimento do campo `valida` — o extrator propõe, o humano confirma
-- [ ] Agregador `meta.json` → CSV, e a análise estatística (C2 e C3 de `o-que-falta.md`)
-- [x] Procedimento do campo `valida`: o extrator grava `valida_proposta` e
-      `motivo_proposta` a partir do `encerramento` e da troca de modelo; `valida`
-      continua humano, e divergir da proposta exige motivo escrito. Build
-      quebrado **não** invalida, conforme 13.3
+- [x] Procedimento do campo `valida`: o extrator grava `valida: null` e **quem
+      decide é humano**, pela tabela de exceções de 13.3. Build quebrado **não**
+      invalida.
+
+> [!success] Revisto em 22/09/2026: saíram os scripts que davam palpite
+> Até aqui o extrator gravava `valida_proposta` e `motivo_proposta`, de um módulo
+> `validade.mjs` que inferia validade do encerramento e da troca de modelo, e um
+> `analisar.mjs` montava as tabelas de 15. Saíram os dois, por decisão de quem
+> avalia: **quem julga validade e resultado é o autor, o orientador e mais
+> ninguém.**
+>
+> Saíram junto o `par.sh` (redundante com o `rodada.sh`), o `reauditar.mjs` (que
+> só existia porque as regras mudaram no meio do caminho) e o `gerar-casos.mjs`
+> (que já tinha escrito os 60 casos). Seis arquivos, 835 linhas. Ficam dez, que
+> ligam o container, transcrevem o que aconteceu e conferem aritmética.
+>
+> Recuperáveis a partir de `ee81dbf`.
 
 ---
 
@@ -852,7 +865,7 @@ Os blocos, e para que cada um serve:
 
 > [!success] Resolvido em 20/09/2026: o paralelismo fica
 > A regra original dizia "não usar o Claude Code na mesma conta em paralelo", e
-> proibia exatamente o que `par.sh` e `rodada.sh` fazem de propósito.
+> proibia exatamente o que o `rodada.sh` faz de propósito.
 > 
 > **Vale o paralelismo.** Numa comparação pareada o que importa é os dois braços
 > enfrentarem *as mesmas* condições, e rodar `SEM` e `COM` ao mesmo tempo iguala
@@ -1052,8 +1065,10 @@ O que fica:
 3. A contagem sai de `git status --porcelain` e `git diff --numstat`, não de
    leitura de código
 
-- [ ] Planilha com **uma linha por pacote × ponto**: `blind_code, point,
-      extension, cases_passed, files_created, files_modified, lines_changed, notes`
+- [ ] Planilha com **uma linha por pacote × ponto**, gerada pelo `anonimizar.mjs`:
+      `codigo_cego, ponto, extensao, passou_nos_casos, arquivos_criados,
+      arquivos_alterados, linhas_alteradas, forma, observacoes`. Os nomes em
+      inglês só valem na v2, ver a convenção em `v2-desenho.md` §0
 - [ ] Calibração: aplicar as três extensões em 1 ou 2 pacotes das execuções de
       calibração, **nunca do lote**, para medir quanto tempo leva antes de
       dimensionar o `n`
@@ -1157,7 +1172,7 @@ não entra na comparação principal.
 | Constructo | Os três pontos avaliados — frete por modalidade, desconto por cupom, ajuste por forma de pagamento — são os **exemplos canônicos** com que Strategy é ensinado. Com web liberada, os dois braços podem convergir por terem lido o mesmo tutorial | Declarar. Vale mesmo com web bloqueada, porque o exemplo já está no treino. Reportar o uso de web por braço, e conferir se quem pesquisou acertou mais |
 | Interna | Resultado de busca muda de um dia para o outro | Entrada não controlada que varia entre repetições. Par `SEM`/`COM` simultâneo reduz, não elimina. Declarar |
 | Interna | Versões de Java e Spring Boot são **pedidas**, não impostas | Reportar a taxa de obediência por modelo e condição. Base cai fora do pedido, a run continua válida e é marcada |
-| Interna | Execuções em paralelo na mesma conta (`par.sh`, `rodada.sh`) | Decidido em 20/09/2026, ver 13.2: fica, porque iguala horário e carga entre os braços e a disputa de CPU é simétrica dentro do par. Duração **entre modelos** fica contaminada e é declarada; a medida reportada é `duracao_api_ms` |
+| Interna | Execuções em paralelo na mesma conta (`rodada.sh`) | Decidido em 20/09/2026, ver 13.2: fica, porque iguala horário e carga entre os braços e a disputa de CPU é simétrica dentro do par. Duração **entre modelos** fica contaminada e é declarada; a medida reportada é `duracao_api_ms` |
 | Constructo | A extensão mede a **consequência** de usar Strategy, não o **reconhecimento** de que era preciso | Declarado. A pergunta de 2.1 fala em "reconhecimento e implementação"; confirmar o recorte com o professor, ver 14.4 |
 | Constructo | As três extensões não separam "regra parametrizada" de "uma classe por variante" | Declarado em 14.5. Separar exigiria uma segunda extensão por ponto, de família nova |
 | Constructo | Pistas no prompt ("quase toda semana entra uma opção nova", "marketing adora inventar promoção") induzem o padrão | São requisitos de negócio realistas e idênticos nas duas condições; a variação da força da pista é **intencional** (dificuldade) |

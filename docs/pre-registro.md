@@ -101,12 +101,12 @@ contra `COM`. Ver `plano.md` §2.4.
 
 | # | regra |
 |---|---|
-| **Validade** | `valida` é decisão humana pela tabela de exceções da §13.3. O extrator **propõe** em `valida_proposta`; divergir da proposta exige motivo escrito. Só falha de infraestrutura invalida — **build quebrado conta como resultado** |
+| **Validade** | `valida` é decisão humana pela tabela de exceções da §13.3, e o extrator **não opina**: grava `null`. Revisto em 22/09/2026, quando saiu o `validade.mjs`. Só falha de infraestrutura invalida — **build quebrado conta como resultado** |
 | **Refazer** | Só por falha de infraestrutura, nunca por qualidade. Cota, erro de Docker, 5xx da API, interrupção à mão. Refazer é do zero, com registro |
 | **P7 · desobediência às versões** | Execução continua **válida**. A desobediência vira **taxa reportada** por modelo e condição. Não é covariável nem critério de exclusão |
-| **P6 · o que conta como Strategy** | `plano.md` §14.4a e `avaliacao/rubrica-strategy.md` §4. `enum` com corpo por constante conta (2 em C1/C2/C3) mas **1 em C5**; tabela de dados com caso especial por identidade fica em C1=1 e C3=1; `switch` com a lógica dentro é C1=0 |
+| **P6 · o que conta como Strategy** | Encerrado em 21/09/2026 junto com a rubrica. O desfecho passou a ser contagem de arquivos no teste de extensão, `plano.md` §14.4, que não tem regra de aceitação a definir |
 | **Web** | Liberada nas duas condições. `auditoria.acesso_web_suspeito` deixa de ser marca de violação e vira registro descritivo |
-| **Paralelismo** | `par.sh` e `rodada.sh` rodam simultâneo de propósito. Duração **entre modelos** fica contaminada e é declarada |
+| **Paralelismo** | O `rodada.sh` roda as seis simultâneo de propósito. Duração **entre modelos** fica contaminada e é declarada |
 
 ## 7. Os instrumentos, e seus hashes
 
@@ -127,16 +127,21 @@ contra `COM`. Ver `plano.md` §2.4.
 | `testes-extensao/p3-carteira-digital.json` | `5472480f98f96df6` |
 
 **60 casos** na suíte escondida e **11** nos testes de extensão. Os valores não
-foram digitados: saem de `avaliacao/ferramentas/gerar-casos.mjs`, em BigInt, e o
-gerador aborta se não reproduzir os quatro exemplos do enunciado e E5/E6.
+foram digitados: saíram de `avaliacao/ferramentas/gerar-casos.mjs`, em BigInt, e
+o gerador abortava se não reproduzisse os quatro exemplos do enunciado e E5/E6.
+O gerador foi **removido em 22/09/2026**, depois de ter escrito os casos e com o
+enunciado já congelado por hash. Recuperável em
+`git show ee81dbf:avaliacao/ferramentas/gerar-casos.mjs`; a derivação está em
+prosa, com a tabela dos empates, em `avaliacao/casos/README.md`.
 
 > [!important] Os autotestes fazem parte do pré-registro
 > ```bash
 > node avaliacao/ferramentas/autoteste.mjs      # 5/5
 > node infra/scripts/auditoria-web.teste.mjs    # 13/13
-> node infra/scripts/validade.teste.mjs         # 14/14
-> node avaliacao/ferramentas/gerar-casos.mjs    # 6/6 de referencia
 > ```
+> Eram quatro. `validade.teste.mjs` (14/14) e `gerar-casos.mjs` (6/6 de
+> referência) saíram em 22/09/2026 junto com os scripts que testavam — os dois
+> passaram pela última vez em 21/09, e são recuperáveis a partir de `ee81dbf`.
 > Nove defeitos apareceram nas ferramentas de medição entre 19 e 21/09/2026,
 > três deles por acaso e o último na própria rodada de fumaça. Um instrumento
 > sem teste próprio erra em silêncio.
@@ -144,10 +149,16 @@ gerador aborta se não reproduzir os quatro exemplos do enunciado e E5/E6.
 ## 8. Avaliação
 
 Anonimização por `avaliacao/ferramentas/anonimizar.mjs`, com semente registrada
-no mapa. Rubrica **antes** do teste de extensão. Autor avalia e **commita**,
-congelando antes de ver as notas do professor. Concordância por critério e
-**kappa de Cohen** na classificação. Análise usa `consenso.csv`. Fluxo completo
-em `avaliacao/README.md`.
+no mapa. Autor aplica as três extensões em cada pacote e **commita**
+`notas-extensao.csv`, congelando a planilha. O professor confere o
+**procedimento** por amostra. Fluxo completo em `avaliacao/README.md`.
+
+> [!warning] Revisto em 21 e 22/09/2026
+> Até 21/09 isto dizia: rubrica **antes** do teste de extensão, autor congela
+> antes de ver as notas do professor, concordância por critério e **kappa de
+> Cohen**, análise a partir de `consenso.csv`. A rubrica saiu (`plano.md` §14.4)
+> e com ela o segundo avaliador, o kappa e as três planilhas. Em 22/09 saíram os
+> scripts que davam palpite sobre validade e montavam as tabelas.
 
 ## 9. O que NÃO está pré-especificado
 

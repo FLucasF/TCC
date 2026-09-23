@@ -71,20 +71,33 @@ em produção, por um centavo de cada vez.
 
 ## Como os valores foram calculados
 
-Por `ferramentas/gerar-casos.mjs`, com **BigInt em micros**. Ponto flutuante não
-serviria: 0,1125 não é representável em binário, e metade destes casos existe
-justamente para cair em empate.
+Em 20/09/2026, por `ferramentas/gerar-casos.mjs`, com **BigInt em micros**.
+Ponto flutuante não serviria: 0,1125 não é representável em binário, e metade
+destes casos existe justamente para cair em empate.
 
-O gerador **se confere antes de escrever**: reproduz os quatro exemplos do
-enunciado e os casos E5 e E6 do gabarito, e aborta sem escrever nada se algum
-divergir. Conferido em 20/09/2026 adulterando a taxa do cartão de 1,99% para
+O gerador **se conferia antes de escrever**: reproduzia os quatro exemplos do
+enunciado e os casos E5 e E6 do gabarito, e abortava sem escrever nada se algum
+divergisse. Conferido em 20/09/2026 adulterando a taxa do cartão de 1,99% para
 2,99%: ele acusou os dois casos afetados e não escreveu.
 
-```bash
-node avaliacao/ferramentas/gerar-casos.mjs
-```
+> [!note] O gerador saiu em 22/09/2026
+> Ele já tinha feito o trabalho — os 60 arquivos estão escritos e commitados — e
+> o enunciado está congelado por hash no pré-registro, então não há o que
+> regerar. Recuperável em
+> `git show ee81dbf:avaliacao/ferramentas/gerar-casos.mjs`.
+>
+> A tabela de empates acima é a prova que fica: cada caso com os dois resultados
+> possíveis lado a lado, meio-para-o-par e `HALF_UP`.
 
 > [!warning] Não edite os valores à mão
-> Mudou uma regra do enunciado, muda no gerador e regera. Valor esperado editado
-> à mão é valor sem conferência, e um erro aqui reprova implementação correta em
-> silêncio — que é o pior defeito possível num instrumento de medida.
+> O `esperado` de cada caso é **gabarito**, não escolha. Editar um valor aqui te
+> põe no lugar da calculadora, justamente nos casos desenhados para a calculadora
+> errar — e um erro aqui reprova implementação correta em silêncio, que é o pior
+> defeito possível num instrumento de medida.
+>
+> Os 17 casos de `precedencia-erros.json` e `opcionais-validacao.json` são a
+> exceção: não têm conta, só código de erro. Esses você escreve e edita à mão sem
+> risco.
+>
+> Se uma regra do enunciado mudar, o gerador volta do git. Mas mudar regra do
+> enunciado depois do pré-registro é outro problema, maior que este.

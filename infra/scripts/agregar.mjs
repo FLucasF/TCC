@@ -9,8 +9,8 @@
 // improvisado. Para 24 execuções dá; para o lote com a avaliação junto, não.
 //
 // Só junta o que o meta.json tem: parâmetros, custo, tempo, fundação e
-// auditoria. As notas da rubrica e do teste de extensão vêm das planilhas de
-// `avaliacao/`, e são cruzadas na análise, não aqui.
+// auditoria. As contagens do teste de extensão vêm das planilhas de
+// `avaliacao/`, e são cruzadas à mão, não aqui.
 
 import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -31,8 +31,6 @@ const COLUNAS = [
   ["modelo", (m) => m.modelo_solicitado],
   ["condicao", (m) => m.condicao],
   ["valida", (m) => m.valida],
-  ["valida_proposta", (m) => m.valida_proposta],
-  ["motivo_proposta", (m) => m.motivo_proposta],
 
   ["encerramento", (m) => m.resultado_execucao?.encerramento],
   ["build_ok", (m) => m.resultado_execucao?.build_pos_execucao_ok],
@@ -139,6 +137,5 @@ console.log(`${COLUNAS.length} colunas`);
 const semValida = linhas.filter((l) => l.split(",")[4] === "").length;
 if (semValida) {
   console.log(`\n${semValida} execucao(oes) com \`valida\` vazia.`);
-  console.log("Preencher antes de analisar: a proposta do extrator esta em `valida_proposta`,");
-  console.log("e divergir dela exige motivo escrito (§13.3).");
+  console.log("Preencher olhando o meta.json, pela tabela de excecoes da §13.3.");
 }
