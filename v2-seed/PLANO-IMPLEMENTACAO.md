@@ -10,6 +10,34 @@ experimento.
 
 ---
 
+## 0. Antes de qualquer coisa: onde isto é construído
+
+**Este projeto precisa de uma pasta permanente, escolhida pelo usuário.**
+
+Confira em que diretório você está trabalhando. Se for uma pasta temporária de
+sessão — um caminho dentro de `Temp`, `scratch-workspaces` ou equivalente —
+**pare e pergunte ao usuário em que pasta criar o projeto.**
+
+O motivo: pasta de sessão é apagada quando a sessão termina. A bancada inteira,
+os scripts e as execuções sumiriam junto.
+
+Sugestão de caminho, se o usuário não tiver preferência: uma pasta irmã do
+repositório da versão anterior, por exemplo `TCC v2` ao lado de `TCC v1`.
+
+**Os quatro artefatos que você não escreve** precisam ser copiados de algum
+lugar antes de começar. Se eles não estiverem na pasta, peça-os ao usuário:
+
+```
+experimento/prompt/prompt.md
+experimento/harness/CLAUDE.md
+infra/docker/Dockerfile
+infra/docker/aquecimento/
+```
+
+Eles existem no repositório da versão anterior. Ver §5.
+
+---
+
 ## 1. O que você vai construir
 
 Uma bancada que roda um experimento controlado e guarda o resultado.
@@ -701,6 +729,9 @@ As execuções de fumaça **não entram na análise**. São descartadas.
 
 ## 11. Resumo do que fazer, em ordem
 
+0. **Confirmar em que pasta o projeto vai ser criado** (§0). Se o diretório
+   atual for temporário de sessão, perguntar ao usuário antes de escrever
+   qualquer arquivo
 1. Criar o repositório, com `.gitignore`, `.gitattributes` e `.dockerignore`
 2. Copiar os três artefatos congelados (§5) e **conferir os hashes**
 3. Construir a imagem e guardar o digest
