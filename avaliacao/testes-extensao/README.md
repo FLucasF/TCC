@@ -21,9 +21,11 @@ E6 do gabarito.
 
 ## Procedimento
 
-> [!warning] Rubrica antes, extensão depois
-> §14.5 do plano. Fazer a extensão primeiro influencia a nota de C5: você passa
-> a saber a resposta antes de julgar o código.
+> [!warning] Revisto em 21/09/2026: não há mais rubrica antes
+> Esta seção dizia "Rubrica antes, extensão depois", porque fazer a extensão
+> primeiro influenciava a nota de C5. A rubrica saiu do desenho — plano.md §14.4
+> — e **a extensão virou o desfecho primário**. Não há mais ordem a respeitar:
+> ela é a primeira coisa, e a única que produz número.
 
 Por pacote, e **um ponto por vez**, sempre partindo do código original:
 
@@ -117,12 +119,20 @@ não expressa sem mudar a assinatura. Dobra o trabalho manual do avaliador — d
 
 ## Registro
 
-Uma linha por pacote × ponto, junto do formulário da rubrica:
+Uma linha por pacote × ponto, na planilha que o `anonimizar.mjs` gera:
 
 ```csv
-codigo_cego,ponto,extensao,passou_nos_casos,arquivos_criados,arquivos_alterados,linhas_alteradas,C5_confirmado,observacoes
+codigo_cego,ponto,extensao,passou_nos_casos,arquivos_criados,arquivos_alterados,linhas_alteradas,forma,observacoes
 ```
 
-`C5_confirmado` é `sim` quando o número bate com a nota dada na leitura do
-código, e `nao` quando diverge. **Divergência não é erro**: é achado, e vai para
-a discussão do TCC.
+`arquivos_alterados` é o **desfecho primário**: quantos arquivos que já existiam
+precisaram mudar para a variante nova entrar. Zero é o melhor resultado.
+
+`forma` é o desfecho **secundário e descritivo**, anotado à mão ao abrir o
+pacote: `classes`, `enum` com corpo, mapa de dados, regra parametrizada, `enum`
+sem comportamento, ou `switch`/`ifs`. Não entra na comparação principal.
+
+> [!note] Revisto em 22/09/2026
+> A coluna era `C5_confirmado`, definida como `sim` quando o número batia com a
+> nota dada na leitura do código. Nota que saiu junto com a rubrica em 21/09.
+> No lugar entrou `forma`, e este arquivo foi o último a ser alinhado.

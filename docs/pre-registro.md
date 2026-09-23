@@ -78,12 +78,21 @@ contra `COM`. Ver `plano.md` §2.4.
 
 **Primário**
 
-- Strategy correto (sim / parcial / não) em P1, P2 e P3, pela rubrica, às cegas
-- Pontuação 0–12 por ponto
-- Pontos com Strategy correto por execução (0–3)
-- Testes funcionais escondidos: % aprovados, total e por grupo
-- Teste de extensão por ponto: arquivos criados, arquivos existentes alterados,
-  linhas alteradas
+- **Arquivos existentes alterados** para acrescentar uma variante, em P1, P2 e
+  P3, às cegas. **Menos é melhor**: zero é o melhor resultado
+- Arquivos criados e linhas alteradas nos existentes, no mesmo teste
+- Testes funcionais escondidos: % aprovados, total e por grupo. É **controle**,
+  não desfecho: extensão em pacote que não passa nos casos não conta
+
+> [!warning] Emenda em 21/09/2026: os três primeiros itens saíram
+> A redação original listava, como primários, "Strategy correto (sim/parcial/não)
+> pela rubrica", "pontuação 0–12 por ponto" e "pontos com Strategy correto por
+> execução (0–3)". A rubrica foi removida — `plano.md` §14.4 — e o teste de
+> extensão, que já estava listado aqui como desfecho, foi promovido a primário.
+>
+> **É emenda a pré-registro, e está declarada como tal.** Nenhum pacote do lote
+> tinha sido avaliado quando ela foi feita: as 49 execuções existentes são de
+> fumaça e calibração, e estão todas fora da análise.
 
 **Secundário**
 
@@ -113,7 +122,7 @@ contra `COM`. Ver `plano.md` §2.4.
 | instrumento | hash (16 primeiros) |
 |---|---|
 | ~~`avaliacao/rubrica-strategy.md`~~ | **removida em 21/09/2026**, hash era `06d9984b17667053`. O desfecho primário passou a ser o teste de extensão; ver `docs/v2-desenho.md` §1a |
-| `avaliacao/gabarito-avaliador.md` | `06813eb530435427` |
+| `avaliacao/gabarito-avaliador.md` | `ba29ed637831dfd0`. **Alterado em 22/09/2026**, hash anterior `06813eb530435427`: a seção "Rubrica: aplicar por ponto" mandava executar um procedimento removido em 21/09. Diff em `git diff ee81dbf -- avaliacao/gabarito-avaliador.md` |
 | `casos/exemplos-enunciado.json` | `ca0044ce27530b3a` |
 | `casos/entrega.json` | `27769cea0785594d` |
 | `casos/cupons.json` | `2bc84b71f4aeefb9` |
@@ -165,9 +174,8 @@ no mapa. Autor aplica as três extensões em cada pacote e **commita**
 Declarado para não virar descoberta disfarçada depois:
 
 - A análise qualitativa do que os modelos fizeram no lugar do Strategy
-- O catálogo de formas da rubrica §3 pode ganhar entradas novas se o lote
-  produzir uma que as 24 execuções de medição não produziram
-- A âncora de **C2 = 1**, que nenhuma execução produziu até agora
+- O catálogo das **seis formas de código** pode ganhar entradas novas se o lote
+  produzir uma que as 49 execuções até aqui não produziram
 - Qualquer corte, agrupamento ou teste estatístico não listado na §5
 
 ## 9a. Validado de ponta a ponta antes de fechar

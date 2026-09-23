@@ -547,12 +547,12 @@ exclusão.
 
 | arquivo | linhas | motivo |
 |---|---|---|
-| `analisar.mjs` | 271 | montava as tabelas da §15 — exatamente o trabalho que o autor e o orientador querem fazer. E já estava órfão: lia `consenso.csv`, que morreu com a rubrica |
+| `analisar.mjs` | 271 | montava as tabelas da §15 — exatamente o trabalho que o autor e o orientador querem fazer. Duas das quatro seções dele já estavam órfãs: liam `consenso.csv`, que morreu com a rubrica. As de custo e funcional ainda liam entrada viva |
 | `gerar-casos.mjs` | 322 | já tinha escrito os 60 casos, e o enunciado está congelado por hash. Não tem o que regerar |
 | `reauditar.mjs` | 106 | existia porque as regras de medida mudaram no meio do caminho. Com as regras congeladas antes do lote, não tem trabalho |
 | `validade.teste.mjs` | 61 | testava o de baixo |
 | `par.sh` | 38 | redundante: o `rodada.sh` roda os três pares |
-| `validade.mjs` | 37 | **propunha** validade. Nunca decidiu — gravava em campo separado e deixava `valida: null`. Mas é a única peça que dava palpite sobre descarte, e já tinha errado: marcou `claude-haiku-4-5-20251001` como troca de modelo e teria descartado duas execuções boas |
+| `validade.mjs` | 37 | **propunha** validade. Nunca decidiu — gravava em campo separado e deixava `valida: null`. Saiu por ser a única peça que dava palpite sobre descarte |
 
 **835 de 2076 linhas.** Recuperáveis a partir de `ee81dbf`.
 
@@ -590,3 +590,30 @@ O `auditoria-web.mjs` e o teste dele, 103 linhas, ficaram por decidir. Eles pega
 o agente puxando coisa da internet por `curl` no Bash, canal que a contagem de
 `WebSearch`/`WebFetch` não vê. Com a web liberada nos dois braços isso virou dado
 descritivo, não violação.
+
+### Correção, no mesmo dia: eu inverti o histórico do `validade.mjs`
+
+A tabela acima dizia, na primeira redação, que o `validade.mjs` "já tinha
+errado: marcou `claude-haiku-4-5-20251001` como troca de modelo e teria
+descartado duas execuções boas" — e essa frase foi usada como justificativa para
+apagá-lo. Ela também entrou no comentário do `extrair-meta.mjs`, no
+`o-que-falta.md` e na mensagem do commit `fe8bf47`.
+
+**Está invertido.** `git log --diff-filter=A` mostra o `validade.mjs` nascendo em
+`101d659`, no dia 21/09, que é o mesmo commit do nono defeito. Ele nasceu **com a
+correção dentro** — a regex `SNAPSHOT = /-\d{8}$/` — e com o caso de regressão no
+`validade.teste.mjs`, que abre com "regressão FUMACA-03: Haiku reporta o snapshot
+datado nas mensagens". O defeito estava na comparação estrita que morava **dentro
+do `extrair-meta.mjs`**, antes de a lógica ser extraída. O módulo foi o conserto,
+não a causa.
+
+Corrigido nos três arquivos. A mensagem do commit `fe8bf47` fica como está, com o
+erro, e esta entrada é o registro — reescrever commit para esconder engano é
+pior que o engano.
+
+O motivo real de apagá-lo não muda e não precisava daquela frase: ele era a única
+peça que dava palpite sobre descarte, e quem decide descarte é humano.
+
+**Como apareceu:** por uma verificação adversarial rodada depois do commit, com
+quatro lentes independentes sobre o repositório. Ela achou 31 problemas
+confirmados, e este foi o único que era falsificação de histórico.

@@ -127,7 +127,13 @@ for (const [arq, cab, linhas] of [
   ["notas-extensao.csv", CAB_EXTENSAO, linhasExtensao],
 ]) {
   const caminho = join("avaliacao", arq);
-  if (existsSync(caminho) && readFileSync(caminho, "utf8").split("\n").some((l, i) => i > 0 && l.split(",").slice(2).join("").trim())) {
+    // `slice(3)`, nao `slice(2)`: a coluna 2 e `extensao`, que ESTE script
+    // pre-preenche com DRONE/DEZOFF/CARTEIRA_DIGITAL. Com `slice(2)` a guarda
+    // disparava numa planilha recem-gerada e 100% vazia, e ela nunca mais era
+    // regerada, com a mensagem "ja tem nota preenchida" — que era falsa.
+    // Achado em 22/09/2026 por verificacao adversarial. O defeito ja existia
+    // antes, mas so ficou perigoso quando esta virou a unica planilha.
+  if (existsSync(caminho) && readFileSync(caminho, "utf8").split("\n").some((l, i) => i > 0 && l.split(",").slice(3).join("").trim())) {
     console.log(`\n  ! ${arq} já tem nota preenchida. NÃO foi sobrescrito.`);
     continue;
   }

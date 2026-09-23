@@ -18,8 +18,10 @@ rodar"*.
 
 A régua foi aplicada a dois pacotes e, em três critérios, não decidiu sozinha.
 Em 21/09 ela saiu do desenho "por enquanto", e o **desfecho primário passou a
-ser o teste de extensão** — contagem de arquivos em vez de nota. O arquivo fica
-inteiro; se voltar, volta de lá. Ver a seção 1a de `docs/v2-desenho.md`.
+ser o teste de extensão** — contagem de arquivos em vez de nota. O arquivo foi
+**removido** do repositório no mesmo dia; se a rubrica voltar, volta de
+`git show aa71c81:avaliacao/rubrica-strategy.md`. Ver a seção 1a de
+`docs/v2-desenho.md`.
 
 O levantamento original segue abaixo.
 
@@ -97,8 +99,9 @@ pegar uma correta e introduzir um erro de propósito.
 o `.git` do agente, `meta.json`, transcrição e log de build; normaliza as datas
 de modificação, porque arquivo do braço COM nasce depois do harness ser copiado;
 embaralha a ordem com semente registrada antes de atribuir o código cego; e
-gera as quatro planilhas com uma linha por pacote × ponto, sem sobrescrever
-nota já preenchida.
+gera a planilha `notas-extensao.csv` com uma linha por pacote × ponto, sem
+sobrescrever nota já preenchida. Eram **quatro** planilhas até 21/09/2026: as
+outras três eram da rubrica, e saíram com ela.
 
 De brinde, conta as **pistas que o modelo deixou** — comentário citando
 `CLAUDE.md`, harness, orientações de projeto ou skill. A §14.2 manda registrar e
@@ -106,7 +109,7 @@ não remover, e o número vai para as ameaças à validade. Ensaiado nas seis ru
 do MED-07: zero pistas, inclusive nos três READMEs que os modelos escreveram por
 conta própria.
 
-O mapa está no `.gitignore`, porque o autor é um dos dois avaliadores.
+O mapa está no `.gitignore`, porque quem avalia é quem rodou o experimento.
 
 ---
 
@@ -184,7 +187,8 @@ enquanto não houver git.
 
 ### C2. Agregador de `meta.json` → CSV — **feito em 20/09/2026**
 
-`infra/scripts/agregar.mjs`: 44 colunas, uma linha por execução, com `--prefixo`
+`infra/scripts/agregar.mjs`: 42 colunas — eram 44 até 22/09/2026, quando
+`valida_proposta` e `motivo_proposta` saíram —, uma linha por execução, com `--prefixo`
 para separar o lote. Deriva `obedeceu_versoes` e `chamadas_web` dos `meta.json`
 antigos em vez de exigir reprocessamento — deixando `obedeceu_versoes` vazio nas
 execuções com esqueleto, porque lá as versões vinham do pom e não de obediência.
@@ -215,8 +219,8 @@ O extrator grava `valida: null` e **não opina**. Quem decide é humano, pela
 tabela de exceções da §13.3. Build quebrado **não** invalida.
 
 Até 21/09/2026 ele gravava também `valida_proposta` e `motivo_proposta`, de um
-módulo `validade.mjs`. Removidos em 22/09/2026 por decisão de quem avalia, e
-porque o palpite já tinha errado uma vez.
+módulo `validade.mjs`. Removidos em 22/09/2026 por decisão de quem avalia:
+validade é julgamento humano, e o extrator não opina.
 
 ---
 

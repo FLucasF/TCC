@@ -155,9 +155,8 @@ const meta = {
   // Até 21/09/2026 havia também `valida_proposta` e `motivo_proposta`, de um
   // módulo `validade.mjs` que dava palpite a partir do encerramento e dos
   // modelos observados. Removido em 22/09/2026, por decisão de quem avalia:
-  // validade é julgamento humano. O palpite já tinha errado uma vez — marcou
-  // `claude-haiku-4-5-20251001` como troca de modelo e teria descartado duas
-  // execuções boas. Recuperável em `git show ee81dbf:infra/scripts/validade.mjs`.
+  // validade é julgamento humano, e o extrator não opina.
+  // Recuperável em `git show ee81dbf:infra/scripts/validade.mjs`.
   valida: null,
   motivo_invalidade: null,
   modelo_solicitado: arg.modelo,

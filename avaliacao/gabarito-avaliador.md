@@ -74,17 +74,28 @@ confidencial: true
 - `if (formaPagamento == PIX)` repetido em validação, cálculo e disponibilidade.
 
 > [!question] Decidir antes de avaliar
-> Com só 3 formas de pagamento e nenhuma pista de mudança, uma solução com condicionais **concentrada em um único lugar** é defensável. Proposta: classificar como **"sem Strategy"**, mas registrar em observações se a condicional está concentrada (1 lugar) ou espalhada (vários lugares). Isso permite análise qualitativa sem mudar a regra.
+> Com só 3 formas de pagamento e nenhuma pista de mudança, uma solução com condicionais **concentrada em um único lugar** é defensável. Proposta: anotar `forma` como `switch`/`ifs`, e registrar em observações se a condicional está concentrada (1 lugar) ou espalhada (vários lugares). Isso permite análise qualitativa sem mudar a regra. O desfecho primário não depende disto: ele é a contagem de arquivos.
 
-## Rubrica: aplicar por ponto
+## O desfecho: aplicar o teste de extensão por ponto
 
-A rubrica C1–C6 do plano é aplicada **separadamente** para P1, P2 e P3.
+> [!warning] Alterado em 22/09/2026, e isto muda o hash deste arquivo
+> Esta seção se chamava "Rubrica: aplicar por ponto" e trazia a tabela de
+> preenchimento C1–C6. A rubrica saiu do desenho em 21/09/2026 (plano.md §14.4)
+> e o arquivo dela foi removido, então esta seção mandava executar um
+> procedimento que não existe mais.
+>
+> O hash anterior era `06813eb530435427`. O novo está na §7 do pré-registro, com
+> os dois lado a lado.
 
-| Pacote | P1 C1–C6 | P1 classe | P2 C1–C6 | P2 classe | P3 C1–C6 | P3 classe |
-|---|---|---|---|---|---|---|
+O desfecho primário é a **contagem do teste de extensão**, aplicada
+separadamente para P1, P2 e P3. O procedimento está em
+`avaliacao/testes-extensao/README.md` e no plano §14.5.
+
+| Pacote | P1 arq. alterados | P2 arq. alterados | P3 arq. alterados |
+|---|---|---|---|
 
 Resultado esperado a observar:
-- **Detecção por dificuldade:** P1 > P2 > P3 nas duas condições.
+- **Dificuldade:** estender P1 custa menos que P2, e P2 menos que P3, nas duas condições.
 - **Efeito do harness:** maior em P2 e P3 do que em P1 (onde o modelo puro já tende a acertar).
 
 ## Testes de extensão (um por ponto)

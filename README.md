@@ -16,9 +16,9 @@ experimento/     copiado para dentro do workspace do agente
 
 infra/           roda de fora, o agente nunca vê
   docker/        imagem fixada por versão
-  scripts/       executar / par / rodada
-                 extrair-meta, agregar, analisar
-                 auditoria-web, validade, reauditar (+ os dois .teste)
+  scripts/       executar / rodada
+                 extrair-meta, agregar
+                 auditoria-web (+ o teste dele)
 
 avaliacao/       nunca chega ao agente. Gabarito, rotas de teste, notas
 docs/            plano, pré-registro, diário de bordo, notas do harness

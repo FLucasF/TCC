@@ -192,7 +192,6 @@ Valores de `termination`: `completed`, `interrupted`, `no_result`, `turn_limit`,
 | `passou_nos_casos` | `cases_passed` |
 | `arquivos_criados` / `arquivos_alterados` | `files_created` / `files_modified` |
 | `linhas_alteradas` | `lines_changed` |
-| `C5_confirmado` | `c5_confirmed` |
 
 Valores de `class`: `correct`, `partial`, `none`.
 Valores de `shape`: `classes`, `enum_with_body`, `data_map`, `parameterized`,
