@@ -528,12 +528,17 @@ O `.jsonl` é uma linha por evento. Os que importam:
     "harness_hash": "560577...",   // null no braço CONTROL
     "preflight": ["[pre] ...", "..."],
     "machine": "<hostname>",
-    "network": "casa-wifi"
+    "network": "casa-wifi",
+    "api_key_source": "none"     // do init. "none" prova que rodou pela
+                                 // ASSINATURA e não por chave de API — é o
+                                 // contrário da verificação do .env, visto do
+                                 // lado de dentro
   },
 
   "parameters": {
-    "effort": "medium",
-    "permission_mode_init": "..."
+    "effort": "medium",           // o que foi PEDIDO. Ver a nota abaixo
+    "permission_mode_init": "...",
+    "fast_mode_state": "off"      // do init. Confirma que o modo rápido está desligado
   },
 
   "timing": {
@@ -551,7 +556,15 @@ O `.jsonl` é uma linha por evento. Os que importam:
     "tool_calls": 42,
     "tool_calls_by_name": { "Bash": 12, "Write": 18 },
     "final_message": "...",      // primeiros 500 caracteres
-    "build_ok": true
+    "build_ok": true,
+
+    // do evento result, e valem a pena:
+    "stop_reason": "...",        // por que o modelo parou
+    "terminal_reason": "...",    // por que o CLI encerrou
+    "permission_denials": [],    // tem que ficar VAZIO. Se não ficar, o agente
+                                 // esbarrou em permissão e não trabalhou livre
+    "subagent_stats": { }        // se veio preenchido, o modelo DELEGOU parte do
+                                 // trabalho. Ver §12.2 — é a resposta direta
   },
 
   "tokens": {                    // H2
@@ -780,7 +793,9 @@ infra/scripts/rodada.sh SMOKE-01
 | os seis terminaram | `outcome.termination === "completed"` |
 | os seis compilaram | `outcome.build_ok === true` |
 | o modelo pedido é o que respondeu | `models_observed.messages` contém só o modelo pedido, ignorando sufixo de data |
-| **subagente foi usado?** | `tool_calls_by_name` tem `Agent` ou `Task`? Se sim, parte do código foi escrita por outro modelo — decida antes do lote se isso é aceitável |
+| **subagente foi usado?** | `outcome.subagent_stats` veio preenchido, ou `tool_calls_by_name` tem `Agent`/`Task`? Se sim, parte do código foi escrita por outro modelo — decida antes do lote se isso é aceitável |
+| o agente trabalhou livre | `outcome.permission_denials` **vazio** nas seis. Se não estiver, ele esbarrou em permissão e parou de fazer coisas |
+| rodou pela assinatura, não por chave de API | `environment.api_key_source === "none"` nas seis |
 | o conjunto de ferramentas é o mesmo nos três modelos | compare `isolation_init.tools_available`. **Espere que não seja** — um dos modelos recebe mais. Registre a diferença |
 | o isolamento valeu | `environment.preflight` mostra `~/.claude` vazio e nenhum `CLAUDE.md` fora do workspace |
 | tokens foram capturados | `tokens.source === "result"` e `input_total` na casa dos milhões |
@@ -858,8 +873,10 @@ sabe o que acontece quando estão livres. Se o Opus delegar a escrita de um
 pedaço, o pacote que será avaliado não foi escrito só pelo Opus — e a comparação
 entre modelos fica embaçada.
 
-**A fumaça revela.** Olhe `outcome.tool_calls_by_name` nas seis. Se aparecer
-`Agent` ou `Task`, decida antes do lote se isso é aceitável.
+**A fumaça revela, e há um campo direto para isso.** O evento `result` traz
+`subagent_stats` — se vier preenchido, o modelo delegou. Olhe também
+`outcome.tool_calls_by_name` atrás de `Agent` ou `Task`. Se aparecer qualquer um
+dos dois, decida antes do lote se isso é aceitável.
 
 Um precedente que ajuda a calibrar a preocupação: as quatro ferramentas que só
 o Haiku recebe (`TaskCreate`, `TaskGet`, `TaskList`, `TaskUpdate`) estavam
@@ -872,13 +889,21 @@ O raciocínio é variável controlada: `--effort medium` nos três modelos. Se a
 flag não tiver efeito num deles, o controle é falso para esse modelo — e isso
 atinge a H3 direto, que é justamente a comparação Haiku × Opus.
 
+**A flag é passada aos três, e nenhum recusa.** Isso não é o problema. O
+problema é que **a transcrição não reporta o `effort` de volta**: nem o evento
+`init` nem o `result` trazem esse campo. Então o `meta.json` grava o que foi
+*pedido*, e não há como confirmar pelo dado o que foi *aplicado*.
+
 O dado de calibração não decide: duas execuções de Haiku com `--effort high`
 gastaram 4.054 e 8.922 tokens de raciocínio, e as 23 com `medium` ficaram entre
 3.233 e 22.733. O `high` caiu no meio do `medium`.
 
-**O campo que revela é `tokens.thinking`**, gravado em todas as execuções. Se
-quiser fechar isso, rode duas execuções de Haiku iguais mudando só o `--effort`
-e compare. Se não quiser, declare como limitação — mas declare.
+**Como fechar, se quiser:** duas execuções de Haiku, tudo igual, uma com
+`--effort low` e outra com `--effort high`, comparando `tokens.thinking`. Se os
+números forem parecidos, a flag não faz nada nesse modelo. Custa duas execuções
+e uns centavos, e fora do lote.
+
+Se não quiser, declare como limitação — mas declare, porque atinge a H3.
 
 ### 12.4 Não há regra para execução que falha no meio do lote
 
