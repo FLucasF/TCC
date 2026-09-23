@@ -36,6 +36,38 @@ infra/docker/aquecimento/
 
 Eles existem no repositório da versão anterior. Ver §5.
 
+### 0.1 O que precisa existir na máquina
+
+| | como obter / conferir |
+|---|---|
+| **Docker Desktop**, rodando | `docker info` |
+| **Git Bash** — a bancada é shell POSIX sobre Windows | `bash --version` |
+| **Node 18 ou mais novo**, no host | `node --version`. Os `.mjs` rodam fora do container |
+| **`.env` na raiz, com o token da assinatura** | ver abaixo |
+| **~1,5 GB de disco livre** | 49 execuções de calibração ocuparam 996 MB, quase tudo em `target/` |
+
+**O `.env`.** É o único segredo do projeto. Gere o token com o próprio Claude
+Code, já autenticado na sua conta:
+
+```bash
+claude setup-token
+```
+
+e escreva o resultado num arquivo `.env` na raiz do repositório:
+
+```
+CLAUDE_CODE_OAUTH_TOKEN=<o token>
+```
+
+**Esse arquivo nunca é versionado e nunca é impresso.** Ele entra no
+`.gitignore` antes de ser criado. O `executar.sh` lê o arquivo e o passa ao
+container por `--env-file`; em nenhum momento ecoa o conteúdo.
+
+O preflight recusa rodar se o `.env` contiver `ANTHROPIC_API_KEY`,
+`ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL` ou `ANTHROPIC_MODEL` — qualquer uma
+dessas troca cobrança, provedor ou modelo sem avisar, e o experimento passaria a
+medir outra coisa.
+
 ---
 
 ## 1. O que você vai construir
@@ -305,6 +337,49 @@ e isso é registrado em vez de impedido.
 
 O `.dockerignore` é **lista branca** — só `infra/docker/` entra no contexto. O
 enunciado, o harness e a pasta de avaliação **nunca** entram na imagem.
+
+**`infra/docker/aquecimento/`** são três arquivos: um `pom.xml` de projeto Spring
+Boot mínimo, uma classe de aplicação e **uma classe de teste**. A classe de teste
+não é decoração — ela existe para o Maven baixar o provider JUnit do Surefire,
+que só é buscado quando há teste. Sem ela, a primeira execução que escrevesse um
+teste pagaria esse download dentro da medição.
+
+### 5.4 Os três modelos, e uma armadilha
+
+O experimento roda nestes três, sempre pelo **ID completo**, nunca por alias:
+
+```
+claude-opus-5
+claude-sonnet-5
+claude-haiku-4-5
+```
+
+O `rodada.sh` tem essa lista escrita dentro dele, com o apelido que vai no
+`run_id`:
+
+```
+OPUS:claude-opus-5   SONNET:claude-sonnet-5   HAIKU:claude-haiku-4-5
+```
+
+> [!danger] O alias e o snapshot datado são o MESMO modelo
+> Você pede `claude-haiku-4-5` e as mensagens voltam com
+> `claude-haiku-4-5-20251001`. O Opus e o Sonnet reportam o id simples.
+>
+> Qualquer comparação estrita entre o modelo pedido e o observado marca as
+> execuções de Haiku como "troca de modelo". Na versão anterior isso aconteceu e
+> **teria descartado duas execuções boas** — é o erro mais caro que essa
+> conferência pode cometer.
+>
+> A comparação correta remove **só o sufixo de data de 8 dígitos**:
+>
+> ```js
+> const SNAPSHOT = /-\d{8}$/;
+> const normalizar = (id) => (id ?? "").replace(SNAPSHOT, "");
+> const mesmoModelo = (obs, pedido) => normalizar(obs) === normalizar(pedido);
+> ```
+>
+> **`startsWith` não serve:** `claude-opus-5-1` começa com `claude-opus-5` e é
+> outro modelo.
 
 ---
 
@@ -611,12 +686,20 @@ O par simultâneo é a única estrutura que cancela horário e carga de servidor
 a bancada **já paga** por ele ao rodar seis containers juntos.
 
 **Consequência para a implementação:** o `run_id` precisa deixar óbvio qual
-execução pareia com qual. Formato sugerido:
+execução pareia com qual. O formato é este, e não é sugestão:
 
 ```
-BATCH-<rodada>-<MODELO>-<CONDICAO>      BATCH-01-OPUS-CONTROL
-                                        BATCH-01-OPUS-HARNESS
+<PREFIXO>-<rodada>-<MODELO>-<CONDICAO>
+
+BATCH-01-OPUS-CONTROL      pareia com     BATCH-01-OPUS-HARNESS
+BATCH-01-SONNET-CONTROL                   BATCH-01-SONNET-HARNESS
+...
+BATCH-03-HAIKU-CONTROL                    BATCH-03-HAIKU-HARNESS
 ```
+
+Duas execuções formam um par quando tudo é igual menos a última parte. O `run_id`
+do lote usa prefixo `BATCH-`; o da fumaça, `SMOKE-`. **Só o que começa com
+`BATCH-` entra na análise.**
 
 ---
 
@@ -745,3 +828,83 @@ As execuções de fumaça **não entram na análise**. São descartadas.
 9. Agregar o CSV e anonimizar os 18 pacotes
 
 **Só depois disso** se decide como avaliar.
+
+---
+
+## 12. As incógnitas
+
+Isto não é lista de tarefas. São as coisas que **ninguém decidiu ainda**, e é
+melhor que estejam escritas do que descobertas no meio do lote.
+
+### 12.1 Quatro das cinco hipóteses não têm instrumento
+
+A H2 — consumo de tokens e tempo — é medida pela bancada, automaticamente.
+
+**A H1, a H3, a H4 e a H5 dependem de uma medida de "reconhecimento e
+implementação de Strategy" que não existe.** Ela é desenhada depois, por um
+humano, olhando os pacotes (§9).
+
+Isso é deliberado e a ordem é essa de propósito. Mas significa que, ao terminar
+o passo 9 da §11, **a pergunta principal do trabalho ainda não tem resposta
+possível.** Construir a bancada é metade do caminho.
+
+### 12.2 O subagente nunca foi observado
+
+As ferramentas ficaram livres, inclusive `Agent` e `Task` — as que permitem o
+modelo delegar parte do trabalho a outro modelo.
+
+Nas 49 execuções de calibração essas duas estavam **bloqueadas**. Então ninguém
+sabe o que acontece quando estão livres. Se o Opus delegar a escrita de um
+pedaço, o pacote que será avaliado não foi escrito só pelo Opus — e a comparação
+entre modelos fica embaçada.
+
+**A fumaça revela.** Olhe `outcome.tool_calls_by_name` nas seis. Se aparecer
+`Agent` ou `Task`, decida antes do lote se isso é aceitável.
+
+Um precedente que ajuda a calibrar a preocupação: as quatro ferramentas que só
+o Haiku recebe (`TaskCreate`, `TaskGet`, `TaskList`, `TaskUpdate`) estavam
+disponíveis em 25 execuções e **nunca foram chamadas**. Pode ser que o subagente
+seja igual.
+
+### 12.3 Não se sabe se `--effort` faz alguma coisa no Haiku
+
+O raciocínio é variável controlada: `--effort medium` nos três modelos. Se a
+flag não tiver efeito num deles, o controle é falso para esse modelo — e isso
+atinge a H3 direto, que é justamente a comparação Haiku × Opus.
+
+O dado de calibração não decide: duas execuções de Haiku com `--effort high`
+gastaram 4.054 e 8.922 tokens de raciocínio, e as 23 com `medium` ficaram entre
+3.233 e 22.733. O `high` caiu no meio do `medium`.
+
+**O campo que revela é `tokens.thinking`**, gravado em todas as execuções. Se
+quiser fechar isso, rode duas execuções de Haiku iguais mudando só o `--effort`
+e compare. Se não quiser, declare como limitação — mas declare.
+
+### 12.4 Não há regra para execução que falha no meio do lote
+
+Uma run nunca é reaproveitada (§2, item 4). Então, se a quarta execução de uma
+rodada morrer por falha de infraestrutura, você cria outra com id novo — e passa
+a ter 19 execuções para 18 vagas.
+
+Falta decidir, **antes** do lote:
+
+- refaz o **par inteiro** (preserva a simultaneidade, custa o dobro) ou só a
+  metade que morreu (quebra o pareamento, que é o ativo da §7)?
+- a execução morta fica no repositório como registro, ou sai?
+- o que entra na tabela: a que morreu conta como célula vazia, ou a substituta
+  ocupa o lugar?
+
+Recomendação, se ajudar: **refazer o par inteiro**, e manter a morta no
+repositório com `valid: false` e o motivo escrito. O pareamento é a única
+estrutura que cancela horário e carga de servidor.
+
+### 12.5 O ferramental não é igual entre os modelos, e isso fica assim
+
+Medido: o Haiku recebe 30 ferramentas, o Opus e o Sonnet 26. Como o modelo é o
+fator de bloco, a diferença entra na H3.
+
+A decisão foi **não corrigir** — restringir ferramenta mede uma versão de
+laboratório do Claude Code, e a pergunta é sobre ele como é. A fumaça registra a
+diferença, e ela vira **ameaça declarada**, não problema resolvido.
+
+Isto está aqui para não ser redescoberto como novidade depois.
