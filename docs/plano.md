@@ -233,7 +233,7 @@ Dois motivos, nenhum deles olhando desfecho:
 | Claude Code | Mesma versão do início ao fim | Versão fixa na imagem + `DISABLE_AUTOUPDATER=1` |
 | Java / Maven / SO | Mesmas versões | Tag fixa da imagem base + hash da imagem |
 | Modelo | ID completo, nunca alias | `--model claude-opus-5` etc. |
-| Raciocínio | `high` | `--effort high` |
+| Raciocínio | `medium` | `--effort medium`, conforme o D8 |
 | Ferramentas | Mesmas nas duas condições | `--disallowedTools "Agent,Task"` igual nas duas |
 | Web | **Liberada** nas duas condições | Idêntica nos dois braços. O uso é registrado, não impedido: `chamadas_por_ferramenta` e `auditoria.comandos_suspeitos` no `meta.json` |
 | Dependências | Livres, e registradas | Sem pom de partida, `meta.json.dependencias.acrescentadas` passa a ser a lista inteira do que o agente declarou |
