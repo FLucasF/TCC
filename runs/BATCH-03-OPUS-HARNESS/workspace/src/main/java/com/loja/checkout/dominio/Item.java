@@ -1,0 +1,15 @@
+package com.loja.checkout.dominio;
+
+import java.math.BigDecimal;
+
+/** Item ja validado do carrinho. */
+public record Item(String nome, BigDecimal precoUnitario, int quantidade, BigDecimal pesoKg) {
+
+    public BigDecimal totalItem() {
+        return precoUnitario.multiply(BigDecimal.valueOf(quantidade));
+    }
+
+    public BigDecimal pesoTotal() {
+        return pesoKg.multiply(BigDecimal.valueOf(quantidade));
+    }
+}
