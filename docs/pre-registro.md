@@ -144,6 +144,10 @@ script opina sobre isso.
 >
 > A §9 deste documento declara fora "qualquer corte, agrupamento ou teste não
 > listado na §5" — então, sem a §7 fechada, não existe resposta legítima depois.
+>
+> **O material para essa decisão está em `docs/questao-estatistica.md`**: o que o
+> desenho pareado torna disponível, os três problemas que isso tem, e as quatro
+> opções. É decisão de método e de escopo, e por isso é do orientador.
 
 ## 8. Como os resultados são lidos
 
@@ -180,8 +184,24 @@ Declarado para não virar descoberta disfarçada depois:
 réplicas de um único enunciado, não uma amostra de tarefas. Nenhuma afirmação da
 forma "o harness ajuda a escrever código melhor" está no alcance deste desenho.
 
-**Não há significância estatística possível.** Ver §7. Os resultados são
-descritivos.
+**A forma de concluir ainda não está fechada.** Ver §7 e
+`docs/questao-estatistica.md`.
+
+> [!warning] Corrigido em 24/09/2026, antes do lote
+> Uma redação anterior desta seção afirmava que **não havia significância
+> estatística possível**, herdando a conta que descartou o Mann-Whitney: com dois
+> grupos de 3, existem C(6,3)=20 arranjos e o menor p bicaudal é 0,10.
+>
+> A conta está certa para aquele teste, e **errada como afirmação geral**. O
+> desenho não tem dois grupos de 3: tem **9 pares simultâneos**. Num teste sobre
+> pares, cada par é uma observação, e 8 de 9 na mesma direção dá p bicaudal de
+> 0,039.
+>
+> Isso **não** quer dizer que haverá significância — depende da régua escolhida
+> para o desfecho, de quantos pares empatam, e de a H1 ser lida agrupando os três
+> modelos ou não, o que entra em conflito com a H3. Quer dizer apenas que a
+> impossibilidade afirmada antes não se sustenta, e que a questão está aberta em
+> vez de resolvida pela negativa.
 
 **Não se isola "as quatro regras" de "haver um `CLAUDE.md`".** O braço `HARNESS`
 difere do `CONTROL` em três coisas ao mesmo tempo: o conteúdo das regras, a
