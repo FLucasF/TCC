@@ -1,17 +1,20 @@
-# Os enunciados
+# O enunciado
 
-| arquivo | hash | pontos de variação |
-|---|---|---|
-| `prompt.md` | `53db3424b3972795` | P1 entrega · P2 cupons · P3 pagamento |
-| `prompt-estendido.md` | `b7cdb594cb49efee` | os três, mais **P4 clube** e **P5 imposto** |
+| arquivo | hash | pontos de variação | execuções |
+|---|---|---|---|
+| `prompt.md` | `b7cdb594cb49efee` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 imposto** | `EXT-01` a `03` — o experimento |
+| `../../historico/piloto/prompt.md` | `53db3424b3972795` | P1 entrega · P2 cupons · P3 pagamento | `BATCH-01` a `03` — o piloto |
 
-O `prompt.md` é o do lote `BATCH-01` a `03`. **Não muda.**
+Nenhum dos dois muda. O de cinco pontos se chamava `prompt-estendido.md` até
+virar o enunciado único; o de três era o `prompt.md` e foi para
+`historico/piloto/`. Os bytes são os mesmos, e os hashes acima conferem com o
+`meta.json` de cada execução.
 
 ---
 
-## Por que existe um estendido
+## Por que o piloto não bastou
 
-O lote com o `prompt.md` mostrou **efeito de teto**: Opus 5 e Sonnet 5 deram 3 de 3
+O piloto, com o enunciado de três pontos, mostrou **efeito de teto**: Opus 5 e Sonnet 5 deram 3 de 3
 pontos extensíveis em **todas** as 12 execuções, nos dois braços. Onde o controle
 já acerta tudo, não há espaço para o harness melhorar — e nenhum tamanho de
 amostra resolve isso.
@@ -60,7 +63,7 @@ exagerar fosse errado.
 
 ---
 
-## O que mais mudou no estendido
+## O que mais mudou em relação ao piloto
 
 Além dos dois pontos:
 
@@ -75,10 +78,10 @@ Além dos dois pontos:
 O enunciado continua sem nenhuma palavra de arquitetura: não aparece "padrão",
 "interface", "polimorfismo", "estratégia", "extensível", "abstrato" nem "classe".
 
-## O que ele NÃO é
+## Um experimento, um piloto
 
-Não é substituto do `prompt.md`, é um **segundo** experimento. As execuções feitas
-com ele não são comparáveis com as do lote, porque o estímulo é outro.
-
-A leitura que os dois juntos permitem é mais forte que a de cada um: *o efeito é
-invisível nesta dificuldade e aparece naquela* diz mais que *o efeito existe*.
+A primeira ideia foi tratar os dois enunciados como dois experimentos. A decisão
+final é outra: o experimento é **um só**, com este enunciado, e o lote de três
+pontos é **piloto**. Ele não entra na análise, porque o estímulo é outro e as
+execuções não são comparáveis. Fica registrado como o motivo de P4 e P5
+existirem.

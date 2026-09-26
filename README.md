@@ -11,6 +11,19 @@ braços é um arquivo de 14 linhas copiado para a raiz do workspace.
 | `CONTROL` | nada |
 | `HARNESS` | `experimento/harness/CLAUDE.md` |
 
+**Um experimento só**, com o enunciado de cinco pontos de variação (P1 a P5): as
+execuções `EXT-01` a `EXT-03`. O lote `BATCH-01` a `03`, com o enunciado de três
+pontos, é o **piloto**: foi ele que mostrou o efeito de teto e motivou P4 e P5.
+Tudo o que é só do piloto está em `historico/piloto/`; as execuções dele continuam
+em `runs/`, e o prefixo diz de qual são.
+
+| | experimento (`EXT`) | piloto (`BATCH`) |
+|---|---|---|
+| enunciado | `experimento/prompt/prompt.md` | `historico/piloto/prompt.md` |
+| leitura cega | `avaliacao/leitura-claude-cego-ext.csv` | `historico/piloto/leitura-claude-cego.csv` |
+| mapa de anonimização | `avaliacao/mapa-anonimizacao.csv` | `historico/piloto/mapa-anonimizacao.csv` (semente 24) |
+| pacotes cegos (fora do git) | `avaliacao/pacotes/` | `historico/piloto/pacotes/` |
+
 ---
 
 ## Rodar
@@ -38,17 +51,25 @@ infra/scripts/rodada.sh SMOKE-01
 O lote são três rodadas, e a réplica é o segundo argumento:
 
 ```bash
-infra/scripts/rodada.sh BATCH-01 1
-infra/scripts/rodada.sh BATCH-02 2
-infra/scripts/rodada.sh BATCH-03 3
+infra/scripts/rodada.sh EXT-01 1
+infra/scripts/rodada.sh EXT-02 2
+infra/scripts/rodada.sh EXT-03 3
 ```
+
+O `executar.sh` lê o enunciado de `experimento/prompt/prompt.md`, a não ser que
+`PROMPT_FILE` aponte outro. Para repetir o piloto:
+`PROMPT_FILE=historico/piloto/prompt.md infra/scripts/rodada.sh ...`.
 
 Depois:
 
 ```bash
-node infra/scripts/agregar.mjs --prefix BATCH          # -> analise/resultados.csv
-node avaliacao/ferramentas/anonimizar.mjs BATCH-01-OPUS-CONTROL ... --seed N
+node infra/scripts/agregar.mjs --prefix EXT            # -> analise/resultados.csv
+node avaliacao/ferramentas/anonimizar.mjs EXT-01-OPUS-CONTROL ... --seed N
 ```
+
+A semente de cada lote fica registrada na última coluna do mapa dele. O
+`anonimizar.mjs` sempre escreve em `avaliacao/`: para regenerar o piloto, guarde
+antes o mapa que estiver lá.
 
 ---
 
@@ -75,13 +96,15 @@ O enunciado e o harness são identificados por conteúdo byte a byte. Confira
 **depois de clonar ou copiar**, antes de rodar:
 
 ```bash
-sha256sum experimento/prompt/prompt.md      # 53db3424b3972795...
+sha256sum experimento/prompt/prompt.md      # b7cdb594cb49efee...
+sha256sum historico/piloto/prompt.md        # 53db3424b3972795...
 docker image inspect --format '{{.Id}}' experimento-harness:v3
 ```
 
 | | |
 |---|---|
-| `experimento/prompt/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
+| `experimento/prompt/prompt.md` | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
+| `historico/piloto/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
 | `experimento/harness/` (árvore) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
 | `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
 | imagem `experimento-harness:v3` | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
@@ -96,7 +119,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `agregar.mjs` | `4e8001f7a3012b8d` | nada — o `meta.json` sobrevive |
 
 > [!danger] `core.autocrlf` desta máquina é `true`
-> O `.gitattributes` trata `experimento/**` como binário por isso. Sem ele o git
+> O `.gitattributes` trata `experimento/**` e `historico/**` como binário por isso. Sem ele o git
 > converteria fim de linha no commit e o hash mudaria **sem que uma palavra
 > mudasse**.
 
