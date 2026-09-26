@@ -1,0 +1,176 @@
+// Prepara os pacotes para a avaliacao as cegas.
+//
+// Uso:
+//   node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N]
+//
+// Para cada execucao, produz avaliacao/pacotes/<CODIGO>/ com o codigo-fonte e
+// NADA MAIS. Fora ficam: CLAUDE.md, .claude/, target/, o .git do agente,
+// meta.json, a transcricao e o log de build — tudo que diria a quem avalia em
+// que braco aquele pacote estava.
+//
+// As datas de modificacao sao normalizadas. Arquivo do braco HARNESS nasce
+// depois do harness ser copiado, e um `ls -la` entrega isso.
+//
+// O mapa codigo -> execucao vai para avaliacao/mapa-anonimizacao.csv, que esta
+// no .gitignore de proposito. Mova-o para fora desta pasta antes de avaliar.
+//
+// Este script NAO gera planilha de notas. A avaliacao ainda nao esta desenhada,
+// e inventar colunas aqui seria decidir por ela.
+
+import {
+  readdirSync, existsSync, mkdirSync, copyFileSync, writeFileSync,
+  readFileSync, utimesSync, statSync,
+} from "node:fs";
+import { join, dirname } from "node:path";
+
+const ARGS = process.argv.slice(2);
+const iSeed = ARGS.indexOf("--seed");
+const seed = iSeed >= 0 ? Number(ARGS[iSeed + 1]) : 20260923;
+const runs = ARGS.filter((a, i) => !a.startsWith("--") && ARGS[i - 1] !== "--seed");
+
+if (!runs.length) {
+  console.error("uso: node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N]");
+  process.exit(2);
+}
+
+const PACOTES = join("avaliacao", "pacotes");
+const MAPA = join("avaliacao", "mapa-anonimizacao.csv");
+const DATA_FIXA = new Date("2026-01-01T00:00:00Z");
+
+// Fora do pacote. Qualquer um destes revela a condicao ou e ruido.
+const FORA_DIR = new Set(["target", ".claude", ".git", "node_modules", ".mvn"]);
+const FORA_ARQ = new Set(["CLAUDE.md", "meta.json", "claude-output.jsonl", "stderr.txt", "build.txt"]);
+
+// Comentario no codigo citando o harness e RESULTADO DO MODELO e NAO se remove.
+// Registra-se, e o numero vai para as ameacas a validade.
+const PISTA = /CLAUDE\.md|harness|orienta[cç][oõ]es de projeto|\bskill\b/i;
+
+// Gerador deterministico, para o embaralhamento ser reproduzivel a partir da
+// semente registrada. Nao precisa ser bom, precisa ser o mesmo sempre.
+function rng(s) {
+  let x = s >>> 0 || 1;
+  return () => {
+    x ^= x << 13; x >>>= 0;
+    x ^= x >> 17;
+    x ^= x << 5; x >>>= 0;
+    return x / 0xffffffff;
+  };
+}
+
+// Sem vogais, para nao formar palavra por acidente, e sem 0/O e 1/I.
+const ALFABETO = "23456789BCDFGHJKLMNPQRSTVWXZ";
+
+function varrer(dir, base = dir) {
+  const achados = [];
+  for (const i of readdirSync(dir, { withFileTypes: true })) {
+    if (i.isDirectory()) {
+      if (FORA_DIR.has(i.name)) continue;
+      achados.push(...varrer(join(dir, i.name), base));
+    } else {
+      if (FORA_ARQ.has(i.name)) continue;
+      achados.push(join(dir, i.name));
+    }
+  }
+  return achados;
+}
+
+const aleatorio = rng(seed);
+
+// Embaralha as execucoes ANTES de atribuir codigo: a ordem das pastas nao pode
+// seguir a ordem em que elas rodaram.
+const ordem = runs.slice();
+for (let i = ordem.length - 1; i > 0; i--) {
+  const j = Math.floor(aleatorio() * (i + 1));
+  [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
+}
+
+const usados = new Set();
+const codigo = () => {
+  let c;
+  do { c = Array.from({ length: 4 }, () => ALFABETO[Math.floor(aleatorio() * ALFABETO.length)]).join(""); }
+  while (usados.has(c));
+  usados.add(c);
+  return c;
+};
+
+mkdirSync(PACOTES, { recursive: true });
+
+const linhasMapa = [];
+const vazamentos = [];
+
+for (const run of ordem) {
+  const ws = join("runs", run, "workspace");
+  if (!existsSync(ws)) { console.error(`  ! ${run}: workspace nao encontrado, pulado`); continue; }
+
+  const cod = codigo();
+  const destino = join(PACOTES, cod);
+  if (existsSync(destino)) { console.error(`  ! ${destino} ja existe, pulado`); continue; }
+
+  const lista = varrer(ws);
+  const pistas = [];
+
+  for (const origem of lista) {
+    const relativo = origem.slice(ws.length + 1);
+    const alvo = join(destino, relativo);
+    mkdirSync(dirname(alvo), { recursive: true });
+    copyFileSync(origem, alvo);
+    // Normaliza a data. Sem isto, o braco HARNESS tem arquivos mais novos.
+    utimesSync(alvo, DATA_FIXA, DATA_FIXA);
+
+    if (/\.(java|md|xml|properties|ya?ml|txt)$/i.test(relativo)) {
+      let texto = "";
+      try { texto = readFileSync(origem, "utf8"); } catch { /* binario */ }
+      texto.split(/\r?\n/).forEach((l, n) => {
+        if (PISTA.test(l)) pistas.push(`${relativo}:${n + 1}: ${l.trim().slice(0, 90)}`);
+      });
+    }
+  }
+
+  // As PASTAS tambem, de baixo para cima — senao `src/` e as intermediarias
+  // guardam a hora em que o anonimizador rodou. Isso nao vaza a condicao (todos
+  // os pacotes sao gerados juntos), mas um `ls -la` mostrando datas diferentes
+  // entre pacotes convida quem avalia a reparar em coisa que nao e o codigo.
+  const pastas = new Set();
+  for (const origem of lista) {
+    let d = dirname(join(destino, origem.slice(ws.length + 1)));
+    while (d.startsWith(destino)) { pastas.add(d); d = dirname(d); }
+  }
+  for (const d of [...pastas].sort((a, b) => b.length - a.length)) {
+    try { utimesSync(d, DATA_FIXA, DATA_FIXA); } catch { /* alguns SO recusam */ }
+  }
+
+  linhasMapa.push({ cod, run, arquivos: lista.length, pistas: pistas.length });
+  if (pistas.length) vazamentos.push({ cod, run, pistas });
+
+  console.log(
+    `  ${cod}  <-  ${run.padEnd(30)} ${String(lista.length).padStart(3)} arquivos` +
+    (pistas.length ? `  ** ${pistas.length} pista(s) de condicao **` : "")
+  );
+}
+
+linhasMapa.sort((a, b) => a.cod.localeCompare(b.cod));
+writeFileSync(
+  MAPA,
+  "blind_code,run_id,files,condition_leaks,seed\n" +
+  linhasMapa.map((l) => `${l.cod},${l.run},${l.arquivos},${l.pistas},${seed}`).join("\n") + "\n"
+);
+
+console.log(`\n${linhasMapa.length} pacotes em ${PACOTES}/`);
+console.log(`mapa: ${MAPA}  (semente ${seed})`);
+
+if (vazamentos.length) {
+  console.log(`\n${vazamentos.length} pacote(s) com pista da condicao no proprio codigo:`);
+  for (const v of vazamentos) {
+    console.log(`  ${v.cod}`);
+    for (const p of v.pistas.slice(0, 5)) console.log(`      ${p}`);
+  }
+  console.log("\n  Pista no codigo e RESULTADO DO MODELO e nao se remove.");
+  console.log("  Quem avalia anota que viu, e o numero entra nas ameacas a validade.");
+}
+
+console.log(`
+PROXIMO PASSO, e ele e manual:
+  1. Mova ${MAPA} para fora desta pasta, ou pelo menos nao abra.
+  2. Avalie os pacotes sem saber de que braco veio cada um.
+  3. Congele o resultado da avaliacao com um commit.
+  4. So entao reabra o mapa.`);

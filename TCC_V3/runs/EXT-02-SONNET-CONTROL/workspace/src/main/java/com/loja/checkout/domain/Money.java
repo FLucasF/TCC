@@ -1,0 +1,18 @@
+package com.loja.checkout.domain;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+/**
+ * Arredondamento monetario padrao do negocio: "meio para o par" (HALF_EVEN),
+ * aplicado a cada etapa do calculo do resumo de compra.
+ */
+public final class Money {
+
+    private Money() {
+    }
+
+    public static BigDecimal round(BigDecimal valor) {
+        return valor.setScale(2, RoundingMode.HALF_EVEN);
+    }
+}
