@@ -9,8 +9,9 @@ O valor final é calculado nesta ordem:
 1. Soma dos produtos (preço de cada item × quantidade).
 2. Desconto do cupom, se o cliente usou um.
 3. Frete, de acordo com a forma de entrega escolhida.
-4. Total do pedido = produtos − desconto do cupom + frete.
-5. Ajuste da forma de pagamento sobre esse total.
+4. Imposto da região do cliente, sobre os produtos já com o desconto.
+5. Total do pedido = produtos − desconto do cupom + frete + imposto.
+6. Ajuste da forma de pagamento sobre esse total.
 
 Todo valor em dinheiro é arredondado para centavos em cada etapa, usando o arredondamento "meio para o par" (exemplo: 2,995 vira 3,00 e 2,985 vira 2,98).
 
@@ -42,6 +43,18 @@ O pessoal do marketing adora inventar promoção. Os cupons que valem hoje são 
 
 Só dá para usar um cupom por pedido. O código do cupom é sempre em letras maiúsculas, exatamente como está acima. Por enquanto os cupons ficam fixos no sistema, não precisa de cadastro.
 
+## Clube da loja
+
+Todo cliente tem um nível no clube, e o nível muda o que a pessoa recebe:
+
+- **BRONZE**: é só o cadastro, não ganha nada.
+- **PRATA**: ganha 2% do valor dos produtos de volta, em crédito para a próxima compra.
+- **OURO**: ganha 5% dos produtos de volta em crédito, **não paga frete nunca**, e se os produtos passarem de R$ 500,00 a gente manda um brinde junto.
+
+O crédito não abate nada nesta compra, fica guardado para a próxima. Quando o OURO não paga frete, o frete sai zerado no resumo.
+
+Estamos estudando criar mais níveis, e cada um vai ter seu conjunto de vantagens.
+
 ## O que o atendimento mais responde
 
 Juntei aqui as dúvidas que os clientes mais mandam no WhatsApp, pode ajudar a entender o negócio:
@@ -59,6 +72,8 @@ Juntei aqui as dúvidas que os clientes mais mandam no WhatsApp, pode ajudar a e
 - O cálculo dos juros do cartão é o mesmo do crediário (tabela Price): **parcela = total × taxa ÷ (1 − (1 + taxa)^−número de parcelas)**. A parcela é arredondada para centavos e o valor final é a parcela × número de parcelas.
 - Sem juros (até 3x), o valor final é o próprio total do pedido e a parcela é o total dividido pelo número de parcelas, arredondado para centavos.
 - No Pix, o desconto é 5% do total do pedido, arredondado para centavos.
+- O imposto é por região do cliente: Sudeste 12%, Sul 11%, Centro-Oeste 9%, Norte 7% e Nordeste 7%. **É só a porcentagem que muda, a conta é a mesma em todas**: a porcentagem sobre os produtos já com o desconto do cupom, arredondada para centavos.
+- O crédito do clube é sobre o valor dos produtos, sem desconto e sem frete, arredondado para centavos.
 - Não aceitamos boleto quando o total do pedido (produtos − cupom + frete) passa de R$ 1.000,00.
 
 ---
@@ -80,13 +95,17 @@ O site vai chamar o serviço assim. Por favor, siga exatamente estes nomes e for
   "modalidadeEntrega": "EXPRESSA",
   "cupom": "BEMVINDO10",
   "formaPagamento": "PIX",
-  "parcelas": 1
+  "parcelas": 1,
+  "nivelClube": "OURO",
+  "regiao": "SUDESTE"
 }
 ```
 
 - `cupom` é opcional (pode não vir ou vir `null`).
 - `parcelas` é opcional; se não vier, considerar 1.
 - Formas de pagamento: `PIX`, `CARTAO`, `BOLETO`.
+- Níveis do clube: `BRONZE`, `PRATA`, `OURO`.
+- Regiões: `SUDESTE`, `SUL`, `CENTRO_OESTE`, `NORTE`, `NORDESTE`.
 
 ### Resposta de sucesso (200)
 
@@ -96,10 +115,13 @@ O site vai chamar o serviço assim. Por favor, siga exatamente estes nomes e for
   "descontoCupom": 40.97,
   "frete": 33.10,
   "prazoEntregaDias": 2,
+  "imposto": 49.16,
   "ajustePagamento": -20.09,
   "totalFinal": 381.74,
   "parcelas": 1,
-  "valorParcela": 381.74
+  "valorParcela": 381.74,
+  "creditoProximaCompra": 20.48,
+  "brinde": false
 }
 ```
 
@@ -113,13 +135,15 @@ A resposta de erro é sempre `{ "erro": "CODIGO" }`. Verificar nesta ordem e dev
 | Ordem | Situação | Código |
 |---|---|---|
 | 1 | Carrinho vazio, ou algum item com preço, quantidade ou peso zero/negativo/ausente | `PEDIDO_INVALIDO` |
-| 2 | Opção de entrega que não existe ou não informada | `MODALIDADE_INVALIDA` |
-| 3 | Opção de entrega existe, mas não atende o pedido (ex.: motoboy acima de 5 kg) | `MODALIDADE_INDISPONIVEL` |
-| 4 | Cupom informado que não existe | `CUPOM_INVALIDO` |
-| 5 | Cupom existe, mas o pedido não cumpre a condição (ex.: MENOS50 abaixo de R$ 300,00) | `CUPOM_NAO_APLICAVEL` |
-| 6 | Forma de pagamento que não existe ou não informada | `FORMA_PAGAMENTO_INVALIDA` |
-| 7 | Número de parcelas não permitido para a forma de pagamento (Pix e boleto só 1; cartão de 1 a 12) | `PARCELAMENTO_INVALIDO` |
-| 8 | Forma de pagamento existe, mas não atende o pedido (ex.: boleto acima de R$ 1.000,00) | `FORMA_PAGAMENTO_INDISPONIVEL` |
+| 2 | Nível do clube que não existe ou não informado | `NIVEL_CLUBE_INVALIDO` |
+| 3 | Região que não existe ou não informada | `REGIAO_INVALIDA` |
+| 4 | Opção de entrega que não existe ou não informada | `MODALIDADE_INVALIDA` |
+| 5 | Opção de entrega existe, mas não atende o pedido (ex.: motoboy acima de 5 kg) | `MODALIDADE_INDISPONIVEL` |
+| 6 | Cupom informado que não existe | `CUPOM_INVALIDO` |
+| 7 | Cupom existe, mas o pedido não cumpre a condição (ex.: MENOS50 abaixo de R$ 300,00) | `CUPOM_NAO_APLICAVEL` |
+| 8 | Forma de pagamento que não existe ou não informada | `FORMA_PAGAMENTO_INVALIDA` |
+| 9 | Número de parcelas não permitido para a forma de pagamento (Pix e boleto só 1; cartão de 1 a 12) | `PARCELAMENTO_INVALIDO` |
+| 10 | Forma de pagamento existe, mas não atende o pedido (ex.: boleto acima de R$ 1.000,00) | `FORMA_PAGAMENTO_INDISPONIVEL` |
 
 ### Exemplos conferidos pelo financeiro
 
@@ -134,6 +158,9 @@ A resposta de erro é sempre `{ "erro": "CODIGO" }`. Verificar nesta ordem e dev
 
 **Exemplo 4**: Meia 19,90 × 7 (0,10 kg) + Camiseta 79,90 × 2 (0,30 kg), `RETIRADA_LOJA`, cupom `LEVE3PAGUE2`, `CARTAO` em 3×
 → subtotal 299,10 · cupom 39,80 · frete 0,00 · prazo 1 · ajuste 0,00 · total final 259,30 · 3× de 86,43
+
+**Exemplo 5**: Camiseta 79,90 × 2 (0,30 kg) + Tênis 249,90 × 1 (1,20 kg), `EXPRESSA`, sem cupom, `PIX`, clube `OURO`, região `SUDESTE`
+→ subtotal 409,70 · cupom 0,00 · frete 0,00 (OURO não paga) · prazo 2 · imposto 49,16 · ajuste −22,94 · total final 435,92 · 1× de 435,92 · crédito 20,48 · brinde não
 
 ---
 
