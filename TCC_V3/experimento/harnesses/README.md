@@ -52,6 +52,22 @@ versão com `.claude/skills/` vazia.
   aparecer nas execuções `HARNESS` e não nas `CONTROL`. Se o agente a **usou**
   aparece em `outcome.tool_calls_by_name`, na ferramenta `Skill`.
 
+## Validação da bancada
+
+Em 26/09/2026, quatro execuções `TESTE-BANCADA-*` (Haiku, esforço baixo, um
+enunciado que só pergunta o que o agente recebeu) conferiram, dentro do container:
+
+| execução | chegou ao workspace | skill no `isolation_init.skills` | resposta |
+|---|---|---|---|
+| `CONTROL` | nada | não | sem `CLAUDE.md`, sem skill |
+| `ONLY-CLAUDE` | `CLAUDE.md` | não | com `CLAUDE.md`, sem skill; hash `560577922737dbb9` |
+| `CLAUDE-SKILLS` | `CLAUDE.md` + skill | sim, e usada | `SKILL-CARREGADA-OK` |
+| `ONLY-SKILLS` | só a skill | sim, e usada | `SKILL-CARREGADA-OK` |
+
+As versões de teste e o enunciado estão em `historico/teste-bancada/`, com os
+mesmos hashes gravados nos `meta.json`. Uma pasta `.claude/skills/` vazia é
+recusada antes de subir o container.
+
 ## De onde veio cada skill
 
 | versão | skill | origem | versão ou commit | data |
