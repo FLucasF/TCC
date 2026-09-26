@@ -1,0 +1,214 @@
+---
+tags: [tcc, experimento, pre-registro]
+status: fechado, exceto a P4 (do professor)
+fechado: 2026-09-20
+---
+
+# Pré-registro
+
+O que está decidido **antes** de rodar o lote e de pontuar qualquer pacote.
+
+Não repete o `plano.md`: aponta para ele. Duplicar texto foi exatamente o que
+produziu a divergência da §11.3, onde o exemplo de `meta.json` descrevia um
+arquivo que não existia mais.
+
+> [!success] Imagem construída e fixada em 20/09/2026
+> `experimento-harness:v3`, digest
+> `sha256:f43d75c8af9a80ec0bff4465990bf584fa6cce2405959ca1b3f31e095abcfee0`.
+> O projeto de aquecimento novo, em `infra/docker/aquecimento/`, compilou e
+> rodou os testes durante o build — o que confirma que a remoção do esqueleto
+> não quebrou a imagem.
+
+---
+
+## 1. A pergunta
+
+Ao construir uma API nova, um harness focado em design de baixo nível aumenta a
+taxa de reconhecimento e implementação correta do padrão Strategy em modelos
+Claude, comparado ao Claude Code sem configuração? E o efeito muda conforme a
+dificuldade de perceber onde o padrão é necessário?
+
+Detalhe em `plano.md` §2.
+
+## 2. Desenho
+
+| | |
+|---|---|
+| Variável independente | harness: `SEM` × `COM` |
+| Fator de bloco | modelo: `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5` |
+| Repetições | 3 por combinação → **18 execuções** |
+| Ordem | `SEM` e `COM` **simultâneos** no mesmo par (§6.2). A ordem sorteada com `schedule.csv` foi abandonada |
+| Natureza | exploratório e descritivo. Valores individuais, médias e variação. **Sem** afirmação de significância |
+
+## 3. Hipóteses
+
+| ID | enunciado |
+|---|---|
+| H1 | Com harness, a proporção de pontos com Strategy correto é maior que sem harness, nos três modelos |
+| H2 | O harness **altera** o consumo de tokens e o tempo — **sem direção declarada** |
+| H3 | O ganho do harness é maior no Haiku 4.5 do que no Opus 5 |
+| H4 | Nas duas condições, a taxa de acerto cai com a dificuldade (P1 > P2 > P3) |
+| H5 | O ganho do harness é maior em P2 e P3 do que em P1 |
+
+A H2 é não-direcional de propósito. A redação anterior dizia "são maiores" e
+justificava com skill e hook, que saíram do harness; e as execuções de medição
+apontam ao contrário — Opus −42% e Sonnet −45% em tokens de entrada, `SEM`
+contra `COM`. Ver `plano.md` §2.4.
+
+## 4. O que está fixo
+
+| artefato | hash |
+|---|---|
+| `experimento/prompt/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
+| `experimento/harness/` (árvore) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
+| `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
+| imagem `experimento-harness:v3` | `sha256:f43d75c8af9a80ec0bff4465990bf584fa6cce2405959ca1b3f31e095abcfee0` |
+
+| parâmetro | valor |
+|---|---|
+| execução | `claude -p`, headless |
+| `--effort` | `medium` (D8, revisto em 20/09/2026, ver §3.1) |
+| `--disallowedTools` | `Agent,Task`. **Web liberada** nas duas condições |
+| permissões | `--dangerously-skip-permissions`, container descartável |
+| sessão | `--no-session-persistence` |
+| ponto de partida | **pasta vazia**. Java 21 e Spring Boot 4.1.1 **pedidos no enunciado** |
+| limite de turnos ou tempo | **nenhum automático** |
+
+## 5. O que se mede
+
+**Primário**
+
+- **Arquivos existentes alterados** para acrescentar uma variante, em P1, P2 e
+  P3, às cegas. **Menos é melhor**: zero é o melhor resultado
+- Arquivos criados e linhas alteradas nos existentes, no mesmo teste
+- Testes funcionais escondidos: % aprovados, total e por grupo. É **controle**,
+  não desfecho: extensão em pacote que não passa nos casos não conta
+
+> [!warning] Emenda em 21/09/2026: os três primeiros itens saíram
+> A redação original listava, como primários, "Strategy correto (sim/parcial/não)
+> pela rubrica", "pontuação 0–12 por ponto" e "pontos com Strategy correto por
+> execução (0–3)". A rubrica foi removida — `plano.md` §14.4 — e o teste de
+> extensão, que já estava listado aqui como desfecho, foi promovido a primário.
+>
+> **É emenda a pré-registro, e está declarada como tal.** Nenhum pacote do lote
+> tinha sido avaliado quando ela foi feita: as 49 execuções existentes são de
+> fumaça e calibração, e estão todas fora da análise.
+
+**Secundário**
+
+- `tokens.entrada_total`, `tokens.saida`, `tokens.raciocinio`
+- `tempo.duracao_api_ms` — **não** `duracao_s`, contaminada pela execução paralela
+- turnos, chamadas de ferramenta, `auditoria.chamadas_web`
+- `fundacao.obedeceu_versoes`: taxa de obediência por modelo e condição
+
+> [!warning] Reportar `entrada_total`, nunca `entrada`
+> `tokens.entrada` fica entre 38 e 345 nas execuções medidas, porque quase tudo
+> entra por cache. Uma tabela que preencha "tokens de entrada" com esse campo
+> publica um número sem significado.
+
+## 6. As regras de decisão, fixadas antes
+
+| # | regra |
+|---|---|
+| **Validade** | `valida` é decisão humana pela tabela de exceções da §13.3, e o extrator **não opina**: grava `null`. Revisto em 22/09/2026, quando saiu o `validade.mjs`. Só falha de infraestrutura invalida — **build quebrado conta como resultado** |
+| **Refazer** | Só por falha de infraestrutura, nunca por qualidade. Cota, erro de Docker, 5xx da API, interrupção à mão. Refazer é do zero, com registro |
+| **P7 · desobediência às versões** | Execução continua **válida**. A desobediência vira **taxa reportada** por modelo e condição. Não é covariável nem critério de exclusão |
+| **P6 · o que conta como Strategy** | Encerrado em 21/09/2026 junto com a rubrica. O desfecho passou a ser contagem de arquivos no teste de extensão, `plano.md` §14.4, que não tem regra de aceitação a definir |
+| **Web** | Liberada nas duas condições. `auditoria.acesso_web_suspeito` deixa de ser marca de violação e vira registro descritivo |
+| **Paralelismo** | O `rodada.sh` roda as seis simultâneo de propósito. Duração **entre modelos** fica contaminada e é declarada |
+
+## 7. Os instrumentos, e seus hashes
+
+| instrumento | hash (16 primeiros) |
+|---|---|
+| ~~`avaliacao/rubrica-strategy.md`~~ | **removida em 21/09/2026**, hash era `06d9984b17667053`. O desfecho primário passou a ser o teste de extensão; ver `docs/v2-desenho.md` §1a |
+| `avaliacao/gabarito-avaliador.md` | `ba29ed637831dfd0`. **Alterado em 22/09/2026**, hash anterior `06813eb530435427`: a seção "Rubrica: aplicar por ponto" mandava executar um procedimento removido em 21/09. Diff em `git diff ee81dbf -- avaliacao/gabarito-avaliador.md` |
+| `casos/exemplos-enunciado.json` | `ca0044ce27530b3a` |
+| `casos/entrega.json` | `27769cea0785594d` |
+| `casos/cupons.json` | `2bc84b71f4aeefb9` |
+| `casos/pagamento.json` | `f408383f87b79127` |
+| `casos/arredondamento.json` | `1a415fe8cefdd1fa` |
+| `casos/opcionais-validacao.json` | `60f507569d81475e` |
+| `casos/precedencia-erros.json` | `885ecbc1820c7a48` |
+| `casos/rotas-sem-exemplo.json` | `a58e4892178b7a52` |
+| `testes-extensao/p1-drone.json` | `6d6bc443ab671b2d` |
+| `testes-extensao/p2-dezoff.json` | `56dbdb6821a2e0e2` |
+| `testes-extensao/p3-carteira-digital.json` | `5472480f98f96df6` |
+
+**60 casos** na suíte escondida e **11** nos testes de extensão. Os valores não
+foram digitados: saíram de `avaliacao/ferramentas/gerar-casos.mjs`, em BigInt, e
+o gerador abortava se não reproduzisse os quatro exemplos do enunciado e E5/E6.
+O gerador foi **removido em 22/09/2026**, depois de ter escrito os casos e com o
+enunciado já congelado por hash. Recuperável em
+`git show ee81dbf:avaliacao/ferramentas/gerar-casos.mjs`; a derivação está em
+prosa, com a tabela dos empates, em `avaliacao/casos/README.md`.
+
+> [!important] Os autotestes fazem parte do pré-registro
+> ```bash
+> node avaliacao/ferramentas/autoteste.mjs      # 5/5
+> node infra/scripts/auditoria-web.teste.mjs    # 13/13
+> ```
+> Eram quatro. `validade.teste.mjs` (14/14) e `gerar-casos.mjs` (6/6 de
+> referência) saíram em 22/09/2026 junto com os scripts que testavam — os dois
+> passaram pela última vez em 21/09, e são recuperáveis a partir de `ee81dbf`.
+> Nove defeitos apareceram nas ferramentas de medição entre 19 e 21/09/2026,
+> três deles por acaso e o último na própria rodada de fumaça. Um instrumento
+> sem teste próprio erra em silêncio.
+
+## 8. Avaliação
+
+Anonimização por `avaliacao/ferramentas/anonimizar.mjs`, com semente registrada
+no mapa. Autor aplica as três extensões em cada pacote e **commita**
+`notas-extensao.csv`, congelando a planilha. O professor confere o
+**procedimento** por amostra. Fluxo completo em `avaliacao/README.md`.
+
+> [!warning] Revisto em 21 e 22/09/2026
+> Até 21/09 isto dizia: rubrica **antes** do teste de extensão, autor congela
+> antes de ver as notas do professor, concordância por critério e **kappa de
+> Cohen**, análise a partir de `consenso.csv`. A rubrica saiu (`plano.md` §14.4)
+> e com ela o segundo avaliador, o kappa e as três planilhas. Em 22/09 saíram os
+> scripts que davam palpite sobre validade e montavam as tabelas.
+
+## 9. O que NÃO está pré-especificado
+
+Declarado para não virar descoberta disfarçada depois:
+
+- A análise qualitativa do que os modelos fizeram no lugar do Strategy
+- O catálogo das **seis formas de código** pode ganhar entradas novas se o lote
+  produzir uma que as 49 execuções até aqui não produziram
+- Qualquer corte, agrupamento ou teste estatístico não listado na §5
+
+## 9a. Validado de ponta a ponta antes de fechar
+
+Em 20/09/2026, com a imagem `v3`, a suíte inteira rodou contra as execuções de
+calibração do `MED-07` — aplicações Java reais, não app de mentira. O resultado
+está em `docs/harness-notas.md`.
+
+Isso revelou o **oitavo** defeito de ferramenta: `cygpath -w` sobre caminho
+relativo devolve caminho relativo, o Docker recusa com código 125, e o script
+somava o 125 como "125 casos com erro". O exemplo relativo documentado no
+`README` nunca teria funcionado. Corrigido em duas frentes: `CASOS` passa a ser
+resolvido para absoluto, e os códigos de erro do próprio Docker (125, 126, 127)
+deixam de ser somados como contagem de casos — mesma família do 66, que já
+tinha dado esse problema em 19/09.
+
+## 10. O que muda depois disto
+
+Nada, até o lote acabar. Mudança de prompt, harness, imagem, casos ou rubrica
+**invalida o lote** e exige recomeçar com hashes novos.
+
+Exceção única: defeito de ferramenta de medição que reprove implementação
+correta. Nesse caso, o conserto é registrado, os autotestes ganham o caso de
+regressão, e **as execuções afetadas são reavaliadas**, não refeitas — foi o que
+aconteceu com o detector de acesso externo em 20/09/2026.
+
+---
+
+## Procedência
+
+| | |
+|---|---|
+| commit no fechamento | `c48dcb9`, e os artefatos congelados seguem idênticos desde então — conferido em 21/09/2026, 16 de 16 |
+| última conferência dos hashes | 21/09/2026 |
+| execuções de calibração | `FUMACA-01`, `FUMACA-02`, `MED-01` a `MED-07`, **todas fora da análise** |
+| âncoras da rubrica | tiradas das execuções de calibração, nunca do lote |

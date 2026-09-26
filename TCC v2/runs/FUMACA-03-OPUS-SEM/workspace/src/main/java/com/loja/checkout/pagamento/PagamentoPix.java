@@ -1,0 +1,25 @@
+package com.loja.checkout.pagamento;
+
+import com.loja.checkout.dominio.Dinheiro;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+
+/** Pix a vista, com 5% de desconto no total do pedido. */
+@Component
+public class PagamentoPix implements FormaPagamento {
+
+    private static final BigDecimal DESCONTO = new BigDecimal("0.05");
+
+    @Override
+    public String codigo() {
+        return "PIX";
+    }
+
+    @Override
+    public ResultadoPagamento calcular(BigDecimal totalPedido, int parcelas) {
+        BigDecimal desconto = Dinheiro.centavos(totalPedido.multiply(DESCONTO));
+        BigDecimal totalFinal = Dinheiro.centavos(totalPedido.subtract(desconto));
+        return new ResultadoPagamento(totalFinal, totalFinal);
+    }
+}

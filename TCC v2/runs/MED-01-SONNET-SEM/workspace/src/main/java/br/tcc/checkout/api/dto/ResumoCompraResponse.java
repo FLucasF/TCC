@@ -1,0 +1,14 @@
+package br.tcc.checkout.api.dto;
+
+import java.math.BigDecimal;
+
+public record ResumoCompraResponse(
+		BigDecimal subtotalProdutos,
+		BigDecimal descontoCupom,
+		BigDecimal frete,
+		int prazoEntregaDias,
+		BigDecimal ajustePagamento,
+		BigDecimal totalFinal,
+		int parcelas,
+		BigDecimal valorParcela) {
+}

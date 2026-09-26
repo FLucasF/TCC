@@ -1,0 +1,12 @@
+package br.tcc.checkout.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public class ErroResponse {
+    @JsonProperty("erro")
+    public String erro;
+
+    public ErroResponse(String erro) {
+        this.erro = erro;
+    }
+}
