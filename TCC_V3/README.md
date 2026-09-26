@@ -20,9 +20,13 @@ em `runs/`, e o prefixo diz de qual são.
 | | experimento (`EXT`) | piloto (`BATCH`) |
 |---|---|---|
 | enunciado | `experimento/prompt/prompt.md` | `historico/piloto/prompt.md` |
-| leitura cega | `avaliacao/leitura-claude-cego-ext.csv` | `historico/piloto/leitura-claude-cego.csv` |
-| mapa de anonimização | `avaliacao/mapa-anonimizacao.csv` | `historico/piloto/mapa-anonimizacao.csv` (semente 24) |
-| pacotes cegos (fora do git) | `avaliacao/pacotes/` | `historico/piloto/pacotes/` |
+| gabarito | `avaliacao/strategy/gabarito.md` | — |
+| leitura cega | `avaliacao/strategy/leitura-claude-cego-ext.csv` | `historico/piloto/leitura-claude-cego.csv` |
+| mapa de anonimização | `avaliacao/strategy/mapa-anonimizacao.csv` | `historico/piloto/mapa-anonimizacao.csv` (semente 24) |
+| pacotes cegos (fora do git) | `avaliacao/strategy/pacotes/` | `historico/piloto/pacotes/` |
+
+Cada padrão testado tem a sua pasta em `avaliacao/`, com o gabarito junto dos
+pacotes que ele lê. A régua, comum a todos, é `avaliacao/regua.md`.
 
 ---
 
@@ -69,12 +73,15 @@ Depois:
 
 ```bash
 node infra/scripts/agregar.mjs --prefix EXT            # -> analise/resultados.csv
-node avaliacao/ferramentas/anonimizar.mjs EXT-01-OPUS-CONTROL ... --seed N
+node avaliacao/ferramentas/anonimizar.mjs EXT-01-OPUS-CONTROL ... --seed N --padrao strategy
 ```
 
-A semente de cada lote fica registrada na última coluna do mapa dele. O
-`anonimizar.mjs` sempre escreve em `avaliacao/`: para regenerar o piloto, guarde
-antes o mapa que estiver lá.
+Com `--padrao`, pacotes e mapa vão para `avaliacao/<padrao>/`, ao lado do
+gabarito, e o script **recusa** se já houver um mapa lá. Sem `--padrao`, grava em
+`avaliacao/`, como sempre gravou; é assim que o piloto se regenera, e o resultado
+é idêntico a `historico/piloto/`.
+
+A semente de cada lote fica registrada na última coluna do mapa dele.
 
 ---
 
@@ -119,13 +126,17 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 |---|---|---|
 | `executar.sh` | `0efc44e6d2cceec8` | perde **a execução** |
 | `rodada.sh` | `e6c65d2e4d84ede4` | perde **o pareamento** |
-| `anonimizar.mjs` | `6f4e96ec116312e4` | perde **a cegueira** |
+| `anonimizar.mjs` | `bcf480270b4984d2` | perde **a cegueira** |
 | `extrair-meta.mjs` | `8c1d1dd228ae5ddf` | nada — a transcrição sobrevive |
 | `agregar.mjs` | `4e8001f7a3012b8d` | nada — o `meta.json` sobrevive |
 
 O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
 `SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova
 faz o mesmo, com o mesmo hash de harness.
+
+O `anonimizar.mjs` era `6f4e96ec116312e4` até ganhar `--padrao`. Os pacotes e
+mapas do `BATCH` e do `EXT` foram gerados com essa versão; sem `--padrao`, a nova
+gera os mesmos bytes (conferido regenerando o piloto com a semente 24).
 
 > [!danger] `core.autocrlf` desta máquina é `true`
 > O `.gitattributes` trata `experimento/**` e `historico/**` como binário por isso. Sem ele o git

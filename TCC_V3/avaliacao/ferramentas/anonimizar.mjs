@@ -1,7 +1,12 @@
 // Prepara os pacotes para a avaliacao as cegas.
 //
 // Uso:
-//   node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N]
+//   node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]
+//
+// Com --padrao, pacotes e mapa vao para avaliacao/<NOME>/, a pasta do padrao,
+// onde ja mora o gabarito que os le. Se o mapa ja existir la, o script recusa:
+// sobrescreve-lo apagaria a unica ligacao entre codigo cego e execucao. Sem
+// --padrao, grava em avaliacao/, como sempre gravou.
 //
 // Para cada execucao, produz avaliacao/pacotes/<CODIGO>/ com o codigo-fonte e
 // NADA MAIS. Fora ficam: CLAUDE.md, .claude/, target/, o .git do agente,
@@ -26,15 +31,27 @@ import { join, dirname } from "node:path";
 const ARGS = process.argv.slice(2);
 const iSeed = ARGS.indexOf("--seed");
 const seed = iSeed >= 0 ? Number(ARGS[iSeed + 1]) : 20260923;
-const runs = ARGS.filter((a, i) => !a.startsWith("--") && ARGS[i - 1] !== "--seed");
+const iPadrao = ARGS.indexOf("--padrao");
+const padrao = iPadrao >= 0 ? ARGS[iPadrao + 1] : null;
+const runs = ARGS.filter((a, i) => !a.startsWith("--") && ARGS[i - 1] !== "--seed" && ARGS[i - 1] !== "--padrao");
 
 if (!runs.length) {
-  console.error("uso: node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N]");
+  console.error("uso: node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]");
+  process.exit(2);
+}
+if (iPadrao >= 0 && !/^[a-z0-9-]+$/.test(padrao ?? "")) {
+  console.error(`--padrao deve ser o nome de uma pasta de avaliacao/ (a-z, 0-9, -): '${padrao ?? ""}'`);
   process.exit(2);
 }
 
-const PACOTES = join("avaliacao", "pacotes");
-const MAPA = join("avaliacao", "mapa-anonimizacao.csv");
+const BASE = padrao ? join("avaliacao", padrao) : "avaliacao";
+const PACOTES = join(BASE, "pacotes");
+const MAPA = join(BASE, "mapa-anonimizacao.csv");
+
+if (padrao && existsSync(MAPA)) {
+  console.error(`${MAPA} ja existe. Guarde-o fora da pasta antes; o script nao sobrescreve mapa.`);
+  process.exit(1);
+}
 const DATA_FIXA = new Date("2026-01-01T00:00:00Z");
 
 // Fora do pacote. Qualquer um destes revela a condicao ou e ruido.

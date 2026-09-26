@@ -184,9 +184,13 @@ entre lotes.
 
 ### Os padrões
 
-| padrão | enunciado | pontos positivos | controle negativo | lote | estado |
-|---|---|---|---|---|---|
-| **Strategy** | `experimento/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | rodado; leitura feita antes da régua, a refazer |
+| padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
+|---|---|---|---|---|---|---|
+| **Strategy** | `experimento/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | `avaliacao/strategy/` | rodado; leitura feita antes da régua, a refazer |
+
+A coluna **avaliação** é a pasta do padrão: o gabarito, os pacotes cegos, o mapa
+e as leituras ficam juntos lá, e o cabeçalho do gabarito repete o hash do
+enunciado e o prefixo do lote.
 
 ### Os harnesses
 
@@ -207,7 +211,9 @@ Um **padrão novo** entra como uma linha na primeira tabela, **antes** de rodar:
 2. o lote com o nome do padrão no prefixo (por exemplo `STATE-01`);
 3. pelo menos um ponto positivo e um controle negativo;
 4. uma rodada `SMOKE-` antes do lote, para ver se o enunciado não bate no teto
-   (os dois braços acertam tudo) nem no chão (nenhum acerta).
+   (os dois braços acertam tudo) nem no chão (nenhum acerta);
+5. a pasta `avaliacao/<padrao>/` com o `gabarito.md`, e os pacotes gerados com
+   `anonimizar.mjs --padrao <padrao>`.
 
 Uma **versão nova do harness** é uma pasta nova em `experimento/harnesses/`
 (como montar: [`experimento/harnesses/README.md`](experimento/harnesses/README.md)),
