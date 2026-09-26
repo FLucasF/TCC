@@ -10,6 +10,8 @@
 #   IMAGE        padrao experimento-harness:v3
 #   EFFORT       padrao medium
 #   PROMPT_FILE  padrao experimento/prompt/prompt.md
+#   HARNESS      padrao only-claude. Nome de uma pasta de experimento/harnesses/,
+#                usada so na condicao HARNESS (ex.: HARNESS=claude-and-skills)
 #   NETWORK      rotulo da rede, gravado no meta.json (ex.: casa-wifi)
 #
 # NENHUMA restricao de ferramenta. O agente recebe tudo que o Claude Code
@@ -39,6 +41,8 @@ EFFORT="${EFFORT:-medium}"
 RUN_DIR="$RAIZ/runs/$RUN_ID"
 WS="$RUN_DIR/workspace"
 PROMPT="${PROMPT_FILE:-$RAIZ/experimento/prompt/prompt.md}"
+HARNESS="${HARNESS:-only-claude}"
+HARNESS_DIR="$RAIZ/experimento/harnesses/$HARNESS"
 ENV_FILE="$RAIZ/.env"
 
 # ------------------------------------------------------------------ preflight
@@ -56,12 +60,21 @@ if grep -Eq '^(ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|ANTHROPIC_BASE_URL|ANTHROP
 fi
 docker image inspect "$IMAGE" >/dev/null 2>&1 || morrer "imagem $IMAGE nao existe (rode o docker build)"
 if [ "$CONDITION" = "HARNESS" ]; then
-    [ -f "$RAIZ/experimento/harness/CLAUDE.md" ] || morrer "condicao HARNESS sem harness/CLAUDE.md"
+    case "$HARNESS" in ""|*[!a-z0-9-]*) morrer "HARNESS deve ser o nome de uma pasta de experimento/harnesses/: '$HARNESS'" ;; esac
+    [ -d "$HARNESS_DIR" ] || morrer "harness nao encontrado: $HARNESS_DIR"
+    # Uma pasta de skills sem skill e uma versao ainda nao montada: rodar com ela
+    # mediria outra coisa com o nome desta.
+    if [ -d "$HARNESS_DIR/.claude/skills" ] && ! compgen -G "$HARNESS_DIR/.claude/skills/*/SKILL.md" >/dev/null; then
+        morrer "harness $HARNESS tem .claude/skills/ sem nenhuma skill (<nome>/SKILL.md)"
+    fi
+    [ -f "$HARNESS_DIR/CLAUDE.md" ] || compgen -G "$HARNESS_DIR/.claude/skills/*/SKILL.md" >/dev/null \
+        || morrer "harness $HARNESS vazio: precisa de CLAUDE.md ou de .claude/skills/<nome>/SKILL.md"
 fi
 
-# Hash estavel de uma pasta: caminhos + conteudo de cada arquivo.
+# Hash estavel de uma pasta: caminhos + conteudo de cada arquivo. O .gitkeep so
+# existe para o git guardar pasta vazia e nao chega ao agente, entao nao entra.
 hash_arvore() {
-    ( cd "$1" && find . -type f | LC_ALL=C sort | while read -r f; do printf '%s  ' "$f"; sha256sum "$f" | cut -d' ' -f1; done ) \
+    ( cd "$1" && find . -type f -not -name .gitkeep | LC_ALL=C sort | while read -r f; do printf '%s  ' "$f"; sha256sum "$f" | cut -d' ' -f1; done ) \
         | sha256sum | cut -d' ' -f1
 }
 
@@ -69,10 +82,13 @@ hash_arvore() {
 mkdir -p "$RUN_DIR" "$WS" "$RAIZ/runs/logs"
 HARNESS_HASH=""
 if [ "$CONDITION" = "HARNESS" ]; then
-    # Copia INDISCRIMINADA: qualquer arquivo que sobrar em harness/ entra no
-    # workspace do agente e contamina o braco. A pasta tem UM arquivo.
-    cp -r "$RAIZ/experimento/harness/." "$WS/"
-    HARNESS_HASH="$(hash_arvore "$RAIZ/experimento/harness")"
+    # Copia INDISCRIMINADA: qualquer arquivo que sobrar na pasta da versao entra
+    # no workspace do agente e contamina o braco. Skills ficam em
+    # .claude/skills/<nome>/SKILL.md, onde o Claude Code as acha em /workspace.
+    cp -r "$HARNESS_DIR/." "$WS/"
+    find "$WS" -name .gitkeep -type f -delete
+    HARNESS_HASH="$(hash_arvore "$HARNESS_DIR")"
+    echo "harness: $HARNESS ($HARNESS_HASH)"
 fi
 PROMPT_HASH="$(sha256sum "$PROMPT" | cut -d' ' -f1)"
 IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE")"

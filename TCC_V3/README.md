@@ -9,7 +9,7 @@ braços é um arquivo de 14 linhas copiado para a raiz do workspace.
 | condição | o workspace começa com |
 |---|---|
 | `CONTROL` | nada |
-| `HARNESS` | `experimento/harness/CLAUDE.md` |
+| `HARNESS` | uma versão de `experimento/harnesses/`; padrão `only-claude/`, só o `CLAUDE.md` |
 
 **Um experimento só**, com o enunciado de cinco pontos de variação (P1 a P5): as
 execuções `EXT-01` a `EXT-03`. O lote `BATCH-01` a `03`, com o enunciado de três
@@ -60,6 +60,11 @@ O `executar.sh` lê o enunciado de `experimento/prompt/prompt.md`, a não ser qu
 `PROMPT_FILE` aponte outro. Para repetir o piloto:
 `PROMPT_FILE=historico/piloto/prompt.md infra/scripts/rodada.sh ...`.
 
+O braço `HARNESS` recebe `experimento/harnesses/only-claude/`, a não ser que
+`HARNESS` nomeie outra versão:
+`HARNESS=claude-and-skills infra/scripts/rodada.sh ...`. Como montar uma versão
+com skills está em [`experimento/harnesses/README.md`](experimento/harnesses/README.md).
+
 Depois:
 
 ```bash
@@ -105,18 +110,22 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 |---|---|
 | `experimento/prompt/prompt.md` | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `historico/piloto/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
-| `experimento/harness/` (árvore) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
+| `experimento/harnesses/only-claude/` (árvore) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
 | `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
 | imagem `experimento-harness:v3` | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
 | Claude Code, na imagem | `2.1.269` |
 
 | script | hash | se tiver defeito |
 |---|---|---|
-| `executar.sh` | `be71fb1c98bdc14b` | perde **a execução** |
+| `executar.sh` | `0efc44e6d2cceec8` | perde **a execução** |
 | `rodada.sh` | `e6c65d2e4d84ede4` | perde **o pareamento** |
 | `anonimizar.mjs` | `6f4e96ec116312e4` | perde **a cegueira** |
 | `extrair-meta.mjs` | `8c1d1dd228ae5ddf` | nada — a transcrição sobrevive |
 | `agregar.mjs` | `4e8001f7a3012b8d` | nada — o `meta.json` sobrevive |
+
+O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
+`SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova
+faz o mesmo, com o mesmo hash de harness.
 
 > [!danger] `core.autocrlf` desta máquina é `true`
 > O `.gitattributes` trata `experimento/**` e `historico/**` como binário por isso. Sem ele o git
@@ -141,8 +150,10 @@ de servidor entre os braços, e a análise compara pares.
 `claude-haiku-4-5-20251001`. Comparação estrita descartaria execuções boas.
 `startsWith` não serve: `claude-opus-5-1` começa com `claude-opus-5`.
 
-**A pasta `experimento/harness/` é copiada inteira.** Um `.bak` esquecido lá entra
-no workspace do agente e contamina o braço. Ela tem **um** arquivo.
+**A pasta da versão de harness é copiada inteira.** Um `.bak` ou uma nota
+esquecidos em `experimento/harnesses/<versao>/` entram no workspace do agente e
+contaminam o braço. Anotação sobre as versões fica em
+`experimento/harnesses/README.md`, fora delas.
 
 **Não edite `meta.json` à mão.** Ele é derivado da transcrição. Se um número
 parecer errado, o conserto é no `extrair-meta.mjs` e rodar de novo — o dado bruto
