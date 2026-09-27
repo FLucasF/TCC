@@ -95,8 +95,9 @@ A semente de cada lote fica registrada na última coluna do mapa dele.
 | `infra/scripts/agregar.mjs` | os `meta.json` → CSV, 37 colunas |
 | `avaliacao/ferramentas/anonimizar.mjs` | pacotes cegos: tira o `CLAUDE.md`, normaliza datas, embaralha |
 
-**Nenhum deles olha o código para julgar.** Não há régua, nota, nem proposta de
-descarte. O campo `valid` do `meta.json` nasce `null` e é preenchido por humano.
+**Nenhum deles olha o código para julgar.** Nenhum aplica a régua, dá nota ou
+propõe descarte: a régua é aplicada por quem lê. O campo `valid` do `meta.json`
+nasce `null` e é preenchido por humano.
 
 O porquê de cada decisão está nas mensagens de commit, datadas.
 
@@ -174,11 +175,18 @@ está no `.jsonl`.
 
 ## O que falta, e não é engenharia
 
-A **régua do desfecho**: como um pacote é lido para dizer se usou Strategy. Nenhum
-script faz isso, por decisão. As execuções produzem os pacotes; a leitura é
-humana e ainda não está definida.
+A **régua do desfecho** existe em rascunho: [`avaliacao/regua.md`](avaliacao/regua.md),
+versão 3, com o gabarito do Strategy em `avaliacao/strategy/gabarito.md`. Ela foi
+calibrada em três rodadas sobre pacotes fora da análise, por dois leitores
+automáticos, até nenhuma célula ficar `indeterminado`
+([relatório](avaliacao/calibracao-relatorio.md)). **Ainda não está congelada:**
+falta a leitura humana de calibração e o hash dela neste README. Nenhum script lê
+por ela, por decisão.
 
-Consequência: das cinco hipóteses, só a do **custo** (tokens e tempo) é respondida
-pelo CSV. As outras quatro esperam essa régua.
+Consequência: das hipóteses do [`OBJETIVO.md`](OBJETIVO.md), só as de **custo**
+(tokens e tempo) são respondidas pelo CSV. As de desenho esperam a régua
+congelada, e as de correção esperam a suíte de aceitação.
 
-As execuções com prefixo `SMOKE-` são de validação e estão **fora** da análise.
+As execuções com prefixo `SMOKE-` e `TESTE-` são de validação e estão **fora** da
+análise; as pastas `avaliacao/calibracao-*` guardam a calibração da régua feita
+sobre elas e sobre o piloto.
