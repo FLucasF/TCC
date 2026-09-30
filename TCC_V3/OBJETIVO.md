@@ -232,6 +232,14 @@ foi ele que mostrou o teto e motivou P4 e P5.
 - **Não compara padrões nem versões de harness estatisticamente.** Dentro de um
   lote há pares; entre lotes, não. Dizer que o harness ajuda mais num padrão, ou
   que a v2 é melhor que a v1, é observação.
+- **O enunciado do Strategy tem duas inconsistências, achadas depois do lote EXT.**
+  Os exemplos 1 a 4 vieram do piloto: não trazem clube nem região, e os totais não
+  têm imposto, embora o próprio enunciado mande recusar pedido sem clube ou região.
+  E o exemplo de resposta do anexo mistura números do piloto com um imposto
+  calculado sem desconto. O enunciado já rodou e não muda; a correção é medida só
+  com o exemplo 5 e casos com clube e região, e o comportamento diante dos
+  exemplos 1 a 4 é registrado como observação
+  ([`analise/testes-2026-09-30.md`](analise/testes-2026-09-30.md)).
 - **Não mede o harness fora do Claude Code.** Os modelos rodam no Claude Code como
   ele vem, que já traz as suas próprias orientações. O efeito medido é o do
   harness **somado** a essa base.

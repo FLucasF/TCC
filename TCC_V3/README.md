@@ -164,6 +164,12 @@ vem.
 **Não reaproveite `run_id`.** O script recusa se a pasta existir. Deu errado, cria
 outra com id novo.
 
+**Não rode lote com a assinatura em uso em outro lugar.** As execuções usam o mesmo
+token de assinatura de uma sessão interativa do Claude Code. Se a cota acabar no
+meio, as seis recebem `You've hit your session limit` (HTTP 429) e terminam como
+`error`: falha de infraestrutura, que não vale e se refaz com id novo. Aconteceu na
+`TESTE-STATE-01`.
+
 **Não rode as seis em sequência.** A simultaneidade é o que iguala horário e carga
 de servidor entre os braços, e a análise compara pares.
 
