@@ -61,8 +61,16 @@ infra/scripts/rodada.sh EXT-03 3
 ```
 
 O `executar.sh` lê o enunciado de `experimento/prompt/prompt.md`, a não ser que
-`PROMPT_FILE` aponte outro. Para repetir o piloto:
-`PROMPT_FILE=historico/piloto/prompt.md infra/scripts/rodada.sh ...`.
+`PROMPT_FILE` aponte outro. **O caminho precisa ser absoluto**: ele vira a origem
+de uma montagem do Docker, que recusa caminho relativo, e a execução falharia
+depois de já ter criado a pasta da run. Da raiz do `TCC_V3`, use `$PWD/`:
+
+```bash
+# o segundo padrão (State)
+PROMPT_FILE=$PWD/experimento/prompt/state.md infra/scripts/rodada.sh STATE-01 1
+# repetir o piloto
+PROMPT_FILE=$PWD/historico/piloto/prompt.md infra/scripts/rodada.sh ...
+```
 
 O braço `HARNESS` recebe `experimento/harnesses/only-claude/`, a não ser que
 `HARNESS` nomeie outra versão:
@@ -118,6 +126,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 |---|---|
 | `experimento/prompt/prompt.md` | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `historico/piloto/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
+| `experimento/prompt/state.md` (segundo padrão, a rodar) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
 | `experimento/harnesses/only-claude/` (árvore) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
 | `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
 | imagem `experimento-harness:v3` | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
@@ -166,6 +175,16 @@ de servidor entre os braços, e a análise compara pares.
 esquecidos em `experimento/harnesses/<versao>/` entram no workspace do agente e
 contaminam o braço. Anotação sobre as versões fica em
 `experimento/harnesses/README.md`, fora delas.
+
+**O Docker Desktop pode cair ao abrir, depois de ser fechado sem desligar direito.**
+O erro fala em `remove ...\AppData\Local\Docker\run\sailor-ingest.sock: Não é
+possível o acesso ao arquivo pelo sistema` (ou em `docker-secrets-engine\engine.sock`).
+Sobraram arquivos de conexão que o Windows não deixa apagar. **Não clique em "Reset to
+factory defaults"**: isso apaga a imagem `experimento-harness:v3`, e o ID dela está
+nesta página. O que resolve: fechar o Docker Desktop, `wsl --shutdown`, e
+**renomear** as pastas `%LOCALAPPDATA%\Docker\run` e
+`%LOCALAPPDATA%\docker-secrets-engine` (por exemplo, com o sufixo `.parado`). Ao
+abrir, o Docker cria as duas de novo. Reiniciar o Windows também libera os arquivos.
 
 **Não edite `meta.json` à mão.** Ele é derivado da transcrição. Se um número
 parecer errado, o conserto é no `extrair-meta.mjs` e rodar de novo — o dado bruto
