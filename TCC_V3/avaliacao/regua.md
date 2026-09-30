@@ -208,6 +208,24 @@ Aplicada **depois** da leitura, sobre a planilha.
 | N2 | `especulativa`, por pacote |
 | N3 | `arquivos_main`, por pacote |
 
+### 3.2 State
+
+**Os mesmos critérios de acerto, erro e exagero da ficha do Strategy (§3.1)**, e
+o mesmo mapa de hipóteses. O que muda é só o que o gabarito do State
+(`avaliacao/state/gabarito.md`) chama de caso: as **situações** do pedido, que
+mudam durante a vida do objeto.
+
+Duas observações para quem aplica a ficha:
+
+- Nas ações por situação (E1), uma **tabela de transições** é `consulta`, e conta
+  como acerto: as transições, sozinhas, são dado. O que distingue um desenho do
+  outro é o ponto seguinte, dos efeitos (E2), que uma tabela não resolve sozinha.
+- O erro típico do State é o `switch (situacao)` repetido dentro de cada ação:
+  a mesma escolha em vários lugares, `condicional-no-calculo`.
+
+**Ainda não calibrada**: nenhum pacote do State existe. Antes da leitura do lote
+`STATE`, a ficha passa por uma calibração sobre uma rodada `SMOKE` dele.
+
 ## 4. As planilhas
 
 Ficam em `avaliacao/<padrao>/`, junto dos pacotes e do gabarito usados. Uma

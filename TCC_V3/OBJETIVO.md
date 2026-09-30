@@ -187,6 +187,7 @@ entre lotes.
 | padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
 |---|---|---|---|---|---|---|
 | **Strategy** | `experimento/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | `avaliacao/strategy/` | rodado; leitura feita antes da régua, a refazer |
+| **State** | `experimento/prompt/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | `STATE-01` a `03` (a rodar) | `avaliacao/state/` | enunciado e gabarito escritos; falta `SMOKE`, calibração e lote |
 
 A coluna **avaliação** é a pasta do padrão: o gabarito, os pacotes cegos, o mapa
 e as leituras ficam juntos lá, e o cabeçalho do gabarito repete o hash do
