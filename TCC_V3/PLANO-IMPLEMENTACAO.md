@@ -165,12 +165,36 @@ Por que isso elimina a memória: o container nasce com `~/.claude` vazio (sem me
 
 **Objetivo:** medir se o design com padrões torna a mudança mais barata, e não só se ele existe. É a ideia central do v4 do Akita e a dimensão "manter software" da orientação.
 
-- [ ] Escrever o pedido de mudança no tom do enunciado, sem palavra de arquitetura. Por exemplo: uma transportadora nova e um nível DIAMANTE.
-- [ ] Rodar sobre uma cópia do workspace de cada execução, mesmo modelo e mesma condição, 6 simultâneas como hoje.
-- [ ] Medir: arquivos tocados, condicionais adicionados ou editados, testes quebrados, tokens e tempo. Rodar a suíte oculta de novo, ampliada com os casos novos.
-- [ ] Pré-registro próprio antes de rodar, porque é outro estímulo.
+### Desenho, decidido em 03/10 (consenso Lucas + Claude, a levar ao orientador)
 
-**Pronto quando:** o pré-registro está congelado. É a parte maior; pode ficar para depois da análise do primeiro experimento.
+| decisão | escolha | por quê |
+|---|---|---|
+| padrões | **só Strategy**, por agora | o State ainda não tem lote nem régua calibrada; entra depois, com este mesmo desenho |
+| ponto de partida | uma **cópia** do workspace de cada uma das 18 execuções `EXT`, mesmo modelo e mesma condição | reaproveita o build já analisado, sem rodar de novo; o par continua o mesmo |
+| sessão | **nova** a cada sprint (`claude -p`, como hoje) | as execuções do EXT rodaram com `--no-session-persistence`, então não há sessão a retomar; e é o realista para "manter software": um dev que pega o código e precisa lê-lo |
+| `CLAUDE.md` no braço `HARNESS` | **continua** no workspace | mede o harness como seria usado: presente no build e na manutenção. Conferido em 03/10: os 9 `CLAUDE.md` do EXT estão byte a byte iguais ao original, e nenhum `CONTROL` tem `CLAUDE.md` escrito pelo modelo. Limite a declarar: não separa o efeito do desenho do efeito da orientação |
+| mudanças | **quatro sprints em sequência, no mesmo workspace**, uma mudança por sprint, na ordem **P2 → P1 → P4 → P5**, a mesma para todos | um ponto por sprint deixa cada diff limpo; a ordem vai do mais simples ao controle negativo, que mede o exagero sobre o código já mexido pelas outras três, como num projeto real |
+| P2 | um cupom novo | ponto positivo simples; provavelmente teto, serve de referência |
+| P1 | uma transportadora nova **com limite de peso** (tarifa e prazo próprios, só até X kg) | caso exigente do mesmo tipo do MOTOBOY, dentro de um ponto só: o contrato comporta sem remendo? (D2) |
+| P4 | um nível **DIAMANTE**, que mexe em mais de uma regra (crédito, frete, brinde) | o caso mais exigente; é onde o Haiku CONTROL já fez remendo no build |
+| P5 | uma **região nova**, só uma porcentagem | controle negativo: uma linha num desenho proporcional, classe + fábrica no que exagerou. Dá preço ao exagero (N1) |
+| falha numa sprint | **segue**: a próxima parte do código como ficou, e `build_ok` de cada sprint é dado (C2) | como num projeto real; parar daria vantagem a quem quebra cedo. Só falha de infraestrutura (429, Docker) se refaz, com id novo |
+| simultaneidade | as 6 de cada rodada juntas, como hoje | mantém o pareamento |
+| tamanho | 4 sprints × 18 = **72 execuções**, em 12 rodadas de 6 | execuções pequenas, mas é cota de assinatura: rodar com a assinatura livre |
+
+### Medidas
+
+- **★ Arquivos tocados além do registro do caso, só em `src/main`**, contados no diff entre a cópia de antes e a de depois de cada sprint (a bancada tira as cópias; o agente não precisa usar git). É a versão medida da propriedade `custo_caso_novo` (§2.6 da régua), e permite conferir se a previsão da régua bate com o custo real. O que é "registro do caso" segue a régua.
+- Secundárias: testes tocados ou criados (`src/test`), condicionais adicionados ou editados que nomeiam casos, `build_ok`, tokens e tempo (`meta.json`).
+- Correção: a suíte oculta de novo após cada sprint, ampliada com os casos da mudança; a calculadora de referência e os mutantes ganham a regra nova, e a conferência humana do gabarito vale também para as regras novas.
+
+### A fazer
+
+- [ ] Escrever os quatro pedidos de mudança no tom do enunciado, sem palavra de arquitetura, com os valores (tarifas, porcentagens, limites) e exemplos conferidos; cada fronteira nova com caso no valor exato.
+- [ ] Estender a bancada para rodar uma sprint sobre uma cópia e tirar as cópias de antes e depois, sem mudar o `executar.sh` congelado (script novo, ou versão nova com hash novo).
+- [ ] Hipóteses próprias no `OBJETIVO.md`, com a medida ★ e a regra de leitura por pares, **antes** de rodar.
+
+**Pronto quando:** os quatro pedidos, a extensão da bancada e as hipóteses estão congelados com hash. É a parte maior; pode ficar para depois da análise do primeiro experimento.
 
 ## Ordem e dependências
 
