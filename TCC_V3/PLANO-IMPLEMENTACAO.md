@@ -8,6 +8,8 @@ São seis partes, e nenhuma mexe na bancada de execução congelada: `executar.s
 
 Regra que vale para todas as partes: um instrumento novo é congelado (commit + hash no README) antes de ser usado em qualquer pacote. É a mesma disciplina que você já usa no pré-registro.
 
+O plano cuida só da **avaliação**. A bancada (o ambiente de execução) já está pronta e congelada, e rodar lotes é execução, acompanhada no §5 do `OBJETIVO.md`. A ordem entre preparar e medir está em "Ordem e dependências", no fim.
+
 ## Instruções para o agente
 
 Este plano é executado pelo Claude Code, uma parte por vez. Regras para o agente:
@@ -198,13 +200,30 @@ Por que isso elimina a memória: o container nasce com `~/.claude` vazio (sem me
 
 ## Ordem e dependências
 
-| Parte | Tipo | Depende de | Gasta tokens? |
-| --- | --- | --- | --- |
-| 0 — Arrumar a casa | corrigir | — | não |
-| 1 — Régua | implementar | 0 | não |
-| 2 — Suíte oculta | implementar | 0 | não |
-| 3 — `verificar.mjs` | testar | 0 (no experimento, as checagens 1 e 5 esperam a 4) | não |
-| 4 — Leitura dupla | rodar | 1, 3 | sim |
-| 5 — Manutenção | rodar | 1, 2, 3 | sim, e mais |
+Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado antes de tudo da fase 1 estar congelado.** Rodar a suíte sobre o EXT não gasta tokens, mas já é olhar resultado, por isso fica na fase 2.
 
-A ordem segue corrigir → implementar → testar → rodar: nada que gaste tokens começa antes de todos os instrumentos estarem prontos e testados. O `verificar.mjs` já confere a Parte 0, por exemplo se o mapa do piloto recriado bate com a leitura dele. Com as Partes 0 a 4 prontas, o experimento fica completo; a 5 é extensão.
+### Fase 1: preparar (construir, conferir e congelar, sem olhar dado)
+
+| # | o quê | parte | quem | depende de |
+| --- | --- | --- | --- | --- |
+| 0 | arrumar a casa | 0 | Claude | — (**feito**, 26/09) |
+| a | **congelar o `OBJETIVO.md`**: aprovar as hipóteses (§4) e as regras de leitura (§4.1), trocar o aviso de RASCUNHO por "congelado em DD/MM, com o orientador", commit e hash no README. Daí em diante, mudança no §1 a §4 só como emenda datada e com motivo, sem apagar o original; §5 e §6 continuam sendo atualizados | — | Lucas + orientador | — |
+| b | confirmar com o orientador as trocas marcadas "a confirmar" (conferência humana no lugar da referência escrita do zero; desenho da Parte 5) | 2, 5 | Lucas + orientador | — |
+| c | conferir o gabarito do Strategy (~1 h) e do State (~15 min) | 2 | Lucas | — |
+| d | calibração humana da régua do Strategy (SMOKE e TESTE-P4) e **congelar a régua** | 1 | Lucas | — |
+| e | régua do State: ajuste da tabela de transições, calibração sobre a `TESTE-STATE-02` | 1 | Lucas (Claude no ajuste) | d |
+| f | `aceitacao.sh` e **congelar a suíte** | 2 | Claude | c |
+| g | `verificar.mjs`, com a prova de que acusa | 3 | Claude | — |
+
+### Fase 2: medir (só com a fase 1 inteira congelada)
+
+| # | o quê | parte | quem | gasta tokens? |
+| --- | --- | --- | --- | --- |
+| h | suíte sobre o EXT (C1 a C4) | 2 | Claude | não, mas lê dado |
+| i | leitura dupla do EXT, kappa e resolução | 4 | Lucas + Claude | sim |
+| j | `verificar.mjs` sobre tudo, e os totais para o texto | 3 | Claude | não |
+| k | manutenção: extensão, depois da análise do EXT; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
+
+O **lote STATE** é execução, não está neste plano (§5 do `OBJETIVO.md`). Roda depois de **e**; depois de rodar, é medido pelas mesmas partes (h, i, j), com a régua e a suíte do State.
+
+A ordem segue corrigir → implementar → testar → rodar. O `verificar.mjs` já confere a Parte 0, por exemplo se o mapa do piloto recriado bate com a leitura dele. Com a fase 1 congelada e h, i, j feitos, o experimento do Strategy fica completo; o State repete h a j sobre o lote dele, e a Parte 5 é extensão.
