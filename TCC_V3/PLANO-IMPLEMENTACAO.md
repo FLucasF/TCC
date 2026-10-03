@@ -99,7 +99,7 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
 
 **Objetivo:** saber se o código calcula certo. Hoje o `mvn verify` só roda os testes que o próprio modelo escreveu.
 
-**Como:** testes de caixa-preta via HTTP contra `POST /checkout/resumo`, o contrato que o enunciado já define. Caixa-preta porque cada execução tem pacotes e classes diferentes.
+**Como:** testes de caixa-preta via HTTP contra o contrato que cada enunciado já define: `POST /checkout/resumo` no Strategy (`strategy.mjs`), `/pedidos` no State (`state.mjs`). Caixa-preta porque cada execução tem pacotes e classes diferentes. **Vale para os dois padrões**, cada um com a sua conferência do gabarito; os itens abaixo que citam a calculadora são do Strategy, e o State tem o item próprio no fim da lista.
 
 - [ ] Casos a partir dos exemplos conferidos do enunciado e da ordem de precedência dos erros.
 - [ ] Um script novo, separado (por exemplo `infra/scripts/aceitacao.sh`), que sobe o app de cada `runs/*/workspace` num container sem token, roda os casos e grava `aceitacao.txt` ao lado do `build.txt`.
@@ -107,6 +107,7 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
   - *Trocado em 03/10, a confirmar com o orientador.* Antes: "validar a suíte numa implementação sua, de referência" (escrever o serviço do zero). Motivo: as cinco implementações de Opus e Sonnet já concordam com a calculadora em todos os casos, então um erro do gabarito teria de ser compartilhado por todas; a conferência humana fecha esse risco que sobra a um custo proporcional (cerca de uma hora em vez de um projeto).
 - [x] Validar também o outro lado: a suíte **reprova** código errado. Cada mutante de `avaliacao/aceitacao-prototipo/mutantes.mjs` (a calculadora com um erro plantado, um por regra do enunciado que tem armadilha) precisa ser reprovado; o `validar-mutantes.mjs` sai com 0. Feito em 03/10: 15 de 15.
 - [x] A unidade é o **caso** (passa ou falha), como a C1 está escrita, e não a verificação de campo. Pontos em que o enunciado se contradiz entram como observação, sem contar (03/10).
+- [ ] **State:** conferir, à mão, que cada valor esperado no `state.mjs` é o do enunciado (`experimento/prompt/state.md`): os 8 exemplos e os erros. Aqui o gabarito não é uma calculadora escrita com IA, são os números do próprio enunciado copiados para o teste, então a conferência é só de cópia (cerca de 15 minutos). Antes do lote `STATE`, rever também se o enunciado tem fronteiras ("até", "acima de", "a partir de") sem caso no valor exato, a lição dos mutantes do Strategy.
 
 Como roda sobre os workspaces já salvos, vale para as 36 execuções existentes sem rodar modelo de novo e sem tocar no `executar.sh`.
 
@@ -129,9 +130,11 @@ Construir uma checagem por vez, nesta ordem:
 
 Sai com código 1 e lista os problemas, ou com 0 se estiver tudo coerente.
 
+**Prova de que acusa.** Um verificador que nunca acusa nada parece igual a um que funciona. Para cada checagem, uma cópia dos dados corrompida de propósito (um código trocado no mapa, uma linha a mais no CSV, uma réplica faltando, um hash errado no cabeçalho do gabarito...) tem de fazer o script sair com 1, apontando a checagem certa; os dados verdadeiros têm de sair com 0. É a mesma ideia dos mutantes da Parte 2, e do *proven negative test* do `verify_scores.py` do Akita. As cópias corrompidas ficam numa pasta de teste, geradas por script, nunca à mão sobre os dados reais.
+
 **Limite a declarar na metodologia:** o script garante coerência entre as fontes, não a correção da classificação. Isso fica com a Parte 4.
 
-**Pronto quando:** roda limpo sobre BATCH e EXT.
+**Pronto quando:** roda limpo sobre BATCH e EXT, e cada cópia corrompida faz sair com 1 na checagem certa.
 
 ## Parte 4 — Leitura dupla e kappa
 
