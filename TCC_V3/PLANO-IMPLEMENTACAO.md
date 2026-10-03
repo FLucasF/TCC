@@ -136,7 +136,11 @@ Sai com código 1 e lista os problemas, ou com 0 se estiver tudo coerente.
 
 **Limite a declarar na metodologia:** o script garante coerência entre as fontes, não a correção da classificação. Isso fica com a Parte 4.
 
-**Pronto quando:** roda limpo sobre BATCH e EXT, e cada cópia corrompida faz sair com 1 na checagem certa.
+**Só os lotes da análise.** Roda sobre o EXT (e o STATE, quando rodar), por padrão, recebendo o lote como argumento, como o `--prefix` do `agregar.mjs`. SMOKE, TESTE e BATCH ficam fora: não sustentam nenhum número do texto, e não têm o desenho que as checagens exigem (uma réplica só, outro enunciado, execuções invalidadas de propósito), então falhariam por construção, e um verificador cheio de exceções esconde problema de verdade. A conferência do mapa do piloto foi única, feita na Parte 0.
+
+Em 03/10 conferiu-se à mão, sem ler desfecho, o que as checagens 4 e 6 vão automatizar: as 18 execuções do EXT são 18 combinações distintas (3 réplicas × 3 modelos × 2 braços), todas com o enunciado `b7cdb594…` (o mesmo do cabeçalho do gabarito), a mesma imagem e a mesma versão do Claude Code, e o harness só no braço `HARNESS`.
+
+**Pronto quando:** roda limpo sobre o EXT, e cada cópia corrompida (ou dado sintético) faz sair com 1 na checagem certa.
 
 ## Parte 4 — Leitura dupla e kappa
 
@@ -213,17 +217,17 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | d | calibração humana da régua do Strategy (SMOKE e TESTE-P4) e **congelar a régua** | 1 | Lucas | — |
 | e | régua do State: ajuste da tabela de transições, calibração sobre a `TESTE-STATE-02` | 1 | Lucas (Claude no ajuste) | d |
 | f | `aceitacao.sh` e **congelar a suíte** | 2 | Claude | c |
-| g | `verificar.mjs`, com a prova de que acusa | 3 | Claude | — |
 
 ### Fase 2: medir (só com a fase 1 inteira congelada)
 
 | # | o quê | parte | quem | gasta tokens? |
 | --- | --- | --- | --- | --- |
+| g | gerar o CSV do EXT (`agregar.mjs --prefix EXT --out analise/resultados-ext.csv`: são os custos, K1 a K4) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
 | h | suíte sobre o EXT (C1 a C4) | 2 | Claude | não, mas lê dado |
 | i | leitura dupla do EXT, kappa e resolução | 4 | Lucas + Claude | sim |
-| j | `verificar.mjs` sobre tudo, e os totais para o texto | 3 | Claude | não |
+| j | completar o `verificar.mjs` (checagens 1, 3 e 5, que dependem da leitura), rodar sobre tudo e tirar dele os totais para o texto | 3 | Claude | não |
 | k | manutenção: extensão, depois da análise do EXT; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
 
 O **lote STATE** é execução, não está neste plano (§5 do `OBJETIVO.md`). Roda depois de **e**; depois de rodar, é medido pelas mesmas partes (h, i, j), com a régua e a suíte do State.
 
-A ordem segue corrigir → implementar → testar → rodar. O `verificar.mjs` já confere a Parte 0, por exemplo se o mapa do piloto recriado bate com a leitura dele. Com a fase 1 congelada e h, i, j feitos, o experimento do Strategy fica completo; o State repete h a j sobre o lote dele, e a Parte 5 é extensão.
+A ordem segue corrigir → implementar → testar → rodar. O `verificar.mjs` fica na fase 2 porque ele confere dados, e os que importam (custos, suíte, leituras) só existem ali; construí-lo antes seria fazer uma ferramenta sem material. Com a fase 1 congelada e g a j feitos, o experimento do Strategy fica completo; o State repete g a j sobre o lote dele, e a Parte 5 é extensão.

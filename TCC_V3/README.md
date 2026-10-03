@@ -80,9 +80,13 @@ com skills está em [`experimento/harnesses/README.md`](experimento/harnesses/RE
 Depois:
 
 ```bash
-node infra/scripts/agregar.mjs --prefix EXT            # -> analise/resultados.csv
+node infra/scripts/agregar.mjs --prefix EXT --out analise/resultados-ext.csv
 node avaliacao/ferramentas/anonimizar.mjs EXT-01-OPUS-CONTROL ... --seed N --padrao strategy
 ```
+
+O `--out` é necessário: sem ele, o `agregar.mjs` grava em `analise/resultados.csv`,
+que é o CSV do **piloto**, e o sobrescreveria. O CSV do EXT traz os custos (K1 a
+K4), então só é gerado na fase 2 do plano, com o `OBJETIVO.md` congelado.
 
 Com `--padrao`, pacotes e mapa vão para `avaliacao/<padrao>/`, ao lado do
 gabarito, e o script **recusa** se já houver um mapa lá. Sem `--padrao`, grava em
