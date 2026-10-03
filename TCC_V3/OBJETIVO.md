@@ -240,6 +240,13 @@ foi ele que mostrou o teto e motivou P4 e P5.
   com o exemplo 5 e casos com clube e região, e o comportamento diante dos
   exemplos 1 a 4 é registrado como observação
   ([`analise/testes-2026-09-30.md`](analise/testes-2026-09-30.md)).
+- **E uma terceira, achada ao validar a suíte de aceitação (03/10).** O passo 5
+  define o total do pedido **com** imposto; a regra do boleto, entre parênteses,
+  **sem**. As duas leituras só divergem nos pedidos que ficam abaixo de R$ 1.000
+  sem imposto e acima com ele. A suíte não conta esse caso: registra como
+  observação qual leitura cada execução seguiu, do mesmo jeito que os exemplos
+  1 a 4 ([`avaliacao/aceitacao-prototipo/README.md`](avaliacao/aceitacao-prototipo/README.md)).
+  Decidido antes de a suíte rodar sobre o lote EXT.
 - **Não mede o harness fora do Claude Code.** Os modelos rodam no Claude Code como
   ele vem, que já traz as suas próprias orientações. O efeito medido é o do
   harness **somado** a essa base.
