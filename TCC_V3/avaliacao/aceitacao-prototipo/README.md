@@ -128,10 +128,69 @@ Divergência se resolve pelo **texto do enunciado**, não pela calculadora nem p
 quem confere. Se o texto não decide, é inconsistência: vai para o §6 do
 `OBJETIVO.md`, como o limite do boleto.
 
-### 1. Regra por regra
+### 1. Dois casos de colisão, calculados à mão (primeiro)
 
-Pega uma regra implementada diferente do que o enunciado diz. A lista saiu só do
-enunciado; a linha da calculadora é quem confere que acha.
+Pega regras certas uma a uma mas combinadas na ordem errada, que a lista de
+regras não vê. **Vem primeiro, e sem abrir o `ref-strategy.mjs`:** a lista de
+regras faz ler a calculadora de perto, e quem já viu como ela resolve as colisões
+tende a concordar com ela. Pelo mesmo motivo, calcular antes de rodar o comando.
+Só o enunciado aberto, seguindo a ordem dele (produtos, cupom, frete, imposto,
+total, ajuste), arredondando para centavos em cada etapa.
+
+Numa planilha, o `ARRED` arredonda meio-para-cima, não
+meio-para-o-par. No `jshell` (vem com o JDK 21), dois auxiliares que só fazem a
+conta; onde e em que ordem arredondar continua sendo de quem confere:
+
+```java
+import java.math.*;
+BigDecimal r(BigDecimal x) { return x.setScale(2, RoundingMode.HALF_EVEN); }   // meio-para-o-par
+BigDecimal d(String s) { return new BigDecimal(s); }                            // sempre String, nunca double
+```
+
+Na Price, `(1 + taxa)^−n` fica `BigDecimal.ONE.divide(d("1.0199").pow(n), MathContext.DECIMAL128)`.
+
+- **Caso A**, OURO + FRETEGRATIS com juros (é um caso da suíte): Bota R$ 349,90 ×
+  2 (2,10 kg cada), `EXPRESSA`, cupom `FRETEGRATIS`, `CARTAO` em 10×, clube `OURO`,
+  região `SUL`.
+- **Caso B**, FRETEGRATIS sem OURO, com boleto (fora da suíte, de propósito: os
+  números do caso "FRETEGRATIS sem OURO" da suíte já apareceram em saídas de
+  teste): Tênis R$ 249,90 × 1 (1,20 kg), `EXPRESSA`, cupom `FRETEGRATIS`, `BOLETO`,
+  clube `BRONZE`, região `NORDESTE`.
+
+Depois de calcular, da raiz do `TCC_V3` (a saída vem em **centavos**):
+
+```bash
+node --input-type=module -e 'import { calcular } from "./avaliacao/aceitacao-prototipo/ref-strategy.mjs"; console.log("A", calcular({ itens: [{ nome: "Bota", precoUnitario: 349.90, quantidade: 2, pesoKg: 2.10 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "CARTAO", parcelas: 10, nivelClube: "OURO", regiao: "SUL" })); console.log("B", calcular({ itens: [{ nome: "Tenis", precoUnitario: 249.90, quantidade: 1, pesoKg: 1.20 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "NORDESTE" }));'
+```
+
+| campo | A: à mão | A: calculadora | B: à mão | B: calculadora |
+|---|---|---|---|---|
+| subtotalProdutos | | | | |
+| descontoCupom | | | | |
+| frete | | | | |
+| prazoEntregaDias | | | | |
+| imposto | | | | |
+| total do pedido (calculadora: totalFinal − ajustePagamento) | | | | |
+| ajustePagamento | | | | |
+| totalFinal | | | | |
+| valorParcela | | | | |
+| creditoProximaCompra | | | | |
+| brinde | | | | |
+
+### 2. Regra por regra (depois)
+
+Pega uma regra implementada diferente do que o enunciado diz. Agora sim, com o
+`ref-strategy.mjs` aberto ao lado do enunciado. A lista saiu só do enunciado; a
+linha da calculadora é quem confere que acha (buscar pelo identificador:
+`MOTOBOY`, `MENOS50`, `OURO`...; as regras gerais estão em `pct`, `centavos` e na
+sequência de cálculo). Exemplo, regra 6: `RETIRADA_LOJA: 0` no mapa de fretes e
+`RETIRADA_LOJA: 1` no de prazos, linhas 37 e 38; diz o mesmo: sim.
+
+Para ler vindo do Java: dinheiro é inteiro em **centavos** (`1200` = R$ 12,00);
+`pct(c, 1200)` é 12% de `c` (o segundo número em centésimos de ponto percentual),
+já meio-para-o-par; `centavos(x)` converte reais em centavos, meio-para-o-par;
+`itens.reduce((s, i) => s + ..., 0)` é uma soma sobre os itens; `p.parcelas ?? 1`
+é "parcelas, ou 1 se não vier"; `{ A: 1, B: 2 }[x]` é um `Map.get`.
 
 | # | regra (do enunciado) | linha no `ref-strategy.mjs` | diz o mesmo? |
 |---|---|---|---|
@@ -157,41 +216,6 @@ enunciado; a linha da calculadora é quem confere que acha.
 | 20 | Pix e boleto só em 1 parcela; parcelas ausente = 1 | | |
 | 21 | ajustePagamento = totalFinal − total do pedido | | |
 | 22 | erros na ordem da tabela do anexo (1 a 10), devolvendo o primeiro | | |
-
-### 2. Dois casos de colisão, calculados à mão
-
-Pega regras certas uma a uma mas combinadas na ordem errada, que a lista acima
-não vê. **Calcular antes de rodar a calculadora:** quem vê a resposta antes tende
-a concordar com ela. Numa planilha, o `ARRED` arredonda meio-para-cima, não
-meio-para-o-par; nos valores que terminam em meio centavo, conferir na mão.
-
-- **Caso A**, OURO + FRETEGRATIS com juros (é um caso da suíte): Bota R$ 349,90 ×
-  2 (2,10 kg cada), `EXPRESSA`, cupom `FRETEGRATIS`, `CARTAO` em 10×, clube `OURO`,
-  região `SUL`.
-- **Caso B**, FRETEGRATIS sem OURO, com boleto (fora da suíte, de propósito: os
-  números do caso "FRETEGRATIS sem OURO" da suíte já apareceram em saídas de
-  teste): Tênis R$ 249,90 × 1 (1,20 kg), `EXPRESSA`, cupom `FRETEGRATIS`, `BOLETO`,
-  clube `BRONZE`, região `NORDESTE`.
-
-Depois de calcular, da raiz do `TCC_V3` (a saída vem em **centavos**):
-
-```bash
-node --input-type=module -e 'import { calcular } from "./avaliacao/aceitacao-prototipo/ref-strategy.mjs"; console.log("A", calcular({ itens: [{ nome: "Bota", precoUnitario: 349.90, quantidade: 2, pesoKg: 2.10 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "CARTAO", parcelas: 10, nivelClube: "OURO", regiao: "SUL" })); console.log("B", calcular({ itens: [{ nome: "Tenis", precoUnitario: 249.90, quantidade: 1, pesoKg: 1.20 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "NORDESTE" }));'
-```
-
-| campo | A: à mão | A: calculadora | B: à mão | B: calculadora |
-|---|---|---|---|---|
-| subtotalProdutos | | | | |
-| descontoCupom | | | | |
-| frete | | | | |
-| prazoEntregaDias | | | | |
-| imposto | | | | |
-| total do pedido | | | | |
-| ajustePagamento | | | | |
-| totalFinal | | | | |
-| valorParcela | | | | |
-| creditoProximaCompra | | | | |
-| brinde | | | | |
 
 **Resultado:** _(preencher: data, quem conferiu, divergências e como se
 resolveram)_
