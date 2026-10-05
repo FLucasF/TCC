@@ -64,16 +64,57 @@ Por isso todo enunciado tem os dois tipos de ponto:
 
 ## 4. As hipóteses
 
-Cada hipótese tem um **eixo**, uma **direção** (declarada ou "sem direção") e um
-**quando**:
+### Como ler esta seção
+
+As hipóteses estão agrupadas por **eixo**, e cada uma tem um nome no formato
+*Eixo: o que ela afirma*. O exagero é a influência negativa no desenho, do §3;
+ganha eixo próprio porque é medido à parte.
+
+| eixo | a pergunta |
+|---|---|
+| **Desenho** | o padrão foi aplicado onde o enunciado pede? |
+| **Exagero** | o padrão foi aplicado onde o enunciado **não** pede? |
+| **Correção** | o código calcula o que o enunciado pede? |
+| **Custo** | quanto o agente gastou, e como trabalhou? |
+| **Modelo** | o efeito do harness muda de um modelo para outro? |
+| **Entre padrões**, **Skills** | só depois do 2º padrão testado, ou da 2ª versão do harness |
+
+**As cinco principais** são as que respondem à pergunta do §1. Em todas as
+tabelas deste arquivo, **★ quer dizer "principal"**. No texto, cada uma é chamada
+pela forma curta:
+
+| forma curta | nome | em uma frase |
+|---|---|---|
+| **a hipótese do desenho** | Desenho: isola cada caso | com o harness, o agente aplica melhor o padrão onde o enunciado pede |
+| **a hipótese do exagero** | Exagero: aplica onde não pede | o harness muda o quanto o agente exagera |
+| **a hipótese da correção** | Correção: suíte inteira | com o harness, o código não fica mais errado |
+| **a hipótese do custo** | Custo: tokens de entrada | o harness muda o gasto de tokens |
+| **a hipótese do modelo** | Modelo: efeito maior no mais fraco | o efeito do harness no desenho é maior no modelo mais fraco |
+
+As demais são **secundárias**: são medidas e publicadas, mas não sustentam
+conclusão sozinhas. A distinção importa: com muitas hipóteses e 9 pares por lote,
+alguma vai "dar certo" por acaso.
+
+Cada hipótese tem também uma **direção** (declarada, ou "sem direção" quando o
+harness pode puxar para os dois lados) e um **quando**:
 
 - **agora**: harness v1 (só o `CLAUDE.md`) com o Strategy;
 - **2º padrão**: exige pelo menos dois padrões testados;
 - **2ª versão**: exige pelo menos duas versões do harness.
 
-As **primárias** (★) são as que respondem a pergunta; as demais são secundárias
-e exploratórias. A distinção importa: com muitas hipóteses e 9 pares por lote,
-alguma vai "dar certo" por acaso, e só as primárias sustentam conclusão.
+Até 05/10 as hipóteses tinham códigos (D1, N1, C1...), que ainda aparecem no
+histórico do git. A correspondência está no §7.
+
+**Palavras usadas nas regras:**
+
+- **braço**: `CONTROL` (workspace vazio) ou `HARNESS` (com o harness).
+- **par**: uma `CONTROL` e uma `HARNESS` do mesmo modelo, rodadas no mesmo
+  instante. Cada lote tem 9 pares: 3 modelos × 3 réplicas.
+- **melhor, igual, pior**: em cada par, como a `HARNESS` ficou em relação à
+  `CONTROL`, no que a hipótese mede.
+- **teto**: um modelo cuja `CONTROL` já acerta tudo o que a hipótese mede, nas 3
+  réplicas. Ali o harness não tem como melhorar: só empatar ou piorar. No piloto,
+  Opus e Sonnet estavam no teto de desenho.
 
 ### 4.1 Como uma hipótese é lida (proposta)
 
@@ -84,99 +125,124 @@ comportam diferente. Por isso a leitura é **por pares, descritiva, e decidida
 aqui antes dos dados**; o teste de sinal sobre os 9 pares pode ser reportado ao
 lado, como informação, não como critério.
 
-Em cada par, a `HARNESS` fica **melhor**, **igual** ou **pior** que a `CONTROL` no
-que a hipótese mede. Com isso:
-
 | tipo de hipótese | apoiada quando | contrariada quando |
 |---|---|---|
-| **direcional** | há mais pares melhores que piores em pelo menos 2 dos 3 modelos, e em nenhum modelo há mais piores que melhores | há mais pares piores que melhores em pelo menos 2 dos 3 modelos |
+| **direcional** | na maioria dos modelos **fora do teto** há mais pares melhores que piores, e em nenhum modelo (no teto ou não) há mais piores que melhores | na maioria dos modelos fora do teto há mais pares piores que melhores |
 | **não-inferioridade** ("não piora") | no máximo 1 dos 9 pares é pior | 2 ou mais pares são piores |
-| **sem direção** ("altera") | pelo menos 7 dos 9 pares vão na mesma direção, qualquer que seja | nenhuma direção chega a 7 |
+| **sem direção** ("altera"), medida contínua (tokens, tempo) | pelo menos 7 dos 9 pares vão na mesma direção, qualquer que seja | nenhuma direção chega a 7 |
+| **sem direção** ("altera"), medida sim/não (exagerou ou não) | todos os pares não empatados vão na mesma direção, e são pelo menos 3 | menos de 3 pares não empatados, ou eles se dividem |
 
 Fora desses casos, a hipótese é **inconclusiva**, e isso é resultado, não falha.
 A tabela de pares é sempre publicada inteira, qualquer que seja a leitura.
+"Igual" nunca conta como direção.
 
-### 4.2 Desenho: influência positiva
+**Por que o teto sai da contagem.** Um modelo no teto não tem como mostrar
+melhora; contá-lo tornaria uma hipótese direcional impossível de apoiar sempre que
+dois modelos estivessem no teto, mesmo com efeito claro no terceiro. Por isso, nas
+hipóteses direcionais, os modelos no teto (na medida da própria hipótese) saem da
+contagem de "melhor" e são lidos por *Modelo: no teto, não piora*. Se os três
+estiverem no teto, a hipótese é registrada como "sem espaço para efeito", e a
+resposta vem de *Modelo: no teto, não piora*.
+
+**Por que a medida sim/não tem regra própria.** Quando a medida é exagerou ou
+não, a maioria dos pares tende a empatar (nenhum dos dois exagerou), e a regra dos
+7 em 9 nunca seria alcançada. Contam então só os pares em que os braços diferem.
+
+**A hipótese do modelo compara modelos, não pares.** É apoiada quando o modelo
+com menos acertos na `CONTROL` da hipótese do desenho (média das 3 réplicas) tem
+o maior saldo de pares nela (melhores − piores), sem empate; contrariada quando
+outro modelo tem saldo maior; com empate no maior saldo, inconclusiva.
+
+**Exemplo, com números inventados.** Na hipótese do desenho, o Haiku tem 2 pares
+melhores e 1 igual; Opus e Sonnet estão no teto, com 3 pares iguais cada. O Haiku
+é o único modelo fora do teto, e nele há mais melhores que piores; nenhum modelo
+piorou. **A hipótese do desenho é apoiada.** E a do modelo também: o Haiku, o mais
+fraco na `CONTROL`, tem o maior saldo (+2, contra 0 dos outros).
+
+### 4.2 Desenho
+
+Nesta tabela e nas seguintes, **★ marca a hipótese principal** do eixo; as sem ★
+são secundárias.
 
 Cada uma liga uma regra do harness v1 a algo observável no código.
 
-| | hipótese | regra do harness v1 | direção | quando |
+| hipótese | o que afirma | regra do harness v1 | direção | quando |
 |---|---|---|---|---|
-| **D1** ★ | nos pontos positivos, a `HARNESS` tem mais pontos em que o comportamento de cada caso mora numa unidade só dele e a escolha entre os casos não é uma cadeia de condições | 2 | declarada: mais | agora |
-| **D2** | nos pontos em que um caso exige mais que os outros (como o OURO no P4), a `HARNESS` tem mais vezes uma assinatura que comporta o caso mais exigente, sem remendo fora da estrutura | 3 | declarada: mais | agora |
-| **D3** | a `HARNESS` repete menos, dentro de cada caso, o que é comum a todos (a mesma fórmula ou o mesmo arredondamento copiados em cada variante) | 1 | declarada: menos | agora |
-| **D4** | para acrescentar um caso novo num ponto positivo, a `HARNESS` exige editar menos lugares do código existente | 1 e 2 | declarada: menos | agora |
-| **D5** | as 3 réplicas de um mesmo modelo são mais parecidas entre si na `HARNESS` que na `CONTROL` (o harness torna o desenho mais consistente) | todas | declarada: mais parecidas | agora |
+| **Desenho: isola cada caso** ★ | nos pontos positivos, a `HARNESS` tem mais pontos em que o comportamento de cada caso mora numa unidade só dele e a escolha entre os casos não é uma cadeia de condições | 2 | declarada: mais | agora |
+| **Desenho: comporta o caso exigente** | nos pontos em que um caso exige mais que os outros (como o OURO no P4), a `HARNESS` tem mais vezes uma assinatura que comporta o caso mais exigente, sem remendo fora da estrutura | 3 | declarada: mais | agora |
+| **Desenho: não repete o comum** | a `HARNESS` repete menos, dentro de cada caso, o que é comum a todos (a mesma fórmula ou o mesmo arredondamento copiados em cada variante) | 1 | declarada: menos | agora |
+| **Desenho: caso novo com pouca edição** | para acrescentar um caso novo num ponto positivo, a `HARNESS` exige editar menos lugares do código existente | 1 e 2 | declarada: menos | agora |
+| **Desenho: réplicas mais parecidas** | as 3 réplicas de um mesmo modelo são mais parecidas entre si na `HARNESS` que na `CONTROL` (o harness torna o desenho mais consistente) | todas | declarada: mais parecidas | agora |
 
-### 4.3 Desenho: influência negativa
+### 4.3 Exagero
 
-| | hipótese | direção | quando |
+| hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **N1** ★ | nos controles negativos, o harness **altera** a taxa de exagero (aplicar o padrão onde o enunciado não pede) | sem direção | agora |
-| **N2** | fora dos pontos de variação, o harness altera a quantidade de estrutura especulativa: interface com uma implementação só, fábrica para um caso só, extensão para variação que o enunciado não descreve | sem direção | agora |
-| **N3** | a `HARNESS` produz mais arquivos para o mesmo enunciado | declarada: mais | agora |
-| **N4** | quando o enunciado pede um padrão, a `HARNESS` aplica mais vezes um padrão **diferente** do pedido | declarada: mais | 2º padrão |
+| **Exagero: aplica onde não pede** ★ | nos controles negativos, o harness **altera** a taxa de exagero (aplicar o padrão onde o enunciado não pede) | sem direção | agora |
+| **Exagero: estrutura especulativa** | fora dos pontos de variação, o harness altera a quantidade de estrutura especulativa: interface com uma implementação só, fábrica para um caso só, extensão para variação que o enunciado não descreve | sem direção | agora |
+| **Exagero: mais arquivos** | a `HARNESS` produz mais arquivos para o mesmo enunciado | declarada: mais | agora |
+| **Exagero: padrão diferente do pedido** | quando o enunciado pede um padrão, a `HARNESS` aplica mais vezes um padrão **diferente** do pedido | declarada: mais | 2º padrão |
 
-A N1 é sem direção de propósito, porque o harness puxa para os dois lados: a
-regra 4 ("não crie estrutura para variação que você imagina") prevê **menos**
-exagero, e a ênfase das regras 1 a 3 em isolar o que varia pode induzir **mais**.
-O resultado diz qual das duas forças ganha.
+A hipótese do exagero é sem direção de propósito, porque o harness puxa para os
+dois lados: a regra 4 ("não crie estrutura para variação que você imagina") prevê
+**menos** exagero, e a ênfase das regras 1 a 3 em isolar o que varia pode induzir
+**mais**. O resultado diz qual das duas forças ganha.
 
 ### 4.4 Correção
 
-| | hipótese | direção | quando |
+| hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **C1** ★ | a `HARNESS` não passa em menos casos da suíte oculta que a `CONTROL` | não-inferioridade | agora |
-| **C2** | a `HARNESS` não tem mais builds quebrados (`outcome.build_ok`) | não-inferioridade | agora |
-| **C3** | nos casos de borda do enunciado (empate de arredondamento, precedência entre erros, colisão entre regras como OURO e FRETEGRATIS), a `HARNESS` não erra mais | não-inferioridade | agora |
-| **C4** | nos pontos em que a `HARNESS` aplicou o padrão, os casos daquele ponto passam tanto quanto na `CONTROL` (estrutura não custa correção) | não-inferioridade | agora |
+| **Correção: suíte inteira** ★ | a `HARNESS` não passa em menos casos da suíte oculta que a `CONTROL` | não-inferioridade | agora |
+| **Correção: não quebra o build** | a `HARNESS` não tem mais builds quebrados (`outcome.build_ok`) | não-inferioridade | agora |
+| **Correção: casos de borda** | nos casos de borda do enunciado (empate de arredondamento, precedência entre erros, colisão entre regras como OURO e FRETEGRATIS), a `HARNESS` não erra mais | não-inferioridade | agora |
+| **Correção: onde aplicou o padrão** | nos pontos em que a `HARNESS` aplicou o padrão, os casos daquele ponto passam tanto quanto na `CONTROL` (estrutura não custa correção) | não-inferioridade | agora |
 
-### 4.5 Custo e processo
+### 4.5 Custo
 
-| | hipótese | direção | quando |
+| hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **K1** ★ | o harness altera o consumo de entrada (`tokens.input_total`) | sem direção | agora |
-| **K2** | o harness altera o tempo de API (`timing.duration_api_ms`) | sem direção | agora |
-| **K3** | a direção do efeito no custo muda conforme o modelo | declarada: muda | agora |
-| **K4** | o harness altera o processo: turnos, e a proporção entre ler, escrever e executar (`outcome.tool_calls_by_name`) | sem direção | agora |
+| **Custo: tokens de entrada** ★ | o harness altera o consumo de entrada (`tokens.input_total`) | sem direção | agora |
+| **Custo: tempo de API** | o harness altera o tempo de API (`timing.duration_api_ms`) | sem direção | agora |
+| **Custo: sinal muda por modelo** | a direção do efeito no custo muda conforme o modelo | declarada: muda | agora |
+| **Custo: processo de trabalho** | o harness altera o processo: turnos, e a proporção entre ler, escrever e executar (`outcome.tool_calls_by_name`) | sem direção | agora |
 
 O custo é sem direção porque o piloto mostrou o sinal trocando entre modelos: o
 harness fez gastar mais em um e menos em outro.
 
 ### 4.6 Modelo
 
-| | hipótese | direção | quando |
+| hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **M1** ★ | o efeito positivo em desenho (D1) é maior no modelo que menos acerta sem harness | declarada: maior | agora |
-| **M2** | nos modelos que acertam tudo sem harness (teto), o harness não piora o desenho | não-inferioridade | agora |
-| **M3** | a influência negativa (N1, N2) aparece em modelos diferentes dos que têm a influência positiva | sem direção | agora |
+| **Modelo: efeito maior no mais fraco** ★ | o efeito na hipótese do desenho é maior no modelo que menos acerta sem harness | declarada: maior | agora |
+| **Modelo: no teto, não piora** | nos modelos que acertam tudo sem harness (teto), o harness não piora o desenho | não-inferioridade | agora |
+| **Modelo: quem melhora não é quem exagera** | a influência negativa (o exagero e a estrutura especulativa) aparece em modelos diferentes dos que têm a influência positiva | sem direção | agora |
 
-O piloto já sugere a M1 e a M2: no enunciado de três pontos, Opus e Sonnet
-acertaram todos os pontos **nos dois braços**. Onde o modelo já acerta sozinho,
-não há espaço para efeito positivo, e a pergunta passa a ser se o harness
-atrapalha.
+O piloto já sugere a hipótese do modelo e *Modelo: no teto, não piora*: no
+enunciado de três pontos, Opus e Sonnet acertaram todos os pontos **nos dois
+braços**. Onde o modelo já acerta sozinho, não há espaço para efeito positivo, e a
+pergunta passa a ser se o harness atrapalha.
 
 ### 4.7 Entre padrões
 
 Comparação **observacional**: cada padrão é um lote próprio, sem par entre lotes.
 
-| | hipótese | direção | quando |
+| hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **X1** | o efeito positivo é maior nos padrões em que a `CONTROL` acerta menos | declarada: maior | 2º padrão |
-| **X2** | o harness v1, que fala de variação, tem efeito positivo em padrões de variação (State, Template Method, Chain) e efeito nulo ou negativo em padrões fora dessa família | declarada | 2º padrão |
-| **X3** | a taxa de exagero (N1) é maior nos padrões mais parecidos com os que o harness descreve | declarada: maior | 2º padrão |
+| **Entre padrões: mais efeito onde a CONTROL erra mais** | o efeito positivo é maior nos padrões em que a `CONTROL` acerta menos | declarada: maior | 2º padrão |
+| **Entre padrões: só na família de variação** | o harness v1, que fala de variação, tem efeito positivo em padrões de variação (State, Template Method, Chain) e efeito nulo ou negativo em padrões fora dessa família | declarada | 2º padrão |
+| **Entre padrões: exagera nos parecidos** | a taxa de exagero (a da hipótese do exagero) é maior nos padrões mais parecidos com os que o harness descreve | declarada: maior | 2º padrão |
 
-### 4.8 Entre versões do harness
+### 4.8 Skills: entre versões do harness
 
 Também **observacional**: cada versão roda em lotes próprios, e a comparação é
 entre lotes.
 
-| | hipótese | direção | quando |
+| hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **S1** | acrescentar skills aumenta o efeito positivo em desenho, além do `CLAUDE.md` sozinho | declarada: aumenta | 2ª versão |
-| **S2** | acrescentar skills aumenta o custo | declarada: aumenta | 2ª versão |
-| **S3** | o efeito de uma skill depende de o modelo carregá-la: execuções que não a invocam se comportam como a `CONTROL` | declarada | 2ª versão |
-| **S4** | mais componentes no harness alteram a taxa de exagero (N1) | sem direção | 2ª versão |
+| **Skills: mais efeito no desenho** | acrescentar skills aumenta o efeito positivo em desenho, além do `CLAUDE.md` sozinho | declarada: aumenta | 2ª versão |
+| **Skills: mais custo** | acrescentar skills aumenta o custo | declarada: aumenta | 2ª versão |
+| **Skills: só valem se carregadas** | o efeito de uma skill depende de o modelo carregá-la: execuções que não a invocam se comportam como a `CONTROL` | declarada | 2ª versão |
+| **Skills: mudam o exagero** | mais componentes no harness alteram a taxa de exagero (a da hipótese do exagero) | sem direção | 2ª versão |
 
 ---
 
@@ -250,3 +316,45 @@ foi ele que mostrou o teto e motivou P4 e P5.
 - **Não mede o harness fora do Claude Code.** Os modelos rodam no Claude Code como
   ele vem, que já traz as suas próprias orientações. O efeito medido é o do
   harness **somado** a essa base.
+
+## 7. Códigos usados até 05/10
+
+Até 05/10/2026 as hipóteses eram citadas por códigos: a letra do eixo e um número.
+Eles foram trocados por nomes, que se leem sem legenda. Os códigos continuam nos
+commits anteriores e nos registros datados (`avaliacao/calibracao-relatorio.md`,
+`analise/testes-2026-09-30.md`); esta tabela serve só para lê-los. Como no §4,
+★ quer dizer "principal".
+
+| código | nome |
+|---|---|
+| D1 ★ | Desenho: isola cada caso (a hipótese do desenho) |
+| D2 | Desenho: comporta o caso exigente |
+| D3 | Desenho: não repete o comum |
+| D4 | Desenho: caso novo com pouca edição |
+| D5 | Desenho: réplicas mais parecidas |
+| N1 ★ | Exagero: aplica onde não pede (a hipótese do exagero) |
+| N2 | Exagero: estrutura especulativa |
+| N3 | Exagero: mais arquivos |
+| N4 | Exagero: padrão diferente do pedido |
+| C1 ★ | Correção: suíte inteira (a hipótese da correção) |
+| C2 | Correção: não quebra o build |
+| C3 | Correção: casos de borda |
+| C4 | Correção: onde aplicou o padrão |
+| K1 ★ | Custo: tokens de entrada (a hipótese do custo) |
+| K2 | Custo: tempo de API |
+| K3 | Custo: sinal muda por modelo |
+| K4 | Custo: processo de trabalho |
+| M1 ★ | Modelo: efeito maior no mais fraco (a hipótese do modelo) |
+| M2 | Modelo: no teto, não piora |
+| M3 | Modelo: quem melhora não é quem exagera |
+| X1 | Entre padrões: mais efeito onde a CONTROL erra mais |
+| X2 | Entre padrões: só na família de variação |
+| X3 | Entre padrões: exagera nos parecidos |
+| S1 | Skills: mais efeito no desenho |
+| S2 | Skills: mais custo |
+| S3 | Skills: só valem se carregadas |
+| S4 | Skills: mudam o exagero |
+
+Na suíte de aceitação, os mutantes se chamavam M1 a M16 até 05/10, o que colidia
+com os códigos de Modelo; passaram a ser "mutante 1" a "mutante 16" (`MUT1` a
+`MUT16` no código).

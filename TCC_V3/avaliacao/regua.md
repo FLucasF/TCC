@@ -195,18 +195,18 @@ Aplicada **depois** da leitura, sobre a planilha.
 | **positivo com caso exigente** | o acerto acima **e** `assinatura = comporta` | o erro acima, ou `assinatura = remendo` | — |
 | **controle negativo** | `proporcao` ∈ {`dados`, `condicional`} | — | `proporcao = estrutura` |
 
-`parte_comum` e `custo_caso_novo` não entram no acerto: medem D3 e D4 à parte.
+`parte_comum` e `custo_caso_novo` não entram no acerto: medem *Desenho: não repete o comum* e *Desenho: caso novo com pouca edição* à parte.
 
 | hipótese | de onde sai |
 |---|---|
-| D1 | acerto nos pontos positivos |
-| D2 | `assinatura` nos casos exigentes, em todos os pontos que os têm |
-| D3 | `parte_comum` |
-| D4 | `custo_caso_novo` |
-| D5 | as 3 réplicas de um modelo e braço, comparadas na `forma` e no acerto de cada ponto |
-| N1 | exagero nos controles negativos |
-| N2 | `especulativa`, por pacote |
-| N3 | `arquivos_main`, por pacote |
+| Desenho: isola cada caso | acerto nos pontos positivos |
+| Desenho: comporta o caso exigente | `assinatura` nos casos exigentes, em todos os pontos que os têm |
+| Desenho: não repete o comum | `parte_comum` |
+| Desenho: caso novo com pouca edição | `custo_caso_novo` |
+| Desenho: réplicas mais parecidas | as 3 réplicas de um modelo e braço, comparadas na `forma` e no acerto de cada ponto |
+| Exagero: aplica onde não pede | exagero nos controles negativos |
+| Exagero: estrutura especulativa | `especulativa`, por pacote |
+| Exagero: mais arquivos | `arquivos_main`, por pacote |
 
 ### 3.2 State
 

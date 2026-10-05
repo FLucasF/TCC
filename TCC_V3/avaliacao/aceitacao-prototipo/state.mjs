@@ -1,6 +1,6 @@
 // Teste de aceitacao do enunciado do State (experimento/prompt/state.md),
 // caixa-preta, pela API. Casos = os 8 exemplos conferidos + textos + erros.
-// A unidade e o CASO, como na hipotese C1: passa se todas as conferencias dele
+// A unidade e o CASO, como na hipotese da correcao: passa se todas as conferencias dele
 // batem. Cada caso roda isolado: uma excecao derruba so o caso dela.
 const BASE = process.env.BASE;
 let passaram = 0, total = 0; const falhas = [];

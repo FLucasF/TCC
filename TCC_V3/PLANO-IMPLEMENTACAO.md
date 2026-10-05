@@ -77,7 +77,7 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
 
 ## Parte 1 — Régua do desfecho
 
-**Objetivo:** transformar "o padrão foi aplicado?" numa classificação que duas pessoas aplicam e chegam no mesmo resultado. Medir as hipóteses de desenho do `OBJETIVO.md` (D1 a D5, N1 a N3) e servir a qualquer padrão, não só ao Strategy: o Strategy é o primeiro.
+**Objetivo:** transformar "o padrão foi aplicado?" numa classificação que duas pessoas aplicam e chegam no mesmo resultado. Medir as hipóteses de desenho do `OBJETIVO.md` (as de Desenho e as três primeiras de Exagero) e servir a qualquer padrão, não só ao Strategy: o Strategy é o primeiro.
 
 **Formato: três níveis.** Só o terceiro é escrito de novo a cada enunciado.
 
@@ -108,7 +108,7 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
 - [ ] Conferir o gabarito (`ref-strategy.mjs`, a calculadora de onde a suíte tira o esperado) contra o enunciado, à mão e sem IA: **regra por regra** (cada regra do enunciado ↔ a linha que a implementa) e **dois casos de colisão calculados à mão antes de ver a saída** da calculadora. Roteiro e tabela em `avaliacao/aceitacao-prototipo/README.md`, seção "Conferência humana do gabarito". Divergência se resolve pelo texto do enunciado; se o texto não decide, vira inconsistência no §6 do `OBJETIVO.md`.
   - *Trocado em 03/10, a confirmar com o orientador.* Antes: "validar a suíte numa implementação sua, de referência" (escrever o serviço do zero). Motivo: as cinco implementações de Opus e Sonnet já concordam com a calculadora em todos os casos, então um erro do gabarito teria de ser compartilhado por todas; a conferência humana fecha esse risco que sobra a um custo proporcional (cerca de uma hora em vez de um projeto).
 - [x] Validar também o outro lado: a suíte **reprova** código errado. Cada mutante de `avaliacao/aceitacao-prototipo/mutantes.mjs` (a calculadora com um erro plantado, um por regra do enunciado que tem armadilha) precisa ser reprovado; o `validar-mutantes.mjs` sai com 0. Feito em 03/10: 15 de 15.
-- [x] A unidade é o **caso** (passa ou falha), como a C1 está escrita, e não a verificação de campo. Pontos em que o enunciado se contradiz entram como observação, sem contar (03/10).
+- [x] A unidade é o **caso** (passa ou falha), como a hipótese da correção está escrita, e não a verificação de campo. Pontos em que o enunciado se contradiz entram como observação, sem contar (03/10).
 - [ ] **State:** conferir, à mão, que cada valor esperado no `state.mjs` é o do enunciado (`experimento/prompt/state.md`): os 8 exemplos e os erros. Aqui o gabarito não é uma calculadora escrita com IA, são os números do próprio enunciado copiados para o teste, então a conferência é só de cópia (cerca de 15 minutos). Antes do lote `STATE`, rever também se o enunciado tem fronteiras ("até", "acima de", "a partir de") sem caso no valor exato, a lição dos mutantes do Strategy.
 
 Como roda sobre os workspaces já salvos, vale para as 36 execuções existentes sem rodar modelo de novo e sem tocar no `executar.sh`.
@@ -181,10 +181,10 @@ Por que isso elimina a memória: o container nasce com `~/.claude` vazio (sem me
 | `CLAUDE.md` no braço `HARNESS` | **continua** no workspace | mede o harness como seria usado: presente no build e na manutenção. Conferido em 03/10: os 9 `CLAUDE.md` do EXT estão byte a byte iguais ao original, e nenhum `CONTROL` tem `CLAUDE.md` escrito pelo modelo. Limite a declarar: não separa o efeito do desenho do efeito da orientação |
 | mudanças | **quatro sprints em sequência, no mesmo workspace**, uma mudança por sprint, na ordem **P2 → P1 → P4 → P5**, a mesma para todos | um ponto por sprint deixa cada diff limpo; a ordem vai do mais simples ao controle negativo, que mede o exagero sobre o código já mexido pelas outras três, como num projeto real |
 | P2 | um cupom novo | ponto positivo simples; provavelmente teto, serve de referência |
-| P1 | uma transportadora nova **com limite de peso** (tarifa e prazo próprios, só até X kg) | caso exigente do mesmo tipo do MOTOBOY, dentro de um ponto só: o contrato comporta sem remendo? (D2) |
+| P1 | uma transportadora nova **com limite de peso** (tarifa e prazo próprios, só até X kg) | caso exigente do mesmo tipo do MOTOBOY, dentro de um ponto só: o contrato comporta sem remendo? (*Desenho: comporta o caso exigente*) |
 | P4 | um nível **DIAMANTE**, que mexe em mais de uma regra (crédito, frete, brinde) | o caso mais exigente; é onde o Haiku CONTROL já fez remendo no build |
-| P5 | uma **região nova**, só uma porcentagem | controle negativo: uma linha num desenho proporcional, classe + fábrica no que exagerou. Dá preço ao exagero (N1) |
-| falha numa sprint | **segue**: a próxima parte do código como ficou, e `build_ok` de cada sprint é dado (C2) | como num projeto real; parar daria vantagem a quem quebra cedo. Só falha de infraestrutura (429, Docker) se refaz, com id novo |
+| P5 | uma **região nova**, só uma porcentagem | controle negativo: uma linha num desenho proporcional, classe + fábrica no que exagerou. Dá preço ao exagero (a hipótese do exagero) |
+| falha numa sprint | **segue**: a próxima parte do código como ficou, e `build_ok` de cada sprint é dado (*Correção: não quebra o build*) | como num projeto real; parar daria vantagem a quem quebra cedo. Só falha de infraestrutura (429, Docker) se refaz, com id novo |
 | simultaneidade | as 6 de cada rodada juntas, como hoje | mantém o pareamento |
 | tamanho | 4 sprints × 18 = **72 execuções**, em 12 rodadas de 6 | execuções pequenas, mas é cota de assinatura: rodar com a assinatura livre |
 
@@ -222,8 +222,8 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 
 | # | o quê | parte | quem | gasta tokens? |
 | --- | --- | --- | --- | --- |
-| g | gerar o CSV do EXT (`agregar.mjs --prefix EXT --out analise/resultados-ext.csv`: são os custos, K1 a K4) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
-| h | suíte sobre o EXT (C1 a C4) | 2 | Claude | não, mas lê dado |
+| g | gerar o CSV do EXT (`agregar.mjs --prefix EXT --out analise/resultados-ext.csv`: são as hipóteses de custo) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
+| h | suíte sobre o EXT (as hipóteses de correção) | 2 | Claude | não, mas lê dado |
 | i | leitura dupla do EXT, kappa e resolução | 4 | Lucas + Claude | sim |
 | j | completar o `verificar.mjs` (checagens 1, 3 e 5, que dependem da leitura), rodar sobre tudo e tirar dele os totais para o texto | 3 | Claude | não |
 | k | manutenção: extensão, depois da análise do EXT; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |

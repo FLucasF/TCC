@@ -1,7 +1,7 @@
 // Teste de aceitacao do enunciado do Strategy (experimento/prompt/prompt.md),
 // caixa-preta, pela API. O esperado vem da calculadora de referencia, que
 // reproduz os 5 exemplos conferidos do enunciado.
-// A unidade e o CASO, como na hipotese C1: passa se todos os campos batem.
+// A unidade e o CASO, como na hipotese da correcao: passa se todos os campos batem.
 // Os campos que falharam aparecem nas linhas FALHA, como diagnostico.
 import { calcular } from "./ref-strategy.mjs";
 const BASE = process.env.BASE;
@@ -33,7 +33,7 @@ const casos = [
   ["precedencia: cupom antes de pagamento", { itens: [cam], modalidadeEntrega: "ECONOMICA", cupom: "XPTO", formaPagamento: "CHEQUE", nivelClube: "BRONZE", regiao: "SUL" }],
   ["precedencia: pedido invalido primeiro", { itens: [], modalidadeEntrega: "DRONE", formaPagamento: "CHEQUE", nivelClube: "X", regiao: "Y" }],
   // fronteiras: cada "ate", "passa de" e "a partir de" do enunciado com o valor exato.
-  // Entraram porque os mutantes M8, M10 e M11 passavam pela suite sem eles.
+  // Entraram porque os mutantes MUT8, MUT10 e MUT11 passavam pela suite sem eles.
   ["fronteira: motoboy com 5 kg exatos", { itens: [{ nome: "Mochila", precoUnitario: 120.00, quantidade: 2, pesoKg: 2.50 }], modalidadeEntrega: "MOTOBOY", formaPagamento: "PIX", nivelClube: "BRONZE", regiao: "SUL" }],
   ["fronteira: OURO com produtos em 500,00 exatos", { itens: [{ nome: "Jaqueta", precoUnitario: 250.00, quantidade: 2, pesoKg: 1.00 }], modalidadeEntrega: "ECONOMICA", formaPagamento: "PIX", nivelClube: "OURO", regiao: "SUL" }],
   ["fronteira: MENOS50 com produtos em 300,00 exatos", { itens: [{ nome: "Vestido", precoUnitario: 150.00, quantidade: 2, pesoKg: 0.50 }], modalidadeEntrega: "ECONOMICA", cupom: "MENOS50", formaPagamento: "PIX", nivelClube: "BRONZE", regiao: "SUL" }],

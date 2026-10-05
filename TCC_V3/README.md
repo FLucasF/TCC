@@ -85,8 +85,8 @@ node avaliacao/ferramentas/anonimizar.mjs EXT-01-OPUS-CONTROL ... --seed N --pad
 ```
 
 O `--out` é necessário: sem ele, o `agregar.mjs` grava em `analise/resultados.csv`,
-que é o CSV do **piloto**, e o sobrescreveria. O CSV do EXT traz os custos (K1 a
-K4), então só é gerado na fase 2 do plano, com o `OBJETIVO.md` congelado.
+que é o CSV do **piloto**, e o sobrescreveria. O CSV do EXT traz os custos (as hipóteses de
+custo), então só é gerado na fase 2 do plano, com o `OBJETIVO.md` congelado.
 
 Com `--padrao`, pacotes e mapa vão para `avaliacao/<padrao>/`, ao lado do
 gabarito, e o script **recusa** se já houver um mapa lá. Sem `--padrao`, grava em

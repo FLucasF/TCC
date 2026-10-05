@@ -91,7 +91,7 @@ for (const m of MUTANTES) {
   const reprovado = r.code !== 0;
   if (!reprovado) problemas++;
   pegos[m.id] = r.falhos;
-  console.log(`${reprovado ? "REPROVADO " : "PASSOU (!)"} ${m.id.padEnd(4)} ${m.regra}`);
+  console.log(`${reprovado ? "REPROVADO " : "PASSOU (!)"} ${m.id.padEnd(5)} ${m.regra}`);
   console.log(`           ${reprovado ? "pego por: " + r.falhos.join(" | ") : "nenhum caso pegou: falta caso para esta regra"}`);
 }
 

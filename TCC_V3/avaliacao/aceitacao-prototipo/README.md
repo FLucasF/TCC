@@ -18,7 +18,7 @@ num container da imagem da bancada, sem token, e roda os casos.
 | `validar-mutantes.mjs` | serve a referência e cada mutante por HTTP e roda a suíte contra eles: a referência tem de passar, e cada mutante tem de ser reprovado |
 | `state.mjs` | 12 casos do enunciado do State: os 8 exemplos (com os textos para o cliente) e 4 erros |
 
-As duas suítes contam **casos**, como a C1 está escrita: um caso passa se todos os
+As duas suítes contam **casos**, como a hipótese da correção está escrita: um caso passa se todos os
 campos dele batem, e os campos que falharam aparecem nas linhas `FALHA`. Cada caso
 roda isolado: uma exceção derruba só o caso dela, não os seguintes.
 | `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares |
@@ -68,9 +68,9 @@ que ela **reprova o errado**, e isso se mostra com os mutantes:
 
 | suíte | referência | mutantes reprovados | os que passaram |
 |---|---|---|---|
-| 15 casos (a de 30/09) | passa | 12 de 16 | M7 boleto, M8 motoboy, M10 brinde, M11 MENOS50 |
+| 15 casos (a de 30/09) | passa | 12 de 16 | mutantes 7 (boleto), 8 (motoboy), 10 (brinde), 11 (MENOS50) |
 | com as fronteiras | passa | 16 de 16 | nenhum |
-| a atual, 18 casos (sem o M7, ver abaixo) | passa | **15 de 15** | nenhum |
+| a atual, 18 casos (sem o mutante 7, ver abaixo) | passa | **15 de 15** | nenhum |
 
 Os buracos eram todos **fronteiras**: nenhum caso tinha o valor exato de "até
 5 kg", "passarem de R$ 500", "passa de R$ 1.000" ou "a partir de R$ 300". Para o
@@ -91,14 +91,14 @@ total do pedido **com** imposto; a regra do boleto, entre parênteses, **sem**.
 Num pedido de R$ 950 + imposto, cada leitura fica de um lado do limite. Contar
 isso como erro mediria a contradição do enunciado, não o código; é o mesmo
 tratamento dos exemplos 1 a 4, e está no §6 do `OBJETIVO.md` como terceira
-inconsistência. Por isso o **M7** (o limite contando o imposto) saiu dos
+inconsistência. Por isso o **mutante 7** (o limite contando o imposto) saiu dos
 mutantes: é uma leitura válida, não um erro. O limite continua testado onde as
 duas leituras concordam (o caso "erro: boleto acima de 1000" e o exemplo 3).
 
 **A unidade é o caso.** Contar verificações de campo dava denominadores
 diferentes (um caso que devolve erro em vez de 200 vira uma verificação em vez
 de onze) e pesava cada erro pelo número de campos que ele contamina (o único erro
-do Haiku CONTROL derrubava cinco). A C1 já está escrita em casos.
+do Haiku CONTROL derrubava cinco). A hipótese da correção já está escrita em casos.
 
 Decidir as duas **antes** de a suíte rodar sobre o EXT é o que as mantém como
 pré-registro: depois, a escolha poderia ser guiada por qual braço ela favorece.
