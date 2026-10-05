@@ -64,7 +64,7 @@ enunciado que só pergunta o que o agente recebeu) conferiram, dentro do contain
 | `CLAUDE-SKILLS` | `CLAUDE.md` + skill | sim, e usada | `SKILL-CARREGADA-OK` |
 | `ONLY-SKILLS` | só a skill | sim, e usada | `SKILL-CARREGADA-OK` |
 
-As versões de teste e o enunciado estão em `historico/teste-bancada/`, com os
+As versões de teste e o enunciado estão em `history/bench-test/`, com os
 mesmos hashes gravados nos `meta.json`. Uma pasta `.claude/skills/` vazia é
 recusada antes de subir o container.
 

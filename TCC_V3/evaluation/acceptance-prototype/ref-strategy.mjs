@@ -1,4 +1,4 @@
-// Calculadora de referencia do enunciado do Strategy (experimento/prompt/prompt.md).
+// Calculadora de referencia do enunciado do Strategy (experiment/prompt/prompt.md).
 // Dinheiro em centavos inteiros; arredondamento meio-para-o-par em cada etapa.
 export const PCT_REGIAO = { SUDESTE: 1200, SUL: 1100, CENTRO_OESTE: 900, NORTE: 700, NORDESTE: 700 }; // em pontos-base
 

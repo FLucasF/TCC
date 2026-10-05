@@ -15,7 +15,7 @@ O plano cuida só da **avaliação**. A bancada (o ambiente de execução) já e
 Este plano é executado pelo Claude Code, uma parte por vez. Regras para o agente:
 
 1. **Só implementar partes revisadas.** Revisada hoje: **Parte 0**. As Partes 1 a 5 ainda estão em revisão e não devem ser tocadas.
-2. **Não alterar nada congelado:** `executar.sh`, `rodada.sh`, `extrair-meta.mjs`, `agregar.mjs`, `anonimizar.mjs`, `experimento/harness/`, o conteúdo dos prompts e o `Dockerfile`. Mover um arquivo congelado é permitido; mudar os bytes dele não. Conferir com `sha256sum` antes e depois de cada movimentação.
+2. **Não alterar nada congelado:** `executar.sh`, `rodada.sh`, `extrair-meta.mjs`, `agregar.mjs`, `anonimizar.mjs`, `experiment/harness/`, o conteúdo dos prompts e o `Dockerfile`. Mover um arquivo congelado é permitido; mudar os bytes dele não. Conferir com `sha256sum` antes e depois de cada movimentação.
 3. **Não abrir nem imprimir o `.env`.** Não abrir mapa de anonimização, exceto no passo que pede isso.
 4. **Parar e perguntar antes de:** apagar qualquer arquivo ou pasta, `git subtree`, `git push`, ou qualquer coisa que reescreva histórico.
 5. **Um commit por passo**, em português, no estilo do repositório: título curto e corpo explicando o porquê.
@@ -35,16 +35,16 @@ Este plano está em `PLANO-IMPLEMENTACAO.md`, na raiz do `TCC_V3`. Ficou fora do
 Rodar dentro de `J:\TCC\TCC_V3`, nesta ordem:
 
 - [x] **1. Commitar as execuções `EXT-01` a `EXT-03`.** Antes, conferir com `git status` que nenhum `target/` nem `.env` entra.
-- [x] **2. Proteger os arquivos antigos.** Acrescentar `historico/** -text` ao `.gitattributes` (sem isso o git pode mudar o fim de linha do prompt antigo, e o hash junto) e `historico/piloto/pacotes/` ao `.gitignore`.
-- [x] **3. Prompt único.** `git mv experimento/prompt/prompt.md historico/piloto/prompt.md` e depois `git mv experimento/prompt/prompt-estendido.md experimento/prompt/prompt.md`. Checagem: o `sha256sum` de `experimento/prompt/prompt.md` começa com `b7cdb594cb49efee` e o de `historico/piloto/prompt.md` com `53db3424b3972795`.
+- [x] **2. Proteger os arquivos antigos.** Acrescentar `history/** -text` ao `.gitattributes` (sem isso o git pode mudar o fim de linha do prompt antigo, e o hash junto) e `history/pilot/packages/` ao `.gitignore`.
+- [x] **3. Prompt único.** `git mv experiment/prompt/prompt.md history/pilot/prompt.md` e depois `git mv experiment/prompt/prompt-estendido.md experiment/prompt/prompt.md`. Checagem: o `sha256sum` de `experiment/prompt/prompt.md` começa com `b7cdb594cb49efee` e o de `history/pilot/prompt.md` com `53db3424b3972795`.
 - [x] **4. Recriar o mapa do piloto.**
-    1. Guardar o mapa atual: `mv avaliacao/mapa-anonimizacao.csv avaliacao/mapa-anonimizacao.guardado.csv`.
-    2. `node avaliacao/ferramentas/anonimizar.mjs $(ls runs | grep '^BATCH-' | LC_ALL=C sort) --seed 24`.
-    3. Checagem: os 18 códigos do mapa gerado são exatamente os 18 da `avaliacao/leitura-claude-cego.csv`. Se não forem, parar.
-    4. Mover o mapa gerado para `historico/piloto/mapa-anonimizacao.csv`, as 18 pastas geradas em `avaliacao/pacotes/` para `historico/piloto/pacotes/`, e `git mv avaliacao/leitura-claude-cego.csv historico/piloto/`.
-    5. Restaurar: `mv avaliacao/mapa-anonimizacao.guardado.csv avaliacao/mapa-anonimizacao.csv`.
-- [x] **5. Commitar os mapas.** `git add -f avaliacao/mapa-anonimizacao.csv` (está no `.gitignore`) e `git add historico/`.
-- [x] **6. Atualizar a documentação.** No `README.md` e no `experimento/prompt/README.md`: caminhos novos, tabela de hashes, e a decisão (um experimento; `BATCH` = piloto).
+    1. Guardar o mapa atual: `mv evaluation/mapa-anonimizacao.csv evaluation/mapa-anonimizacao.guardado.csv`.
+    2. `node evaluation/tools/anonimizar.mjs $(ls runs | grep '^BATCH-' | LC_ALL=C sort) --seed 24`.
+    3. Checagem: os 18 códigos do mapa gerado são exatamente os 18 da `evaluation/leitura-claude-cego.csv`. Se não forem, parar.
+    4. Mover o mapa gerado para `history/pilot/mapa-anonimizacao.csv`, as 18 pastas geradas em `evaluation/packages/` para `history/pilot/packages/`, e `git mv evaluation/leitura-claude-cego.csv history/pilot/`.
+    5. Restaurar: `mv evaluation/mapa-anonimizacao.guardado.csv evaluation/mapa-anonimizacao.csv`.
+- [x] **5. Commitar os mapas.** `git add -f evaluation/mapa-anonimizacao.csv` (está no `.gitignore`) e `git add history/`.
+- [x] **6. Atualizar a documentação.** No `README.md` e no `experiment/prompt/README.md`: caminhos novos, tabela de hashes, e a decisão (um experimento; `BATCH` = piloto).
 
 As execuções ficam em `runs/`; o prefixo `BATCH` ou `EXT` no nome já diz de qual são.
 
@@ -58,7 +58,7 @@ Rodar com o Claude Code aberto em `J:\TCC`, não dentro do `TCC_V3`, porque um p
 2. Commitar as alterações pendentes do repositório geral. O subtree exige a árvore limpa.
 3. **Perguntar antes.** Mover `J:\TCC\TCC_V3` para `J:\TCC_V3_temp`.
 4. **Perguntar antes.** Em `J:\TCC`: `git subtree add --prefix=TCC_V3 J:/TCC_V3_temp master`.
-5. Copiar de volta o que o git ignora e o experimento usa: `.env`, `avaliacao/pacotes/` e `historico/piloto/pacotes/`. Sem abrir o `.env`.
+5. Copiar de volta o que o git ignora e o experimento usa: `.env`, `evaluation/packages/` e `history/pilot/packages/`. Sem abrir o `.env`.
 6. Checagem: `git log --oneline <commit do subtree>^2` mostra os commits antigos (por exemplo `5c9c37d`) e os hashes do README batem com `sha256sum`. (`git log -- TCC_V3` não serve: numa subtree ele só mostra o commit de incorporação, porque os commits antigos gravaram os caminhos sem o prefixo.)
 7. **Perguntar antes.** Apagar `J:\TCC_V3_temp` e dar `git push`.
 
@@ -87,7 +87,7 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
 | **2. Ficha do padrão** | todo enunciado daquele padrão | quais propriedades contam como **acerto** e quais como **exagero**. Primeira ficha: Strategy |
 | **3. Gabarito do enunciado** | só aquele enunciado | a lista dos pontos, os identificadores dos casos de cada um, qual é positivo, qual é controle negativo, qual tem caso mais exigente |
 
-**Entrega:** `avaliacao/regua.md` (níveis 1 e 2) e `avaliacao/strategy/gabarito.md` (nível 3 do enunciado atual, na mesma pasta dos pacotes que lê, com cabeçalho de padrão, enunciado, hash e lotes), com:
+**Entrega:** `evaluation/regua.md` (níveis 1 e 2) e `evaluation/strategy/gabarito.md` (nível 3 do enunciado atual, na mesma pasta dos pacotes que lê, com cabeçalho de padrão, enunciado, hash e lotes), com:
 
 1. Cada propriedade com seus valores possíveis e a regra observável de cada valor.
 2. A forma encontrada (`classes`, `enum-abstrato`, `enum-dados`, `switch`…) registrada como **descrição**, não como veredito.
@@ -105,11 +105,11 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
 
 - [ ] Casos a partir dos exemplos conferidos do enunciado e da ordem de precedência dos erros.
 - [ ] Um script novo, separado (por exemplo `infra/scripts/aceitacao.sh`), que sobe o app de cada `runs/*/workspace` num container sem token, roda os casos e grava `aceitacao.txt` ao lado do `build.txt`.
-- [ ] Conferir o gabarito (`ref-strategy.mjs`, a calculadora de onde a suíte tira o esperado) contra o enunciado, à mão e sem IA: **regra por regra** (cada regra do enunciado ↔ a linha que a implementa) e **dois casos de colisão calculados à mão antes de ver a saída** da calculadora. Roteiro e tabela em `avaliacao/aceitacao-prototipo/README.md`, seção "Conferência humana do gabarito". Divergência se resolve pelo texto do enunciado; se o texto não decide, vira inconsistência no §6 do `OBJETIVO.md`.
+- [ ] Conferir o gabarito (`ref-strategy.mjs`, a calculadora de onde a suíte tira o esperado) contra o enunciado, à mão e sem IA: **regra por regra** (cada regra do enunciado ↔ a linha que a implementa) e **dois casos de colisão calculados à mão antes de ver a saída** da calculadora. Roteiro e tabela em `evaluation/acceptance-prototype/README.md`, seção "Conferência humana do gabarito". Divergência se resolve pelo texto do enunciado; se o texto não decide, vira inconsistência no §6 do `OBJETIVO.md`.
   - *Trocado em 03/10, a confirmar com o orientador.* Antes: "validar a suíte numa implementação sua, de referência" (escrever o serviço do zero). Motivo: as cinco implementações de Opus e Sonnet já concordam com a calculadora em todos os casos, então um erro do gabarito teria de ser compartilhado por todas; a conferência humana fecha esse risco que sobra a um custo proporcional (cerca de uma hora em vez de um projeto).
-- [x] Validar também o outro lado: a suíte **reprova** código errado. Cada mutante de `avaliacao/aceitacao-prototipo/mutantes.mjs` (a calculadora com um erro plantado, um por regra do enunciado que tem armadilha) precisa ser reprovado; o `validar-mutantes.mjs` sai com 0. Feito em 03/10: 15 de 15.
+- [x] Validar também o outro lado: a suíte **reprova** código errado. Cada mutante de `evaluation/acceptance-prototype/mutantes.mjs` (a calculadora com um erro plantado, um por regra do enunciado que tem armadilha) precisa ser reprovado; o `validar-mutantes.mjs` sai com 0. Feito em 03/10: 15 de 15.
 - [x] A unidade é o **caso** (passa ou falha), como a hipótese da correção está escrita, e não a verificação de campo. Pontos em que o enunciado se contradiz entram como observação, sem contar (03/10).
-- [ ] **State:** conferir, à mão, que cada valor esperado no `state.mjs` é o do enunciado (`experimento/prompt/state.md`): os 8 exemplos e os erros. Aqui o gabarito não é uma calculadora escrita com IA, são os números do próprio enunciado copiados para o teste, então a conferência é só de cópia (cerca de 15 minutos). Antes do lote `STATE`, rever também se o enunciado tem fronteiras ("até", "acima de", "a partir de") sem caso no valor exato, a lição dos mutantes do Strategy.
+- [ ] **State:** conferir, à mão, que cada valor esperado no `state.mjs` é o do enunciado (`experiment/prompt/state.md`): os 8 exemplos e os erros. Aqui o gabarito não é uma calculadora escrita com IA, são os números do próprio enunciado copiados para o teste, então a conferência é só de cópia (cerca de 15 minutos). Antes do lote `STATE`, rever também se o enunciado tem fronteiras ("até", "acima de", "a partir de") sem caso no valor exato, a lição dos mutantes do Strategy.
 
 Como roda sobre os workspaces já salvos, vale para as 36 execuções existentes sem rodar modelo de novo e sem tocar no `executar.sh`.
 
@@ -128,7 +128,7 @@ Construir uma checagem por vez, nesta ordem:
 | 3 | dentro da leitura: contagem de acertos bate com as categorias | sim |
 | 4 | desenho completo: 3 réplicas por modelo × condição, pares existentes | sim |
 | 5 | imprime os totais por braço e por par, que vão para o texto | não |
-| 6 | o `enunciado_hash` do cabeçalho de `avaliacao/<padrao>/gabarito.md` é o `prompt_hash` do `meta.json` de cada execução dos `lotes` do cabeçalho: nenhum pacote lido com gabarito de outro enunciado | sim |
+| 6 | o `enunciado_hash` do cabeçalho de `evaluation/<padrao>/gabarito.md` é o `prompt_hash` do `meta.json` de cada execução dos `lotes` do cabeçalho: nenhum pacote lido com gabarito de outro enunciado | sim |
 
 Sai com código 1 e lista os problemas, ou com 0 se estiver tudo coerente.
 
@@ -156,11 +156,11 @@ Em 03/10 conferiu-se à mão, sem ler desfecho, o que as checagens 4 e 6 vão au
 
 ### Isolamento da leitura do Claude
 
-A leitura atual confia que o agente não abriu o mapa. O mapa continua em `avaliacao/` e os pacotes são cópias exatas de `runs/*/workspace`, então um agente com acesso ao repositório consegue descobrir o braço. A leitura passa a rodar no mesmo tipo de container da bancada, onde isso fica impossível, e não só evitado.
+A leitura atual confia que o agente não abriu o mapa. O mapa continua em `evaluation/` e os pacotes são cópias exatas de `runs/*/workspace`, então um agente com acesso ao repositório consegue descobrir o braço. A leitura passa a rodar no mesmo tipo de container da bancada, onde isso fica impossível, e não só evitado.
 
 - [ ] Criar `infra/scripts/ler-cego.sh`, no molde do `executar.sh`: `docker run --rm`, mesma imagem, `claude -p` com `--no-session-persistence`.
-- [ ] O script recebe **só o nome do padrão** e monta tudo a partir de `avaliacao/<padrao>/`, para não haver escolha separada de gabarito que possa errar.
-- [ ] Montar no container só isto: uma cópia de `avaliacao/<padrao>/pacotes/` (somente leitura), a régua e o `gabarito.md` da mesma pasta, e uma pasta de saída para o CSV. Nada do repositório, nem `runs/`, nem o mapa.
+- [ ] O script recebe **só o nome do padrão** e monta tudo a partir de `evaluation/<padrao>/`, para não haver escolha separada de gabarito que possa errar.
+- [ ] Montar no container só isto: uma cópia de `evaluation/<padrao>/packages/` (somente leitura), a régua e o `gabarito.md` da mesma pasta, e uma pasta de saída para o CSV. Nada do repositório, nem `runs/`, nem o mapa.
 - [ ] A régua entra como prompt, igual ao `prompt.md` na execução.
 - [ ] Reaproveitar o preflight do `executar.sh`: registrar que `~/.claude` está vazio e que não existe `CLAUDE.md` fora da pasta montada. Guardar esse log junto do CSV como prova.
 - [ ] Não fazer a leitura no app do Claude nem numa sessão do Claude Code no seu computador: os dois podem ter memória sobre o TCC.
@@ -222,7 +222,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 
 | # | o quê | parte | quem | gasta tokens? |
 | --- | --- | --- | --- | --- |
-| g | gerar o CSV do EXT (`agregar.mjs --prefix EXT --out analise/resultados-ext.csv`: são as hipóteses de custo) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
+| g | gerar o CSV do EXT (`agregar.mjs --prefix EXT --out analysis/resultados-ext.csv`: são as hipóteses de custo) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
 | h | suíte sobre o EXT (as hipóteses de correção) | 2 | Claude | não, mas lê dado |
 | i | leitura dupla do EXT, kappa e resolução | 4 | Lucas + Claude | sim |
 | j | completar o `verificar.mjs` (checagens 1, 3 e 5, que dependem da leitura), rodar sobre tudo e tirar dele os totais para o texto | 3 | Claude | não |

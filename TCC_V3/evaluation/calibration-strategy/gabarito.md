@@ -1,18 +1,18 @@
 ---
 padrao: strategy
-enunciado: experimento/prompt/prompt.md
+enunciado: experiment/prompt/prompt.md
 enunciado_hash: b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35
-lotes: EXT
+lotes: TESTE-P4
 ---
 
-# Gabarito: enunciado do Strategy
+# Gabarito de calibração: enunciado do Strategy, lote TESTE-P4
 
 > **RASCUNHO**, junto com a [régua](../regua.md). Este é o nível 3: vale só para
 > o enunciado e os lotes do cabeçalho acima. O cabeçalho é lido por script: o
 > `verificar.mjs` (Parte 3) confere se `enunciado_hash` é o `prompt_hash` gravado
 > no `meta.json` de cada execução dos lotes listados.
 >
-> Este arquivo mora na mesma pasta dos pacotes que ele lê (`pacotes/`, ao lado).
+> Este arquivo mora na mesma pasta dos pacotes que ele lê (`packages/`, ao lado).
 > É isso que impede ler pacote de um padrão com gabarito de outro.
 
 Para cada ponto de variação: os casos como aparecem no enunciado (é o que se

@@ -1,4 +1,4 @@
-// Teste de aceitacao do enunciado do Strategy (experimento/prompt/prompt.md),
+// Teste de aceitacao do enunciado do Strategy (experiment/prompt/prompt.md),
 // caixa-preta, pela API. O esperado vem da calculadora de referencia, que
 // reproduz os 5 exemplos conferidos do enunciado.
 // A unidade e o CASO, como na hipotese da correcao: passa se todos os campos batem.

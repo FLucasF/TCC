@@ -3,7 +3,7 @@
 // Uso:
 //   node infra/scripts/agregar.mjs                     # todas as runs
 //   node infra/scripts/agregar.mjs --prefix BATCH      # so o lote
-//   node infra/scripts/agregar.mjs --out analise/resultados.csv
+//   node infra/scripts/agregar.mjs --out analysis/resultados.csv
 //
 // So junta o que o meta.json tem. A avaliacao dos pacotes e outra coisa, feita a
 // mao, e e cruzada com isto depois — nao aqui.
@@ -17,7 +17,7 @@ const opt = (nome, padrao) => {
   return i >= 0 ? args[i + 1] : padrao;
 };
 const prefix = opt("prefix", null);
-const out = opt("out", join("analise", "resultados.csv"));
+const out = opt("out", join("analysis", "resultados.csv"));
 
 // A ordem aqui e a ordem das colunas. Agrupada por assunto, nao alfabetica:
 // quem abre o CSV numa planilha quer identidade, depois desfecho, depois custo.

@@ -29,8 +29,8 @@ novos entram depois, um de cada vez, sobre o mesmo corpo.
 
 | | |
 |---|---|
-| **o que varia dentro de um lote** | só a condição: `CONTROL` (workspace vazio) ou `HARNESS` (com uma versão de `experimento/harnesses/`) |
-| **o harness** | **fixo dentro de uma versão**, igual em todos os padrões testados com ela. Não é ajustado a um enunciado. Cada versão é uma pasta de `experimento/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
+| **o que varia dentro de um lote** | só a condição: `CONTROL` (workspace vazio) ou `HARNESS` (com uma versão de `experiment/harnesses/`) |
+| **o harness** | **fixo dentro de uma versão**, igual em todos os padrões testados com ela. Não é ajustado a um enunciado. Cada versão é uma pasta de `experiment/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
 | **o enunciado** | um por padrão testado, **igual nos dois braços**. Escrito como um cliente pedindo o sistema, sem palavra de arquitetura |
 | **os modelos** | Opus, Sonnet e Haiku; o modelo é fator de bloco |
 | **a unidade de análise** | o **par simultâneo**: a `CONTROL` e a `HARNESS` que rodaram no mesmo instante, no mesmo modelo |
@@ -252,8 +252,8 @@ entre lotes.
 
 | padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
 |---|---|---|---|---|---|---|
-| **Strategy** | `experimento/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | `avaliacao/strategy/` | rodado; leitura feita antes da régua, a refazer |
-| **State** | `experimento/prompt/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | `STATE-01` a `03` (a rodar) | `avaliacao/state/` | enunciado e gabarito escritos; falta `SMOKE`, calibração e lote |
+| **Strategy** | `experiment/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | `evaluation/strategy/` | rodado; leitura feita antes da régua, a refazer |
+| **State** | `experiment/prompt/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | `STATE-01` a `03` (a rodar) | `evaluation/state/` | enunciado e gabarito escritos; falta `SMOKE`, calibração e lote |
 
 A coluna **avaliação** é a pasta do padrão: o gabarito, os pacotes cegos, o mapa
 e as leituras ficam juntos lá, e o cabeçalho do gabarito repete o hash do
@@ -274,21 +274,21 @@ destas depois de rodar.
 
 Um **padrão novo** entra como uma linha na primeira tabela, **antes** de rodar:
 
-1. o enunciado em `experimento/prompt/<padrao>.md`, rodado com `PROMPT_FILE`;
+1. o enunciado em `experiment/prompt/<padrao>.md`, rodado com `PROMPT_FILE`;
 2. o lote com o nome do padrão no prefixo (por exemplo `STATE-01`);
 3. pelo menos um ponto positivo e um controle negativo;
 4. uma rodada `SMOKE-` antes do lote, para ver se o enunciado não bate no teto
    (os dois braços acertam tudo) nem no chão (nenhum acerta);
-5. a pasta `avaliacao/<padrao>/` com o `gabarito.md`, e os pacotes gerados com
+5. a pasta `evaluation/<padrao>/` com o `gabarito.md`, e os pacotes gerados com
    `anonimizar.mjs --padrao <padrao>`.
 
-Uma **versão nova do harness** é uma pasta nova em `experimento/harnesses/`
-(como montar: [`experimento/harnesses/README.md`](experimento/harnesses/README.md)),
+Uma **versão nova do harness** é uma pasta nova em `experiment/harnesses/`
+(como montar: [`experiment/harnesses/README.md`](experiment/harnesses/README.md)),
 rodada com `HARNESS=<nome>`. Ela entra como uma linha na segunda tabela, antes de
 rodar, com os componentes e o hash, e roda **pelo menos o padrão Strategy**, para
 que a comparação com o `only-claude` tenha um ponto em comum.
 
-O **piloto** (`BATCH-01` a `03`, em `historico/piloto/`) não entra na análise:
+O **piloto** (`BATCH-01` a `03`, em `history/pilot/`) não entra na análise:
 foi ele que mostrou o teto e motivou P4 e P5.
 
 ## 6. O que este trabalho não afirma
@@ -305,13 +305,13 @@ foi ele que mostrou o teto e motivou P4 e P5.
   calculado sem desconto. O enunciado já rodou e não muda; a correção é medida só
   com o exemplo 5 e casos com clube e região, e o comportamento diante dos
   exemplos 1 a 4 é registrado como observação
-  ([`analise/testes-2026-09-30.md`](analise/testes-2026-09-30.md)).
+  ([`analysis/testes-2026-09-30.md`](analysis/testes-2026-09-30.md)).
 - **E uma terceira, achada ao validar a suíte de aceitação (03/10).** O passo 5
   define o total do pedido **com** imposto; a regra do boleto, entre parênteses,
   **sem**. As duas leituras só divergem nos pedidos que ficam abaixo de R$ 1.000
   sem imposto e acima com ele. A suíte não conta esse caso: registra como
   observação qual leitura cada execução seguiu, do mesmo jeito que os exemplos
-  1 a 4 ([`avaliacao/aceitacao-prototipo/README.md`](avaliacao/aceitacao-prototipo/README.md)).
+  1 a 4 ([`evaluation/acceptance-prototype/README.md`](evaluation/acceptance-prototype/README.md)).
   Decidido antes de a suíte rodar sobre o lote EXT.
 - **Não mede o harness fora do Claude Code.** Os modelos rodam no Claude Code como
   ele vem, que já traz as suas próprias orientações. O efeito medido é o do
@@ -321,8 +321,8 @@ foi ele que mostrou o teto e motivou P4 e P5.
 
 Até 05/10/2026 as hipóteses eram citadas por códigos: a letra do eixo e um número.
 Eles foram trocados por nomes, que se leem sem legenda. Os códigos continuam nos
-commits anteriores e nos registros datados (`avaliacao/calibracao-relatorio.md`,
-`analise/testes-2026-09-30.md`); esta tabela serve só para lê-los. Como no §4,
+commits anteriores e nos registros datados (`evaluation/calibracao-relatorio.md`,
+`analysis/testes-2026-09-30.md`); esta tabela serve só para lê-los. Como no §4,
 ★ quer dizer "principal".
 
 | código | nome |

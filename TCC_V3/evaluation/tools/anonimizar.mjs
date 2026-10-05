@@ -1,14 +1,14 @@
 // Prepara os pacotes para a avaliacao as cegas.
 //
 // Uso:
-//   node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]
+//   node evaluation/tools/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]
 //
-// Com --padrao, pacotes e mapa vao para avaliacao/<NOME>/, a pasta do padrao,
+// Com --padrao, pacotes e mapa vao para evaluation/<NOME>/, a pasta do padrao,
 // onde ja mora o gabarito que os le. Se o mapa ja existir la, o script recusa:
 // sobrescreve-lo apagaria a unica ligacao entre codigo cego e execucao. Sem
-// --padrao, grava em avaliacao/, como sempre gravou.
+// --padrao, grava em evaluation/, como sempre gravou.
 //
-// Para cada execucao, produz avaliacao/pacotes/<CODIGO>/ com o codigo-fonte e
+// Para cada execucao, produz evaluation/packages/<CODIGO>/ com o codigo-fonte e
 // NADA MAIS. Fora ficam: CLAUDE.md, .claude/, target/, o .git do agente,
 // meta.json, a transcricao e o log de build — tudo que diria a quem avalia em
 // que braco aquele pacote estava.
@@ -16,7 +16,7 @@
 // As datas de modificacao sao normalizadas. Arquivo do braco HARNESS nasce
 // depois do harness ser copiado, e um `ls -la` entrega isso.
 //
-// O mapa codigo -> execucao vai para avaliacao/mapa-anonimizacao.csv, que esta
+// O mapa codigo -> execucao vai para evaluation/mapa-anonimizacao.csv, que esta
 // no .gitignore de proposito. Mova-o para fora desta pasta antes de avaliar.
 //
 // Este script NAO gera planilha de notas. A avaliacao ainda nao esta desenhada,
@@ -36,16 +36,16 @@ const padrao = iPadrao >= 0 ? ARGS[iPadrao + 1] : null;
 const runs = ARGS.filter((a, i) => !a.startsWith("--") && ARGS[i - 1] !== "--seed" && ARGS[i - 1] !== "--padrao");
 
 if (!runs.length) {
-  console.error("uso: node avaliacao/ferramentas/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]");
+  console.error("uso: node evaluation/tools/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]");
   process.exit(2);
 }
 if (iPadrao >= 0 && !/^[a-z0-9-]+$/.test(padrao ?? "")) {
-  console.error(`--padrao deve ser o nome de uma pasta de avaliacao/ (a-z, 0-9, -): '${padrao ?? ""}'`);
+  console.error(`--padrao deve ser o nome de uma pasta de evaluation/ (a-z, 0-9, -): '${padrao ?? ""}'`);
   process.exit(2);
 }
 
-const BASE = padrao ? join("avaliacao", padrao) : "avaliacao";
-const PACOTES = join(BASE, "pacotes");
+const BASE = padrao ? join("evaluation", padrao) : "evaluation";
+const PACOTES = join(BASE, "packages");
 const MAPA = join(BASE, "mapa-anonimizacao.csv");
 
 if (padrao && existsSync(MAPA)) {

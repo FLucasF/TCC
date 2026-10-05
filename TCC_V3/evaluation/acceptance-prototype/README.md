@@ -28,7 +28,7 @@ roda isolado: uma exceção derruba só o caso dela, não os seguintes.
 Da raiz do `TCC_V3`, para um workspace:
 
 ```bash
-A=$(cygpath -w "$PWD/avaliacao/aceitacao-prototipo")
+A=$(cygpath -w "$PWD/evaluation/acceptance-prototype")
 W=$(cygpath -w "$PWD/runs/<RUN_ID>/workspace")
 MSYS_NO_PATHCONV=1 docker run --rm \
   --mount "type=bind,source=$W,target=/ws,readonly" \
@@ -39,14 +39,14 @@ MSYS_NO_PATHCONV=1 docker run --rm \
 E o resumo de uma rodada:
 
 ```bash
-node avaliacao/aceitacao-prototipo/analisar-rodada.mjs TESTE-STRATEGY-01
+node evaluation/acceptance-prototype/analisar-rodada.mjs TESTE-STRATEGY-01
 ```
 
 E a validação da própria suíte, sem modelo nem Docker (sai com 0 se a referência
 passa e todos os mutantes são reprovados):
 
 ```bash
-node avaliacao/aceitacao-prototipo/validar-mutantes.mjs
+node evaluation/acceptance-prototype/validar-mutantes.mjs
 ```
 
 ## Validação que já existe
@@ -160,7 +160,7 @@ Na Price, `(1 + taxa)^−n` fica `BigDecimal.ONE.divide(d("1.0199").pow(n), Math
 Depois de calcular, da raiz do `TCC_V3` (a saída vem em **centavos**):
 
 ```bash
-node --input-type=module -e 'import { calcular } from "./avaliacao/aceitacao-prototipo/ref-strategy.mjs"; console.log("A", calcular({ itens: [{ nome: "Bota", precoUnitario: 349.90, quantidade: 2, pesoKg: 2.10 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "CARTAO", parcelas: 10, nivelClube: "OURO", regiao: "SUL" })); console.log("B", calcular({ itens: [{ nome: "Tenis", precoUnitario: 249.90, quantidade: 1, pesoKg: 1.20 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "NORDESTE" }));'
+node --input-type=module -e 'import { calcular } from "./evaluation/acceptance-prototype/ref-strategy.mjs"; console.log("A", calcular({ itens: [{ nome: "Bota", precoUnitario: 349.90, quantidade: 2, pesoKg: 2.10 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "CARTAO", parcelas: 10, nivelClube: "OURO", regiao: "SUL" })); console.log("B", calcular({ itens: [{ nome: "Tenis", precoUnitario: 249.90, quantidade: 1, pesoKg: 1.20 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "NORDESTE" }));'
 ```
 
 | campo | A: à mão | A: calculadora | B: à mão | B: calculadora |

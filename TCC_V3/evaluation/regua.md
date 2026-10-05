@@ -15,7 +15,7 @@ Diz como um pacote de código é lido para responder às hipóteses de desenho d
 |---|---|---|
 | **1. Propriedades**: o que se observa no código | aqui, §2 | todo padrão, todo enunciado |
 | **2. Ficha do padrão**: o que é acerto e o que é exagero | aqui, §3 | todo enunciado daquele padrão |
-| **3. Gabarito do enunciado**: os pontos e os casos de cada um | `avaliacao/<padrao>/gabarito.md`, junto dos pacotes | só aquele enunciado |
+| **3. Gabarito do enunciado**: os pontos e os casos de cada um | `evaluation/<padrao>/gabarito.md`, junto dos pacotes | só aquele enunciado |
 
 Quem lê **não julga** se "é Strategy". Registra o que vê, propriedade por
 propriedade, com evidência. Quem transforma isso em acerto é a ficha, aplicada
@@ -212,7 +212,7 @@ Aplicada **depois** da leitura, sobre a planilha.
 
 **Os mesmos critérios de acerto, erro e exagero da ficha do Strategy (§3.1)**, e
 o mesmo mapa de hipóteses. O que muda é só o que o gabarito do State
-(`avaliacao/state/gabarito.md`) chama de caso: as **situações** do pedido, que
+(`evaluation/state/gabarito.md`) chama de caso: as **situações** do pedido, que
 mudam durante a vida do objeto.
 
 Duas observações para quem aplica a ficha:
@@ -228,8 +228,8 @@ Duas observações para quem aplica a ficha:
 
 ## 4. As planilhas
 
-Ficam em `avaliacao/<padrao>/`, junto dos pacotes e do gabarito usados. Uma
-leitura dividida entre várias sessões grava as partes em `partes/<leitor>-<n>.csv`,
+Ficam em `evaluation/<padrao>/`, junto dos pacotes e do gabarito usados. Uma
+leitura dividida entre várias sessões grava as partes em `parts/<leitor>-<n>.csv`,
 depois juntadas em `leitura-<leitor>.csv`.
 
 **`leitura-<leitor>.csv`**: uma linha por pacote × ponto.

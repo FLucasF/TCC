@@ -9,8 +9,8 @@
 # Variaveis opcionais:
 #   IMAGE        padrao experimento-harness:v3
 #   EFFORT       padrao medium
-#   PROMPT_FILE  padrao experimento/prompt/prompt.md
-#   HARNESS      padrao only-claude. Nome de uma pasta de experimento/harnesses/,
+#   PROMPT_FILE  padrao experiment/prompt/prompt.md
+#   HARNESS      padrao only-claude. Nome de uma pasta de experiment/harnesses/,
 #                usada so na condicao HARNESS (ex.: HARNESS=claude-and-skills)
 #   NETWORK      rotulo da rede, gravado no meta.json (ex.: casa-wifi)
 #
@@ -40,9 +40,9 @@ EFFORT="${EFFORT:-medium}"
 
 RUN_DIR="$RAIZ/runs/$RUN_ID"
 WS="$RUN_DIR/workspace"
-PROMPT="${PROMPT_FILE:-$RAIZ/experimento/prompt/prompt.md}"
+PROMPT="${PROMPT_FILE:-$RAIZ/experiment/prompt/prompt.md}"
 HARNESS="${HARNESS:-only-claude}"
-HARNESS_DIR="$RAIZ/experimento/harnesses/$HARNESS"
+HARNESS_DIR="$RAIZ/experiment/harnesses/$HARNESS"
 ENV_FILE="$RAIZ/.env"
 
 # ------------------------------------------------------------------ preflight
@@ -60,7 +60,7 @@ if grep -Eq '^(ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|ANTHROPIC_BASE_URL|ANTHROP
 fi
 docker image inspect "$IMAGE" >/dev/null 2>&1 || morrer "imagem $IMAGE nao existe (rode o docker build)"
 if [ "$CONDITION" = "HARNESS" ]; then
-    case "$HARNESS" in ""|*[!a-z0-9-]*) morrer "HARNESS deve ser o nome de uma pasta de experimento/harnesses/: '$HARNESS'" ;; esac
+    case "$HARNESS" in ""|*[!a-z0-9-]*) morrer "HARNESS deve ser o nome de uma pasta de experiment/harnesses/: '$HARNESS'" ;; esac
     [ -d "$HARNESS_DIR" ] || morrer "harness nao encontrado: $HARNESS_DIR"
     # Uma pasta de skills sem skill e uma versao ainda nao montada: rodar com ela
     # mediria outra coisa com o nome desta.

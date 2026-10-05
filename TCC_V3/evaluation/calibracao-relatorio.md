@@ -43,7 +43,7 @@ válidos como registro quando não há enum, e a comparação sem efeito como "s
 
 ## Desvios de escopo dos leitores
 
-Três agentes, ao buscar com `grep`/`ls` a partir da pasta `pacotes/` inteira, viram
+Três agentes, ao buscar com `grep`/`ls` a partir da pasta `packages/` inteira, viram
 nomes ou trechos de pacotes fora do seu grupo (rodadas 1 e 2). Nenhum abriu planilha
 do outro leitor nem mapa. A partir da rodada 2 as instruções passaram a exigir busca
 dentro da pasta de cada pacote.
@@ -65,10 +65,10 @@ dentro da pasta de cada pacote.
 | | |
 |---|---|
 | pacotes | 27, fora da análise: 7 `SMOKE` + 18 `BATCH` (enunciado de 3 pontos) e 2 `TESTE-P4` (enunciado de 5 pontos) |
-| anonimização | `anonimizar.mjs --padrao`, sementes 101 e 102, em `avaliacao/calibracao-piloto/` e `avaliacao/calibracao-strategy/`. Os mapas foram tirados das pastas **sem serem abertos** e ficaram fora do repositório |
+| anonimização | `anonimizar.mjs --padrao`, sementes 101 e 102, em `evaluation/calibration-pilot/` e `evaluation/calibration-strategy/`. Os mapas foram tirados das pastas **sem serem abertos** e ficaram fora do repositório |
 | leitores | A e B-simulado, cada um dividido em 6 agentes (5 pacotes por agente), sem acesso à leitura do outro |
 | linhas lidas | 85 por leitor (25 × 3 pontos + 2 × 5 pontos) |
-| planilhas | `avaliacao/calibracao-*/partes/{A,B}-<n>.csv` e `-pacote.csv` |
+| planilhas | `evaluation/calibracao-*/parts/{A,B}-<n>.csv` e `-pacote.csv` |
 
 Um desvio: um agente do leitor B, ao buscar identificadores com `grep`, viu trechos
 de pacotes de outros grupos. Não viu nenhuma planilha do leitor A, então a
@@ -224,12 +224,12 @@ Os dois leitores resolveram do mesmo jeito, mas a régua não diz:
   tropeçaram nela. O texto certo: "indisponível quando o total passa de R$ 1.000,00".
 - "Um cupom por pedido" não aparece como código, e sai da lista de partes comuns.
 - Disponibilidade como dado (um `pesoMaximo` opcional) conta como `comporta` no P1.
-- A cópia do gabarito de calibração herdou a frase "mora em `avaliacao/strategy/`".
+- A cópia do gabarito de calibração herdou a frase "mora em `evaluation/strategy/`".
 
 ### 9. Nome dos arquivos
 
 A §4 da régua diz `leitura-<leitor>.csv`. Na calibração, as partes saíram em
-`partes/`, e depois são juntadas. A régua passa a descrever os dois.
+`parts/`, e depois são juntadas. A régua passa a descrever os dois.
 
 ---
 

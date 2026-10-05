@@ -1,6 +1,6 @@
 ---
 padrao: strategy
-enunciado: historico/piloto/prompt.md
+enunciado: history/pilot/prompt.md
 enunciado_hash: 53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124
 lotes: SMOKE, BATCH
 ---
@@ -12,7 +12,7 @@ lotes: SMOKE, BATCH
 >
 > O enunciado do piloto tem só P1 a P3, com **os mesmos casos** do enunciado do
 > Strategy (conferido). As seções abaixo são cópia das seções P1 a P3 de
-> [`avaliacao/strategy/gabarito.md`](../strategy/gabarito.md), sem o que depende do
+> [`evaluation/strategy/gabarito.md`](../strategy/gabarito.md), sem o que depende do
 > clube, que este enunciado não tem. O arredondamento não é parte comum (régua §2.5).
 
 | ponto | tipo | casos |

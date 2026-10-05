@@ -1,6 +1,6 @@
 ---
 padrao: state
-enunciado: experimento/prompt/state.md
+enunciado: experiment/prompt/state.md
 enunciado_hash: ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580
 lotes: STATE
 ---
@@ -12,7 +12,7 @@ lotes: STATE
 > rodada `SMOKE` para ver se o enunciado não bate no teto nem no chão, e uma
 > calibração da régua sobre ela.
 >
-> Este arquivo mora na mesma pasta dos pacotes que ele lê (`pacotes/`, ao lado).
+> Este arquivo mora na mesma pasta dos pacotes que ele lê (`packages/`, ao lado).
 
 **O que este enunciado testa, e o Strategy não testava:** o caso (a situação do
 pedido) **muda** durante a vida do objeto, a cada ação. No Strategy o caso é

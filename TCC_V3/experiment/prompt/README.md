@@ -3,16 +3,16 @@
 | arquivo | hash | pontos de variação | execuções |
 |---|---|---|---|
 | `prompt.md` | `b7cdb594cb49efee` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 imposto** | `EXT-01` a `03` — o experimento |
-| `../../historico/piloto/prompt.md` | `53db3424b3972795` | P1 entrega · P2 cupons · P3 pagamento | `BATCH-01` a `03` — o piloto |
+| `../../history/pilot/prompt.md` | `53db3424b3972795` | P1 entrega · P2 cupons · P3 pagamento | `BATCH-01` a `03` — o piloto |
 | `state.md` | `ebffe1724ca316b5` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | `STATE-01` a `03`, a rodar, com `PROMPT_FILE` |
 
 O `state.md` é o segundo padrão testado (State): a situação de um pedido depois
 da compra, que muda a cada ação. É um experimento à parte, com o mesmo harness e a
-mesma bancada; o gabarito dele está em `avaliacao/state/gabarito.md`.
+mesma bancada; o gabarito dele está em `evaluation/state/gabarito.md`.
 
 Nenhum dos dois muda. O de cinco pontos se chamava `prompt-estendido.md` até
 virar o enunciado único; o de três era o `prompt.md` e foi para
-`historico/piloto/`. Os bytes são os mesmos, e os hashes acima conferem com o
+`history/pilot/`. Os bytes são os mesmos, e os hashes acima conferem com o
 `meta.json` de cada execução.
 
 ---

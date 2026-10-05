@@ -3,7 +3,7 @@
 //   2. cada mutante (mutantes.mjs), servido do mesmo jeito, e REPROVADO.
 // A suite roda como roda nos pacotes: processo separado, pela API.
 //
-// Uso: node avaliacao/aceitacao-prototipo/validar-mutantes.mjs [suite.mjs]
+// Uso: node evaluation/acceptance-prototype/validar-mutantes.mjs [suite.mjs]
 // Sai com 0 se a referencia passa e todos os mutantes sao reprovados.
 import fs from "node:fs";
 import http from "node:http";
