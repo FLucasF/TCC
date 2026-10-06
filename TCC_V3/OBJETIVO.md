@@ -58,8 +58,9 @@ três:
 **As métricas automáticas são secundárias.** Medem tamanho, complexidade
 cognitiva, duplicação, acoplamento e coesão do código de produção
 ([`evaluation/tools/README.md`](evaluation/tools/README.md)). Complementam a régua,
-não a substituem, e não entram nas regras de leitura do §4.1: são descritivas,
-publicadas por par, como o custo.
+não a substituem, e nenhuma decide hipótese. Quatro delas estão ligadas a
+hipóteses no §4.9, como conferência independente da régua; as outras são
+descritivas, publicadas por par, como o custo.
 
 **Influência negativa** conta tanto quanto a positiva. Em desenho, ela aparece
 como exagero (aplicar o padrão onde o enunciado não pede), estrutura especulativa
@@ -266,6 +267,36 @@ entre lotes.
 | **Skills: mais custo** | acrescentar skills aumenta o custo | declarada: aumenta | 2ª versão |
 | **Skills: só valem se carregadas** | o efeito de uma skill depende de o modelo carregá-la: execuções que não a invocam se comportam como a `CONTROL` | declarada | 2ª versão |
 | **Skills: mudam o exagero** | mais componentes no harness alteram a taxa de exagero (a da hipótese do exagero) | sem direção | 2ª versão |
+
+### 4.9 Métricas automáticas ligadas às hipóteses
+
+Quatro métricas automáticas (as colunas do `metricas.csv`, ver
+[`evaluation/tools/README.md`](evaluation/tools/README.md)) servem de **conferência**
+de uma hipótese que a régua já mede. Pré-registradas em 06/10/2026, antes de
+qualquer dado do lote que vale (V4).
+
+| métrica | confere a hipótese | direção esperada na `HARNESS` | por quê |
+|---|---|---|---|
+| `sonar_cognitive_complexity` | a hipótese do desenho | menor | escolher o caso por uma cadeia de `if`/`switch` é o que a complexidade cognitiva pune |
+| `sonar_duplicated_lines_density` | Desenho: não repete o comum | menor | a parte comum copiada em cada caso aparece como linha duplicada |
+| `sonar_classes` | Exagero: mais arquivos | maior | conta os tipos com nome, o mesmo critério de `ck_tipos` |
+| `ck_cbo_media` e `ck_lcom_media` | Exagero: estrutura especulativa | sem direção | interface e fábrica sem necessidade mudam o acoplamento e a coesão médios |
+
+**Como se lê.** Cada métrica é lida por pares, com a regra do §4.1 do tipo da
+hipótese que ela confere (direcional ou sem direção, medida contínua), sem a
+regra do teto, que não se aplica a uma medida contínua. Valores iguais no par
+contam como igual.
+
+**O que ela não faz.** A métrica **não muda o veredito** da hipótese, que continua
+sendo o da régua (ou da suíte). Ela é publicada ao lado, como **concorda** (a
+mesma leitura), **não concorda** (a leitura oposta) ou **inconclusiva**. Um par em
+que a métrica e a régua apontam lados opostos é listado para ser relido, e a
+divergência é registrada e discutida, nunca resolvida trocando um número pelo
+outro.
+
+As demais colunas do `metricas.csv` (linhas, métodos, complexidade ciclomática,
+code smells, `ck_anonymous`, WMC, RFC, DIT) são **descritivas**: publicadas, sem
+hipótese.
 
 ---
 

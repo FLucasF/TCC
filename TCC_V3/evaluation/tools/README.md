@@ -18,7 +18,10 @@ ferramentas que não se sobrepõem:
 | **SonarQube** | linhas de código, classes, métodos, complexidade ciclomática e **cognitiva**, **duplicação**, code smells e dívida técnica |
 | **CK** (Aniche) | por classe: acoplamento (**CBO**), coesão (**LCOM**), complexidade (**WMC**), herança (DIT), RFC |
 
-São **secundárias**: complementam a régua de leitura, não a substituem. Não
+São **secundárias**: complementam a régua de leitura, não a substituem. Quatro
+delas conferem hipóteses que a régua mede (§4.9 do `OBJETIVO.md`): complexidade
+cognitiva, duplicação, número de classes, e acoplamento e coesão médios. Nenhuma
+muda o veredito de uma hipótese. Não
 julgam nada; só extraem números. Por isso rodam direto em `runs/`, sem pacote
 anonimizado: uma ferramenta não sabe qual é o braço, e a cegueira existe para
 proteger o julgamento humano.
