@@ -1,25 +1,46 @@
 # Os harnesses
 
-Cada pasta aqui é **uma versão de harness**: o que o agente recebe no braço
+Cada pasta aqui é **um nível de harness**: o que o agente recebe no braço
 `HARNESS`. A pasta inteira é copiada para a raiz do workspace, e o hash dela vai
 para `environment.harness_hash` no `meta.json`.
 
-| versão | o agente recebe | estado |
-|---|---|---|
-| `only-claude/` | o `CLAUDE.md` com as 4 regras sobre variação | em uso: lotes `EXT-01` a `03`, hash `560577922737dbb9` |
-| `claude-and-skills/` | o mesmo `CLAUDE.md` + skills | pronta para receber skills |
-| `only-skills/` | só skills, sem `CLAUDE.md` | pronta para receber skills |
+## A escada: N0 a N4
 
-O `CLAUDE.md` de `claude-and-skills/` é cópia byte a byte do de `only-claude/`.
-Mantê-lo igual é o que permite atribuir às skills a diferença entre as duas.
+Os níveis seguem a proposta do orientador (12/09/2026). Cada nível **acumula** o
+anterior, e o tipo diz como o harness age: uma instrução o modelo lê e pode
+ignorar; um sensor devolve retorno objetivo.
 
-## Rodar com uma versão
+| nível | o que acrescenta | tipo | pasta | estado |
+|---|---|---|---|---|
+| **N0** | nada: só o enunciado | — | nenhuma: é o braço `CONTROL` | rodado, lotes `EXT` |
+| **N1** | orientação: o `CLAUDE.md` com 4 regras sobre variação | instrução | `N1/` | rodado, lotes `EXT-01` a `03`, hash `560577922737dbb9` |
+| **N2** | conhecimento: o N1 + skills | instrução | `N2/` | pronta, sem skill |
+| **N3** | verificação automática: o N2 + build, testes ou regras que rodam sozinhos | sensor | `N3/` | vazia, a montar |
+| **N4** | processo: especificação, desenho e tarefas, com revisor independente | processo | `N4/` | vazia, a montar |
+
+O `CLAUDE.md` de `N2/` é cópia byte a byte do de `N1/`: manter igual é o que
+permite atribuir às skills a diferença entre os dois. O `N3/`, quando montado,
+leva o mesmo `CLAUDE.md` e as mesmas skills do `N2/`, mais a verificação (por
+exemplo, um `.claude/settings.json` com um hook que roda `mvn verify` quando o
+agente diz que terminou).
+
+Uma pasta sem `CLAUDE.md` nem skill é recusada pelo `executar.sh`, e uma
+`.claude/skills/` vazia também. Por isso nem o `N2/` (sem skill) nem o `N3/`
+e o `N4/` (vazios) rodam por engano.
+
+**Nomes até 06/10/2026.** `N1/` era `only-claude/`, e `N2/` era
+`claude-and-skills/`. O conteúdo não mudou com a troca, e o hash do `N1/` é o
+mesmo gravado nas execuções do EXT. Havia também `only-skills/` (skills sem o
+`CLAUDE.md`), que nunca rodou e saiu por não ser um nível: a escada acumula.
+Os registros datados, como `analysis/testes-2026-09-30.md`, usam os nomes antigos.
+
+## Rodar com um nível
 
 ```bash
-HARNESS=claude-and-skills infra/scripts/rodada.sh STATE-01 1
+HARNESS=N2 infra/scripts/rodada.sh STATE-01 1
 ```
 
-Sem `HARNESS`, vale `only-claude`. O `CONTROL` ignora a variável.
+Sem `HARNESS`, vale `N1`. O `CONTROL` ignora a variável.
 
 ## Adicionar uma skill
 
@@ -65,7 +86,9 @@ enunciado que só pergunta o que o agente recebeu) conferiram, dentro do contain
 | `ONLY-SKILLS` | só a skill | sim, e usada | `SKILL-CARREGADA-OK` |
 
 As versões de teste e o enunciado estão em `history/bench-test/`, com os
-mesmos hashes gravados nos `meta.json`. Uma pasta `.claude/skills/` vazia é
+mesmos hashes gravados nos `meta.json`. Os nomes dessas execuções são os de antes da
+escada: `ONLY-CLAUDE` corresponde ao N1, `CLAUDE-SKILLS` ao N2, e `ONLY-SKILLS` à
+variante que saiu. Uma pasta `.claude/skills/` vazia é
 recusada antes de subir o container.
 
 ## De onde veio cada skill

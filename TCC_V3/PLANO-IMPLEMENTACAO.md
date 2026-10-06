@@ -4,7 +4,7 @@
 
 ## Visão geral
 
-São seis partes, e nenhuma mexe na bancada de execução congelada: `executar.sh`, `rodada.sh`, prompt, harness e imagem continuam com os mesmos hashes. Tudo o que entra é instrumento de medida, aplicado depois das execuções.
+São seis partes, e nenhuma mexe na bancada de execução congelada: `executar.sh`, `rodada.sh`, prompt, harness e imagem continuam com os mesmos hashes. O TCC_V3 é a bancada de testes: o `EXT` serve para validar os instrumentos, e o lote que vale roda numa versão futura (V4), com 5 réplicas. Tudo o que entra é instrumento de medida, aplicado depois das execuções.
 
 Regra que vale para todas as partes: um instrumento novo é congelado (commit + hash no README) antes de ser usado em qualquer pacote. É a mesma disciplina que você já usa no pré-registro.
 

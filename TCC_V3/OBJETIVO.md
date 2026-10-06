@@ -38,6 +38,12 @@ novos entram depois, um de cada vez, sobre o mesmo corpo.
 O desenho de cada lote é 3 modelos × 2 condições × 3 réplicas = 18 execuções, 9
 pares. Detalhes, hashes e cuidados estão no README.
 
+**O TCC_V3 é a bancada de testes.** Os lotes daqui, inclusive o `EXT`, servem para
+validar a bancada, os enunciados e os instrumentos de medida. O experimento que
+vale vai rodar numa versão futura (V4), com 5 réplicas por célula; as regras de
+leitura do §4.1, calculadas aqui para 3 réplicas, serão refeitas para 5 antes de
+rodar.
+
 ## 3. O que conta como influência
 
 Um harness pode melhorar um eixo e piorar outro, por isso a influência é lida em
@@ -79,7 +85,7 @@ ganha eixo próprio porque é medido à parte.
 | **Modelo** | o efeito do harness muda de um modelo para outro? |
 | **Entre padrões**, **Skills** | só depois do 2º padrão testado, ou da 2ª versão do harness |
 
-**As cinco principais** são as que respondem à pergunta do §1. Em todas as
+**As quatro principais** são as que respondem à pergunta do §1. Em todas as
 tabelas deste arquivo, **★ quer dizer "principal"**. No texto, cada uma é chamada
 pela forma curta:
 
@@ -88,11 +94,13 @@ pela forma curta:
 | **a hipótese do desenho** | Desenho: isola cada caso | com o harness, o agente aplica melhor o padrão onde o enunciado pede |
 | **a hipótese do exagero** | Exagero: aplica onde não pede | o harness muda o quanto o agente exagera |
 | **a hipótese da correção** | Correção: suíte inteira | com o harness, o código não fica mais errado |
-| **a hipótese do custo** | Custo: tokens de entrada | o harness muda o gasto de tokens |
 | **a hipótese do modelo** | Modelo: efeito maior no mais fraco | o efeito do harness no desenho é maior no modelo mais fraco |
 
 As demais são **secundárias**: são medidas e publicadas, mas não sustentam
-conclusão sozinhas. A distinção importa: com muitas hipóteses e 9 pares por lote,
+conclusão sozinhas. O **custo** (tokens e tempo) é todo secundário, por orientação
+de 12/09: depende de cache e de outras variáveis fora do experimento, e serve como
+dado complementar, não como conclusão. *Custo: tokens de entrada* foi principal
+até 06/10. A distinção importa: com muitas hipóteses e 9 pares por lote,
 alguma vai "dar certo" por acaso.
 
 Cada hipótese tem também uma **direção** (declarada, ou "sem direção" quando o
@@ -161,8 +169,8 @@ fraco na `CONTROL`, tem o maior saldo (+2, contra 0 dos outros).
 
 ### 4.2 Desenho
 
-Nesta tabela e nas seguintes, **★ marca a hipótese principal** do eixo; as sem ★
-são secundárias.
+Nesta tabela e nas seguintes, **★ marca as hipóteses principais**; as sem ★
+são secundárias. O eixo do custo não tem principal.
 
 Cada uma liga uma regra do harness v1 a algo observável no código.
 
@@ -201,13 +209,22 @@ dois lados: a regra 4 ("não crie estrutura para variação que você imagina") 
 
 | hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **Custo: tokens de entrada** ★ | o harness altera o consumo de entrada (`tokens.input_total`) | sem direção | agora |
+| **Custo: tokens de entrada** | o harness altera o consumo de entrada (`tokens.input_total`) | sem direção | agora |
 | **Custo: tempo de API** | o harness altera o tempo de API (`timing.duration_api_ms`) | sem direção | agora |
 | **Custo: sinal muda por modelo** | a direção do efeito no custo muda conforme o modelo | declarada: muda | agora |
 | **Custo: processo de trabalho** | o harness altera o processo: turnos, e a proporção entre ler, escrever e executar (`outcome.tool_calls_by_name`) | sem direção | agora |
 
 O custo é sem direção porque o piloto mostrou o sinal trocando entre modelos: o
 harness fez gastar mais em um e menos em outro.
+
+**Cache.** O cache de prompt fica nos servidores da Anthropic: requisições que
+começam com o mesmo texto (o prompt de sistema do Claude Code, as ferramentas, o
+enunciado) reaproveitam o processamento, e o isolamento das execuções não tem como
+impedir isso. Ele **não é desligado**, porque um usuário real usa cache. Os tokens
+são registrados separados no `meta.json` (`tokens.input`, `tokens.cache_read`,
+`tokens.cache_write`), e `tokens.input_total` é a soma dos três. O cache não muda o
+código gerado, só o tempo e os tokens; por isso o custo é secundário e não sustenta
+conclusão.
 
 ### 4.6 Modelo
 
@@ -252,7 +269,7 @@ entre lotes.
 
 | padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
 |---|---|---|---|---|---|---|
-| **Strategy** | `experiment/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | `evaluation/strategy/` | rodado; leitura feita antes da régua, a refazer |
+| **Strategy** | `experiment/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | `evaluation/strategy/` | rodado como lote de teste (3 réplicas); leitura feita antes da régua, a refazer |
 | **State** | `experiment/prompt/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | `STATE-01` a `03` (a rodar) | `evaluation/state/` | enunciado e gabarito escritos; falta `SMOKE`, calibração e lote |
 
 A coluna **avaliação** é a pasta do padrão: o gabarito, os pacotes cegos, o mapa
@@ -261,14 +278,20 @@ enunciado e o prefixo do lote.
 
 ### Os harnesses
 
-| versão | componentes | hash da árvore | lotes |
-|---|---|---|---|
-| **`only-claude`** | `CLAUDE.md` com 4 regras sobre variação | `560577922737dbb9` | `EXT-01` a `03` |
-| `claude-and-skills` | o mesmo `CLAUDE.md` + skills | muda ao entrar a primeira skill | pronta, sem skill |
-| `only-skills` | só skills | muda ao entrar a primeira skill | pronta, sem skill |
+Os níveis seguem a escada N0 a N4 do orientador, explicada no
+[README dos harnesses](experiment/harnesses/README.md): cada nível acumula o anterior.
 
-Nas hipóteses, "harness v1" é o `only-claude`, e "2ª versão" é qualquer outra
-destas depois de rodar.
+| nível | componentes | pasta | hash da árvore | lotes |
+|---|---|---|---|---|
+| **N0** | nada (o braço `CONTROL`) | — | — | `EXT-01` a `03` |
+| **N1** | `CLAUDE.md` com 4 regras sobre variação | `N1/` | `560577922737dbb9` | `EXT-01` a `03` |
+| N2 | o mesmo `CLAUDE.md` + skills | `N2/` | muda ao entrar a primeira skill | pronta, sem skill |
+| N3 | o N2 + verificação automática | `N3/` | — | vazia, a montar |
+| N4 | o N3 + processo com revisor | `N4/` | — | vazia, a montar |
+
+Nas hipóteses, "harness v1" é o N1, e "2ª versão" é qualquer nível acima
+dele depois de rodar. Até 06/10 as pastas se chamavam `only-claude/` (N1) e
+`claude-and-skills/` (N2); havia também `only-skills/`, que nunca rodou e saiu.
 
 ### Como algo novo entra
 
@@ -286,7 +309,7 @@ Uma **versão nova do harness** é uma pasta nova em `experiment/harnesses/`
 (como montar: [`experiment/harnesses/README.md`](experiment/harnesses/README.md)),
 rodada com `HARNESS=<nome>`. Ela entra como uma linha na segunda tabela, antes de
 rodar, com os componentes e o hash, e roda **pelo menos o padrão Strategy**, para
-que a comparação com o `only-claude` tenha um ponto em comum.
+que a comparação com o N1 tenha um ponto em comum.
 
 O **piloto** (`BATCH-01` a `03`, em `history/pilot/`) não entra na análise:
 foi ele que mostrou o teto e motivou P4 e P5.
@@ -340,7 +363,7 @@ commits anteriores e nos registros datados (`evaluation/calibracao-relatorio.md`
 | C2 | Correção: não quebra o build |
 | C3 | Correção: casos de borda |
 | C4 | Correção: onde aplicou o padrão |
-| K1 ★ | Custo: tokens de entrada (a hipótese do custo) |
+| K1 | Custo: tokens de entrada (principal até 06/10) |
 | K2 | Custo: tempo de API |
 | K3 | Custo: sinal muda por modelo |
 | K4 | Custo: processo de trabalho |

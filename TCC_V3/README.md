@@ -9,10 +9,12 @@ braços é um arquivo de 14 linhas copiado para a raiz do workspace.
 | condição | o workspace começa com |
 |---|---|
 | `CONTROL` | nada |
-| `HARNESS` | uma versão de `experiment/harnesses/`; padrão `only-claude/`, só o `CLAUDE.md` |
+| `HARNESS` | um nível de `experiment/harnesses/`; padrão `N1/` (N1: só o `CLAUDE.md`). A escada N0 a N4 está no [README dos harnesses](experiment/harnesses/README.md) |
 
 **Um experimento só**, com o enunciado de cinco pontos de variação (P1 a P5): as
-execuções `EXT-01` a `EXT-03`. O lote `BATCH-01` a `03`, com o enunciado de três
+execuções `EXT-01` a `EXT-03`. O TCC_V3 é a **bancada de testes**: o `EXT` valida a
+bancada e os instrumentos, e o lote que vale vai rodar numa versão futura (V4), com
+5 réplicas por célula. O lote `BATCH-01` a `03`, com o enunciado de três
 pontos, é o **piloto**: foi ele que mostrou o efeito de teto e motivou P4 e P5.
 Tudo o que é só do piloto está em `history/pilot/`; as execuções dele continuam
 em `runs/`, e o prefixo diz de qual são.
@@ -72,9 +74,9 @@ PROMPT_FILE=$PWD/experiment/prompt/state.md infra/scripts/rodada.sh STATE-01 1
 PROMPT_FILE=$PWD/history/pilot/prompt.md infra/scripts/rodada.sh ...
 ```
 
-O braço `HARNESS` recebe `experiment/harnesses/only-claude/`, a não ser que
-`HARNESS` nomeie outra versão:
-`HARNESS=claude-and-skills infra/scripts/rodada.sh ...`. Como montar uma versão
+O braço `HARNESS` recebe `experiment/harnesses/n1/`, a não ser que
+`HARNESS` nomeie outro nível:
+`HARNESS=N2 infra/scripts/rodada.sh ...`. Como montar um nível
 com skills está em [`experiment/harnesses/README.md`](experiment/harnesses/README.md).
 
 Depois:
@@ -131,14 +133,14 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `experiment/prompt/prompt.md` | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `history/pilot/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
 | `experiment/prompt/state.md` (segundo padrão, a rodar) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
-| `experiment/harnesses/only-claude/` (árvore) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
+| `experiment/harnesses/n1/` (árvore; era `only-claude/`) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
 | `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
 | imagem `experimento-harness:v3` | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
 | Claude Code, na imagem | `2.1.269` |
 
 | script | hash | se tiver defeito |
 |---|---|---|
-| `executar.sh` | `e571cc45da3c98db` | perde **a execução** |
+| `executar.sh` | `6bd76c6e96de9d84` | perde **a execução** |
 | `rodada.sh` | `e6c65d2e4d84ede4` | perde **o pareamento** |
 | `anonimizar.mjs` | `ec6bfe8ecc37abb0` | perde **a cegueira** |
 | `extrair-meta.mjs` | `8c1d1dd228ae5ddf` | nada — a transcrição sobrevive |
@@ -157,6 +159,13 @@ STATE ver o mesmo ambiente que o EXT viu. Ficaram com o nome em português, de
 propósito: `infra/docker/aquecimento/`, porque o `Dockerfile` a copia para a imagem
 (renomear exigiria reconstruir a imagem), e as pastas internas dos harnesses de
 `history/bench-test/`, cujos caminhos entram no hash gravado naqueles `meta.json`.
+
+Em 06/10/2026 os harnesses viraram os níveis da escada do orientador (`only-claude/`
+→ `N1/`, `claude-and-skills/` → `N2/`, e `N3/` e `N4/` novos e vazios; `only-skills/`
+saiu sem nunca ter rodado). O `executar.sh` mudou em duas linhas: o harness padrão
+(`only-claude` → `N1`) e a validação do nome, que passou a aceitar maiúsculas
+(continua recusando espaço, barra e `..`). Era `e571cc45da3c98db`. O hash da árvore
+do `N1/` é o mesmo do `only-claude/` (`560577922737dbb9`), conferido na pasta nova.
 
 O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
 `SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova
