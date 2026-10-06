@@ -90,7 +90,7 @@ ganha eixo próprio porque é medido à parte.
 | **Correção** | o código calcula o que o enunciado pede? |
 | **Custo** | quanto o agente gastou, e como trabalhou? |
 | **Modelo** | o efeito do harness muda de um modelo para outro? |
-| **Entre padrões**, **Skills** | só depois do 2º padrão testado, ou da 2ª versão do harness |
+| **Entre padrões**, **Skills**, **Processo** | só depois do 2º padrão testado, ou dos níveis N2 e N3 do harness rodados |
 
 **As quatro principais** são as que respondem à pergunta do §1. Em todas as
 tabelas deste arquivo, **★ quer dizer "principal"**. No texto, cada uma é chamada
@@ -115,7 +115,7 @@ harness pode puxar para os dois lados) e um **quando**:
 
 - **agora**: harness v1 (só o `CLAUDE.md`) com o Strategy;
 - **2º padrão**: exige pelo menos dois padrões testados;
-- **2ª versão**: exige pelo menos duas versões do harness.
+- **N2**, **N3**: exige aquele nível do harness rodado (a escada está no §5).
 
 Até 05/10 as hipóteses tinham códigos (D1, N1, C1...), que ainda aparecem no
 histórico do git. A correspondência está no §7.
@@ -256,17 +256,38 @@ Comparação **observacional**: cada padrão é um lote próprio, sem par entre 
 | **Entre padrões: só na família de variação** | o harness v1, que fala de variação, tem efeito positivo em padrões de variação (State, Template Method, Chain) e efeito nulo ou negativo em padrões fora dessa família | declarada | 2º padrão |
 | **Entre padrões: exagera nos parecidos** | a taxa de exagero (a da hipótese do exagero) é maior nos padrões mais parecidos com os que o harness descreve | declarada: maior | 2º padrão |
 
-### 4.8 Skills: entre versões do harness
+### 4.8 Entre níveis do harness
 
-Também **observacional**: cada versão roda em lotes próprios, e a comparação é
-entre lotes.
+Também **observacional**: cada nível roda em lotes próprios, e a comparação é
+entre lotes. Cada nível acumula o anterior (§5), então cada um é comparado com o
+nível logo abaixo: o N2 com o N1, o N3 com o N2.
+
+**Skills (o N2 contra o N1)**
 
 | hipótese | o que afirma | direção | quando |
 |---|---|---|---|
-| **Skills: mais efeito no desenho** | acrescentar skills aumenta o efeito positivo em desenho, além do `CLAUDE.md` sozinho | declarada: aumenta | 2ª versão |
-| **Skills: mais custo** | acrescentar skills aumenta o custo | declarada: aumenta | 2ª versão |
-| **Skills: só valem se carregadas** | o efeito de uma skill depende de o modelo carregá-la: execuções que não a invocam se comportam como a `CONTROL` | declarada | 2ª versão |
-| **Skills: mudam o exagero** | mais componentes no harness alteram a taxa de exagero (a da hipótese do exagero) | sem direção | 2ª versão |
+| **Skills: mais efeito no desenho** | acrescentar skills aumenta o efeito positivo em desenho, além do `CLAUDE.md` sozinho | declarada: aumenta | N2 |
+| **Skills: mais custo** | acrescentar skills aumenta o custo | declarada: aumenta | N2 |
+| **Skills: só valem se carregadas** | o efeito de uma skill depende de o modelo carregá-la: execuções que não a invocam se comportam como o N1 | declarada | N2 |
+| **Skills: mudam o exagero** | mais componentes no harness alteram a taxa de exagero (a da hipótese do exagero) | sem direção | N2 |
+
+**Processo (o N3 contra o N2)**
+
+O N3 acrescenta um desenho curto antes do código e um revisor independente, que
+confere o código contra a tarefa e aponta, entre outras coisas, complexidade
+desnecessária.
+
+| hipótese | o que afirma | direção | quando |
+|---|---|---|---|
+| **Processo: corrige mais** | o N3 passa em mais casos da suíte oculta que o N2: o revisor confere o código contra a tarefa | declarada: mais | N3 |
+| **Processo: mais efeito no desenho** | o efeito positivo em desenho do N3 é maior que o do N2 | declarada: maior | N3 |
+| **Processo: menos exagero** | o N3 exagera menos que o N2: o revisor aponta complexidade desnecessária | declarada: menos | N3 |
+| **Processo: mais custo** | o N3 gasta mais tokens e tempo que o N2: o desenho e a revisão são turnos a mais | declarada: mais | N3 |
+| **Processo: só vale se usado** | execuções do N3 que não chamam o revisor se comportam como o N2 | declarada | N3 |
+
+O uso do revisor se confere na transcrição: o subagente aparece em
+`outcome.subagent_stats` do `meta.json`. O custo segue secundário, como todo o eixo
+do custo.
 
 ### 4.9 Métricas automáticas ligadas às hipóteses
 
@@ -317,17 +338,20 @@ enunciado e o prefixo do lote.
 
 Os níveis seguem a escada N0 a N4 do orientador, explicada no
 [README dos harnesses](experiment/harnesses/README.md): cada nível acumula o anterior.
+Com a verificação automática descartada, ela e o processo trocaram de número em
+relação à proposta, para os níveis que existem ficarem contíguos (N0 a N3) e o
+descartado ir para o fim (N4); os motivos estão no mesmo README.
 
 | nível | componentes | pasta | hash da árvore | lotes |
 |---|---|---|---|---|
 | **N0** | nada (o braço `CONTROL`) | — | — | `EXT-01` a `03` |
 | **N1** | `CLAUDE.md` com 4 regras sobre variação | `N1/` | `560577922737dbb9` | `EXT-01` a `03` |
-| N2 | o mesmo `CLAUDE.md` + skills | `N2/` | muda ao entrar a primeira skill | pronta, sem skill |
-| N3 | o N2 + verificação automática | `N3/` | — | vazia, a montar |
-| N4 | o N3 + processo com revisor | `N4/` | — | vazia, a montar |
+| N2 | o mesmo `CLAUDE.md` + a skill `gof-patterns` (pública, intacta) | `N2/` | `27987df0bd1febe2` | pronta, não rodou |
+| N3 | o N2 + processo: um desenho curto antes do código e um revisor independente | `N3/` | `5f4c492bf3d12f68` | pronto, não rodou |
+| N4 | verificação automática (build e testes que rodam sozinhos) | — | — | **descartado** (06/10): o agente já se verifica sozinho em 62 de 62 execuções; ver o README dos harnesses |
 
-Nas hipóteses, "harness v1" é o N1, e "2ª versão" é qualquer nível acima
-dele depois de rodar. Até 06/10 as pastas se chamavam `only-claude/` (N1) e
+Nas hipóteses, "harness v1" é o N1; as de *Skills* dependem do N2, e as de
+*Processo*, do N3. Até 06/10 as pastas se chamavam `only-claude/` (N1) e
 `claude-and-skills/` (N2); havia também `only-skills/`, que nunca rodou e saiu.
 
 ### Como algo novo entra
@@ -373,6 +397,14 @@ foi ele que mostrou o teto e motivou P4 e P5.
   observação qual leitura cada execução seguiu, do mesmo jeito que os exemplos
   1 a 4 ([`evaluation/acceptance-prototype/README.md`](evaluation/acceptance-prototype/README.md)).
   Decidido antes de a suíte rodar sobre o lote EXT.
+- **A skill do N2 (e do N3, que a acumula) traz exemplos próximos do domínio das tarefas.** É a `gof-patterns`,
+  pública e intacta, escrita sem conhecer as tarefas
+  ([`experiment/third-party/gof-patterns/ORIGEM.md`](experiment/third-party/gof-patterns/ORIGEM.md)).
+  Os exemplos completos dela são os canônicos: o de State é um pedido (pagar,
+  enviar, entregar, cancelar, devolver), e o de Strategy é pagamento. Um efeito do
+  N2 pode vir do conhecimento ou do molde. A transcrição registra se o agente abriu
+  a página do padrão, e isso separa as execuções que leram o exemplo das que não
+  leram.
 - **Não mede o harness fora do Claude Code.** Os modelos rodam no Claude Code como
   ele vem, que já traz as suas próprias orientações. O efeito medido é o do
   harness **somado** a essa base.
@@ -382,7 +414,9 @@ foi ele que mostrou o teto e motivou P4 e P5.
 Até 05/10/2026 as hipóteses eram citadas por códigos: a letra do eixo e um número.
 Eles foram trocados por nomes, que se leem sem legenda. Os códigos continuam nos
 commits anteriores e nos registros datados (`evaluation/calibracao-relatorio.md`,
-`analysis/testes-2026-09-30.md`); esta tabela serve só para lê-los. Como no §4,
+`analysis/testes-2026-09-30.md`); esta tabela serve só para lê-los. Atenção: os
+códigos N1 a N4 daqui são das hipóteses de **Exagero**, não os níveis de harness
+N1 a N4 do §5, que têm o mesmo nome por coincidência. Como no §4,
 ★ quer dizer "principal".
 
 | código | nome |

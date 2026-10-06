@@ -74,7 +74,7 @@ PROMPT_FILE=$PWD/experiment/prompt/state.md infra/scripts/rodada.sh STATE-01 1
 PROMPT_FILE=$PWD/history/pilot/prompt.md infra/scripts/rodada.sh ...
 ```
 
-O braço `HARNESS` recebe `experiment/harnesses/n1/`, a não ser que
+O braço `HARNESS` recebe `experiment/harnesses/N1/`, a não ser que
 `HARNESS` nomeie outro nível:
 `HARNESS=N2 infra/scripts/rodada.sh ...`. Como montar um nível
 com skills está em [`experiment/harnesses/README.md`](experiment/harnesses/README.md).
@@ -137,7 +137,9 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `experiment/prompt/prompt.md` | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `history/pilot/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
 | `experiment/prompt/state.md` (segundo padrão, a rodar) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
-| `experiment/harnesses/n1/` (árvore; era `only-claude/`) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
+| `experiment/harnesses/N1/` (árvore; era `only-claude/`) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
+| `experiment/harnesses/N2/` (árvore; com a skill `gof-patterns`) | `27987df0bd1febe2aff3731e15b9de2b5b7d35b6dd85cb46e3098518915389ac` |
+| `experiment/harnesses/N3/` (árvore; o N2 + processo com revisor) | `5f4c492bf3d12f6811b648cc4ac15cac0b06513b47e069e6bc5d077acf4df3df` |
 | `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
 | imagem `experimento-harness:v3` | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
 | Claude Code, na imagem | `2.1.269` |
@@ -170,11 +172,14 @@ propósito: `infra/docker/aquecimento/`, porque o `Dockerfile` a copia para a im
 `history/bench-test/`, cujos caminhos entram no hash gravado naqueles `meta.json`.
 
 Em 06/10/2026 os harnesses viraram os níveis da escada do orientador (`only-claude/`
-→ `N1/`, `claude-and-skills/` → `N2/`, e `N3/` e `N4/` novos e vazios; `only-skills/`
+→ `N1/`, `claude-and-skills/` → `N2/`; `only-skills/`
 saiu sem nunca ter rodado). O `executar.sh` mudou em duas linhas: o harness padrão
 (`only-claude` → `N1`) e a validação do nome, que passou a aceitar maiúsculas
 (continua recusando espaço, barra e `..`). Era `e571cc45da3c98db`. O hash da árvore
 do `N1/` é o mesmo do `only-claude/` (`560577922737dbb9`), conferido na pasta nova.
+No mesmo dia, o N2 recebeu a skill `gof-patterns`, o N3 virou o nível de processo
+(desenho antes do código e um revisor) e a verificação automática foi descartada,
+indo para o N4; a escada e os motivos estão no README dos harnesses.
 
 O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
 `SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova

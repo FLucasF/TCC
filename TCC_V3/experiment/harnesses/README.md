@@ -6,27 +6,53 @@ para `environment.harness_hash` no `meta.json`.
 
 ## A escada: N0 a N4
 
-Os níveis seguem a proposta do orientador (12/09/2026). Cada nível **acumula** o
+Os níveis vêm da proposta do orientador (12/09/2026). Cada nível **acumula** o
 anterior, e o tipo diz como o harness age: uma instrução o modelo lê e pode
-ignorar; um sensor devolve retorno objetivo.
+ignorar; um sensor devolve retorno objetivo; um processo muda a ordem do
+trabalho.
 
 | nível | o que acrescenta | tipo | pasta | estado |
 |---|---|---|---|---|
 | **N0** | nada: só o enunciado | — | nenhuma: é o braço `CONTROL` | rodado, lotes `EXT` |
 | **N1** | orientação: o `CLAUDE.md` com 4 regras sobre variação | instrução | `N1/` | rodado, lotes `EXT-01` a `03`, hash `560577922737dbb9` |
-| **N2** | conhecimento: o N1 + skills | instrução | `N2/` | pronta, sem skill |
-| **N3** | verificação automática: o N2 + build, testes ou regras que rodam sozinhos | sensor | `N3/` | vazia, a montar |
-| **N4** | processo: especificação, desenho e tarefas, com revisor independente | processo | `N4/` | vazia, a montar |
+| **N2** | conhecimento: o N1 + a skill `gof-patterns` | instrução | `N2/` | pronto, hash `27987df0bd1febe2` |
+| **N3** | processo: o N2 + desenho antes do código e um revisor independente | processo | `N3/` | pronto, hash `5f4c492bf3d12f68` |
+| **N4** | verificação automática: build e testes rodando sozinhos | sensor | — | **descartado** (06/10), ver abaixo |
 
-O `CLAUDE.md` de `N2/` é cópia byte a byte do de `N1/`: manter igual é o que
-permite atribuir às skills a diferença entre os dois. O `N3/`, quando montado,
-leva o mesmo `CLAUDE.md` e as mesmas skills do `N2/`, mais a verificação (por
-exemplo, um `.claude/settings.json` com um hook que roda `mvn verify` quando o
-agente diz que terminou).
+**O que cada pasta tem.**
 
-Uma pasta sem `CLAUDE.md` nem skill é recusada pelo `executar.sh`, e uma
-`.claude/skills/` vazia também. Por isso nem o `N2/` (sem skill) nem o `N3/`
-e o `N4/` (vazios) rodam por engano.
+- `N1/`: o `CLAUDE.md`.
+- `N2/`: o mesmo `CLAUDE.md`, byte a byte, e a skill `gof-patterns`. Manter o
+  `CLAUDE.md` igual é o que permite atribuir à skill a diferença entre os dois.
+- `N3/`: o `CLAUDE.md` do N1, intacto no começo, com uma seção **Processo**
+  acrescentada no fim (registrar um desenho curto em `.claude/desenho.md` antes
+  do código, implementar, e pedir revisão antes de terminar); a mesma skill do
+  N2, byte a byte; e o subagente `.claude/agents/revisor.md`, que só lê (`Read`,
+  `Grep`, `Glob`), usa o mesmo modelo do agente (`model: inherit`) e devolve no
+  máximo dez problemas. O desenho fica em `.claude/` de propósito: o anonimizador
+  remove essa pasta dos pacotes, e um arquivo de desenho solto entregaria o braço
+  na leitura cega. O revisor não usa o vocabulário da régua nem dos enunciados.
+
+**Por que a verificação automática foi descartada (06/10/2026).** O sensor
+previsto era um hook que roda `mvn verify` quando o agente diz que terminou, e
+devolve o erro se falhar. Mas o agente **já faz isso sozinho**: nas 62 execuções
+feitas até aqui (`BATCH`, `EXT`, `SMOKE`, `TESTE-*`), todas rodaram o Maven por
+conta própria, todas testaram depois da última edição e todas terminaram com o
+build passando. No Haiku, o modelo mais fraco, foram 20 de 20, rodando o Maven
+de 4 a 14 vezes por execução. Um sensor de build não teria o que corrigir. Um
+sensor que visse o que o agente não vê teria de usar a suíte de aceitação ou as
+métricas de desenho, e os dois são instrumentos da avaliação: o nível seria
+corrigido pelo gabarito. Em tarefas deste tamanho, com estes modelos, a
+verificação de build já é o comportamento padrão do Claude Code; em tarefas
+grandes ou com modelos mais fracos, o sensor pode voltar a fazer sentido.
+
+**Por que a numeração difere da proposta do orientador.** Na proposta, o N3 era
+a verificação automática e o N4 era o processo. Com a verificação descartada, a
+escada teria um buraco no meio (N0, N1, N2 e N4). Para ficar organizada, os dois
+trocaram de lugar: os níveis que existem ficam contíguos, de N0 a N3, cada um
+acumulando o anterior, e o descartado vai para o fim, como N4. A troca é só de
+número; o conteúdo de cada nível é o da proposta. Correspondência: N3 da
+proposta (verificação) = N4 aqui, descartado; N4 da proposta (processo) = N3 aqui.
 
 **Nomes até 06/10/2026.** `N1/` era `only-claude/`, e `N2/` era
 `claude-and-skills/`. O conteúdo não mudou com a troca, e o hash do `N1/` é o
@@ -98,11 +124,18 @@ workspace vazio e respondeu que não há `CLAUDE.md`; o N1, recebido **sem passa
 (`560577922737dbb9`), e o agente citou a primeira linha dele. A mesma imagem e a
 mesma versão do Claude Code. O build das duas sai com o código 66 (*SEM POM*), o
 esperado, porque o enunciado não pede código. Na mesma data, `HARNESS=N2`, `N3` e
-`N4` foram recusados antes de gastar cota, sem criar pasta. Uma pasta `.claude/skills/` vazia é
+`N4` foram recusados antes de gastar cota, sem criar pasta. (Naquela hora o N2
+ainda não tinha skill, e o N3 e o N4 estavam vazios, com a numeração anterior à
+troca descrita acima.) Uma pasta `.claude/skills/` vazia é
 recusada antes de subir o container.
 
 ## De onde veio cada skill
 
 | versão | skill | origem | versão ou commit | data |
 |---|---|---|---|---|
-| | | | | |
+| N2 e N3 | `gof-patterns` (25 arquivos, 896 KB), **intacta**, a mesma cópia nos dois | [grndlvl/software-patterns](https://github.com/grndlvl/software-patterns), `.claude/skills/gof-patterns/`; MIT, © 2025 grndlvl | `85e94a3bc19e9063a51b12289bb027a8bfbb13e8` | 06/10/2026 |
+
+A licença e o registro de origem ficam em `experiment/third-party/gof-patterns/`,
+fora da pasta do harness. Os exemplos completos da skill são os canônicos (State
+com pedido, Strategy com pagamento) e caem perto do domínio das tarefas: está no
+§6 do `OBJETIVO.md`.
