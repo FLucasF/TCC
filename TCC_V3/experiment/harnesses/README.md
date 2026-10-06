@@ -126,8 +126,19 @@ mesma versão do Claude Code. O build das duas sai com o código 66 (*SEM POM*),
 esperado, porque o enunciado não pede código. Na mesma data, `HARNESS=N2`, `N3` e
 `N4` foram recusados antes de gastar cota, sem criar pasta. (Naquela hora o N2
 ainda não tinha skill, e o N3 e o N4 estavam vazios, com a numeração anterior à
-troca descrita acima.) Uma pasta `.claude/skills/` vazia é
-recusada antes de subir o container.
+troca descrita acima.) Uma pasta `.claude/skills/` vazia é recusada antes de subir
+o container.
+
+**N2 e N3, em 06/10/2026**, depois de montados: `TESTE-BANCADA-02-N2` e
+`TESTE-BANCADA-02-N3`, mesmo enunciado, Haiku com esforço baixo. A skill
+`gof-patterns` chegou só aos dois (em `isolation_init.skills`, ausente do CONTROL e
+do N1), o subagente `revisor` só ao N3 (em `isolation_init.agents`), e os hashes
+conferem (`27987df0`, `5f4c492b`). Os dois agentes citaram a primeira linha do
+`CLAUDE.md`, mas responderam que não há skill de projeto: o enunciado não cita a
+`gof-patterns` pelo nome, como citava a `verificacao-harness` em 26/09, e o agente
+vê as skills disponíveis sem a indicação de quais vêm do projeto. A skill está
+disponível, mas não foi notada espontaneamente; se ela é usada numa tarefa de
+verdade é o que mede *Skills: só valem se carregadas* (`tool_calls_by_name.Skill`).
 
 ## De onde veio cada skill
 
