@@ -4,18 +4,18 @@
 
 ## Visão geral
 
-São seis partes, e nenhuma mexe na bancada de execução congelada: `executar.sh`, `rodada.sh`, prompt, harness e imagem continuam com os mesmos hashes. O TCC_V3 é a bancada de testes: o `EXT` serve para validar os instrumentos, e o lote que vale roda numa versão futura (V4), com 5 réplicas. Tudo o que entra é instrumento de medida, aplicado depois das execuções.
+São sete partes (0 a 6), e nenhuma mexe na bancada de execução congelada: `executar.sh`, `rodada.sh`, prompt, harness e imagem continuam com os mesmos hashes. O TCC_V3 é a bancada de testes: o `EXT` serve para validar os instrumentos, e o lote que vale roda numa versão futura (V4), com 5 réplicas. Tudo o que entra é instrumento de medida, aplicado depois das execuções.
 
 Regra que vale para todas as partes: um instrumento novo é congelado (commit + hash no README) antes de ser usado em qualquer pacote. É a mesma disciplina que você já usa no pré-registro.
 
-O plano cuida só da **avaliação**. A bancada (o ambiente de execução) já está pronta e congelada, e rodar lotes é execução, acompanhada no §5 do `OBJETIVO.md`. A ordem entre preparar e medir está em "Ordem e dependências", no fim.
+O plano cuida da **avaliação** e da **preparação do V4** (a escada de níveis e como ela roda, Parte 6). A bancada (o ambiente de execução) já está pronta e congelada, e rodar lotes é execução, acompanhada no §5 do `OBJETIVO.md`. A ordem entre preparar e medir está em "Ordem e dependências", no fim.
 
 ## Instruções para o agente
 
 Este plano é executado pelo Claude Code, uma parte por vez. Regras para o agente:
 
-1. **Só implementar partes revisadas.** Revisada hoje: **Parte 0**. As Partes 1 a 5 ainda estão em revisão e não devem ser tocadas.
-2. **Não alterar nada congelado:** `executar.sh`, `rodada.sh`, `extrair-meta.mjs`, `agregar.mjs`, `anonimizar.mjs`, `experiment/harness/`, o conteúdo dos prompts e o `Dockerfile`. Mover um arquivo congelado é permitido; mudar os bytes dele não. Conferir com `sha256sum` antes e depois de cada movimentação.
+1. **Só implementar o que o Lucas autorizar.** A Parte 0 foi revisada em 26/09. Entre 03 e 06/10, as Partes 2, 3, 5 e 6 foram trabalhadas com autorização dele, passo a passo. A Parte 1 (régua) e a 4 (leitura dupla) seguem em revisão: não mexer sem pedir.
+2. **Não alterar nada congelado:** `executar.sh`, `rodada.sh`, `extrair-meta.mjs`, `agregar.mjs`, `anonimizar.mjs`, `experiment/harnesses/` (os níveis N1 a N3, com hash no README), as ferramentas de métricas (`evaluation/tools/`), o conteúdo dos prompts e o `Dockerfile`. Mover um arquivo congelado é permitido; mudar os bytes dele não. Conferir com `sha256sum` antes e depois de cada movimentação.
 3. **Não abrir nem imprimir o `.env`.** Não abrir mapa de anonimização, exceto no passo que pede isso.
 4. **Parar e perguntar antes de:** apagar qualquer arquivo ou pasta, `git subtree`, `git push`, ou qualquer coisa que reescreva histórico.
 5. **Um commit por passo**, em português, no estilo do repositório: título curto e corpo explicando o porquê.
@@ -126,7 +126,7 @@ Construir uma checagem por vez, nesta ordem:
 | 1 | códigos da leitura ↔ mapa do lote, um para um | não |
 | 2 | `resultados.csv` bate com os `meta.json` | sim |
 | 3 | dentro da leitura: contagem de acertos bate com as categorias | sim |
-| 4 | desenho completo: 3 réplicas por modelo × condição, pares existentes | sim |
+| 4 | desenho completo: todas as réplicas de cada modelo × nível (3 × 2 no EXT; 5 × 4 no V4), e os pares ou quartetos simultâneos existentes | sim |
 | 5 | imprime os totais por braço e por par, que vão para o texto | não |
 | 6 | o `enunciado_hash` do cabeçalho de `evaluation/<padrao>/gabarito.md` é o `prompt_hash` do `meta.json` de cada execução dos `lotes` do cabeçalho: nenhum pacote lido com gabarito de outro enunciado | sim |
 
@@ -136,11 +136,11 @@ Sai com código 1 e lista os problemas, ou com 0 se estiver tudo coerente.
 
 **Limite a declarar na metodologia:** o script garante coerência entre as fontes, não a correção da classificação. Isso fica com a Parte 4.
 
-**Só os lotes da análise.** Roda sobre o EXT (e o STATE, quando rodar), por padrão, recebendo o lote como argumento, como o `--prefix` do `agregar.mjs`. SMOKE, TESTE e BATCH ficam fora: não sustentam nenhum número do texto, e não têm o desenho que as checagens exigem (uma réplica só, outro enunciado, execuções invalidadas de propósito), então falhariam por construção, e um verificador cheio de exceções esconde problema de verdade. A conferência do mapa do piloto foi única, feita na Parte 0.
+**Só os lotes da análise.** Roda sobre os lotes que valem, os do V4 (o EXT serve de ensaio), por padrão, recebendo o lote como argumento, como o `--prefix` do `agregar.mjs`. SMOKE, TESTE e BATCH ficam fora: não sustentam nenhum número do texto, e não têm o desenho que as checagens exigem (uma réplica só, outro enunciado, execuções invalidadas de propósito), então falhariam por construção, e um verificador cheio de exceções esconde problema de verdade. A conferência do mapa do piloto foi única, feita na Parte 0.
 
 Em 03/10 conferiu-se à mão, sem ler desfecho, o que as checagens 4 e 6 vão automatizar: as 18 execuções do EXT são 18 combinações distintas (3 réplicas × 3 modelos × 2 braços), todas com o enunciado `b7cdb594…` (o mesmo do cabeçalho do gabarito), a mesma imagem e a mesma versão do Claude Code, e o harness só no braço `HARNESS`.
 
-**Pronto quando:** roda limpo sobre o EXT, e cada cópia corrompida (ou dado sintético) faz sair com 1 na checagem certa.
+**Pronto quando:** roda limpo sobre o EXT (o ensaio), e cada cópia corrompida (ou dado sintético) faz sair com 1 na checagem certa; depois, sobre os lotes do V4.
 
 ## Parte 4 — Leitura dupla e kappa
 
@@ -202,6 +202,38 @@ Por que isso elimina a memória: o container nasce com `~/.claude` vazio (sem me
 
 **Pronto quando:** os quatro pedidos, a extensão da bancada e as hipóteses estão congelados com hash. É a parte maior; pode ficar para depois da análise do primeiro experimento.
 
+**A revisar com o V4.** Este desenho foi decidido sobre o EXT (3 réplicas, dois braços). Com o V4 (5 réplicas, quatro níveis, Parte 6), o ponto de partida passa a ser o lote que vale, e o tamanho muda; revisar antes de pré-registrar.
+
+## Parte 6 — Escada de níveis e o desenho do V4
+
+**Objetivo:** responder ao título do TCC ("quanto harness"), comparando níveis que acumulam, como na proposta do orientador (12/09).
+
+### Os níveis (montados e testados em 06/10)
+
+| nível | o que acrescenta | estado |
+|---|---|---|
+| N0 | nada (o braço `CONTROL`) | pronto |
+| N1 | o `CLAUDE.md` com 4 regras | pronto, hash `560577922737dbb9` |
+| N2 | o N1 + a skill pública `gof-patterns` | pronto, hash `27987df0bd1febe2` |
+| N3 | o N2 + processo (desenho antes do código, revisor) | pronto, hash `5f4c492bf3d12f68` |
+| N4 | verificação automática | **descartado**: o agente já se verifica sozinho (62 de 62) |
+
+O conteúdo de cada nível, os motivos do descarte e da troca de número entre N3 e N4, e o teste de bancada estão em `experiment/harnesses/README.md`.
+
+### Como roda no V4: os quatro níveis juntos (decidido em 06/10)
+
+Para cada modelo, N0, N1, N2 e N3 rodam **ao mesmo tempo**, um quarteto simultâneo no lugar do par simultâneo de hoje. Todos os níveis se comparam em pares, sem repetir a `CONTROL` por lote, e a pergunta de tendência (a qualidade sobe de N0 a N3?) fica possível. Tamanho: 4 níveis × 3 modelos × 5 réplicas × 2 padrões = **120 execuções** (contra 180 com um lote por nível).
+
+**Consumo esperado**, pelos `meta.json` de 50 execuções de teste (custo-equivalente de API, que a assinatura não cobra, mas mede o peso): Haiku ~US$ 0,55 e ~7 min por execução; Sonnet ~US$ 1,03 e ~7 min; Opus ~US$ 1,74 e ~8 min, com caudas de até 39 min. Um quarteto dos três modelos (12 execuções) ~US$ 13; o V4 inteiro ~US$ 133. Quantas execuções cabem numa janela de 5 h depende do plano da assinatura; a concorrência (os 3 modelos juntos ou um modelo por vez) é decidida na hora de rodar.
+
+### A fazer
+
+- [ ] `infra/scripts/rodada-niveis.sh`: roda os quatro níveis de um modelo em paralelo, chamando o `executar.sh` congelado (sem mudá-lo), com a mesma checagem prévia do `rodada.sh`.
+- [ ] Regras de leitura do §4.1 refeitas para **5 réplicas** e para **pares entre níveis** (N1 × N0, N2 × N1, N3 × N2), e a tendência de N0 a N3; pré-registradas antes de rodar.
+- [ ] Plano de cota: em quantos dias, e em que ordem, as 120 execuções rodam, sempre com a assinatura livre.
+
+**Pronto quando:** o script de quatro níveis e as regras novas estão congelados com hash, e o OBJETIVO pode ser congelado com eles.
+
 ## Ordem e dependências
 
 Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado antes de tudo da fase 1 estar congelado.** Rodar a suíte sobre o EXT não gasta tokens, mas já é olhar resultado, por isso fica na fase 2.
@@ -211,25 +243,28 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | # | o quê | parte | quem | depende de |
 | --- | --- | --- | --- | --- |
 | 0 | arrumar a casa | 0 | Claude | — (**feito**, 26/09) |
-| a | **congelar o `OBJETIVO.md`**: aprovar as hipóteses (§4) e as regras de leitura (§4.1), trocar o aviso de RASCUNHO por "congelado em DD/MM, com o orientador", commit e hash no README. Daí em diante, mudança no §1 a §4 só como emenda datada e com motivo, sem apagar o original; §5 e §6 continuam sendo atualizados | — | Lucas + orientador | — |
+| a | (depois de **f5**) **congelar o `OBJETIVO.md`**: aprovar as hipóteses (§4) e as regras de leitura (§4.1), trocar o aviso de RASCUNHO por "congelado em DD/MM, com o orientador", commit e hash no README. Daí em diante, mudança no §1 a §4 só como emenda datada e com motivo, sem apagar o original; §5 e §6 continuam sendo atualizados | — | Lucas + orientador | — |
 | b | confirmar com o orientador as trocas marcadas "a confirmar" (conferência humana no lugar da referência escrita do zero; desenho da Parte 5) | 2, 5 | Lucas + orientador | — |
 | c | conferir o gabarito do Strategy (~1 h) e do State (~15 min) | 2 | Lucas | — |
 | d | calibração humana da régua do Strategy (SMOKE e TESTE-P4) e **congelar a régua** | 1 | Lucas | — |
 | e | régua do State: ajuste da tabela de transições, calibração sobre a `TESTE-STATE-02` | 1 | Lucas (Claude no ajuste) | d |
 | f | `aceitacao.sh` e **congelar a suíte** | 2 | Claude | c |
 | f2 | **métricas automáticas** (CK + SonarQube, secundárias): montadas, testadas e congeladas com hash em 06/10 — ver `evaluation/tools/README.md` | — | Claude | — (**feito**, 06/10) |
+| f3 | **níveis N0 a N3** montados, com hash, e testados na bancada | 6 | Claude + Lucas | — (**feito**, 06/10) |
+| f4 | `rodada-niveis.sh` (os quatro níveis de um modelo em paralelo) e **congelar** | 6 | Claude | f3 |
+| f5 | regras do §4.1 para 5 réplicas e pares entre níveis, no OBJETIVO | 6 | Claude, revisão do Lucas | f4 |
 
 ### Fase 2: medir (só com a fase 1 inteira congelada)
 
 | # | o quê | parte | quem | gasta tokens? |
 | --- | --- | --- | --- | --- |
-| g | gerar o CSV do EXT (`agregar.mjs --prefix EXT --out analysis/resultados-ext.csv`: são as hipóteses de custo) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
-| h | suíte sobre o EXT (as hipóteses de correção) | 2 | Claude | não, mas lê dado |
+| g | gerar o CSV do lote (`agregar.mjs --prefix <lote> --out analysis/resultados-<lote>.csv`: são as hipóteses de custo) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
+| h | suíte sobre o lote (as hipóteses de correção) | 2 | Claude | não, mas lê dado |
 | h2 | métricas automáticas sobre o lote (`evaluation/tools/metricas.sh <prefixo>`) | — | Claude | não, mas lê dado |
-| i | leitura dupla do EXT, kappa e resolução | 4 | Lucas + Claude | sim |
+| i | leitura dupla do lote, kappa e resolução | 4 | Lucas + Claude | sim |
 | j | completar o `verificar.mjs` (checagens 1, 3 e 5, que dependem da leitura), rodar sobre tudo e tirar dele os totais para o texto | 3 | Claude | não |
-| k | manutenção: extensão, depois da análise do EXT; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
+| k | manutenção: extensão, depois da análise do V4; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
 
-O **lote STATE** é execução, não está neste plano (§5 do `OBJETIVO.md`). Roda depois de **e**; depois de rodar, é medido pelas mesmas partes (h, i, j), com a régua e a suíte do State.
+**Os lotes do V4** (o Strategy e o State, cada um com os quatro níveis) são execução e rodam só com a fase 1 inteira congelada; o do State, também depois de **e**. Cada lote é medido pelas mesmas etapas (g a j), com a régua e a suíte do seu padrão. O EXT continua sendo o ensaio: tudo da fase 2 pode ser testado nele antes.
 
-A ordem segue corrigir → implementar → testar → rodar. O `verificar.mjs` fica na fase 2 porque ele confere dados, e os que importam (custos, suíte, leituras) só existem ali; construí-lo antes seria fazer uma ferramenta sem material. Com a fase 1 congelada e g a j feitos, o experimento do Strategy fica completo; o State repete g a j sobre o lote dele, e a Parte 5 é extensão.
+A ordem segue corrigir → implementar → testar → rodar. O `verificar.mjs` fica na fase 2 porque ele confere dados, e os que importam (custos, suíte, leituras) só existem ali; construí-lo antes seria fazer uma ferramenta sem material. Com a fase 1 congelada, o V4 rodado e g a j feitos sobre os dois lotes, o experimento fica completo; a Parte 5 é extensão.
