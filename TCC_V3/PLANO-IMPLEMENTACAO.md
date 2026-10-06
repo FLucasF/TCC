@@ -229,7 +229,7 @@ Para cada modelo, N0, N1, N2 e N3 rodam **ao mesmo tempo**, um quarteto simultâ
 ### A fazer
 
 - [ ] `infra/scripts/rodada-niveis.sh`: roda os quatro níveis de um modelo em paralelo, chamando o `executar.sh` congelado (sem mudá-lo), com a mesma checagem prévia do `rodada.sh`. **Montado em 06/10**, com as recusas testadas sem gastar cota (argumentos inválidos, nível ausente, execução já existente: nada é lançado). Falta o teste real e o hash no README.
-- [ ] Regras de leitura do §4.1 refeitas para **5 réplicas** e para **pares entre níveis** (N1 × N0, N2 × N1, N3 × N2), e a tendência de N0 a N3; pré-registradas antes de rodar.
+- [x] Regras de leitura do §4.1 refeitas para **5 réplicas** e para **pares entre níveis** (N1 × N0, N2 × N1, N3 × N2), e a tendência de N0 a N3 (06/10). As principais seguem em N1 × N0; a tendência é informação (teste de Page), não critério. Os limites mantêm a proporção dos de 3 réplicas e ficam para o Lucas revisar.
 - [ ] Plano de cota: em quantos dias, e em que ordem, as 120 execuções rodam, sempre com a assinatura livre.
 
 **Pronto quando:** o script de quatro níveis e as regras novas estão congelados com hash, e o OBJETIVO pode ser congelado com eles.
@@ -252,7 +252,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | f2 | **métricas automáticas** (CK + SonarQube, secundárias): montadas, testadas e congeladas com hash em 06/10 — ver `evaluation/tools/README.md` | — | Claude | — (**feito**, 06/10) |
 | f3 | **níveis N0 a N3** montados, com hash, e testados na bancada | 6 | Claude + Lucas | — (**feito**, 06/10) |
 | f4 | `rodada-niveis.sh` (os quatro níveis de um modelo em paralelo) e **congelar** | 6 | Claude | f3 (montado e com as recusas testadas em 06/10; falta o teste real, que gasta cota, e o hash no README) |
-| f5 | regras do §4.1 para 5 réplicas e pares entre níveis, no OBJETIVO | 6 | Claude, revisão do Lucas | f4 |
+| f5 | regras do §4.1 para 5 réplicas e pares entre níveis, no OBJETIVO | 6 | Claude, revisão do Lucas | f4 (**escrito** em 06/10: principais em N1 × N0, limites na mesma proporção, tendência pelo teste de Page como informação; falta a revisão dos limites) |
 
 ### Fase 2: medir (só com a fase 1 inteira congelada)
 

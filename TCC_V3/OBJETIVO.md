@@ -29,20 +29,22 @@ novos entram depois, um de cada vez, sobre o mesmo corpo.
 
 | | |
 |---|---|
-| **o que varia dentro de um lote** | só a condição: `CONTROL` (workspace vazio) ou `HARNESS` (com uma versão de `experiment/harnesses/`) |
-| **o harness** | **fixo dentro de uma versão**, igual em todos os padrões testados com ela. Não é ajustado a um enunciado. Cada versão é uma pasta de `experiment/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
-| **o enunciado** | um por padrão testado, **igual nos dois braços**. Escrito como um cliente pedindo o sistema, sem palavra de arquitetura |
+| **o que varia dentro de um lote** | só o **nível** do harness: N0 (braço `CONTROL`, workspace vazio), N1, N2 e N3 (braço `HARNESS`, com a pasta do nível em `experiment/harnesses/`). Os lotes de teste do TCC_V3 usaram só N0 e N1 |
+| **o harness** | **fixo dentro de um nível**, igual em todos os padrões testados com ele. Não é ajustado a um enunciado. Cada nível é uma pasta de `experiment/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
+| **o enunciado** | um por padrão testado, **igual em todos os níveis**. Escrito como um cliente pedindo o sistema, sem palavra de arquitetura |
 | **os modelos** | Opus, Sonnet e Haiku; o modelo é fator de bloco |
-| **a unidade de análise** | o **par simultâneo**: a `CONTROL` e a `HARNESS` que rodaram no mesmo instante, no mesmo modelo |
+| **a unidade de análise** | o **par simultâneo**: dois níveis vizinhos do mesmo modelo, que rodaram no mesmo instante, dentro do mesmo quarteto |
 
-O desenho de cada lote é 3 modelos × 2 condições × 3 réplicas = 18 execuções, 9
-pares. Detalhes, hashes e cuidados estão no README.
+No V4, cada lote (um por padrão) tem 4 níveis × 3 modelos × 5 réplicas = 60
+execuções, rodadas em **quartetos simultâneos**: os quatro níveis de um modelo
+juntos (`infra/scripts/rodada-niveis.sh`). Cada comparação entre dois níveis
+vizinhos tem 15 pares (3 modelos × 5 réplicas). Detalhes, hashes e cuidados estão
+no README.
 
-**O TCC_V3 é a bancada de testes.** Os lotes daqui, inclusive o `EXT`, servem para
-validar a bancada, os enunciados e os instrumentos de medida. O experimento que
-vale vai rodar numa versão futura (V4), com 5 réplicas por célula; as regras de
-leitura do §4.1, calculadas aqui para 3 réplicas, serão refeitas para 5 antes de
-rodar.
+**O TCC_V3 é a bancada de testes.** Os lotes daqui, inclusive o `EXT` (3 modelos ×
+2 braços × 3 réplicas = 18 execuções, 9 pares), servem para validar a bancada, os
+enunciados e os instrumentos de medida. O experimento que vale vai rodar no V4,
+com o desenho acima; as regras do §4.1 já estão escritas para ele.
 
 ## 3. O que conta como influência
 
@@ -107,7 +109,7 @@ As demais são **secundárias**: são medidas e publicadas, mas não sustentam
 conclusão sozinhas. O **custo** (tokens e tempo) é todo secundário, por orientação
 de 12/09: depende de cache e de outras variáveis fora do experimento, e serve como
 dado complementar, não como conclusão. *Custo: tokens de entrada* foi principal
-até 06/10. A distinção importa: com muitas hipóteses e 9 pares por lote,
+até 06/10. A distinção importa: com muitas hipóteses e 15 pares por comparação,
 alguma vai "dar certo" por acaso.
 
 Cada hipótese tem também uma **direção** (declarada, ou "sem direção" quando o
@@ -122,34 +124,46 @@ histórico do git. A correspondência está no §7.
 
 **Palavras usadas nas regras:**
 
-- **braço**: `CONTROL` (workspace vazio) ou `HARNESS` (com o harness).
-- **par**: uma `CONTROL` e uma `HARNESS` do mesmo modelo, rodadas no mesmo
-  instante. Cada lote tem 9 pares: 3 modelos × 3 réplicas.
-- **melhor, igual, pior**: em cada par, como a `HARNESS` ficou em relação à
-  `CONTROL`, no que a hipótese mede.
-- **teto**: um modelo cuja `CONTROL` já acerta tudo o que a hipótese mede, nas 3
-  réplicas. Ali o harness não tem como melhorar: só empatar ou piorar. No piloto,
-  Opus e Sonnet estavam no teto de desenho.
+- **nível**: N0 a N3, a escada de harness (§5). O N0 é o braço `CONTROL`; o N1, o
+  N2 e o N3, o braço `HARNESS`, como fica gravado no `meta.json`.
+- **quarteto**: os quatro níveis de um mesmo modelo, rodados no mesmo instante. No
+  V4, cada lote tem 15 quartetos: 3 modelos × 5 réplicas.
+- **par**: dois níveis vizinhos do mesmo quarteto (N1 × N0, N2 × N1, N3 × N2).
+  Cada comparação tem 15 pares.
+- **melhor, igual, pior**: em cada par, como o nível de cima ficou em relação ao
+  de baixo, no que a hipótese mede.
+- **teto**: um modelo cujo nível de baixo já acerta tudo o que a hipótese mede,
+  nas 5 réplicas. Ali o nível de cima não tem como melhorar: só empatar ou piorar.
+  No piloto, Opus e Sonnet estavam no teto de desenho.
+
+**Qual comparação cada hipótese faz.** As quatro principais e as hipóteses do §4.2
+ao §4.7 comparam **N1 com N0**: o harness v1 contra nenhum. É o contraste mais
+limpo, porque só o `CLAUDE.md` muda. As do §4.8 comparam os degraus de cima
+(N2 × N1 e N3 × N2), e respondem se cada degrau acrescenta algo ao anterior.
 
 ### 4.1 Como uma hipótese é lida (proposta)
 
-Com 3 réplicas por célula, cada modelo tem só 3 pares: o menor p de um teste de
-sinal é 0,125, mesmo com os 3 na mesma direção. Somando os 9 pares, o teste de
-sinal chega abaixo de 0,05 só com 8 ou 9 na mesma direção, e junta modelos que se
-comportam diferente. Por isso a leitura é **por pares, descritiva, e decidida
-aqui antes dos dados**; o teste de sinal sobre os 9 pares pode ser reportado ao
-lado, como informação, não como critério.
+Com 5 réplicas, cada modelo tem 5 pares por comparação: mesmo com os 5 na mesma
+direção, o menor p de um teste de sinal é 0,0625. Somando os 15 pares, o teste de
+sinal fica abaixo de 0,05 com 12 ou mais na mesma direção (p ≈ 0,035), mas junta
+modelos que se comportam diferente. Por isso a leitura é **por pares, descritiva,
+e decidida aqui antes dos dados**; o teste de sinal sobre os 15 pares pode ser
+reportado ao lado, como informação, não como critério.
 
 | tipo de hipótese | apoiada quando | contrariada quando |
 |---|---|---|
 | **direcional** | na maioria dos modelos **fora do teto** há mais pares melhores que piores, e em nenhum modelo (no teto ou não) há mais piores que melhores | na maioria dos modelos fora do teto há mais pares piores que melhores |
-| **não-inferioridade** ("não piora") | no máximo 1 dos 9 pares é pior | 2 ou mais pares são piores |
-| **sem direção** ("altera"), medida contínua (tokens, tempo) | pelo menos 7 dos 9 pares vão na mesma direção, qualquer que seja | nenhuma direção chega a 7 |
-| **sem direção** ("altera"), medida sim/não (exagerou ou não) | todos os pares não empatados vão na mesma direção, e são pelo menos 3 | menos de 3 pares não empatados, ou eles se dividem |
+| **não-inferioridade** ("não piora") | no máximo 2 dos 15 pares são piores | 3 ou mais pares são piores |
+| **sem direção** ("altera"), medida contínua (tokens, tempo) | pelo menos 12 dos 15 pares vão na mesma direção, qualquer que seja | nenhuma direção chega a 12 |
+| **sem direção** ("altera"), medida sim/não (exagerou ou não) | todos os pares não empatados vão na mesma direção, e são pelo menos 4 | menos de 4 pares não empatados, ou eles se dividem |
 
 Fora desses casos, a hipótese é **inconclusiva**, e isso é resultado, não falha.
 A tabela de pares é sempre publicada inteira, qualquer que seja a leitura.
 "Igual" nunca conta como direção.
+
+**Os limites mantêm a proporção** dos que valiam para 3 réplicas e 9 pares (no
+máximo 1 pior em 9 → 2 em 15; 7 em 9 → 12 em 15; pelo menos 3 pares não empatados
+→ 4). A revisar pelo Lucas antes de congelar o OBJETIVO.
 
 **Por que o teto sai da contagem.** Um modelo no teto não tem como mostrar
 melhora; contá-lo tornaria uma hipótese direcional impossível de apoiar sempre que
@@ -161,18 +175,30 @@ resposta vem de *Modelo: no teto, não piora*.
 
 **Por que a medida sim/não tem regra própria.** Quando a medida é exagerou ou
 não, a maioria dos pares tende a empatar (nenhum dos dois exagerou), e a regra dos
-7 em 9 nunca seria alcançada. Contam então só os pares em que os braços diferem.
+12 em 15 nunca seria alcançada. Contam então só os pares em que os níveis diferem.
 
 **A hipótese do modelo compara modelos, não pares.** É apoiada quando o modelo
-com menos acertos na `CONTROL` da hipótese do desenho (média das 3 réplicas) tem
-o maior saldo de pares nela (melhores − piores), sem empate; contrariada quando
-outro modelo tem saldo maior; com empate no maior saldo, inconclusiva.
+com menos acertos no N0 da hipótese do desenho (média das 5 réplicas) tem o maior
+saldo de pares nela (melhores − piores), sem empate; contrariada quando outro
+modelo tem saldo maior; com empate no maior saldo, inconclusiva.
 
-**Exemplo, com números inventados.** Na hipótese do desenho, o Haiku tem 2 pares
-melhores e 1 igual; Opus e Sonnet estão no teto, com 3 pares iguais cada. O Haiku
-é o único modelo fora do teto, e nele há mais melhores que piores; nenhum modelo
-piorou. **A hipótese do desenho é apoiada.** E a do modelo também: o Haiku, o mais
-fraco na `CONTROL`, tem o maior saldo (+2, contra 0 dos outros).
+**Tamanho do efeito.** Em cada comparação, e em cada modelo, o saldo de pares
+dividido pelo número de pares vai de −1 a +1, e é a versão pareada do *Cliff's
+delta*. É publicado ao lado de cada hipótese, com a leitura usual (abaixo de 0,15,
+desprezível; perto de 0,33, médio; acima de 0,47, grande), sem mudar o veredito.
+
+**Tendência, como informação.** Para cada medida, a pergunta "a qualidade sobe de
+N0 a N3?" é respondida pelo **teste de Page**, a versão pareada do
+Jonckheere-Terpstra sugerido pelo orientador: cada quarteto é um bloco, e a ordem
+testada é N0 < N1 < N2 < N3. Ele é publicado com o p, por modelo e no conjunto,
+mas **não decide nenhuma hipótese**: as conclusões vêm das hipóteses.
+
+**Exemplo, com números inventados.** Na hipótese do desenho (N1 × N0), o Haiku tem
+4 pares melhores e 1 igual; Opus e Sonnet estão no teto, com 5 pares iguais cada.
+O Haiku é o único modelo fora do teto, e nele há mais melhores que piores; nenhum
+modelo piorou. **A hipótese do desenho é apoiada.** E a do modelo também: o Haiku,
+o mais fraco no N0, tem o maior saldo (+4, contra 0 dos outros). O tamanho do
+efeito no Haiku é 4 ÷ 5 = 0,8, grande.
 
 ### 4.2 Desenho
 
@@ -187,7 +213,7 @@ Cada uma liga uma regra do harness v1 a algo observável no código.
 | **Desenho: comporta o caso exigente** | nos pontos em que um caso exige mais que os outros (como o OURO no P4), a `HARNESS` tem mais vezes uma assinatura que comporta o caso mais exigente, sem remendo fora da estrutura | 3 | declarada: mais | agora |
 | **Desenho: não repete o comum** | a `HARNESS` repete menos, dentro de cada caso, o que é comum a todos (a mesma fórmula ou o mesmo arredondamento copiados em cada variante) | 1 | declarada: menos | agora |
 | **Desenho: caso novo com pouca edição** | para acrescentar um caso novo num ponto positivo, a `HARNESS` exige editar menos lugares do código existente | 1 e 2 | declarada: menos | agora |
-| **Desenho: réplicas mais parecidas** | as 3 réplicas de um mesmo modelo são mais parecidas entre si na `HARNESS` que na `CONTROL` (o harness torna o desenho mais consistente) | todas | declarada: mais parecidas | agora |
+| **Desenho: réplicas mais parecidas** | as 5 réplicas de um mesmo modelo são mais parecidas entre si no N1 que no N0 (o harness torna o desenho mais consistente) | todas | declarada: mais parecidas | agora |
 
 ### 4.3 Exagero
 
@@ -258,9 +284,9 @@ Comparação **observacional**: cada padrão é um lote próprio, sem par entre 
 
 ### 4.8 Entre níveis do harness
 
-Também **observacional**: cada nível roda em lotes próprios, e a comparação é
-entre lotes. Cada nível acumula o anterior (§5), então cada um é comparado com o
-nível logo abaixo: o N2 com o N1, o N3 com o N2.
+No V4, os níveis rodam no mesmo quarteto, então estas comparações também são
+**por pares** (N2 × N1, N3 × N2), lidas com as regras do §4.1. Cada nível acumula
+o anterior (§5), e por isso cada um é comparado com o de logo abaixo.
 
 **Skills (o N2 contra o N1)**
 
