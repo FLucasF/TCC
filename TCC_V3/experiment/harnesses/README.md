@@ -88,7 +88,17 @@ enunciado que só pergunta o que o agente recebeu) conferiram, dentro do contain
 As versões de teste e o enunciado estão em `history/bench-test/`, com os
 mesmos hashes gravados nos `meta.json`. Os nomes dessas execuções são os de antes da
 escada: `ONLY-CLAUDE` corresponde ao N1, `CLAUDE-SKILLS` ao N2, e `ONLY-SKILLS` à
-variante que saiu. Uma pasta `.claude/skills/` vazia é
+variante que saiu.
+
+**Repetido em 06/10/2026**, depois das renomeações das pastas e dos níveis e das
+mudanças no `executar.sh`: `TESTE-BANCADA-02-CONTROL` e `TESTE-BANCADA-02-N1`
+(Haiku, esforço baixo, o mesmo enunciado, hash `b796f244`). O CONTROL recebeu o
+workspace vazio e respondeu que não há `CLAUDE.md`; o N1, recebido **sem passar
+`HARNESS`** (o padrão), chegou só com o `CLAUDE.md`, com o mesmo hash de 26/09
+(`560577922737dbb9`), e o agente citou a primeira linha dele. A mesma imagem e a
+mesma versão do Claude Code. O build das duas sai com o código 66 (*SEM POM*), o
+esperado, porque o enunciado não pede código. Na mesma data, `HARNESS=N2`, `N3` e
+`N4` foram recusados antes de gastar cota, sem criar pasta. Uma pasta `.claude/skills/` vazia é
 recusada antes de subir o container.
 
 ## De onde veio cada skill
