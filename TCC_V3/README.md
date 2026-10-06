@@ -109,6 +109,10 @@ A semente de cada lote fica registrada na última coluna do mapa dele.
 | `infra/scripts/agregar.mjs` | os `meta.json` → CSV, 37 colunas |
 | `evaluation/tools/anonimizar.mjs` | pacotes cegos: tira o `CLAUDE.md`, normaliza datas, embaralha |
 
+As **métricas automáticas** (CK e SonarQube, secundárias) têm scripts próprios,
+`evaluation/tools/metricas.sh` e `evaluation/tools/agregar-metricas.mjs`, com as
+versões travadas e o passo a passo no [README das ferramentas](evaluation/tools/README.md).
+
 **Nenhum deles olha o código para julgar.** Nenhum aplica a régua, dá nota ou
 propõe descarte: a régua é aplicada por quem lê. O campo `valid` do `meta.json`
 nasce `null` e é preenchido por humano.
@@ -145,6 +149,11 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `anonimizar.mjs` | `ec6bfe8ecc37abb0` | perde **a cegueira** |
 | `extrair-meta.mjs` | `8c1d1dd228ae5ddf` | nada — a transcrição sobrevive |
 | `agregar.mjs` | `a78b48b2e2ec5a44` | nada — o `meta.json` sobrevive |
+| `metricas.sh` | `f8e34e5a1777992b` | perde **as métricas automáticas** (CK, SonarQube) |
+| `agregar-metricas.mjs` | `850afb08da82743a` | nada — as saídas por execução sobrevivem |
+
+As peças travadas das métricas (o `.jar` do CK, as imagens do SonarQube e do
+scanner, o perfil de regras) estão, com hash, no [README das ferramentas](evaluation/tools/README.md).
 
 Em 05/10/2026 as pastas foram renomeadas para inglês (`analise` → `analysis`,
 `avaliacao` → `evaluation`, `experimento` → `experiment`, `historico` → `history`,

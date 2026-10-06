@@ -51,9 +51,15 @@ três:
 
 | eixo | a pergunta | instrumento | estado |
 |---|---|---|---|
-| **desenho** | aplicou o padrão onde o enunciado pede, e deixou de aplicar onde seria exagero? | régua de leitura, cega e dupla | a construir |
+| **desenho** | aplicou o padrão onde o enunciado pede, e deixou de aplicar onde seria exagero? | régua de leitura, cega e dupla; métricas automáticas (CK, SonarQube) como complemento | régua a construir; métricas **prontas** |
 | **correção** | o código calcula o que o enunciado pede? | suíte de aceitação oculta, via HTTP | a construir |
 | **custo e processo** | quanto gastou, e como trabalhou, para chegar lá? | `meta.json`: `tokens.input_total`, `tokens.output`, `timing.duration_api_ms`, `outcome.turns`, `outcome.tool_calls_by_name` | **pronto** |
+
+**As métricas automáticas são secundárias.** Medem tamanho, complexidade
+cognitiva, duplicação, acoplamento e coesão do código de produção
+([`evaluation/tools/README.md`](evaluation/tools/README.md)). Complementam a régua,
+não a substituem, e não entram nas regras de leitura do §4.1: são descritivas,
+publicadas por par, como o custo.
 
 **Influência negativa** conta tanto quanto a positiva. Em desenho, ela aparece
 como exagero (aplicar o padrão onde o enunciado não pede), estrutura especulativa

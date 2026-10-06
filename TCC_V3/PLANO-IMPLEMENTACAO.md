@@ -217,6 +217,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | d | calibração humana da régua do Strategy (SMOKE e TESTE-P4) e **congelar a régua** | 1 | Lucas | — |
 | e | régua do State: ajuste da tabela de transições, calibração sobre a `TESTE-STATE-02` | 1 | Lucas (Claude no ajuste) | d |
 | f | `aceitacao.sh` e **congelar a suíte** | 2 | Claude | c |
+| f2 | **métricas automáticas** (CK + SonarQube, secundárias): montadas, testadas e congeladas com hash em 06/10 — ver `evaluation/tools/README.md` | — | Claude | — (**feito**, 06/10) |
 
 ### Fase 2: medir (só com a fase 1 inteira congelada)
 
@@ -224,6 +225,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | --- | --- | --- | --- | --- |
 | g | gerar o CSV do EXT (`agregar.mjs --prefix EXT --out analysis/resultados-ext.csv`: são as hipóteses de custo) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
 | h | suíte sobre o EXT (as hipóteses de correção) | 2 | Claude | não, mas lê dado |
+| h2 | métricas automáticas sobre o lote (`evaluation/tools/metricas.sh <prefixo>`) | — | Claude | não, mas lê dado |
 | i | leitura dupla do EXT, kappa e resolução | 4 | Lucas + Claude | sim |
 | j | completar o `verificar.mjs` (checagens 1, 3 e 5, que dependem da leitura), rodar sobre tudo e tirar dele os totais para o texto | 3 | Claude | não |
 | k | manutenção: extensão, depois da análise do EXT; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
