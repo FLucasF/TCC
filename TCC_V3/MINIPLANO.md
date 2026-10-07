@@ -25,7 +25,8 @@ controle negativo); o ponto do FRETEGRATIS com o imposto saiu da lista.
 **~~c. Conferir o gabarito do State~~.** O State saiu do V4 em 07/10 (está em
 `history/state/`); o V4 fica só com o Strategy, 60 execuções.
 
-**d. Calibrar a régua do Strategy.** Usa a [`evaluation/regua.md`](evaluation/regua.md) e o
+**d. Calibrar a régua do Strategy** (fica para o fim; o método combinado, os 8
+pacotes e onde parou estão em [`PLANO-TESTE-APRENDENDO.md`](PLANO-TESTE-APRENDENDO.md)). Usa a [`evaluation/regua.md`](evaluation/regua.md) e o
 [`evaluation/strategy/gabarito.md`](evaluation/strategy/gabarito.md), sobre os pacotes
 SMOKE e TESTE-P4 (Parte 1 do plano).
 - [ ] Pronto quando não houver caso em que você hesite entre dois valores; cada
