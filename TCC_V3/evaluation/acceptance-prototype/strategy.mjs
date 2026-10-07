@@ -5,6 +5,8 @@
 // Os campos que falharam aparecem nas linhas FALHA, como diagnostico.
 // Escrita para o enunciado do V4, que corrigiu as contradicoes do da bancada (06/10)
 // e trocou o imposto pelo seguro por regiao (07/10); por isso nao ha observacoes, so casos.
+// O enunciado nao diz os numeros de status (07/10): sucesso e qualquer 2xx, recusa e
+// qualquer 4xx, desde que venha o codigo de erro certo.
 import { calcular } from "./ref-strategy.mjs";
 const BASE = process.env.BASE;
 let passaram = 0; const falhas = [];
@@ -52,9 +54,9 @@ for (const [nome, corpo] of casos) {
   try {
     const esp = calcular(corpo), r = await post(corpo);
     if (esp.erro) {
-      if (!(r.status === 400 && r.j?.erro === esp.erro)) falhas.push(`${nome}: esperado 400 ${esp.erro}, veio ${r.status} ${JSON.stringify(r.j)}`);
-    } else if (r.status !== 200) {
-      falhas.push(`${nome}: esperado 200, veio ${r.status} ${JSON.stringify(r.j)}`);
+      if (!(r.status >= 400 && r.status < 500 && r.j?.erro === esp.erro)) falhas.push(`${nome}: esperado recusa (4xx) ${esp.erro}, veio ${r.status} ${JSON.stringify(r.j)}`);
+    } else if (!(r.status >= 200 && r.status < 300)) {
+      falhas.push(`${nome}: esperado sucesso (2xx), veio ${r.status} ${JSON.stringify(r.j)}`);
     } else {
       for (const [k, v] of Object.entries(esp)) {
         const got = r.j?.[k];

@@ -94,8 +94,9 @@ for run_dir in "${RUN_DIRS[@]}"; do
     case $rc in
         0) status="all_passed" ;;
         1) status="some_failed"
-           # todos os casos devolveram 404: o servico subiu, mas nao no caminho do contrato
-           not_found="$(printf '%s\n' "$raw" | grep -c 'veio 404')"
+           # todos os casos devolveram 404 ou 405: o servico subiu, mas nao no caminho do
+           # contrato (404) ou com outro metodo (405; o enunciado nao diz o verbo)
+           not_found="$(printf '%s\n' "$raw" | grep -cE 'veio 40[45]')"
            [ "$passed" = "0" ] && [ -n "$total" ] && [ "$not_found" -ge "$total" ] && status="contract_not_followed" ;;
         3) status="no_pom" ;;
         4) status="build_failed" ;;

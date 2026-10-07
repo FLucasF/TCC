@@ -46,7 +46,8 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
      referência escrita do zero (03/10 e 07/10);
   2. a escada N0 a N3: N3 e N4 trocaram de lugar, e a verificação automática foi
      descartada porque os agentes já rodam o build sozinhos (06/10);
-  3. o enunciado do V4: o cliente "entende o básico", e as três inconsistências do
+  3. o enunciado do V4: o dono da loja com o nível técnico de um curioso, o anexo sem
+     jargão (sem verbo nem números de status), e as três inconsistências do
      Strategy foram corrigidas (06/10), e o imposto virou seguro por região (07/10);
   4. o V4 só com o Strategy: o State saiu, depois de provar que a bancada aceita
      um segundo padrão (07/10);

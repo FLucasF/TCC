@@ -223,6 +223,20 @@ corrigindo o Claude).
 *Por quê:* antes a história tinha três autores (o cliente, o "desenvolvedor do
 site", o "time técnico"), e um cliente leigo dificilmente entregaria um contrato.
 
+**07/10: o conhecimento técnico do cliente é o de um curioso que estuda o básico de
+programação, e o anexo sai do jargão.** Ficam o endereço e os exemplos em JSON;
+saem o verbo (`POST`), os números de status e o `null`, trocados por frases
+simples. *Por quê:* um dono de loja não saberia HTTP; um curioso que estuda o
+básico saberia o que é um endereço e um JSON de exemplo, e é o mínimo para a suíte
+testar. *Consequência:* a suíte aceita qualquer sucesso (2xx) e qualquer recusa
+(4xx) com o código certo, e o `acceptance.sh` conta 405 (outro método) como "não
+seguiu o contrato". *Descartado:* um enunciado em duas fases (o dono leigo, depois
+a equipe do site com o contrato), que mediria o desenho sem nenhuma pista técnica,
+mas mudaria a bancada inteira por um ganho pequeno: o contrato só fixa a fronteira
+do serviço (o que entra e o que sai), não o desenho de dentro, que é o que o
+estudo mede. Uma voz de estudante de computação também foi considerada e
+descartada: o pedido era só o nível técnico, não mudar quem pede.
+
 **06/10: os exemplos não viram BDD (Gherkin).** *Por quê:* BDD é uma instrução de
 processo ("comece pelos cenários") e chegaria a todos os níveis, esbarrando no N3,
 que é o nível de processo; tende a levar parte dos agentes ao Cucumber, variação

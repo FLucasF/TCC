@@ -31,7 +31,7 @@ novos entram depois, um de cada vez, sobre o mesmo corpo.
 |---|---|
 | **o que varia dentro de um lote** | só o **nível** do harness: N0 (braço `CONTROL`, workspace vazio), N1, N2 e N3 (braço `HARNESS`, com a pasta do nível em `experiment/harnesses/`). Os lotes de teste do TCC_V3 usaram só N0 e N1 |
 | **o harness** | **fixo dentro de um nível**, igual em todos os padrões testados com ele. Não é ajustado a um enunciado. Cada nível é uma pasta de `experiment/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
-| **o enunciado** | um por padrão testado, **igual em todos os níveis**. Escrito como um cliente que entende o básico pedindo o sistema: as regras do negócio no texto e, num anexo, o contrato da API que ele montou pesquisando. Sem palavra de arquitetura |
+| **o enunciado** | um por padrão testado, **igual em todos os níveis**. Escrito como o dono de uma loja que estuda o básico de programação por curiosidade: as regras do negócio no texto e, num anexo, o contrato da API em linguagem simples (o endereço e exemplos em JSON, sem verbo nem números de status), que ele montou estudando e pesquisando. Sem palavra de arquitetura |
 | **os modelos** | Opus, Sonnet e Haiku; o modelo é fator de bloco |
 | **a unidade de análise** | o **par simultâneo**: dois níveis vizinhos do mesmo modelo, que rodaram no mesmo instante, dentro do mesmo quarteto |
 

@@ -22,6 +22,9 @@ num container da imagem da bancada, sem token, e roda os casos.
 | `check-prompt.mjs` | confere os números escritos no enunciado do Strategy (os 5 exemplos e a resposta do anexo) contra a calculadora: pega erro de cópia entre os dois, não erro da calculadora |
 | `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares. **Ferramenta da bancada, fora do V4** (07/10): o `aggregate.mjs` e o `verify.mjs` cobrem o que ela faz; fica sem manutenção |
 
+Como o enunciado não diz os números de status (07/10), um caso de sucesso aceita
+qualquer resposta 2xx, e um caso de erro, qualquer 4xx que traga o código certo.
+
 A suíte conta **casos**, como a hipótese da correção está escrita: um caso
 passa se todos os campos dele batem, e os campos que falharam aparecem nas linhas
 `FALHA`. Cada caso roda isolado: uma exceção derruba só o caso dela, não os

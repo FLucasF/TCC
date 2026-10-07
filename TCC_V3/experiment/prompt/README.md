@@ -2,7 +2,7 @@
 
 | arquivo | hash | pontos de variação | execuções |
 |---|---|---|---|
-| `prompt.md` | `d798c11402a52f8c` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 seguro** | o V4, a rodar |
+| `prompt.md` | `925d117da3e2f66f` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 seguro** | o V4, a rodar |
 | `../../history/state/state.md` | `4591f7425e1551fd` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | nenhuma: saiu do V4 em 07/10 |
 | `../../history/prompt-v3/prompt.md` | `b7cdb594cb49efee` | os mesmos do `prompt.md` | `EXT-01` a `03`, `TESTE-STRATEGY-*` e `TESTE-P4-*`, na bancada |
 | `../../history/prompt-v3/state.md` | `ebffe1724ca316b5` | os mesmos do `state.md` | `TESTE-STATE-*`, na bancada |
@@ -32,6 +32,16 @@ técnica". Mudaram três trechos: a frase de abertura, o título e a primeira fr
 do anexo, e o título das observações. O contrato fica no enunciado porque é ele
 que permite medir a correção com a mesma suíte de caixa-preta em todas as
 execuções. No `state.md`, isso é tudo o que mudou (e ele saiu do V4 no dia seguinte).
+
+**O nível técnico é o de um curioso (07/10).** O dono da loja continua sendo quem
+pede, mas "anda estudando o básico de programação por curiosidade", e o anexo
+desceu para esse nível: o endereço e os exemplos em JSON ficam (é o mínimo para a
+suíte testar, e algo que um iniciante aprende cedo), e saem o verbo (`POST`), os
+números de status (200, 400) e o `null`, trocados por frases simples ("o site envia
+os dados para o endereço…", "quando não dá para calcular, o serviço recusa o pedido
+e devolve o código do problema"). A suíte passou a aceitar qualquer sucesso (2xx) e
+qualquer recusa (4xx) com o código certo, e o `acceptance.sh` conta um 405 (o
+agente escolheu outro método) como "não seguiu o contrato", igual ao 404.
 
 **O imposto por região virou seguro por região (07/10).** O imposto somado no
 checkout não existe no Brasil, onde o preço já traz os tributos; era o *sales

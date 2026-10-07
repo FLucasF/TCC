@@ -130,14 +130,14 @@ O enunciado e o harness são identificados por conteúdo byte a byte. Confira
 **depois de clonar ou copiar**, antes de rodar:
 
 ```bash
-sha256sum experiment/prompt/prompt.md      # d798c11402a52f8c...
+sha256sum experiment/prompt/prompt.md      # 925d117da3e2f66f...
 sha256sum history/pilot/prompt.md        # 53db3424b3972795...
 docker image inspect --format '{{.Id}}' experimento-harness:v3
 ```
 
 | | |
 |---|---|
-| `experiment/prompt/prompt.md` | `d798c11402a52f8c3388d126502019e8e610bbc0530bcfdee2553f8bee30dabf` |
+| `experiment/prompt/prompt.md` | `925d117da3e2f66fb28934633af4df10876a57e8dfe4928ea9272b0c4aae7d6d` |
 | `history/state/state.md` (o State do V4, que nunca rodou: saiu em 07/10) | `4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e` |
 | `history/prompt-v3/prompt.md` (rodou no `EXT`, nos `TESTE-STRATEGY` e nos `TESTE-P4`) | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `history/prompt-v3/state.md` (rodou nos `TESTE-STATE`) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
@@ -159,7 +159,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `metrics.sh` (era `metricas.sh`) | `135ecbe45c22afe4` | perde **as métricas automáticas** (CK, SonarQube) |
 | `aggregate-metrics.mjs` (era `agregar-metricas.mjs`) | `74479258f31dce1f` | nada — as saídas por execução sobrevivem |
 | `run-levels.sh` | (**ainda não congelado**: congela depois do teste real, o f4) | perde **o quarteto** dos níveis N0 a N3 |
-| `acceptance.sh` | `f4028ca51f78d7d4` (**ainda não congelado**: congela com a suíte, depois do f4) | perde **a medida de correção** (a suíte de aceitação por lote) |
+| `acceptance.sh` | `821d58ecfd853bbb` (**ainda não congelado**: congela com a suíte, depois do f4) | perde **a medida de correção** (a suíte de aceitação por lote) |
 
 ### Os scripts do V4, na ordem em que entram
 

@@ -1,4 +1,4 @@
-Oi! Tenho uma loja online de roupas e acessórios e preciso do serviço que calcula o resumo da compra na hora de finalizar o pedido. Não sou programador, mas entendo o básico. Vou explicar como o negócio funciona e o que eu preciso que aconteça, e no fim deixei a parte técnica que consegui montar pesquisando. A pasta está vazia, então é montar tudo do começo.
+Oi! Tenho uma loja online de roupas e acessórios e preciso do serviço que calcula o resumo da compra na hora de finalizar o pedido. Não sou programador, mas ando estudando o básico de programação por curiosidade. Vou explicar como o negócio funciona e o que eu preciso que aconteça, e no fim deixei a parte técnica que consegui montar estudando e pesquisando. A pasta está vazia, então é montar tudo do começo.
 
 ## Como funciona a compra
 
@@ -82,9 +82,9 @@ Juntei aqui as dúvidas que os clientes mais mandam no WhatsApp, pode ajudar a e
 
 Dei uma pesquisada e consegui montar assim. Por favor, siga exatamente estes nomes e formatos.
 
-### Chamada
+### O que o site envia
 
-`POST /checkout/resumo`
+O site envia os dados da compra para o endereço `/checkout/resumo`, neste formato:
 
 ```json
 {
@@ -101,13 +101,15 @@ Dei uma pesquisada e consegui montar assim. Por favor, siga exatamente estes nom
 }
 ```
 
-- `cupom` é opcional (pode não vir ou vir `null`).
-- `parcelas` é opcional; se não vier, considerar 1.
+- `cupom` pode não vir, quando o cliente não usou cupom.
+- `parcelas` pode não vir; nesse caso, é 1.
 - Formas de pagamento: `PIX`, `CARTAO`, `BOLETO`.
 - Níveis do clube: `BRONZE`, `PRATA`, `OURO`.
 - Regiões: `SUDESTE`, `SUL`, `CENTRO_OESTE`, `NORTE`, `NORDESTE`.
 
-### Resposta de sucesso (200)
+### O que o serviço devolve
+
+Quando dá certo, o serviço devolve o resumo assim:
 
 ```json
 {
@@ -128,9 +130,9 @@ Dei uma pesquisada e consegui montar assim. Por favor, siga exatamente estes nom
 - `ajustePagamento` = `totalFinal` − total do pedido (negativo quando é desconto, positivo quando é tarifa ou juros, zero quando não muda nada).
 - Todos os valores em dinheiro com 2 casas decimais.
 
-### Erros (400)
+### Quando dá erro
 
-A resposta de erro é sempre `{ "erro": "CODIGO" }`. Verificar nesta ordem e devolver o primeiro erro encontrado:
+Quando não dá para calcular, o serviço recusa o pedido e devolve só o código do problema, assim: `{ "erro": "CODIGO" }`. Conferir nesta ordem e devolver o primeiro problema encontrado:
 
 | Ordem | Situação | Código |
 |---|---|---|
