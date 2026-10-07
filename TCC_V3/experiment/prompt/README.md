@@ -2,18 +2,57 @@
 
 | arquivo | hash | pontos de variação | execuções |
 |---|---|---|---|
-| `prompt.md` | `b7cdb594cb49efee` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 imposto** | `EXT-01` a `03` — o experimento |
-| `../../history/pilot/prompt.md` | `53db3424b3972795` | P1 entrega · P2 cupons · P3 pagamento | `BATCH-01` a `03` — o piloto |
-| `state.md` | `ebffe1724ca316b5` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | `STATE-01` a `03`, a rodar, com `PROMPT_FILE` |
+| `prompt.md` | `ea3af6f6ca986040` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 imposto** | o V4, a rodar |
+| `state.md` | `4591f7425e1551fd` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | o V4, a rodar, com `PROMPT_FILE` |
+| `../../history/prompt-v3/prompt.md` | `b7cdb594cb49efee` | os mesmos do `prompt.md` | `EXT-01` a `03`, `TESTE-STRATEGY-*` e `TESTE-P4-*`, na bancada |
+| `../../history/prompt-v3/state.md` | `ebffe1724ca316b5` | os mesmos do `state.md` | `TESTE-STATE-*`, na bancada |
+| `../../history/pilot/prompt.md` | `53db3424b3972795` | P1 entrega · P2 cupons · P3 pagamento | `BATCH-01` a `03` — o piloto (e os `SMOKE`) |
 
 O `state.md` é o segundo padrão testado (State): a situação de um pedido depois
 da compra, que muda a cada ação. É um experimento à parte, com o mesmo harness e a
 mesma bancada; o gabarito dele está em `evaluation/state/gabarito.md`.
 
-Nenhum dos dois muda. O de cinco pontos se chamava `prompt-estendido.md` até
-virar o enunciado único; o de três era o `prompt.md` e foi para
-`history/pilot/`. Os bytes são os mesmos, e os hashes acima conferem com o
-`meta.json` de cada execução.
+Um enunciado que já rodou não muda: a versão nova é um arquivo novo, e a que
+rodou vai para `history/` com os mesmos bytes, para o hash conferir com o
+`meta.json` de cada execução. O de cinco pontos se chamava `prompt-estendido.md`
+até virar o enunciado único; o de três era o `prompt.md` e foi para
+`history/pilot/`. Os dois enunciados que rodaram na bancada até 06/10 estão em
+`history/prompt-v3/`.
+
+## O que mudou para o V4 (06/10/2026)
+
+**O cliente entende o básico, nos dois enunciados.** Até 06/10, o cliente dizia
+só "não sou programador", e o contrato da API vinha num anexo "combinado com o
+desenvolvedor do site", seguido de "observações do time técnico". Um cliente
+leigo dificilmente entregaria esse contrato, e a história ficava com três
+autores. Agora o cliente **entende o básico** e diz que montou a parte técnica
+pesquisando: o anexo é dele, e as observações viraram "o que pesquisei da parte
+técnica". Mudaram três trechos: a frase de abertura, o título e a primeira frase
+do anexo, e o título das observações. O contrato fica no enunciado porque é ele
+que permite medir a correção com a mesma suíte de caixa-preta em todas as
+execuções. No `state.md`, isso é tudo o que mudou.
+
+**As três inconsistências do Strategy foram corrigidas** (estavam no §6 do
+`OBJETIVO.md`):
+
+| | na bancada | no V4 |
+|---|---|---|
+| exemplos 1 a 4 | sem clube nem região, totais sem imposto (vinham do piloto) | com clube e região e totais com imposto; os cinco exemplos passam por todas as regiões e todos os níveis |
+| resposta de exemplo do anexo | números do piloto misturados com um imposto sem desconto | a resposta da requisição ao lado (OURO, Sudeste, BEMVINDO10, Pix) |
+| limite do boleto | "total do pedido (produtos − cupom + frete)", com o total definido com imposto no passo 5 | "produtos − cupom + frete, sem o imposto" |
+
+No limite do boleto ficou a leitura **sem** imposto, a do parêntese: ele vem do
+piloto, que não tinha imposto, e 5 das 6 implementações da bancada já liam
+assim. No exemplo 2, a região é Centro-Oeste, e não Sul, de propósito: com Sul, a
+parcela exata cai a 0,015 centavo do empate do arredondamento, e o exemplo
+testaria precisão numérica em vez da regra.
+
+Os números novos **saíram da calculadora de referência** (o
+`conferir-enunciado.mjs` confere os 66 números escritos no texto contra ela) e
+dependem da conferência humana do
+gabarito ([`../../evaluation/acceptance-prototype/README.md`](../../evaluation/acceptance-prototype/README.md)).
+Fora a frase do boleto, que agora escolhe uma das duas leituras, as regras de
+negócio, o contrato e os erros não mudaram, e a régua de desenho vale igual.
 
 ---
 

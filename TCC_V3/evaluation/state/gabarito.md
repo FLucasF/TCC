@@ -1,7 +1,7 @@
 ---
 padrao: state
 enunciado: experiment/prompt/state.md
-enunciado_hash: ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580
+enunciado_hash: 4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e
 lotes: STATE
 ---
 

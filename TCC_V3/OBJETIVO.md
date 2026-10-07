@@ -31,7 +31,7 @@ novos entram depois, um de cada vez, sobre o mesmo corpo.
 |---|---|
 | **o que varia dentro de um lote** | só o **nível** do harness: N0 (braço `CONTROL`, workspace vazio), N1, N2 e N3 (braço `HARNESS`, com a pasta do nível em `experiment/harnesses/`). Os lotes de teste do TCC_V3 usaram só N0 e N1 |
 | **o harness** | **fixo dentro de um nível**, igual em todos os padrões testados com ele. Não é ajustado a um enunciado. Cada nível é uma pasta de `experiment/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
-| **o enunciado** | um por padrão testado, **igual em todos os níveis**. Escrito como um cliente pedindo o sistema, sem palavra de arquitetura |
+| **o enunciado** | um por padrão testado, **igual em todos os níveis**. Escrito como um cliente que entende o básico pedindo o sistema: as regras do negócio no texto e, num anexo, o contrato da API que ele montou pesquisando. Sem palavra de arquitetura |
 | **os modelos** | Opus, Sonnet e Haiku; o modelo é fator de bloco |
 | **a unidade de análise** | o **par simultâneo**: dois níveis vizinhos do mesmo modelo, que rodaram no mesmo instante, dentro do mesmo quarteto |
 
@@ -408,21 +408,20 @@ foi ele que mostrou o teto e motivou P4 e P5.
 - **Não compara padrões nem versões de harness estatisticamente.** Dentro de um
   lote há pares; entre lotes, não. Dizer que o harness ajuda mais num padrão, ou
   que a v2 é melhor que a v1, é observação.
-- **O enunciado do Strategy tem duas inconsistências, achadas depois do lote EXT.**
-  Os exemplos 1 a 4 vieram do piloto: não trazem clube nem região, e os totais não
-  têm imposto, embora o próprio enunciado mande recusar pedido sem clube ou região.
-  E o exemplo de resposta do anexo mistura números do piloto com um imposto
-  calculado sem desconto. O enunciado já rodou e não muda; a correção é medida só
-  com o exemplo 5 e casos com clube e região, e o comportamento diante dos
-  exemplos 1 a 4 é registrado como observação
-  ([`analysis/testes-2026-09-30.md`](analysis/testes-2026-09-30.md)).
-- **E uma terceira, achada ao validar a suíte de aceitação (03/10).** O passo 5
-  define o total do pedido **com** imposto; a regra do boleto, entre parênteses,
-  **sem**. As duas leituras só divergem nos pedidos que ficam abaixo de R$ 1.000
-  sem imposto e acima com ele. A suíte não conta esse caso: registra como
-  observação qual leitura cada execução seguiu, do mesmo jeito que os exemplos
-  1 a 4 ([`evaluation/acceptance-prototype/README.md`](evaluation/acceptance-prototype/README.md)).
-  Decidido antes de a suíte rodar sobre o lote EXT.
+- **O enunciado do Strategy da bancada tinha três inconsistências, corrigidas no do
+  V4 (06/10).** Os exemplos 1 a 4 vinham do piloto: sem clube nem região, e com
+  totais sem imposto, embora o próprio enunciado mande recusar pedido sem clube
+  ou região. O exemplo de resposta do anexo misturava números do piloto com um
+  imposto calculado sem desconto
+  ([`analysis/testes-2026-09-30.md`](analysis/testes-2026-09-30.md)). E o passo 5
+  definia o total do pedido **com** imposto, e a regra do boleto, entre
+  parênteses, **sem** (achada ao validar a suíte, em 03/10). No V4, os exemplos
+  trazem clube e região e totais com imposto, a resposta do anexo é a da
+  requisição ao lado, e a regra do boleto diz "sem o imposto". Os números novos
+  saíram da calculadora de referência e dependem da conferência humana do
+  gabarito ([`evaluation/acceptance-prototype/README.md`](evaluation/acceptance-prototype/README.md)).
+  A bancada (o `EXT` e os `TESTE-*`) rodou com as inconsistências; no ensaio com
+  ela, os casos do boleto não contam.
 - **A skill do N2 (e do N3, que a acumula) traz exemplos próximos do domínio das tarefas.** É a `gof-patterns`,
   pública e intacta, escrita sem conhecer as tarefas
   ([`experiment/third-party/gof-patterns/ORIGEM.md`](experiment/third-party/gof-patterns/ORIGEM.md)).

@@ -22,9 +22,11 @@ export const MUTANTES = [
              ["  const peso = itens", '  if (comImposto && !(p.regiao in PCT_REGIAO)) return { erro: "REGIAO_INVALIDA" };\n  const peso = itens']] },
   { id: "MUT6", regra: "cartao: ate 3x sem juros", origem: "fronteira",
     trocas: [["if (n <= 3)", "if (n < 3)"]] },
-  // MUT7 (limite do boleto contando o imposto) SAIU em 03/10: o enunciado define "total do
-  // pedido" com imposto no passo 5 e sem na regra do boleto, entao essa e uma leitura
-  // valida, nao um erro. O caso virou observacao no strategy.mjs. Os ids nao mudam.
+  // MUT7 saiu em 03/10, quando o enunciado da bancada definia "total do pedido" com imposto
+  // no passo 5 e sem na regra do boleto, e voltou em 06/10: o enunciado do V4 diz "sem o
+  // imposto", e contar o imposto passou a ser erro. Os ids nao mudam.
+  { id: "MUT7", regra: "boleto recusado quando produtos - cupom + frete, sem o imposto, passa de R$ 1.000", origem: "a leitura do enunciado da bancada que o V4 corrigiu",
+    trocas: [["subtotal - desconto + frete > 100000", "totalPedido > 100000"]] },
   { id: "MUT8", regra: "motoboy leva pedidos de ate 5 kg", origem: "fronteira",
     trocas: [["peso > 5", "peso >= 5"]] },
   { id: "MUT9", regra: "LEVE3PAGUE2: a cada 3 unidades de um mesmo item, uma sai de graca", origem: "armadilha do enunciado",
@@ -47,4 +49,6 @@ export const MUTANTES = [
   { id: "MUT16", regra: "colisao OURO + FRETEGRATIS: o OURO zera o frete, e o desconto do cupom fica igual a esse frete zerado", origem: "colisao citada na hipotese Correcao: casos de borda",
     trocas: [['  if (comImposto && p.nivelClube === "OURO") frete = 0;', '  const freteOriginal = frete;\n  if (comImposto && p.nivelClube === "OURO") frete = 0;'],
              ['if (cupom === "FRETEGRATIS") desconto = frete;', 'if (cupom === "FRETEGRATIS") desconto = freteOriginal;']] },
+  { id: "MUT17", regra: "boleto so e recusado quando PASSA de R$ 1.000", origem: "fronteira",
+    trocas: [["subtotal - desconto + frete > 100000", "subtotal - desconto + frete >= 100000"]] },
 ];

@@ -12,16 +12,17 @@ num container da imagem da bancada, sem token, e roda os casos.
 | arquivo | o que faz |
 |---|---|
 | `executor.sh` | roda **dentro** do container: copia o workspace, reaproveita o `.jar` do build pós-execução (ou compila), sobe o serviço na porta 18080 e roda o teste |
-| `strategy.mjs` | 18 casos do enunciado do Strategy: o exemplo 5 literal, os exemplos 1 a 4 **com** clube e região, colisões (OURO + FRETEGRATIS), erros, ordem de precedência e três **fronteiras** (o valor exato de "até 5 kg", "passarem de R$ 500" e "a partir de R$ 300"). Mais duas **observações**, que não contam, nos pontos em que o enunciado se contradiz: o exemplo 1 como está escrito, e o limite do boleto |
-| `ref-strategy.mjs` | a calculadora de referência do Strategy, em centavos, com meio-para-o-par. Reproduz os 5 exemplos conferidos do enunciado |
-| `mutantes.mjs` | 15 versões da calculadora de referência com **um** erro plantado cada, um por regra do enunciado que tem armadilha |
+| `strategy.mjs` | 21 casos do enunciado do Strategy do V4: os 5 exemplos e a resposta de exemplo do anexo, como estão escritos, colisões (OURO + FRETEGRATIS), erros, ordem de precedência, o limite do boleto sem o imposto e quatro **fronteiras** (o valor exato de "até 5 kg", "passarem de R$ 500", "a partir de R$ 300" e "passa de R$ 1.000"). Sem observações: as contradições do enunciado da bancada foram corrigidas no do V4 (06/10) |
+| `ref-strategy.mjs` | a calculadora de referência do Strategy, em centavos, com meio-para-o-par. Reproduz os 5 exemplos conferidos e a resposta de exemplo do anexo. A opção `comImposto: false` só servia à observação do exemplo 1 da bancada e não é mais usada |
+| `mutantes.mjs` | 17 versões da calculadora de referência com **um** erro plantado cada, um por regra do enunciado que tem armadilha |
 | `validar-mutantes.mjs` | serve a referência e cada mutante por HTTP e roda a suíte contra eles: a referência tem de passar, e cada mutante tem de ser reprovado |
+| `conferir-enunciado.mjs` | confere os números escritos no enunciado do Strategy (os 5 exemplos e a resposta do anexo) contra a calculadora: pega erro de cópia entre os dois, não erro da calculadora |
 | `state.mjs` | 12 casos do enunciado do State: os 8 exemplos (com os textos para o cliente) e 4 erros |
+| `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares |
 
 As duas suítes contam **casos**, como a hipótese da correção está escrita: um caso passa se todos os
 campos dele batem, e os campos que falharam aparecem nas linhas `FALHA`. Cada caso
 roda isolado: uma exceção derruba só o caso dela, não os seguintes.
-| `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares |
 
 ## Como rodar
 
@@ -49,14 +50,25 @@ passa e todos os mutantes são reprovados):
 node evaluation/acceptance-prototype/validar-mutantes.mjs
 ```
 
+E a conferência dos números do enunciado contra a calculadora (sai com 0 se todos
+batem; no enunciado da bancada, `history/prompt-v3/prompt.md`, acusa as
+inconsistências conhecidas):
+
+```bash
+node evaluation/acceptance-prototype/conferir-enunciado.mjs
+```
+
 ## Validação que já existe
 
-- `ref-strategy.mjs` reproduz os 5 exemplos do enunciado, centavo a centavo.
+- `ref-strategy.mjs` reproduz os 5 exemplos do enunciado, centavo a centavo. No
+  enunciado do V4 (06/10), os exemplos 1 a 4 e a resposta do anexo **saíram da
+  calculadora**; o `conferir-enunciado.mjs` confere os 66 números escritos no
+  texto contra ela, sem divergência. Por isso eles entram na conferência humana (última seção).
 - Os quatro pacotes de Opus e Sonnet de `TESTE-STRATEGY-01`, e o `TESTE-P4-OPUS-CONTROL`,
   passaram em tudo no `strategy.mjs` (85 de 85 verificações com 15 casos, em
-  30/09; 18 de 18 casos em 03/10): cinco implementações independentes chegam aos
-  mesmos números da referência, inclusive nos casos que o enunciado não
-  exemplifica.
+  30/09; 18 de 18 casos em 03/10; 21 de 21 com a suíte do V4, em 06/10): cinco
+  implementações independentes chegam aos mesmos números da referência,
+  inclusive nos casos que o enunciado não exemplifica.
 - Ainda falta a **conferência humana do gabarito** (última seção): a calculadora
   foi escrita com o Claude, e a concordância das cinco implementações só mostra
   que ninguém discorda dela, não que ela leu o enunciado certo.
@@ -70,11 +82,13 @@ que ela **reprova o errado**, e isso se mostra com os mutantes:
 |---|---|---|---|
 | 15 casos (a de 30/09) | passa | 12 de 16 | mutantes 7 (boleto), 8 (motoboy), 10 (brinde), 11 (MENOS50) |
 | com as fronteiras | passa | 16 de 16 | nenhum |
-| a atual, 18 casos (sem o mutante 7, ver abaixo) | passa | **15 de 15** | nenhum |
+| 18 casos, a de 03/10 (sem o mutante 7, ver abaixo) | passa | 15 de 15 | nenhum |
+| a atual, 21 casos, para o enunciado do V4 (o mutante 7 volta e entra o 17, a fronteira do boleto) | passa | **17 de 17** | nenhum |
 
 Os buracos eram todos **fronteiras**: nenhum caso tinha o valor exato de "até
 5 kg", "passarem de R$ 500", "passa de R$ 1.000" ou "a partir de R$ 300". Para o
-próximo enunciado: toda frase dessas pede um caso no valor exato.
+próximo enunciado: toda frase dessas pede um caso no valor exato. A do boleto só
+ganhou o seu em 06/10, com o mutante 17.
 
 Dez mutantes são pegos por **um caso só** (o validador lista quais). Não é
 defeito, mas é o que avisa se uma mudança nos casos deixar uma regra descoberta:
@@ -95,6 +109,11 @@ inconsistência. Por isso o **mutante 7** (o limite contando o imposto) saiu dos
 mutantes: é uma leitura válida, não um erro. O limite continua testado onde as
 duas leituras concordam (o caso "erro: boleto acima de 1000" e o exemplo 3).
 
+*Revisto em 06/10.* O enunciado do V4 diz "sem o imposto", e a contradição
+acabou: o pedido de R$ 950 virou caso que conta (o boleto vale), o mutante 7
+voltou, e os exemplos 1 a 4 ganharam clube e região. Vale para o V4; o EXT rodou
+com o enunciado antigo (ver a tabela abaixo).
+
 **A unidade é o caso.** Contar verificações de campo dava denominadores
 diferentes (um caso que devolve erro em vez de 200 vira uma verificação em vez
 de onze) e pesava cada erro pelo número de campos que ele contamina (o único erro
@@ -103,7 +122,25 @@ do Haiku CONTROL derrubava cinco). A hipótese da correção já está escrita e
 Decidir as duas **antes** de a suíte rodar sobre o EXT é o que as mantém como
 pré-registro: depois, a escolha poderia ser guiada por qual braço ela favorece.
 
-### Os pacotes de teste com a suíte atual
+### Os pacotes de teste com a suíte do V4 (06/10/2026)
+
+Rodado no container da bancada, pelo `executor.sh`:
+
+| | Strategy (21 casos) |
+|---|---|
+| Opus CONTROL / HARNESS | 21 / 21 |
+| Sonnet CONTROL / HARNESS | 21 / 21 |
+| Haiku CONTROL | 20: FRETEGRATIS sem OURO |
+| Haiku HARNESS | 17: FRETEGRATIS sem OURO, precedência região/modalidade, e os dois casos do boleto |
+| `TESTE-P4-OPUS-CONTROL` | 21 |
+
+Cinco implementações independentes concordam com os números novos (exemplos 2 e
+4 com outras regiões, a resposta do anexo, o boleto de R$ 950 e o de R$ 1.000
+exatos). Os dois casos do boleto no Haiku HARNESS **não são erro dele**: ele rodou
+com o enunciado da bancada, em que contar o imposto era uma leitura válida. Por
+isso, no ensaio com o `EXT`, os casos do boleto não contam.
+
+### Os pacotes de teste com a suíte de 03/10
 
 | | Strategy (18 casos) | boleto 950 + imposto (observação) | State (12 casos) |
 |---|---|---|---|
@@ -126,7 +163,12 @@ container de 30/09, campo a campo.
 
 Divergência se resolve pelo **texto do enunciado**, não pela calculadora nem por
 quem confere. Se o texto não decide, é inconsistência: vai para o §6 do
-`OBJETIVO.md`, como o limite do boleto.
+`OBJETIVO.md`, como o limite do boleto no enunciado da bancada.
+
+**O enunciado do V4 depende desta conferência.** Os números dos exemplos 1 a 4 e
+da resposta do anexo saíram da calculadora (06/10). Se as duas partes abaixo
+passarem, eles estão certos; se uma regra divergir, os exemplos que a usam têm de
+ser recalculados **antes** de o V4 rodar.
 
 ### 1. Dois casos de colisão, calculados à mão (primeiro)
 
@@ -212,7 +254,7 @@ já meio-para-o-par; `centavos(x)` converte reais em centavos, meio-para-o-par;
 | 16 | Pix: 5% de desconto **no total do pedido** | | |
 | 17 | cartão até 3×: final = total, parcela = total ÷ n arredondada | | |
 | 18 | cartão de 4× a 12×: Price a 1,99%, **parcela arredondada**, final = parcela × n | | |
-| 19 | boleto: + R$ 3,49; recusado se produtos − cupom + frete **passa de R$ 1.000** | | |
+| 19 | boleto: + R$ 3,49; recusado se produtos − cupom + frete, **sem o imposto**, **passa de R$ 1.000** | | |
 | 20 | Pix e boleto só em 1 parcela; parcelas ausente = 1 | | |
 | 21 | ajustePagamento = totalFinal − total do pedido | | |
 | 22 | erros na ordem da tabela do anexo (1 a 10), devolvendo o primeiro | | |

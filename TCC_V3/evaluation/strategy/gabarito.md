@@ -1,6 +1,6 @@
 ---
 padrao: strategy
-enunciado: experiment/prompt/prompt.md
+enunciado: history/prompt-v3/prompt.md
 enunciado_hash: b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35
 lotes: EXT
 ---
@@ -77,8 +77,9 @@ como parte comum (régua §2.5).
   do contrato, não a separação do que é comum (régua §5, decisão 8).
 - **Casos exigentes:**
   - `CARTAO`: é o único com parcelas (1 a 12) e juros acima de 3× (tabela Price).
-  - `BOLETO`: tem restrição de disponibilidade. Fica **indisponível quando o total
-    do pedido passa de R$ 1.000,00** (`FORMA_PAGAMENTO_INDISPONIVEL`).
+  - `BOLETO`: tem restrição de disponibilidade. Fica **indisponível quando
+    produtos − cupom + frete, sem o imposto, passa de R$ 1.000,00**
+    (`FORMA_PAGAMENTO_INDISPONIVEL`).
 - **Caso hipotético:** `VALE`, pagamento com vale-presente, sem ajuste, só à
   vista (mais de uma parcela dá `PARCELAMENTO_INVALIDO`, como PIX e BOLETO),
   sempre disponível.

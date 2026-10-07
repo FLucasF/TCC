@@ -1,4 +1,4 @@
-Oi! Tenho uma loja online de roupas e acessórios e preciso do serviço que acompanha cada pedido depois que o cliente finaliza a compra. Não sou programador, mas entendo o básico. Vou explicar como o negócio funciona e o que eu preciso que aconteça, e no fim deixei a parte técnica que consegui montar pesquisando. A pasta está vazia, então é montar tudo do começo.
+Oi! Tenho uma loja online de roupas e acessórios e preciso do serviço que acompanha cada pedido depois que o cliente finaliza a compra. Não sou programador, então vou explicar como o negócio funciona e o que eu preciso que aconteça. A pasta está vazia, então é montar tudo do começo.
 
 ## Como um pedido anda
 
@@ -60,9 +60,9 @@ No site, cada situação aparece para o cliente com um texto:
 
 ---
 
-## Anexo: como o site vai chamar o serviço
+## Anexo: combinado com o desenvolvedor do site
 
-Dei uma pesquisada e consegui montar assim. Por favor, siga exatamente estes nomes e formatos. Não use banco de dados: os pedidos podem ficar guardados na memória enquanto o serviço estiver rodando.
+O site vai chamar o serviço assim. Por favor, siga exatamente estes nomes e formatos. Não use banco de dados: os pedidos podem ficar guardados na memória enquanto o serviço estiver rodando.
 
 ### Criar um pedido
 
@@ -151,7 +151,7 @@ Quando uma ação dá erro, o pedido não muda nada.
 
 ---
 
-## O que pesquisei da parte técnica
+## Observações do time técnico
 
 - Não use banco de dados.
 - Use Java 21 e Spring Boot 4.1.1.

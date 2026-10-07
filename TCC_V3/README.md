@@ -127,16 +127,19 @@ O enunciado e o harness são identificados por conteúdo byte a byte. Confira
 **depois de clonar ou copiar**, antes de rodar:
 
 ```bash
-sha256sum experiment/prompt/prompt.md      # b7cdb594cb49efee...
+sha256sum experiment/prompt/prompt.md      # ea3af6f6ca986040...
+sha256sum experiment/prompt/state.md       # 4591f7425e1551fd...
 sha256sum history/pilot/prompt.md        # 53db3424b3972795...
 docker image inspect --format '{{.Id}}' experimento-harness:v3
 ```
 
 | | |
 |---|---|
-| `experiment/prompt/prompt.md` | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
+| `experiment/prompt/prompt.md` | `ea3af6f6ca9860401e7ca100f60e66616c6d538eac3c9321a57428377739a171` |
+| `experiment/prompt/state.md` (segundo padrão) | `4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e` |
+| `history/prompt-v3/prompt.md` (rodou no `EXT`, nos `TESTE-STRATEGY` e nos `TESTE-P4`) | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
+| `history/prompt-v3/state.md` (rodou nos `TESTE-STATE`) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
 | `history/pilot/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
-| `experiment/prompt/state.md` (segundo padrão, a rodar) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
 | `experiment/harnesses/N1/` (árvore; era `only-claude/`) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
 | `experiment/harnesses/N2/` (árvore; com a skill `gof-patterns`) | `27987df0bd1febe2aff3731e15b9de2b5b7d35b6dd85cb46e3098518915389ac` |
 | `experiment/harnesses/N3/` (árvore; o N2 + processo com revisor) | `5f4c492bf3d12f6811b648cc4ac15cac0b06513b47e069e6bc5d077acf4df3df` |
@@ -180,6 +183,14 @@ do `N1/` é o mesmo do `only-claude/` (`560577922737dbb9`), conferido na pasta n
 No mesmo dia, o N2 recebeu a skill `gof-patterns`, o N3 virou o nível de processo
 (desenho antes do código e um revisor) e a verificação automática foi descartada,
 indo para o N4; a escada e os motivos estão no README dos harnesses.
+
+Também em 06/10/2026, os enunciados do V4: nos dois, o cliente "entende o
+básico" e montou a parte técnica pesquisando, no lugar do "desenvolvedor do site"
+e do "time técnico"; no do Strategy, as três inconsistências do §6 do OBJETIVO
+foram corrigidas (exemplos 1 a 4, resposta do anexo, limite do boleto). As
+versões que rodaram na bancada foram para `history/prompt-v3/`, com os mesmos
+hashes; o que mudou e por quê está no [README do enunciado](experiment/prompt/README.md).
+A suíte do Strategy acompanhou: 21 casos, sem observações, 17 de 17 mutantes.
 
 O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
 `SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova
