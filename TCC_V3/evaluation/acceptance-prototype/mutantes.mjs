@@ -15,18 +15,20 @@ export const MUTANTES = [
   { id: "MUT3", regra: "arredondamento meio-para-o-par em cada etapa", origem: "armadilha do enunciado",
     trocas: [["if (r * 2n > den || (r * 2n === den && q % 2n === 1n)) q += 1n;", "if (r * 2n >= den) q += 1n;"],
              ["return f % 2 === 0 ? f : f + 1;", "return f + 1;"]] },
-  { id: "MUT4", regra: "imposto sobre os produtos ja com o desconto do cupom", origem: "armadilha do enunciado (o anexo erra isso)",
-    trocas: [["pct(subtotal - desconto, PCT_REGIAO[p.regiao])", "pct(subtotal, PCT_REGIAO[p.regiao])"]] },
+  // MUT4 era "imposto sobre os produtos ja com o desconto"; desde 07/10 o P5 e o seguro,
+  // sobre os produtos SEM desconto, e o erro plantado e o contrario.
+  { id: "MUT4", regra: "seguro sobre os produtos sem desconto e sem frete", origem: "armadilha do enunciado",
+    trocas: [["pct(subtotal, PCT_SEGURO[p.regiao])", "pct(subtotal - desconto, PCT_SEGURO[p.regiao])"]] },
   { id: "MUT5", regra: "precedencia dos erros: regiao antes de modalidade", origem: "erro observado: Haiku HARNESS, TESTE-STRATEGY-01",
-    trocas: [['    if (!(p.regiao in PCT_REGIAO)) return { erro: "REGIAO_INVALIDA" };\n', ""],
-             ["  const peso = itens", '  if (comImposto && !(p.regiao in PCT_REGIAO)) return { erro: "REGIAO_INVALIDA" };\n  const peso = itens']] },
+    trocas: [['  if (!Object.hasOwn(PCT_SEGURO, p.regiao ?? "")) return { erro: "REGIAO_INVALIDA" };\n', ""],
+             ["  const peso = itens", '  if (!Object.hasOwn(PCT_SEGURO, p.regiao ?? "")) return { erro: "REGIAO_INVALIDA" };\n  const peso = itens']] },
   { id: "MUT6", regra: "cartao: ate 3x sem juros", origem: "fronteira",
     trocas: [["if (n <= 3)", "if (n < 3)"]] },
-  // MUT7 saiu em 03/10, quando o enunciado da bancada definia "total do pedido" com imposto
-  // no passo 5 e sem na regra do boleto, e voltou em 06/10: o enunciado do V4 diz "sem o
-  // imposto", e contar o imposto passou a ser erro. Os ids nao mudam.
-  { id: "MUT7", regra: "boleto recusado quando produtos - cupom + frete, sem o imposto, passa de R$ 1.000", origem: "a leitura do enunciado da bancada que o V4 corrigiu",
-    trocas: [["subtotal - desconto + frete > 100000", "totalPedido > 100000"]] },
+  // MUT7 saiu em 03/10, quando o enunciado da bancada definia o limite do boleto de dois
+  // jeitos, e voltou em 06/10. Desde 07/10 o limite e sobre o total do pedido, que inclui o
+  // seguro, e o erro plantado e deixar o seguro de fora. Os ids nao mudam.
+  { id: "MUT7", regra: "boleto recusado quando o total do pedido, com o seguro, passa de R$ 1.000", origem: "armadilha do enunciado",
+    trocas: [["totalPedido > 100000", "subtotal - desconto + frete > 100000"]] },
   { id: "MUT8", regra: "motoboy leva pedidos de ate 5 kg", origem: "fronteira",
     trocas: [["peso > 5", "peso >= 5"]] },
   { id: "MUT9", regra: "LEVE3PAGUE2: a cada 3 unidades de um mesmo item, uma sai de graca", origem: "armadilha do enunciado",
@@ -47,8 +49,8 @@ export const MUTANTES = [
   { id: "MUT15", regra: "Pix: 5% de desconto no total do pedido", origem: "armadilha do enunciado",
     trocas: [["totalFinal = totalPedido - pct(totalPedido, 500);", "totalFinal = totalPedido - pct(subtotal, 500);"]] },
   { id: "MUT16", regra: "colisao OURO + FRETEGRATIS: o OURO zera o frete, e o desconto do cupom fica igual a esse frete zerado", origem: "colisao citada na hipotese Correcao: casos de borda",
-    trocas: [['  if (comImposto && p.nivelClube === "OURO") frete = 0;', '  const freteOriginal = frete;\n  if (comImposto && p.nivelClube === "OURO") frete = 0;'],
+    trocas: [['  if (p.nivelClube === "OURO") frete = 0;', '  const freteOriginal = frete;\n  if (p.nivelClube === "OURO") frete = 0;'],
              ['if (cupom === "FRETEGRATIS") desconto = frete;', 'if (cupom === "FRETEGRATIS") desconto = freteOriginal;']] },
   { id: "MUT17", regra: "boleto so e recusado quando PASSA de R$ 1.000", origem: "fronteira",
-    trocas: [["subtotal - desconto + frete > 100000", "subtotal - desconto + frete >= 100000"]] },
+    trocas: [["totalPedido > 100000", "totalPedido >= 100000"]] },
 ];

@@ -102,6 +102,11 @@ como parte comum (régua §2.5).
 
 ## P5: imposto (controle negativo)
 
+> **No V4 (07/10), o imposto virou seguro por região**, com a mesma forma: cinco
+> regiões, só a porcentagem muda, e a base é "o valor dos produtos, sem desconto e
+> sem frete". A leitura é a mesma; ao montar o V4, este gabarito passa para o
+> enunciado novo (item do plano, Parte 6).
+
 - **O que varia:** só a porcentagem. O enunciado diz: *"É só a porcentagem que
   muda, a conta é a mesma em todas."*
 - **O que é comum:** toda a conta (porcentagem sobre os produtos já com o desconto

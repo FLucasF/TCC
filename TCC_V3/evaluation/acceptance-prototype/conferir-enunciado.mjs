@@ -43,7 +43,7 @@ for (const [, n, linha] of exemplos) {
   confere(onde, "cupom", centavos(pega(/cupom ([\d,]+)/)), r.descontoCupom);
   confere(onde, "frete", centavos(pega(/frete ([\d,]+)/)), r.frete);
   confere(onde, "prazo", Number(pega(/prazo (\d+)/)), r.prazoEntregaDias);
-  confere(onde, "imposto", centavos(pega(/imposto ([\d,]+)/)), r.imposto);
+  confere(onde, "seguro", centavos(pega(/seguro ([\d,]+)/)), r.seguro);
   confere(onde, "ajuste", centavos(pega(/ajuste ([−\d,]+)/)), r.ajustePagamento);
   confere(onde, "total final", centavos(pega(/total final ([\d,]+)/)), r.totalFinal);
   confere(onde, "parcelas", Number(pega(/(\d+)× de/)), r.parcelas);

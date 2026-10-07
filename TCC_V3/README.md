@@ -127,7 +127,7 @@ O enunciado e o harness são identificados por conteúdo byte a byte. Confira
 **depois de clonar ou copiar**, antes de rodar:
 
 ```bash
-sha256sum experiment/prompt/prompt.md      # ea3af6f6ca986040...
+sha256sum experiment/prompt/prompt.md      # d798c11402a52f8c...
 sha256sum experiment/prompt/state.md       # 4591f7425e1551fd...
 sha256sum history/pilot/prompt.md        # 53db3424b3972795...
 docker image inspect --format '{{.Id}}' experimento-harness:v3
@@ -135,7 +135,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 
 | | |
 |---|---|
-| `experiment/prompt/prompt.md` | `ea3af6f6ca9860401e7ca100f60e66616c6d538eac3c9321a57428377739a171` |
+| `experiment/prompt/prompt.md` | `d798c11402a52f8c3388d126502019e8e610bbc0530bcfdee2553f8bee30dabf` |
 | `experiment/prompt/state.md` (segundo padrão) | `4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e` |
 | `history/prompt-v3/prompt.md` (rodou no `EXT`, nos `TESTE-STRATEGY` e nos `TESTE-P4`) | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `history/prompt-v3/state.md` (rodou nos `TESTE-STATE`) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
@@ -187,10 +187,12 @@ indo para o N4; a escada e os motivos estão no README dos harnesses.
 Também em 06/10/2026, os enunciados do V4: nos dois, o cliente "entende o
 básico" e montou a parte técnica pesquisando, no lugar do "desenvolvedor do site"
 e do "time técnico"; no do Strategy, as três inconsistências do §6 do OBJETIVO
-foram corrigidas (exemplos 1 a 4, resposta do anexo, limite do boleto). As
-versões que rodaram na bancada foram para `history/prompt-v3/`, com os mesmos
-hashes; o que mudou e por quê está no [README do enunciado](experiment/prompt/README.md).
-A suíte do Strategy acompanhou: 21 casos, sem observações, 17 de 17 mutantes.
+foram corrigidas (exemplos 1 a 4, resposta do anexo, limite do boleto). Em
+07/10, o imposto por região do Strategy virou seguro por região, com a mesma
+forma: imposto somado no checkout não existe no Brasil. As versões que rodaram na
+bancada foram para `history/prompt-v3/`, com os mesmos hashes; o que mudou e por
+quê está no [README do enunciado](experiment/prompt/README.md). A suíte do
+Strategy acompanhou: 21 casos, sem observações, 17 de 17 mutantes.
 
 O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
 `SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova

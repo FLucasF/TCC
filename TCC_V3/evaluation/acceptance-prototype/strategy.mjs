@@ -3,8 +3,8 @@
 // reproduz os 5 exemplos conferidos e a resposta de exemplo do anexo.
 // A unidade e o CASO, como na hipotese da correcao: passa se todos os campos batem.
 // Os campos que falharam aparecem nas linhas FALHA, como diagnostico.
-// Escrita para o enunciado do V4 (06/10/2026), que corrigiu as contradicoes do da
-// bancada; por isso nao ha mais observacoes, so casos.
+// Escrita para o enunciado do V4, que corrigiu as contradicoes do da bancada (06/10)
+// e trocou o imposto pelo seguro por regiao (07/10); por isso nao ha observacoes, so casos.
 import { calcular } from "./ref-strategy.mjs";
 const BASE = process.env.BASE;
 let passaram = 0; const falhas = [];
@@ -32,8 +32,8 @@ const casos = [
   ["erro: MENOS50 abaixo de 300", { itens: [cam], modalidadeEntrega: "ECONOMICA", cupom: "MENOS50", formaPagamento: "PIX", nivelClube: "BRONZE", regiao: "SUL" }],
   ["erro: boleto acima de 1000", { itens: [bota, bota], modalidadeEntrega: "ECONOMICA", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "SUL" }],
   ["erro: pix parcelado", { itens: [cam], modalidadeEntrega: "ECONOMICA", formaPagamento: "PIX", parcelas: 2, nivelClube: "BRONZE", regiao: "SUL" }],
-  // o limite do boleto e sem o imposto: 950 + 12% passa de 1000, mas o boleto vale
-  ["boleto: o imposto nao entra no limite", { itens: [{ nome: "Casaco", precoUnitario: 950.00, quantidade: 1, pesoKg: 1.00 }], modalidadeEntrega: "RETIRADA_LOJA", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "SUDESTE" }],
+  // o limite do boleto e sobre o total do pedido, com o seguro: 990 + 2,5% passa de 1000
+  ["boleto: o seguro entra no limite", { itens: [{ nome: "Casaco", precoUnitario: 990.00, quantidade: 1, pesoKg: 1.00 }], modalidadeEntrega: "RETIRADA_LOJA", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "NORTE" }],
   ["precedencia: nivel antes de regiao", { itens: [cam], modalidadeEntrega: "ECONOMICA", formaPagamento: "PIX", nivelClube: "DIAMANTE", regiao: "MARTE" }],
   ["precedencia: regiao antes de modalidade", { itens: [cam], modalidadeEntrega: "DRONE", formaPagamento: "PIX", nivelClube: "BRONZE", regiao: "MARTE" }],
   ["precedencia: cupom antes de pagamento", { itens: [cam], modalidadeEntrega: "ECONOMICA", cupom: "XPTO", formaPagamento: "CHEQUE", nivelClube: "BRONZE", regiao: "SUL" }],
@@ -43,8 +43,8 @@ const casos = [
   ["fronteira: motoboy com 5 kg exatos", { itens: [{ nome: "Mochila", precoUnitario: 120.00, quantidade: 2, pesoKg: 2.50 }], modalidadeEntrega: "MOTOBOY", formaPagamento: "PIX", nivelClube: "BRONZE", regiao: "SUL" }],
   ["fronteira: OURO com produtos em 500,00 exatos", { itens: [{ nome: "Jaqueta", precoUnitario: 250.00, quantidade: 2, pesoKg: 1.00 }], modalidadeEntrega: "ECONOMICA", formaPagamento: "PIX", nivelClube: "OURO", regiao: "SUL" }],
   ["fronteira: MENOS50 com produtos em 300,00 exatos", { itens: [{ nome: "Vestido", precoUnitario: 150.00, quantidade: 2, pesoKg: 0.50 }], modalidadeEntrega: "ECONOMICA", cupom: "MENOS50", formaPagamento: "PIX", nivelClube: "BRONZE", regiao: "SUL" }],
-  // 980,00 em produtos + 20,00 de frete = 1000,00 exatos: o boleto vale
-  ["fronteira: boleto com 1000,00 exatos", { itens: [{ nome: "Casaco", precoUnitario: 490.00, quantidade: 2, pesoKg: 2.00 }], modalidadeEntrega: "ECONOMICA", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "SUL" }],
+  // 960,00 em produtos + 30,40 de frete + 9,60 de seguro = 1000,00 exatos: o boleto vale
+  ["fronteira: boleto com 1000,00 exatos", { itens: [{ nome: "Casaco", precoUnitario: 480.00, quantidade: 2, pesoKg: 4.60 }], modalidadeEntrega: "ECONOMICA", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "SUDESTE" }],
 ];
 const num = (a, b) => typeof a === "number" && Math.abs(a - b / 100) < 0.001;
 for (const [nome, corpo] of casos) {

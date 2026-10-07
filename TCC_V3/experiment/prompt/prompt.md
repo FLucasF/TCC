@@ -9,8 +9,8 @@ O valor final é calculado nesta ordem:
 1. Soma dos produtos (preço de cada item × quantidade).
 2. Desconto do cupom, se o cliente usou um.
 3. Frete, de acordo com a forma de entrega escolhida.
-4. Imposto da região do cliente, sobre os produtos já com o desconto.
-5. Total do pedido = produtos − desconto do cupom + frete + imposto.
+4. Seguro do envio, de acordo com a região do cliente.
+5. Total do pedido = produtos − desconto do cupom + frete + seguro.
 6. Ajuste da forma de pagamento sobre esse total.
 
 Todo valor em dinheiro é arredondado para centavos em cada etapa, usando o arredondamento "meio para o par" (exemplo: 2,995 vira 3,00 e 2,985 vira 2,98).
@@ -72,9 +72,9 @@ Juntei aqui as dúvidas que os clientes mais mandam no WhatsApp, pode ajudar a e
 - O cálculo dos juros do cartão é o mesmo do crediário (tabela Price): **parcela = total × taxa ÷ (1 − (1 + taxa)^−número de parcelas)**. A parcela é arredondada para centavos e o valor final é a parcela × número de parcelas.
 - Sem juros (até 3x), o valor final é o próprio total do pedido e a parcela é o total dividido pelo número de parcelas, arredondado para centavos.
 - No Pix, o desconto é 5% do total do pedido, arredondado para centavos.
-- O imposto é por região do cliente: Sudeste 12%, Sul 11%, Centro-Oeste 9%, Norte 7% e Nordeste 7%. **É só a porcentagem que muda, a conta é a mesma em todas**: a porcentagem sobre os produtos já com o desconto do cupom, arredondada para centavos.
+- Todo pedido vai com seguro contra extravio e roubo, e a seguradora cobra por região do cliente: Sudeste 1%, Sul 1%, Centro-Oeste 1,5%, Norte 2,5% e Nordeste 2%. **É só a porcentagem que muda, a conta é a mesma em todas**: a porcentagem sobre o valor dos produtos, sem desconto e sem frete, arredondada para centavos.
 - O crédito do clube é sobre o valor dos produtos, sem desconto e sem frete, arredondado para centavos.
-- Não aceitamos boleto quando produtos − cupom + frete, sem o imposto, passa de R$ 1.000,00.
+- Não aceitamos boleto quando o total do pedido passa de R$ 1.000,00.
 
 ---
 
@@ -115,11 +115,11 @@ Dei uma pesquisada e consegui montar assim. Por favor, siga exatamente estes nom
   "descontoCupom": 40.97,
   "frete": 0.00,
   "prazoEntregaDias": 2,
-  "imposto": 44.25,
-  "ajustePagamento": -20.65,
-  "totalFinal": 392.33,
+  "seguro": 4.10,
+  "ajustePagamento": -18.64,
+  "totalFinal": 354.19,
   "parcelas": 1,
-  "valorParcela": 392.33,
+  "valorParcela": 354.19,
   "creditoProximaCompra": 20.48,
   "brinde": false
 }
@@ -148,19 +148,19 @@ A resposta de erro é sempre `{ "erro": "CODIGO" }`. Verificar nesta ordem e dev
 ### Exemplos conferidos pelo financeiro
 
 **Exemplo 1**: Camiseta 79,90 × 2 (0,30 kg) + Tênis 249,90 × 1 (1,20 kg), `EXPRESSA`, cupom `BEMVINDO10`, `PIX`, clube `BRONZE`, região `NORTE`
-→ subtotal 409,70 · cupom 40,97 · frete 33,10 · prazo 2 · imposto 25,81 · ajuste −21,38 · total final 406,26 · 1× de 406,26 · crédito 0,00 · brinde não
+→ subtotal 409,70 · cupom 40,97 · frete 33,10 · prazo 2 · seguro 10,24 · ajuste −20,60 · total final 391,47 · 1× de 391,47 · crédito 0,00 · brinde não
 
 **Exemplo 2**: mesmos itens, `ECONOMICA`, sem cupom, `CARTAO` em 6×, clube `PRATA`, região `CENTRO_OESTE`
-→ subtotal 409,70 · cupom 0,00 · frete 15,60 · prazo 7 · imposto 36,87 · ajuste 32,71 · total final 494,88 · 6× de 82,48 · crédito 8,19 · brinde não
+→ subtotal 409,70 · cupom 0,00 · frete 15,60 · prazo 7 · seguro 6,15 · ajuste 30,55 · total final 462,00 · 6× de 77,00 · crédito 8,19 · brinde não
 
 **Exemplo 3**: Fone 199,90 × 2 (0,25 kg), `MOTOBOY`, cupom `MENOS50`, `BOLETO`, clube `BRONZE`, região `NORDESTE`
-→ subtotal 399,80 · cupom 50,00 · frete 18,00 · prazo 0 · imposto 24,49 · ajuste 3,49 · total final 395,78 · 1× de 395,78 · crédito 0,00 · brinde não
+→ subtotal 399,80 · cupom 50,00 · frete 18,00 · prazo 0 · seguro 8,00 · ajuste 3,49 · total final 379,29 · 1× de 379,29 · crédito 0,00 · brinde não
 
 **Exemplo 4**: Meia 19,90 × 7 (0,10 kg) + Camiseta 79,90 × 2 (0,30 kg), `RETIRADA_LOJA`, cupom `LEVE3PAGUE2`, `CARTAO` em 3×, clube `PRATA`, região `SUL`
-→ subtotal 299,10 · cupom 39,80 · frete 0,00 · prazo 1 · imposto 28,52 · ajuste 0,00 · total final 287,82 · 3× de 95,94 · crédito 5,98 · brinde não
+→ subtotal 299,10 · cupom 39,80 · frete 0,00 · prazo 1 · seguro 2,99 · ajuste 0,00 · total final 262,29 · 3× de 87,43 · crédito 5,98 · brinde não
 
 **Exemplo 5**: Camiseta 79,90 × 2 (0,30 kg) + Tênis 249,90 × 1 (1,20 kg), `EXPRESSA`, sem cupom, `PIX`, clube `OURO`, região `SUDESTE`
-→ subtotal 409,70 · cupom 0,00 · frete 0,00 (OURO não paga) · prazo 2 · imposto 49,16 · ajuste −22,94 · total final 435,92 · 1× de 435,92 · crédito 20,48 · brinde não
+→ subtotal 409,70 · cupom 0,00 · frete 0,00 (OURO não paga) · prazo 2 · seguro 4,10 · ajuste −20,69 · total final 393,11 · 1× de 393,11 · crédito 20,48 · brinde não
 
 ---
 

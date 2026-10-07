@@ -353,7 +353,7 @@ hipótese.
 
 | padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
 |---|---|---|---|---|---|---|
-| **Strategy** | `experiment/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 imposto | `EXT-01` a `03` | `evaluation/strategy/` | rodado como lote de teste (3 réplicas); leitura feita antes da régua, a refazer |
+| **Strategy** | `experiment/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 seguro (imposto no `EXT`) | `EXT-01` a `03` | `evaluation/strategy/` | rodado como lote de teste (3 réplicas); leitura feita antes da régua, a refazer |
 | **State** | `experiment/prompt/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | `STATE-01` a `03` (a rodar) | `evaluation/state/` | enunciado e gabarito escritos; falta `SMOKE`, calibração e lote |
 
 A coluna **avaliação** é a pasta do padrão: o gabarito, os pacotes cegos, o mapa
@@ -416,12 +416,16 @@ foi ele que mostrou o teto e motivou P4 e P5.
   ([`analysis/testes-2026-09-30.md`](analysis/testes-2026-09-30.md)). E o passo 5
   definia o total do pedido **com** imposto, e a regra do boleto, entre
   parênteses, **sem** (achada ao validar a suíte, em 03/10). No V4, os exemplos
-  trazem clube e região e totais com imposto, a resposta do anexo é a da
-  requisição ao lado, e a regra do boleto diz "sem o imposto". Os números novos
-  saíram da calculadora de referência e dependem da conferência humana do
-  gabarito ([`evaluation/acceptance-prototype/README.md`](evaluation/acceptance-prototype/README.md)).
-  A bancada (o `EXT` e os `TESTE-*`) rodou com as inconsistências; no ensaio com
-  ela, os casos do boleto não contam.
+  trazem clube e região, a resposta do anexo é a da requisição ao lado, e o
+  boleto usa o total do pedido. Os números novos saíram da calculadora de
+  referência, verificada como descrito no
+  [README da suíte](evaluation/acceptance-prototype/README.md). A bancada (o `EXT`
+  e os `TESTE-*`) rodou com as inconsistências.
+- **No V4, o imposto por região virou seguro por região (07/10).** Imposto somado
+  no checkout não existe no Brasil; o P5 precisava só da forma (cinco regiões, só
+  a porcentagem muda), e o seguro a mantém. Por isso a suíte do V4 não se aplica
+  aos pacotes da bancada, e o ensaio com o `EXT` vale para a mecânica (scripts,
+  agregação, leitura), não para os números de correção.
 - **A skill do N2 (e do N3, que a acumula) traz exemplos próximos do domínio das tarefas.** É a `gof-patterns`,
   pública e intacta, escrita sem conhecer as tarefas
   ([`experiment/third-party/gof-patterns/ORIGEM.md`](experiment/third-party/gof-patterns/ORIGEM.md)).

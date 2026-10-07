@@ -1,10 +1,12 @@
-# Teste de aceitação: protótipo
+# Teste de aceitação
 
-> **PROTÓTIPO, não é a Parte 2 do plano.** Foi escrito em 30/09/2026 para analisar
-> as rodadas de teste `TESTE-STATE-02` e `TESTE-STRATEGY-01`. Não está congelado,
-> e não vale para as execuções da análise. A suíte de verdade (Parte 2) parte
-> daqui, mas precisa ter o gabarito conferido à mão (seção "Conferência humana do
-> gabarito", abaixo) e ser congelada com hash antes de ser usada.
+> **Ainda não congelado.** Começou em 30/09/2026 como protótipo, para as rodadas
+> de teste `TESTE-STATE-02` e `TESTE-STRATEGY-01`, e virou a suíte do V4 (Parte 2
+> do plano). Para congelar com hash, faltam três coisas:
+> 1. ~~a revisão das leituras pelo Lucas~~: **feita em 07/10**, sem divergência;
+> 2. a **concordância de implementações independentes** com a calculadora do V4,
+>    no teste de bancada do V4;
+> 3. o `aceitacao.sh` (item f do plano).
 
 Caixa-preta, pela API HTTP que o enunciado define. Sobe o serviço de um workspace
 num container da imagem da bancada, sem token, e roda os casos.
@@ -12,17 +14,18 @@ num container da imagem da bancada, sem token, e roda os casos.
 | arquivo | o que faz |
 |---|---|
 | `executor.sh` | roda **dentro** do container: copia o workspace, reaproveita o `.jar` do build pós-execução (ou compila), sobe o serviço na porta 18080 e roda o teste |
-| `strategy.mjs` | 21 casos do enunciado do Strategy do V4: os 5 exemplos e a resposta de exemplo do anexo, como estão escritos, colisões (OURO + FRETEGRATIS), erros, ordem de precedência, o limite do boleto sem o imposto e quatro **fronteiras** (o valor exato de "até 5 kg", "passarem de R$ 500", "a partir de R$ 300" e "passa de R$ 1.000"). Sem observações: as contradições do enunciado da bancada foram corrigidas no do V4 (06/10) |
-| `ref-strategy.mjs` | a calculadora de referência do Strategy, em centavos, com meio-para-o-par. Reproduz os 5 exemplos conferidos e a resposta de exemplo do anexo. A opção `comImposto: false` só servia à observação do exemplo 1 da bancada e não é mais usada |
+| `strategy.mjs` | 21 casos do enunciado do Strategy do V4: os 5 exemplos e a resposta de exemplo do anexo, como estão escritos, colisões (OURO + FRETEGRATIS), erros, ordem de precedência, o seguro dentro do limite do boleto e quatro **fronteiras** (o valor exato de "até 5 kg", "passarem de R$ 500", "a partir de R$ 300" e "passa de R$ 1.000") |
+| `ref-strategy.mjs` | a calculadora de referência do Strategy, em centavos, com meio-para-o-par. Reproduz os 5 exemplos e a resposta de exemplo do anexo |
 | `mutantes.mjs` | 17 versões da calculadora de referência com **um** erro plantado cada, um por regra do enunciado que tem armadilha |
 | `validar-mutantes.mjs` | serve a referência e cada mutante por HTTP e roda a suíte contra eles: a referência tem de passar, e cada mutante tem de ser reprovado |
 | `conferir-enunciado.mjs` | confere os números escritos no enunciado do Strategy (os 5 exemplos e a resposta do anexo) contra a calculadora: pega erro de cópia entre os dois, não erro da calculadora |
 | `state.mjs` | 12 casos do enunciado do State: os 8 exemplos (com os textos para o cliente) e 4 erros |
 | `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares |
 
-As duas suítes contam **casos**, como a hipótese da correção está escrita: um caso passa se todos os
-campos dele batem, e os campos que falharam aparecem nas linhas `FALHA`. Cada caso
-roda isolado: uma exceção derruba só o caso dela, não os seguintes.
+As duas suítes contam **casos**, como a hipótese da correção está escrita: um caso
+passa se todos os campos dele batem, e os campos que falharam aparecem nas linhas
+`FALHA`. Cada caso roda isolado: uma exceção derruba só o caso dela, não os
+seguintes.
 
 ## Como rodar
 
@@ -37,20 +40,20 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   experimento-harness:v3 bash /aceitacao/executor.sh strategy.mjs   # ou state.mjs
 ```
 
-E o resumo de uma rodada:
+O resumo de uma rodada:
 
 ```bash
 node evaluation/acceptance-prototype/analisar-rodada.mjs TESTE-STRATEGY-01
 ```
 
-E a validação da própria suíte, sem modelo nem Docker (sai com 0 se a referência
+A validação da própria suíte, sem modelo nem Docker (sai com 0 se a referência
 passa e todos os mutantes são reprovados):
 
 ```bash
 node evaluation/acceptance-prototype/validar-mutantes.mjs
 ```
 
-E a conferência dos números do enunciado contra a calculadora (sai com 0 se todos
+A conferência dos números do enunciado contra a calculadora (sai com 0 se todos
 batem; no enunciado da bancada, `history/prompt-v3/prompt.md`, acusa as
 inconsistências conhecidas):
 
@@ -58,89 +61,127 @@ inconsistências conhecidas):
 node evaluation/acceptance-prototype/conferir-enunciado.mjs
 ```
 
-## Validação que já existe
+## Como se sabe que a suíte mede certo
 
-- `ref-strategy.mjs` reproduz os 5 exemplos do enunciado, centavo a centavo. No
-  enunciado do V4 (06/10), os exemplos 1 a 4 e a resposta do anexo **saíram da
-  calculadora**; o `conferir-enunciado.mjs` confere os 66 números escritos no
-  texto contra ela, sem divergência. Por isso eles entram na conferência humana (última seção).
-- Os quatro pacotes de Opus e Sonnet de `TESTE-STRATEGY-01`, e o `TESTE-P4-OPUS-CONTROL`,
-  passaram em tudo no `strategy.mjs` (85 de 85 verificações com 15 casos, em
-  30/09; 18 de 18 casos em 03/10; 21 de 21 com a suíte do V4, em 06/10): cinco
-  implementações independentes chegam aos mesmos números da referência,
-  inclusive nos casos que o enunciado não exemplifica.
-- Ainda falta a **conferência humana do gabarito** (última seção): a calculadora
-  foi escrita com o Claude, e a concordância das cinco implementações só mostra
-  que ninguém discorda dela, não que ela leu o enunciado certo.
+A suíte não tem os valores esperados escritos à mão: ela os pede à calculadora de
+referência. Então a pergunta é se a calculadora está certa, e se a suíte reprova
+quem difere dela. São quatro verificações, cada uma pegando um tipo de erro.
 
-### A suíte reprova código errado (03/10/2026)
+| verificação | pega | situação |
+|---|---|---|
+| 1. o enunciado contra a calculadora (`conferir-enunciado.mjs`) | erro de cópia entre os números do texto e a calculadora | **66 de 66** (07/10) |
+| 2. os mutantes (`validar-mutantes.mjs`) | uma regra que a suíte não cobra | **17 de 17** reprovados (07/10) |
+| 3. implementações independentes | erro de conta ou de arredondamento na calculadora | **a refazer no V4**, ver abaixo |
+| 4. a revisão das leituras, pelo Lucas | uma leitura do enunciado que a IA fez e o autor não faria | **feita** (07/10), sem divergência |
 
-Passar a referência só mostra que a suíte não reprova o certo. O outro lado é
-que ela **reprova o errado**, e isso se mostra com os mutantes:
+### 2. Os mutantes
+
+Passar a referência só mostra que a suíte não reprova o certo. O outro lado é que
+ela **reprova o errado**:
 
 | suíte | referência | mutantes reprovados | os que passaram |
 |---|---|---|---|
 | 15 casos (a de 30/09) | passa | 12 de 16 | mutantes 7 (boleto), 8 (motoboy), 10 (brinde), 11 (MENOS50) |
 | com as fronteiras | passa | 16 de 16 | nenhum |
-| 18 casos, a de 03/10 (sem o mutante 7, ver abaixo) | passa | 15 de 15 | nenhum |
-| a atual, 21 casos, para o enunciado do V4 (o mutante 7 volta e entra o 17, a fronteira do boleto) | passa | **17 de 17** | nenhum |
+| 18 casos, a de 03/10 (sem o mutante 7) | passa | 15 de 15 | nenhum |
+| 21 casos, a de 06/10 (enunciado do V4 com imposto) | passa | 17 de 17 | nenhum |
+| **a atual**, 21 casos (enunciado do V4 com seguro, 07/10) | passa | **17 de 17** | nenhum |
 
 Os buracos eram todos **fronteiras**: nenhum caso tinha o valor exato de "até
 5 kg", "passarem de R$ 500", "passa de R$ 1.000" ou "a partir de R$ 300". Para o
-próximo enunciado: toda frase dessas pede um caso no valor exato. A do boleto só
-ganhou o seu em 06/10, com o mutante 17.
+próximo enunciado: toda frase dessas pede um caso no valor exato.
 
-Dez mutantes são pegos por **um caso só** (o validador lista quais). Não é
+Onze mutantes são pegos por **um caso só** (o validador lista quais). Não é
 defeito, mas é o que avisa se uma mudança nos casos deixar uma regra descoberta:
 rodar o `validar-mutantes.mjs` depois de mexer no `strategy.mjs`.
 
 Os mutantes testam a suíte **contra a calculadora**: provam que ela reprova o que
-difere do gabarito, não que o gabarito está certo. Isso é a conferência humana,
-na última seção.
+difere do gabarito, não que o gabarito está certo. Isso são as verificações 3 e 4.
 
-### Duas decisões tomadas antes de rodar sobre o lote EXT (03/10/2026)
+### 3. Implementações independentes
 
-**O limite do boleto é observação, não caso.** O passo 5 do enunciado define o
-total do pedido **com** imposto; a regra do boleto, entre parênteses, **sem**.
-Num pedido de R$ 950 + imposto, cada leitura fica de um lado do limite. Contar
-isso como erro mediria a contradição do enunciado, não o código; é o mesmo
-tratamento dos exemplos 1 a 4, e está no §6 do `OBJETIVO.md` como terceira
-inconsistência. Por isso o **mutante 7** (o limite contando o imposto) saiu dos
-mutantes: é uma leitura válida, não um erro. O limite continua testado onde as
-duas leituras concordam (o caso "erro: boleto acima de 1000" e o exemplo 3).
+Se implementações escritas pelos agentes, cada uma a partir do enunciado, chegam
+aos mesmos números da calculadora em todos os casos, um erro de conta ou de
+arredondamento teria de ser o mesmo em todas, o que é muito improvável. Na
+bancada, as cinco de Opus e Sonnet (`TESTE-STRATEGY-01` e `TESTE-P4-OPUS-CONTROL`)
+concordaram em tudo: 85 de 85 verificações em 30/09, 18 de 18 casos em 03/10, 21
+de 21 em 06/10.
 
-*Revisto em 06/10.* O enunciado do V4 diz "sem o imposto", e a contradição
-acabou: o pedido de R$ 950 virou caso que conta (o boleto vale), o mutante 7
-voltou, e os exemplos 1 a 4 ganharam clube e região. Vale para o V4; o EXT rodou
-com o enunciado antigo (ver a tabela abaixo).
+**No V4 isso precisa ser refeito.** Essas implementações seguem o enunciado da
+bancada, com imposto; a calculadora agora calcula o seguro. A concordância volta
+com o teste de bancada do V4 (item f4 do plano): a suíte roda sobre o que ele
+produzir, e as implementações de Opus e Sonnet devem passar em tudo. O de Haiku
+sozinho mede a cota, mas acerta menos, e serve pouco aqui: o teste deve incluir
+ao menos um quarteto de Sonnet ou de Opus.
 
-**A unidade é o caso.** Contar verificações de campo dava denominadores
-diferentes (um caso que devolve erro em vez de 200 vira uma verificação em vez
-de onze) e pesava cada erro pelo número de campos que ele contamina (o único erro
-do Haiku CONTROL derrubava cinco). A hipótese da correção já está escrita em casos.
+### 4. A revisão das leituras
 
-Decidir as duas **antes** de a suíte rodar sobre o EXT é o que as mantém como
-pré-registro: depois, a escolha poderia ser guiada por qual braço ela favorece.
+> **A FAZER, pelo Lucas, sem IA.** Substitui, desde 07/10, a "conferência humana do
+> gabarito" (os casos A e B calculados à mão e a tabela de 22 regras), que por
+> sua vez substituíra a implementação de referência escrita do zero. Motivo: a
+> aritmética já é verificada pelas implementações independentes (verificação 3);
+> o que nenhuma IA pode decidir é o que o enunciado quer dizer onde o texto admite
+> mais de uma leitura. A troca vai ao orientador junto com as outras.
 
-### Os pacotes de teste com a suíte do V4 (06/10/2026)
+Nos pontos abaixo a calculadora escolheu uma leitura, e os agentes, da mesma
+família de modelo, tendem a escolher a mesma. Para cada um: leia o trecho no
+enunciado (`experiment/prompt/prompt.md`) e marque se concorda. Divergência se
+resolve pelo **texto**: se ele diz outra coisa, a calculadora é corrigida e os
+exemplos do enunciado, recalculados; se o texto não decide, vira inconsistência no
+§6 do `OBJETIVO.md`.
 
-Rodado no container da bancada, pelo `executor.sh`:
+| # | trecho do enunciado | o que a calculadora entende | concordo? |
+|---|---|---|---|
+| 1 | OURO "não paga frete nunca"; FRETEGRATIS: "o desconto do cupom fica igual ao valor do frete" | o OURO zera o frete primeiro, e o cupom vale R$ 0 | sim: aceito, sem erro; o enunciado não dá condição ao FRETEGRATIS, então recusar seria regra inventada |
+| 2 | OURO: "se os produtos passarem de R$ 500,00 a gente manda um brinde" | conta os produtos **antes** do cupom | sim |
+| 3 | LEVE3PAGUE2: "a cada 3 unidades de um mesmo item do carrinho, uma sai de graça" | por linha do carrinho: a cada 3 unidades daquela linha, uma grátis (7 meias, 2 grátis) | sim: o exemplo 4 já mostra 39,80 |
+| 4 | "Sem juros (até 3x), o valor final é o próprio total do pedido e a parcela é o total dividido pelo número de parcelas, arredondado" | o valor final é o total, mesmo que parcela × n dê um centavo diferente | sim: o centavo cai numa das parcelas, como faz a operadora; o resumo mostra o valor nominal |
+| 5 | tabela Price: "A parcela é arredondada para centavos e o valor final é a parcela × número de parcelas" | calcula com precisão total e só arredonda a parcela | sim: é o padrão do mercado, com o meio-para-o-par do enunciado |
 
-| | Strategy (21 casos) |
+Saiu da lista o ponto da base do imposto com o FRETEGRATIS: o seguro, que
+substituiu o imposto, é "sobre o valor dos produtos, sem desconto e sem frete", e
+o texto não deixa dúvida.
+
+**Resultado:** revisado em 07/10/2026 por Lucas, ponto a ponto contra o texto do
+enunciado, **sem divergência**: as cinco leituras da calculadora ficam. Falta a
+verificação 3 (implementações independentes no teste de bancada do V4).
+
+## Decisões
+
+**A unidade é o caso** (03/10). Contar verificações de campo dava denominadores
+diferentes (um caso que devolve erro em vez de 200 vira uma verificação em vez de
+onze) e pesava cada erro pelo número de campos que ele contamina (o único erro do
+Haiku CONTROL derrubava cinco). A hipótese da correção já está escrita em casos.
+
+**Contradição do enunciado não conta** (03/10). No enunciado da bancada, o limite
+do boleto tinha duas leituras e os exemplos 1 a 4 não traziam clube nem região;
+esses pontos eram registrados como observação, e o mutante 7 saiu por um tempo.
+No V4 as contradições foram corrigidas (06/10), e a suíte não tem mais
+observações.
+
+**O P5 é o seguro** (07/10). O imposto por região virou seguro por região, com a
+mesma forma (ver o README do enunciado). O boleto passou a usar o total do pedido,
+com o seguro dentro; o mutante 7 planta o contrário.
+
+## Histórico: os pacotes da bancada
+
+Estes resultados são do enunciado **da bancada**, com imposto. A suíte atual não
+se aplica a eles: o campo `imposto` virou `seguro`. A versão da suíte de cada
+data está no git.
+
+Suíte de 06/10 (21 casos, V4 com imposto), no container:
+
+| | Strategy |
 |---|---|
 | Opus CONTROL / HARNESS | 21 / 21 |
 | Sonnet CONTROL / HARNESS | 21 / 21 |
 | Haiku CONTROL | 20: FRETEGRATIS sem OURO |
-| Haiku HARNESS | 17: FRETEGRATIS sem OURO, precedência região/modalidade, e os dois casos do boleto |
+| Haiku HARNESS | 17: FRETEGRATIS sem OURO, precedência região/modalidade, e os dois casos do boleto (que ele lia de outro jeito, válido no enunciado da bancada) |
 | `TESTE-P4-OPUS-CONTROL` | 21 |
 
-Cinco implementações independentes concordam com os números novos (exemplos 2 e
-4 com outras regiões, a resposta do anexo, o boleto de R$ 950 e o de R$ 1.000
-exatos). Os dois casos do boleto no Haiku HARNESS **não são erro dele**: ele rodou
-com o enunciado da bancada, em que contar o imposto era uma leitura válida. Por
-isso, no ensaio com o `EXT`, os casos do boleto não contam.
-
-### Os pacotes de teste com a suíte de 03/10
+Suíte de 03/10 (18 casos), com Java 21 local sobre os mesmos `.jar` (o Docker
+estava fechado; com a suíte de 30/09, o resultado local foi idêntico ao do
+container):
 
 | | Strategy (18 casos) | boleto 950 + imposto (observação) | State (12 casos) |
 |---|---|---|---|
@@ -149,115 +190,3 @@ isso, no ensaio com o `EXT`, os casos do boleto não contam.
 | Haiku CONTROL | 17: FRETEGRATIS sem OURO | aceita | 12 |
 | Haiku HARNESS | 16: FRETEGRATIS sem OURO, precedência região/modalidade | **recusa** (lê com imposto) | 12 |
 | `TESTE-P4-OPUS-CONTROL` | 18 | aceita | — |
-
-Rodado com Java 21 local sobre os mesmos `.jar` do build pós-execução, porque o
-Docker estava fechado. Com a suíte antiga, o resultado local foi idêntico ao do
-container de 30/09, campo a campo.
-
-## Conferência humana do gabarito
-
-> **A FAZER, pelo Lucas, à mão e sem IA.** A calculadora (`ref-strategy.mjs`) foi
-> escrita com o Claude; se ela leu mal uma regra, a suíte, os mutantes e ela
-> concordam no erro, e nada acusa. Esta conferência é o que substitui, na Parte 2,
-> a implementação de referência escrita do zero (troca de 03/10, no plano).
-
-Divergência se resolve pelo **texto do enunciado**, não pela calculadora nem por
-quem confere. Se o texto não decide, é inconsistência: vai para o §6 do
-`OBJETIVO.md`, como o limite do boleto no enunciado da bancada.
-
-**O enunciado do V4 depende desta conferência.** Os números dos exemplos 1 a 4 e
-da resposta do anexo saíram da calculadora (06/10). Se as duas partes abaixo
-passarem, eles estão certos; se uma regra divergir, os exemplos que a usam têm de
-ser recalculados **antes** de o V4 rodar.
-
-### 1. Dois casos de colisão, calculados à mão (primeiro)
-
-Pega regras certas uma a uma mas combinadas na ordem errada, que a lista de
-regras não vê. **Vem primeiro, e sem abrir o `ref-strategy.mjs`:** a lista de
-regras faz ler a calculadora de perto, e quem já viu como ela resolve as colisões
-tende a concordar com ela. Pelo mesmo motivo, calcular antes de rodar o comando.
-Só o enunciado aberto, seguindo a ordem dele (produtos, cupom, frete, imposto,
-total, ajuste), arredondando para centavos em cada etapa.
-
-Numa planilha, o `ARRED` arredonda meio-para-cima, não
-meio-para-o-par. No `jshell` (vem com o JDK 21), dois auxiliares que só fazem a
-conta; onde e em que ordem arredondar continua sendo de quem confere:
-
-```java
-import java.math.*;
-BigDecimal r(BigDecimal x) { return x.setScale(2, RoundingMode.HALF_EVEN); }   // meio-para-o-par
-BigDecimal d(String s) { return new BigDecimal(s); }                            // sempre String, nunca double
-```
-
-Na Price, `(1 + taxa)^−n` fica `BigDecimal.ONE.divide(d("1.0199").pow(n), MathContext.DECIMAL128)`.
-
-- **Caso A**, OURO + FRETEGRATIS com juros (é um caso da suíte): Bota R$ 349,90 ×
-  2 (2,10 kg cada), `EXPRESSA`, cupom `FRETEGRATIS`, `CARTAO` em 10×, clube `OURO`,
-  região `SUL`.
-- **Caso B**, FRETEGRATIS sem OURO, com boleto (fora da suíte, de propósito: os
-  números do caso "FRETEGRATIS sem OURO" da suíte já apareceram em saídas de
-  teste): Tênis R$ 249,90 × 1 (1,20 kg), `EXPRESSA`, cupom `FRETEGRATIS`, `BOLETO`,
-  clube `BRONZE`, região `NORDESTE`.
-
-Depois de calcular, da raiz do `TCC_V3` (a saída vem em **centavos**):
-
-```bash
-node --input-type=module -e 'import { calcular } from "./evaluation/acceptance-prototype/ref-strategy.mjs"; console.log("A", calcular({ itens: [{ nome: "Bota", precoUnitario: 349.90, quantidade: 2, pesoKg: 2.10 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "CARTAO", parcelas: 10, nivelClube: "OURO", regiao: "SUL" })); console.log("B", calcular({ itens: [{ nome: "Tenis", precoUnitario: 249.90, quantidade: 1, pesoKg: 1.20 }], modalidadeEntrega: "EXPRESSA", cupom: "FRETEGRATIS", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "NORDESTE" }));'
-```
-
-| campo | A: à mão | A: calculadora | B: à mão | B: calculadora |
-|---|---|---|---|---|
-| subtotalProdutos | | | | |
-| descontoCupom | | | | |
-| frete | | | | |
-| prazoEntregaDias | | | | |
-| imposto | | | | |
-| total do pedido (calculadora: totalFinal − ajustePagamento) | | | | |
-| ajustePagamento | | | | |
-| totalFinal | | | | |
-| valorParcela | | | | |
-| creditoProximaCompra | | | | |
-| brinde | | | | |
-
-### 2. Regra por regra (depois)
-
-Pega uma regra implementada diferente do que o enunciado diz. Agora sim, com o
-`ref-strategy.mjs` aberto ao lado do enunciado. A lista saiu só do enunciado; a
-linha da calculadora é quem confere que acha (buscar pelo identificador:
-`MOTOBOY`, `MENOS50`, `OURO`...; as regras gerais estão em `pct`, `centavos` e na
-sequência de cálculo). Exemplo, regra 6: `RETIRADA_LOJA: 0` no mapa de fretes e
-`RETIRADA_LOJA: 1` no de prazos, linhas 37 e 38; diz o mesmo: sim.
-
-Para ler vindo do Java: dinheiro é inteiro em **centavos** (`1200` = R$ 12,00);
-`pct(c, 1200)` é 12% de `c` (o segundo número em centésimos de ponto percentual),
-já meio-para-o-par; `centavos(x)` converte reais em centavos, meio-para-o-par;
-`itens.reduce((s, i) => s + ..., 0)` é uma soma sobre os itens; `p.parcelas ?? 1`
-é "parcelas, ou 1 se não vier"; `{ A: 1, B: 2 }[x]` é um `Map.get`.
-
-| # | regra (do enunciado) | linha no `ref-strategy.mjs` | diz o mesmo? |
-|---|---|---|---|
-| 1 | subtotal = Σ preço × quantidade | | |
-| 2 | todo valor arredondado para centavos em cada etapa, meio-para-o-par | | |
-| 3 | ordem: produtos → cupom → frete → imposto → total → ajuste do pagamento | | |
-| 4 | ECONOMICA: R$ 12 + R$ 2/kg, 7 dias | | |
-| 5 | EXPRESSA: R$ 25 + R$ 4,50/kg, 2 dias | | |
-| 6 | RETIRADA_LOJA: grátis, 1 dia | | |
-| 7 | MOTOBOY: R$ 18, 0 dias, **só até 5 kg** | | |
-| 8 | peso = Σ peso × quantidade, **sem arredondar** | | |
-| 9 | BEMVINDO10: 10% dos produtos | | |
-| 10 | MENOS50: R$ 50, **a partir de R$ 300** em produtos | | |
-| 11 | FRETEGRATIS: o frete aparece normal, e o desconto é igual ao frete | | |
-| 12 | LEVE3PAGUE2: a cada 3 unidades **de um mesmo item**, uma grátis | | |
-| 13 | PRATA: crédito de 2%. OURO: crédito de 5%, frete zero, brinde se os produtos **passarem de R$ 500** | | |
-| 14 | crédito sobre os produtos **sem desconto e sem frete**; não abate nada nesta compra | | |
-| 15 | imposto: % da região sobre **produtos − cupom** (Sudeste 12, Sul 11, Centro-Oeste 9, Norte 7, Nordeste 7) | | |
-| 16 | Pix: 5% de desconto **no total do pedido** | | |
-| 17 | cartão até 3×: final = total, parcela = total ÷ n arredondada | | |
-| 18 | cartão de 4× a 12×: Price a 1,99%, **parcela arredondada**, final = parcela × n | | |
-| 19 | boleto: + R$ 3,49; recusado se produtos − cupom + frete, **sem o imposto**, **passa de R$ 1.000** | | |
-| 20 | Pix e boleto só em 1 parcela; parcelas ausente = 1 | | |
-| 21 | ajustePagamento = totalFinal − total do pedido | | |
-| 22 | erros na ordem da tabela do anexo (1 a 10), devolvendo o primeiro | | |
-
-**Resultado:** _(preencher: data, quem conferiu, divergências e como se
-resolveram)_

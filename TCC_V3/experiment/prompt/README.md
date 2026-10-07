@@ -2,7 +2,7 @@
 
 | arquivo | hash | pontos de variação | execuções |
 |---|---|---|---|
-| `prompt.md` | `ea3af6f6ca986040` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 imposto** | o V4, a rodar |
+| `prompt.md` | `d798c11402a52f8c` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 seguro** | o V4, a rodar |
 | `state.md` | `4591f7425e1551fd` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | o V4, a rodar, com `PROMPT_FILE` |
 | `../../history/prompt-v3/prompt.md` | `b7cdb594cb49efee` | os mesmos do `prompt.md` | `EXT-01` a `03`, `TESTE-STRATEGY-*` e `TESTE-P4-*`, na bancada |
 | `../../history/prompt-v3/state.md` | `ebffe1724ca316b5` | os mesmos do `state.md` | `TESTE-STATE-*`, na bancada |
@@ -19,9 +19,9 @@ até virar o enunciado único; o de três era o `prompt.md` e foi para
 `history/pilot/`. Os dois enunciados que rodaram na bancada até 06/10 estão em
 `history/prompt-v3/`.
 
-## O que mudou para o V4 (06/10/2026)
+## O que mudou para o V4 (06 e 07/10/2026)
 
-**O cliente entende o básico, nos dois enunciados.** Até 06/10, o cliente dizia
+**O cliente entende o básico, nos dois enunciados (06/10).** Até 06/10, o cliente dizia
 só "não sou programador", e o contrato da API vinha num anexo "combinado com o
 desenvolvedor do site", seguido de "observações do time técnico". Um cliente
 leigo dificilmente entregaria esse contrato, e a história ficava com três
@@ -32,27 +32,40 @@ do anexo, e o título das observações. O contrato fica no enunciado porque é 
 que permite medir a correção com a mesma suíte de caixa-preta em todas as
 execuções. No `state.md`, isso é tudo o que mudou.
 
+**O imposto por região virou seguro por região (07/10).** O imposto somado no
+checkout não existe no Brasil, onde o preço já traz os tributos; era o *sales
+tax* americano. O P5 precisava da mesma **forma** (cinco regiões, só a
+porcentagem muda, a mesma conta), não do tema, e o seguro contra extravio e roubo
+cobrado por região mantém essa forma: a mesma que, no imposto, já pegou um
+exagero na bancada (o Haiku HARNESS escreveu uma interface, cinco classes e uma
+fábrica só para trocar a porcentagem). Uma embalagem para presente com preço fixo
+por tamanho foi considerada e descartada: parece tabela de preço, não
+comportamento, e o controle negativo arriscava ficar no piso, sem ninguém
+exagerando. Alíquotas: Sudeste 1%, Sul 1%, Centro-Oeste 1,5%, Norte 2,5% e
+Nordeste 2%, sobre os produtos sem desconto e sem frete. No contrato, o campo
+`imposto` virou `seguro`.
+
 **As três inconsistências do Strategy foram corrigidas** (estavam no §6 do
 `OBJETIVO.md`):
 
 | | na bancada | no V4 |
 |---|---|---|
-| exemplos 1 a 4 | sem clube nem região, totais sem imposto (vinham do piloto) | com clube e região e totais com imposto; os cinco exemplos passam por todas as regiões e todos os níveis |
+| exemplos 1 a 4 | sem clube nem região, totais sem imposto (vinham do piloto) | com clube, região e seguro nos totais; os cinco exemplos passam por todas as regiões e todos os níveis |
 | resposta de exemplo do anexo | números do piloto misturados com um imposto sem desconto | a resposta da requisição ao lado (OURO, Sudeste, BEMVINDO10, Pix) |
-| limite do boleto | "total do pedido (produtos − cupom + frete)", com o total definido com imposto no passo 5 | "produtos − cupom + frete, sem o imposto" |
+| limite do boleto | "total do pedido (produtos − cupom + frete)", com o total definido com imposto no passo 5 | "o total do pedido", que inclui o seguro, sem parêntese |
 
-No limite do boleto ficou a leitura **sem** imposto, a do parêntese: ele vem do
-piloto, que não tinha imposto, e 5 das 6 implementações da bancada já liam
-assim. No exemplo 2, a região é Centro-Oeste, e não Sul, de propósito: com Sul, a
-parcela exata cai a 0,015 centavo do empate do arredondamento, e o exemplo
-testaria precisão numérica em vez da regra.
+A terceira se resolveu com a troca: o total do pedido tem uma definição só (passo
+5), e o boleto usa essa. No exemplo 2, a região é Centro-Oeste de propósito, para
+a parcela ficar longe do empate do arredondamento; senão o exemplo testaria
+precisão numérica em vez da regra.
 
-Os números novos **saíram da calculadora de referência** (o
-`conferir-enunciado.mjs` confere os 66 números escritos no texto contra ela) e
-dependem da conferência humana do
-gabarito ([`../../evaluation/acceptance-prototype/README.md`](../../evaluation/acceptance-prototype/README.md)).
-Fora a frase do boleto, que agora escolhe uma das duas leituras, as regras de
-negócio, o contrato e os erros não mudaram, e a régua de desenho vale igual.
+Os números novos **saíram da calculadora de referência**. O
+`conferir-enunciado.mjs` confere os 66 números escritos no texto contra ela. A
+calculadora em si é verificada como descrito no
+[README da suíte](../../evaluation/acceptance-prototype/README.md). Fora o P5 e a
+frase do boleto, as regras de negócio, o contrato e os erros não mudaram, e a
+régua de desenho vale igual: o P5 continua sendo o controle negativo, com cinco
+regiões.
 
 ---
 
@@ -92,14 +105,16 @@ natural é um `if` sobre o nível dentro do cálculo do frete.
 O frete grátis do OURO também **colide com o cupom FRETEGRATIS**, o que força
 decidir a ordem em vez de copiar.
 
-## P5 — imposto por região. **Controle negativo**, testa a **quarta** regra
+## P5 — seguro por região (era imposto até 06/10). **Controle negativo**, testa a **quarta** regra
 
 > trate assim apenas o que o enunciado descreve como variando. Não crie estrutura
 > para variação que você imagina que possa vir a existir.
 
 Aqui Strategy é a resposta **errada**. São cinco regiões e a única coisa que muda
 é a porcentagem — o enunciado diz isso explicitamente: *"é só a porcentagem que
-muda, a conta é a mesma em todas"*. Uma tabela de dados é a resposta certa.
+muda, a conta é a mesma em todas"*. Uma tabela de dados é a resposta certa. A
+regra é fictícia na medida em que a loja é fictícia; o que importa é a forma
+(ver "O que mudou para o V4").
 
 Se o braço com harness escrever cinco classes para isso, **é custo do harness** —
 e no enunciado original esse custo seria invisível, porque não havia ponto onde
@@ -109,7 +124,7 @@ exagerar fosse errado.
 
 ## O que mais mudou em relação ao piloto
 
-Além dos dois pontos:
+Além dos dois pontos (na versão de 24/09; no V4, leia "seguro" onde está "imposto"):
 
 - a ordem de cálculo ganhou um passo (o imposto, entre o frete e o total)
 - a requisição ganhou `nivelClube` e `regiao`
