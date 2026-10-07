@@ -101,7 +101,7 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
 
 **Objetivo:** saber se o código calcula certo. Hoje o `mvn verify` só roda os testes que o próprio modelo escreveu.
 
-**Como:** testes de caixa-preta via HTTP contra o contrato que cada enunciado já define: `POST /checkout/resumo` no Strategy (`strategy.mjs`), `/pedidos` no State (`state.mjs`). Caixa-preta porque cada execução tem pacotes e classes diferentes. **Vale para os dois padrões**, cada um com a sua conferência do gabarito; os itens abaixo que citam a calculadora são do Strategy, e o State tem o item próprio no fim da lista.
+**Como:** testes de caixa-preta via HTTP contra o contrato que cada enunciado já define: `POST /checkout/resumo` no Strategy (`strategy.mjs`). Caixa-preta porque cada execução tem pacotes e classes diferentes. O State tinha a sua (`state.mjs`), que foi para `history/state/` quando ele saiu do V4 (07/10).
 
 - [ ] Casos a partir dos exemplos conferidos do enunciado e da ordem de precedência dos erros.
 - [ ] Um script novo, separado (por exemplo `infra/scripts/aceitacao.sh`), que sobe o app de cada `runs/*/workspace` num container sem token, roda os casos e grava `aceitacao.txt` ao lado do `build.txt`.
@@ -112,11 +112,11 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
   - *Trocado duas vezes, a confirmar com o orientador.* Em 03/10: a implementação de referência escrita do zero virou uma conferência humana (dois casos calculados à mão e as regras uma a uma). Em 07/10: a conferência virou as duas frentes acima. Motivo: refazer a conta à mão repete o que as implementações independentes já verificam; o risco que sobra é de leitura, e é ele que a revisão do Lucas cobre, em cerca de 15 minutos.
 - [x] Validar também o outro lado: a suíte **reprova** código errado. Cada mutante de `evaluation/acceptance-prototype/mutantes.mjs` (a calculadora com um erro plantado, um por regra do enunciado que tem armadilha) precisa ser reprovado; o `validar-mutantes.mjs` sai com 0. Feito em 03/10: 15 de 15. Refeito em 06/10 para o enunciado do V4: 21 casos, 17 de 17 (o mutante 7 voltou e entrou o 17, a fronteira do boleto). Refeito em 07/10, com o seguro no lugar do imposto: 17 de 17.
 - [x] A unidade é o **caso** (passa ou falha), como a hipótese da correção está escrita, e não a verificação de campo. Pontos em que o enunciado se contradiz entram como observação, sem contar (03/10). No enunciado do V4 as contradições foram corrigidas, e a suíte não tem mais observações (06/10).
-- [ ] **State:** conferir, à mão, que cada valor esperado no `state.mjs` é o do enunciado (`experiment/prompt/state.md`): os 8 exemplos e os erros. Aqui o gabarito não é uma calculadora escrita com IA, são os números do próprio enunciado copiados para o teste, então a conferência é só de cópia (cerca de 15 minutos). Antes do lote `STATE`, rever também se o enunciado tem fronteiras ("até", "acima de", "a partir de") sem caso no valor exato, a lição dos mutantes do Strategy.
+- ~~**State:** conferir a cópia dos valores do `state.mjs` e as fronteiras sem caso~~. Saiu com o State (07/10); o passo ficou anotado em `history/state/README.md`, para quando ele voltar.
 
 Como roda sobre os workspaces já salvos, vale para as 36 execuções existentes sem rodar modelo de novo e sem tocar no `executar.sh`.
 
-**Pronto quando:** a conferência humana do gabarito está registrada sem divergência aberta, todos os mutantes são reprovados e a suíte está congelada com hash.
+**Pronto quando:** as duas frentes da verificação do gabarito estão registradas sem divergência aberta, todos os mutantes são reprovados e a suíte está congelada com hash.
 
 ## Parte 3 — `verificar.mjs`
 
@@ -178,7 +178,7 @@ Por que isso elimina a memória: o container nasce com `~/.claude` vazio (sem me
 
 | decisão | escolha | por quê |
 |---|---|---|
-| padrões | **só Strategy**, por agora | o State ainda não tem lote nem régua calibrada; entra depois, com este mesmo desenho |
+| padrões | **só Strategy** | o State saiu do V4 em 07/10 (`history/state/`); se voltar, entra com este mesmo desenho |
 | ponto de partida | uma **cópia** do workspace de cada uma das 18 execuções `EXT`, mesmo modelo e mesma condição | reaproveita o build já analisado, sem rodar de novo; o par continua o mesmo |
 | sessão | **nova** a cada sprint (`claude -p`, como hoje) | as execuções do EXT rodaram com `--no-session-persistence`, então não há sessão a retomar; e é o realista para "manter software": um dev que pega o código e precisa lê-lo |
 | `CLAUDE.md` no braço `HARNESS` | **continua** no workspace | mede o harness como seria usado: presente no build e na manutenção. Conferido em 03/10: os 9 `CLAUDE.md` do EXT estão byte a byte iguais ao original, e nenhum `CONTROL` tem `CLAUDE.md` escrito pelo modelo. Limite a declarar: não separa o efeito do desenho do efeito da orientação |
@@ -225,17 +225,17 @@ O conteúdo de cada nível, os motivos do descarte e da troca de número entre N
 
 ### Como roda no V4: os quatro níveis juntos (decidido em 06/10)
 
-Para cada modelo, N0, N1, N2 e N3 rodam **ao mesmo tempo**, um quarteto simultâneo no lugar do par simultâneo de hoje. Todos os níveis se comparam em pares, sem repetir a `CONTROL` por lote, e a pergunta de tendência (a qualidade sobe de N0 a N3?) fica possível. Tamanho: 4 níveis × 3 modelos × 5 réplicas × 2 padrões = **120 execuções** (contra 180 com um lote por nível).
+Para cada modelo, N0, N1, N2 e N3 rodam **ao mesmo tempo**, um quarteto simultâneo no lugar do par simultâneo de hoje. Todos os níveis se comparam em pares, sem repetir a `CONTROL` por lote, e a pergunta de tendência (a qualidade sobe de N0 a N3?) fica possível. Tamanho: 4 níveis × 3 modelos × 5 réplicas = **60 execuções**, só o Strategy (contra 90 com um lote por nível). Eram 120 com o State, que saiu em 07/10 (ver `history/state/README.md`).
 
-**Consumo esperado**, pelos `meta.json` de 50 execuções de teste (custo-equivalente de API, que a assinatura não cobra, mas mede o peso): Haiku ~US$ 0,55 e ~7 min por execução; Sonnet ~US$ 1,03 e ~7 min; Opus ~US$ 1,74 e ~8 min, com caudas de até 39 min. Um quarteto dos três modelos (12 execuções) ~US$ 13; o V4 inteiro ~US$ 133. Quantas execuções cabem numa janela de 5 h depende do plano da assinatura; a concorrência (os 3 modelos juntos ou um modelo por vez) é decidida na hora de rodar.
+**Consumo esperado**, pelos `meta.json` de 50 execuções de teste (custo-equivalente de API, que a assinatura não cobra, mas mede o peso): Haiku ~US$ 0,55 e ~7 min por execução; Sonnet ~US$ 1,03 e ~7 min; Opus ~US$ 1,74 e ~8 min, com caudas de até 39 min. Um quarteto dos três modelos (12 execuções) ~US$ 13; o V4 inteiro (60 execuções) ~US$ 66. Quantas execuções cabem numa janela de 5 h depende do plano da assinatura; a concorrência (os 3 modelos juntos ou um modelo por vez) é decidida na hora de rodar.
 
 ### A fazer
 
 - [ ] `infra/scripts/rodada-niveis.sh`: roda os quatro níveis de um modelo em paralelo, chamando o `executar.sh` congelado (sem mudá-lo), com a mesma checagem prévia do `rodada.sh`. **Montado em 06/10**, com as recusas testadas sem gastar cota (argumentos inválidos, nível ausente, execução já existente: nada é lançado). Falta o teste real e o hash no README.
 - [x] Regras de leitura do §4.1 refeitas para **5 réplicas** e para **pares entre níveis** (N1 × N0, N2 × N1, N3 × N2), e a tendência de N0 a N3 (06/10). As principais seguem em N1 × N0; a tendência é informação (teste de Page), não critério. Os limites mantêm a proporção dos de 3 réplicas e ficam para o Lucas revisar.
-- [ ] Plano de cota: em quantos dias, e em que ordem, as 120 execuções rodam, sempre com a assinatura livre.
-- [x] Enunciados do V4 (06/10): nos dois, o cliente que **entende o básico** e montou a parte técnica pesquisando, no lugar do "desenvolvedor do site" e do "time técnico"; no do Strategy, as três inconsistências do §6 corrigidas (exemplos 1 a 4 com clube e região; resposta do anexo; boleto sobre o total do pedido) e, em 07/10, o imposto por região trocado por **seguro por região**, com a mesma forma (o P5 continua sendo o controle negativo). Hashes: `prompt.md` `d798c11402a52f8c`, `state.md` `4591f7425e1551fd`; os que rodaram na bancada estão em `history/prompt-v3/`.
-- [ ] Ao montar o V4: o cabeçalho do gabarito do Strategy passa para o enunciado novo e os lotes do V4 (hoje aponta o do `EXT`, em `history/prompt-v3/`), e o P5 dele passa a falar do seguro. O do State já aponta o enunciado novo.
+- [ ] Plano de cota: em quantos dias, e em que ordem, as 60 execuções rodam, sempre com a assinatura livre.
+- [x] Enunciados do V4 (06/10): nos dois, o cliente que **entende o básico** e montou a parte técnica pesquisando, no lugar do "desenvolvedor do site" e do "time técnico"; no do Strategy, as três inconsistências do §6 corrigidas (exemplos 1 a 4 com clube e região; resposta do anexo; boleto sobre o total do pedido) e, em 07/10, o imposto por região trocado por **seguro por região**, com a mesma forma (o P5 continua sendo o controle negativo). Hashes: `prompt.md` `d798c11402a52f8c` e, antes de o State sair, `state.md` `4591f7425e1551fd` (hoje em `history/state/`); os que rodaram na bancada estão em `history/prompt-v3/`.
+- [ ] Ao montar o V4: o cabeçalho do gabarito do Strategy passa para o enunciado novo e os lotes do V4 (hoje aponta o do `EXT`, em `history/prompt-v3/`), e o P5 dele passa a falar do seguro.
 - [ ] No teste real do `rodada-niveis.sh` (f4), incluir ao menos um quarteto de Sonnet ou de Opus, e rodar a suíte sobre ele: é a verificação da aritmética da calculadora do V4 por implementações independentes.
 
 **Pronto quando:** o script de quatro níveis e as regras novas estão congelados com hash, e o OBJETIVO pode ser congelado com eles.
@@ -250,10 +250,10 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | --- | --- | --- | --- | --- |
 | 0 | arrumar a casa | 0 | Claude | — (**feito**, 26/09) |
 | a | (depois de **f5**) **congelar o `OBJETIVO.md`**: aprovar as hipóteses (§4) e as regras de leitura (§4.1), trocar o aviso de RASCUNHO por "congelado em DD/MM, com o orientador", commit e hash no README. Daí em diante, mudança no §1 a §4 só como emenda datada e com motivo, sem apagar o original; §5 e §6 continuam sendo atualizados | — | Lucas + orientador | — |
-| b | confirmar com o orientador as trocas marcadas "a confirmar" (conferência humana no lugar da referência escrita do zero; desenho da Parte 5) | 2, 5 | Lucas + orientador | — |
-| c | conferir o gabarito do Strategy (~1 h) e do State (~15 min) | 2 | Lucas | — |
+| b | confirmar com o orientador as trocas: (1) a verificação do gabarito em duas frentes no lugar da referência escrita do zero; (2) a escada N0 a N3, com a troca do N3 pelo N4 e o descarte da verificação automática; (3) o enunciado do V4 (cliente que entende o básico, inconsistências corrigidas, imposto virou seguro); (4) o V4 só com o Strategy, sem o State; (5) o desenho da Parte 5 | 2, 5, 6 | Lucas + orientador | — |
+| c | verificar o gabarito do Strategy: as leituras, pelo Lucas (**feito**, 07/10, sem divergência), e a aritmética, por implementações independentes no f4 | 2 | Lucas; f4 | — |
 | d | calibração humana da régua do Strategy (SMOKE e TESTE-P4) e **congelar a régua** | 1 | Lucas | — |
-| e | régua do State: ajuste da tabela de transições, calibração sobre a `TESTE-STATE-02` | 1 | Lucas (Claude no ajuste) | d |
+| e | ~~régua do State~~: saiu com o State (07/10) | — | — | — |
 | f | `aceitacao.sh` e **congelar a suíte** | 2 | Claude | c |
 | f2 | **métricas automáticas** (CK + SonarQube, secundárias): montadas, testadas e congeladas com hash em 06/10 — ver `evaluation/tools/README.md` | — | Claude | — (**feito**, 06/10) |
 | f3 | **níveis N0 a N3** montados, com hash, e testados na bancada | 6 | Claude + Lucas | — (**feito**, 06/10) |
@@ -271,6 +271,6 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | j | completar o `verificar.mjs` (checagens 1, 3 e 5, que dependem da leitura), rodar sobre tudo e tirar dele os totais para o texto | 3 | Claude | não |
 | k | manutenção: extensão, depois da análise do V4; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
 
-**Os lotes do V4** (o Strategy e o State, cada um com os quatro níveis) são execução e rodam só com a fase 1 inteira congelada; o do State, também depois de **e**. Cada lote é medido pelas mesmas etapas (g a j), com a régua e a suíte do seu padrão. O EXT continua sendo o ensaio: tudo da fase 2 pode ser testado nele antes.
+**O lote do V4** (o Strategy, com os quatro níveis) é execução e roda só com a fase 1 inteira congelada. Ele é medido pelas etapas g a j, com a régua e a suíte do Strategy. O EXT continua sendo o ensaio: tudo da fase 2 pode ser testado nele antes.
 
 A ordem segue corrigir → implementar → testar → rodar. O `verificar.mjs` fica na fase 2 porque ele confere dados, e os que importam (custos, suíte, leituras) só existem ali; construí-lo antes seria fazer uma ferramenta sem material. Com a fase 1 congelada, o V4 rodado e g a j feitos sobre os dois lotes, o experimento fica completo; a Parte 5 é extensão.

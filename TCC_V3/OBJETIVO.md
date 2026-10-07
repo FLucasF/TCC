@@ -35,8 +35,9 @@ novos entram depois, um de cada vez, sobre o mesmo corpo.
 | **os modelos** | Opus, Sonnet e Haiku; o modelo é fator de bloco |
 | **a unidade de análise** | o **par simultâneo**: dois níveis vizinhos do mesmo modelo, que rodaram no mesmo instante, dentro do mesmo quarteto |
 
-No V4, cada lote (um por padrão) tem 4 níveis × 3 modelos × 5 réplicas = 60
-execuções, rodadas em **quartetos simultâneos**: os quatro níveis de um modelo
+O V4 testa **um padrão, o Strategy**: um lote de 4 níveis × 3 modelos × 5
+réplicas = 60 execuções. O State, montado como segundo padrão, saiu em 07/10 e
+está em `history/state/` (§5). As execuções rodam em **quartetos simultâneos**: os quatro níveis de um modelo
 juntos (`infra/scripts/rodada-niveis.sh`). Cada comparação entre dois níveis
 vizinhos tem 15 pares (3 modelos × 5 réplicas). Detalhes, hashes e cuidados estão
 no README.
@@ -275,6 +276,8 @@ pergunta passa a ser se o harness atrapalha.
 ### 4.7 Entre padrões
 
 Comparação **observacional**: cada padrão é um lote próprio, sem par entre lotes.
+**Nenhuma destas roda no V4**, que tem um padrão só; ficam escritas para quando
+um segundo padrão entrar (o State está pronto para isso em `history/state/`).
 
 | hipótese | o que afirma | direção | quando |
 |---|---|---|---|
@@ -354,7 +357,7 @@ hipótese.
 | padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
 |---|---|---|---|---|---|---|
 | **Strategy** | `experiment/prompt/prompt.md` | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 seguro (imposto no `EXT`) | `EXT-01` a `03` | `evaluation/strategy/` | rodado como lote de teste (3 réplicas); leitura feita antes da régua, a refazer |
-| **State** | `experiment/prompt/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | `STATE-01` a `03` (a rodar) | `evaluation/state/` | enunciado e gabarito escritos; falta `SMOKE`, calibração e lote |
+| **State** | `history/state/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | nenhum: só os `TESTE-STATE` | `history/state/` | **fora do V4** (07/10). Serviu para provar que a bancada aceita um segundo padrão; a régua dele nunca foi calibrada |
 
 A coluna **avaliação** é a pasta do padrão: o gabarito, os pacotes cegos, o mapa
 e as leituras ficam juntos lá, e o cabeçalho do gabarito repete o hash do
@@ -429,8 +432,9 @@ foi ele que mostrou o teto e motivou P4 e P5.
 - **A skill do N2 (e do N3, que a acumula) traz exemplos próximos do domínio das tarefas.** É a `gof-patterns`,
   pública e intacta, escrita sem conhecer as tarefas
   ([`experiment/third-party/gof-patterns/ORIGEM.md`](experiment/third-party/gof-patterns/ORIGEM.md)).
-  Os exemplos completos dela são os canônicos: o de State é um pedido (pagar,
-  enviar, entregar, cancelar, devolver), e o de Strategy é pagamento. Um efeito do
+  Os exemplos completos dela são os canônicos: o de Strategy é pagamento, um dos
+  pontos do enunciado (o de State é um pedido que se paga, envia e cancela, o que
+  pesaria se o State voltar). Um efeito do
   N2 pode vir do conhecimento ou do molde. A transcrição registra se o agente abriu
   a página do padrão, e isso separa as execuções que leram o exemplo das que não
   leram.

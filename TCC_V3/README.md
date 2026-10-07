@@ -68,8 +68,8 @@ de uma montagem do Docker, que recusa caminho relativo, e a execução falharia
 depois de já ter criado a pasta da run. Da raiz do `TCC_V3`, use `$PWD/`:
 
 ```bash
-# o segundo padrão (State)
-PROMPT_FILE=$PWD/experiment/prompt/state.md infra/scripts/rodada.sh STATE-01 1
+# o State, que saiu do V4 e está em history/state/ (ver o README de lá)
+PROMPT_FILE=$PWD/history/state/state.md infra/scripts/rodada.sh STATE-01 1
 # repetir o piloto
 PROMPT_FILE=$PWD/history/pilot/prompt.md infra/scripts/rodada.sh ...
 ```
@@ -128,7 +128,6 @@ O enunciado e o harness são identificados por conteúdo byte a byte. Confira
 
 ```bash
 sha256sum experiment/prompt/prompt.md      # d798c11402a52f8c...
-sha256sum experiment/prompt/state.md       # 4591f7425e1551fd...
 sha256sum history/pilot/prompt.md        # 53db3424b3972795...
 docker image inspect --format '{{.Id}}' experimento-harness:v3
 ```
@@ -136,7 +135,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | | |
 |---|---|
 | `experiment/prompt/prompt.md` | `d798c11402a52f8c3388d126502019e8e610bbc0530bcfdee2553f8bee30dabf` |
-| `experiment/prompt/state.md` (segundo padrão) | `4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e` |
+| `history/state/state.md` (o State do V4, que nunca rodou: saiu em 07/10) | `4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e` |
 | `history/prompt-v3/prompt.md` (rodou no `EXT`, nos `TESTE-STRATEGY` e nos `TESTE-P4`) | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `history/prompt-v3/state.md` (rodou nos `TESTE-STATE`) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |
 | `history/pilot/prompt.md` | `53db3424b397279573658bfc048a369a33e0a2c8b71530252105e4f841bfd124` |
@@ -192,7 +191,10 @@ foram corrigidas (exemplos 1 a 4, resposta do anexo, limite do boleto). Em
 forma: imposto somado no checkout não existe no Brasil. As versões que rodaram na
 bancada foram para `history/prompt-v3/`, com os mesmos hashes; o que mudou e por
 quê está no [README do enunciado](experiment/prompt/README.md). A suíte do
-Strategy acompanhou: 21 casos, sem observações, 17 de 17 mutantes.
+Strategy acompanhou: 21 casos, sem observações, 17 de 17 mutantes. No mesmo dia,
+o State saiu do V4, que ficou com um padrão só (60 execuções): ele serviu para
+provar que a bancada aceita um segundo padrão, e o material dele está em
+`history/state/`.
 
 O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
 `SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova

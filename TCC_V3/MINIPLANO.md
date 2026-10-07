@@ -21,9 +21,8 @@ seção "4. A revisão das leituras".
 Em 07/10 o imposto virou **seguro por região** (mesma forma, o P5 continua sendo o
 controle negativo); o ponto do FRETEGRATIS com o imposto saiu da lista.
 
-**c. Conferir o gabarito do State (~15 min).**
-- [ ] Cada valor esperado no `evaluation/acceptance-prototype/state.mjs` é o do
-      `experiment/prompt/state.md`: os 8 exemplos e os erros.
+**~~c. Conferir o gabarito do State~~.** O State saiu do V4 em 07/10 (está em
+`history/state/`); o V4 fica só com o Strategy, 60 execuções.
 
 **d. Calibrar a régua do Strategy.** Usa a [`evaluation/regua.md`](evaluation/regua.md) e o
 [`evaluation/strategy/gabarito.md`](evaluation/strategy/gabarito.md), sobre os pacotes
@@ -37,14 +36,17 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
 
 ## 2. Para a reunião com o professor
 
-- [ ] **b. Confirmar as quatro trocas:**
-  1. conferência humana do gabarito no lugar da implementação de referência escrita
-     do zero (03/10);
+- [ ] **b. Confirmar as cinco trocas:**
+  1. a verificação do gabarito em duas frentes (as leituras revisadas por você e a
+     aritmética por implementações independentes) no lugar da implementação de
+     referência escrita do zero (03/10 e 07/10);
   2. a escada N0 a N3: N3 e N4 trocaram de lugar, e a verificação automática foi
      descartada porque os agentes já rodam o build sozinhos (06/10);
   3. o enunciado do V4: o cliente "entende o básico", e as três inconsistências do
-     Strategy foram corrigidas (06/10);
-  4. o desenho da manutenção (Parte 5), que fica para depois do V4.
+     Strategy foram corrigidas (06/10), e o imposto virou seguro por região (07/10);
+  4. o V4 só com o Strategy: o State saiu, depois de provar que a bancada aceita
+     um segundo padrão (07/10);
+  5. o desenho da manutenção (Parte 5), que fica para depois do V4.
 - [ ] **a. Congelar o OBJETIVO**, depois do f5.
 - [ ] Decidir se entra um leitor de outro fabricante, como o Jev, ao lado do Claude.
       Só vale se for decidido **antes** de congelar. Recomendação: não agora, e sim
@@ -53,12 +55,9 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
 ## 3. O que o Claude faz quando você pedir
 
 - [ ] **f.** O `aceitacao.sh` e congelar a suíte (depois do c).
-- [ ] **e.** Rascunho do ajuste da régua do State (depois do d); a calibração é sua.
-- [ ] Rever se o enunciado do State tem fronteiras ("até", "acima de") sem caso no
-      valor exato, antes do lote STATE.
-- [ ] Plano de cota das 120 execuções (depois do f4).
-- [ ] Atualizar o item **b** do plano com as quatro trocas. Pendente da sua
-      resposta: anotar no §6 que "o Claude lê código do Claude" (a proteção é a sua
+- [ ] Plano de cota das 60 execuções (depois do f4).
+- [x] Atualizar o item **b** do plano com as trocas (feito em 07/10).
+- [ ] Pendente da sua resposta: anotar no §6 que "o Claude lê código do Claude" (a proteção é a sua
       leitura e o kappa) e, no README dos harnesses, a ideia de um sensor de desenho
       com o Jev.
 
@@ -83,7 +82,7 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
 
 ```
 c ──→ f (suíte congelada)
-d ──→ e (régua do State)
+d (régua do Strategy congelada)
 f5 + b ──→ a (OBJETIVO congelado)
 f4 ──→ plano de cota
 tudo acima ──→ montar o V4 (cabeçalho do gabarito do Strategy no enunciado novo) ──→ rodar

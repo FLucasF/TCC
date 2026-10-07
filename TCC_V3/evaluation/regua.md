@@ -210,9 +210,12 @@ Aplicada **depois** da leitura, sobre a planilha.
 
 ### 3.2 State
 
+> **O State saiu do V4 em 07/10** (o material está em `history/state/`). Esta
+> ficha fica para quando ele, ou outro padrão de variação, voltar.
+
 **Os mesmos critérios de acerto, erro e exagero da ficha do Strategy (§3.1)**, e
 o mesmo mapa de hipóteses. O que muda é só o que o gabarito do State
-(`evaluation/state/gabarito.md`) chama de caso: as **situações** do pedido, que
+(`history/state/gabarito.md`) chama de caso: as **situações** do pedido, que
 mudam durante a vida do objeto.
 
 Duas observações para quem aplica a ficha:

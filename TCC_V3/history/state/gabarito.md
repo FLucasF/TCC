@@ -1,8 +1,8 @@
 ---
 padrao: state
-enunciado: experiment/prompt/state.md
+enunciado: history/state/state.md
 enunciado_hash: 4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e
-lotes: STATE
+lotes: nenhum (o State saiu do V4 em 07/10)
 ---
 
 # Gabarito: enunciado do State

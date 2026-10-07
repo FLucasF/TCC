@@ -63,7 +63,7 @@ Os registros datados, como `analysis/testes-2026-09-30.md`, usam os nomes antigo
 ## Rodar com um nível
 
 ```bash
-HARNESS=N2 infra/scripts/rodada.sh STATE-01 1
+HARNESS=N2 infra/scripts/rodada.sh TESTE-N2-01 1
 ```
 
 Sem `HARNESS`, vale `N1`. O `CONTROL` ignora a variável.
@@ -147,6 +147,6 @@ verdade é o que mede *Skills: só valem se carregadas* (`tool_calls_by_name.Ski
 | N2 e N3 | `gof-patterns` (25 arquivos, 896 KB), **intacta**, a mesma cópia nos dois | [grndlvl/software-patterns](https://github.com/grndlvl/software-patterns), `.claude/skills/gof-patterns/`; MIT, © 2025 grndlvl | `85e94a3bc19e9063a51b12289bb027a8bfbb13e8` | 06/10/2026 |
 
 A licença e o registro de origem ficam em `experiment/third-party/gof-patterns/`,
-fora da pasta do harness. Os exemplos completos da skill são os canônicos (State
-com pedido, Strategy com pagamento) e caem perto do domínio das tarefas: está no
-§6 do `OBJETIVO.md`.
+fora da pasta do harness. Os exemplos completos da skill são os canônicos (Strategy
+com pagamento, State com pedido) e caem perto do domínio das tarefas: está no §6
+do `OBJETIVO.md`. O State saiu do V4 em 07/10; o do Strategy continua valendo.

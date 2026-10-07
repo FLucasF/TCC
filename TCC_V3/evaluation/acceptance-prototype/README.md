@@ -19,13 +19,15 @@ num container da imagem da bancada, sem token, e roda os casos.
 | `mutantes.mjs` | 17 versões da calculadora de referência com **um** erro plantado cada, um por regra do enunciado que tem armadilha |
 | `validar-mutantes.mjs` | serve a referência e cada mutante por HTTP e roda a suíte contra eles: a referência tem de passar, e cada mutante tem de ser reprovado |
 | `conferir-enunciado.mjs` | confere os números escritos no enunciado do Strategy (os 5 exemplos e a resposta do anexo) contra a calculadora: pega erro de cópia entre os dois, não erro da calculadora |
-| `state.mjs` | 12 casos do enunciado do State: os 8 exemplos (com os textos para o cliente) e 4 erros |
 | `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares |
 
-As duas suítes contam **casos**, como a hipótese da correção está escrita: um caso
+A suíte conta **casos**, como a hipótese da correção está escrita: um caso
 passa se todos os campos dele batem, e os campos que falharam aparecem nas linhas
 `FALHA`. Cada caso roda isolado: uma exceção derruba só o caso dela, não os
 seguintes.
+
+A suíte do State (`state.mjs`) foi para `history/state/` quando ele saiu do V4
+(07/10).
 
 ## Como rodar
 
@@ -37,7 +39,7 @@ W=$(cygpath -w "$PWD/runs/<RUN_ID>/workspace")
 MSYS_NO_PATHCONV=1 docker run --rm \
   --mount "type=bind,source=$W,target=/ws,readonly" \
   --mount "type=bind,source=$A,target=/aceitacao,readonly" \
-  experimento-harness:v3 bash /aceitacao/executor.sh strategy.mjs   # ou state.mjs
+  experimento-harness:v3 bash /aceitacao/executor.sh strategy.mjs
 ```
 
 O resumo de uma rodada:

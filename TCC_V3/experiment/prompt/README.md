@@ -3,14 +3,15 @@
 | arquivo | hash | pontos de variação | execuções |
 |---|---|---|---|
 | `prompt.md` | `d798c11402a52f8c` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 seguro** | o V4, a rodar |
-| `state.md` | `4591f7425e1551fd` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | o V4, a rodar, com `PROMPT_FILE` |
+| `../../history/state/state.md` | `4591f7425e1551fd` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | nenhuma: saiu do V4 em 07/10 |
 | `../../history/prompt-v3/prompt.md` | `b7cdb594cb49efee` | os mesmos do `prompt.md` | `EXT-01` a `03`, `TESTE-STRATEGY-*` e `TESTE-P4-*`, na bancada |
 | `../../history/prompt-v3/state.md` | `ebffe1724ca316b5` | os mesmos do `state.md` | `TESTE-STATE-*`, na bancada |
 | `../../history/pilot/prompt.md` | `53db3424b3972795` | P1 entrega · P2 cupons · P3 pagamento | `BATCH-01` a `03` — o piloto (e os `SMOKE`) |
 
-O `state.md` é o segundo padrão testado (State): a situação de um pedido depois
-da compra, que muda a cada ação. É um experimento à parte, com o mesmo harness e a
-mesma bancada; o gabarito dele está em `evaluation/state/gabarito.md`.
+O `state.md` foi o segundo padrão (State): a situação de um pedido depois da
+compra, que muda a cada ação. Ele provou que a bancada aceita um segundo padrão e
+**saiu do V4 em 07/10**, que ficou só com o Strategy. O enunciado, a suíte e o
+gabarito estão em `history/state/`, com o que foi provado e como trazer de volta.
 
 Um enunciado que já rodou não muda: a versão nova é um arquivo novo, e a que
 rodou vai para `history/` com os mesmos bytes, para o hash conferir com o
@@ -30,7 +31,7 @@ pesquisando: o anexo é dele, e as observações viraram "o que pesquisei da par
 técnica". Mudaram três trechos: a frase de abertura, o título e a primeira frase
 do anexo, e o título das observações. O contrato fica no enunciado porque é ele
 que permite medir a correção com a mesma suíte de caixa-preta em todas as
-execuções. No `state.md`, isso é tudo o que mudou.
+execuções. No `state.md`, isso é tudo o que mudou (e ele saiu do V4 no dia seguinte).
 
 **O imposto por região virou seguro por região (07/10).** O imposto somado no
 checkout não existe no Brasil, onde o preço já traz os tributos; era o *sales
