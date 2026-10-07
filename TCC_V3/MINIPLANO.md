@@ -3,7 +3,8 @@
 > Escrito em 06/10/2026, para retomar no dia seguinte. A base técnica está pronta
 > (bancada, níveis N0 a N3, enunciados do V4, suíte, métricas). Falta conferir,
 > calibrar e aprovar. O detalhe de cada item está na fase 1 do
-> [`PLANO-IMPLEMENTACAO.md`](PLANO-IMPLEMENTACAO.md); as letras são as de lá.
+> [`PLANO-IMPLEMENTACAO.md`](PLANO-IMPLEMENTACAO.md); as letras são as de lá. O porquê
+> das escolhas está em [`DECISOES.md`](DECISOES.md).
 
 ## 1. A sua parte, nesta ordem
 
@@ -30,9 +31,11 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
 - [ ] Pronto quando não houver caso em que você hesite entre dois valores; cada
       hesitação vira uma regra escrita. Depois, congelar (commit e hash).
 
-**f5. Revisar os limites das regras de leitura.** No §4.1 do [`OBJETIVO.md`](OBJETIVO.md):
-- [ ] aceitar ou ajustar: "no máximo 2 de 15 pares piores", "12 de 15 na mesma
-      direção" e "pelo menos 4 pares não empatados".
+**f5. Revisar os limites das regras de leitura. Feito em 07/10.** No §4.1 do [`OBJETIVO.md`](OBJETIVO.md):
+- [x] o "não piora" passou a olhar o saldo (piores − melhores ≤ 2); o "altera"
+      contínuo ficou em 12 de 15, com 10 ou 11 inconclusivo; o "altera" sim/não subiu
+      para 5 pares não empatados, todos do mesmo lado. Os motivos estão no §4.1 e no
+      `DECISOES.md`.
 
 ## 2. Para a reunião com o professor
 

@@ -3,6 +3,9 @@
 Mede se um arquivo `CLAUDE.md` com orientação de processo altera o desenho que o
 Claude Code produz, construindo uma API de checkout em Java/Spring do zero.
 
+O **porquê** de cada escolha de projeto, e o que foi descartado, está em
+[`DECISOES.md`](DECISOES.md).
+
 **18 execuções**: 3 modelos × 2 condições × 3 réplicas. A única diferença entre os
 braços é um arquivo de 14 linhas copiado para a raiz do workspace.
 

@@ -21,6 +21,7 @@ Este plano é executado pelo Claude Code, uma parte por vez. Regras para o agent
 5. **Um commit por passo**, em português, no estilo do repositório: título curto e corpo explicando o porquê.
 6. **Ao fim de cada passo**, rodar a checagem indicada e mostrar a saída real do comando, não um resumo.
 7. **Se uma checagem falhar, parar.** Não tentar contornar.
+8. **Toda decisão de projeto entra no `DECISOES.md`**: data, a decisão, o motivo, o que se descartou e onde está o detalhe. Uma decisão que muda ganha entrada nova; a antiga fica.
 
 Este plano está em `PLANO-IMPLEMENTACAO.md`, na raiz do `TCC_V3`. Ficou fora dos commits até 03/10, quando o Lucas decidiu versioná-lo.
 
@@ -258,7 +259,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | f2 | **métricas automáticas** (CK + SonarQube, secundárias): montadas, testadas e congeladas com hash em 06/10 — ver `evaluation/tools/README.md` | — | Claude | — (**feito**, 06/10) |
 | f3 | **níveis N0 a N3** montados, com hash, e testados na bancada | 6 | Claude + Lucas | — (**feito**, 06/10) |
 | f4 | `rodada-niveis.sh` (os quatro níveis de um modelo em paralelo) e **congelar** | 6 | Claude | f3 (montado e com as recusas testadas em 06/10; falta o teste real, que gasta cota, e o hash no README) |
-| f5 | regras do §4.1 para 5 réplicas e pares entre níveis, no OBJETIVO | 6 | Claude, revisão do Lucas | f4 (**escrito** em 06/10: principais em N1 × N0, limites na mesma proporção, tendência pelo teste de Page como informação; falta a revisão dos limites) |
+| f5 | regras do §4.1 para 5 réplicas e pares entre níveis, no OBJETIVO | 6 | Claude, revisão do Lucas | — (**feito**: escrito em 06/10, com as principais em N1 × N0 e a tendência pelo teste de Page como informação; limites revisados pelo Lucas em 07/10: o "não piora" pelo saldo, o "altera" contínuo em 12 de 15 com faixa inconclusiva, o sim/não em 5 pares) |
 
 ### Fase 2: medir (só com a fase 1 inteira congelada)
 

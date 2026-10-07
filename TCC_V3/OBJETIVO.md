@@ -154,17 +154,47 @@ reportado ao lado, como informação, não como critério.
 | tipo de hipótese | apoiada quando | contrariada quando |
 |---|---|---|
 | **direcional** | na maioria dos modelos **fora do teto** há mais pares melhores que piores, e em nenhum modelo (no teto ou não) há mais piores que melhores | na maioria dos modelos fora do teto há mais pares piores que melhores |
-| **não-inferioridade** ("não piora") | no máximo 2 dos 15 pares são piores | 3 ou mais pares são piores |
-| **sem direção** ("altera"), medida contínua (tokens, tempo) | pelo menos 12 dos 15 pares vão na mesma direção, qualquer que seja | nenhuma direção chega a 12 |
-| **sem direção** ("altera"), medida sim/não (exagerou ou não) | todos os pares não empatados vão na mesma direção, e são pelo menos 4 | menos de 4 pares não empatados, ou eles se dividem |
+| **não-inferioridade** ("não piora") | o **saldo** (pares piores − pares melhores) é no máximo 2 | o saldo é 3 ou mais |
+| **sem direção** ("altera"), medida contínua (tokens, tempo) | pelo menos 12 dos 15 pares vão na mesma direção, qualquer que seja | o lado maior tem no máximo 9 pares (eles se dividem); com 10 ou 11, inconclusiva |
+| **sem direção** ("altera"), medida sim/não (exagerou ou não) | pelo menos 5 pares não empatados, e todos na mesma direção | no máximo 2 pares não empatados, ou eles se dividem (o lado menor tem pelo menos um terço deles); o resto (como 3 a 0 ou 4 a 0) é inconclusivo |
 
 Fora desses casos, a hipótese é **inconclusiva**, e isso é resultado, não falha.
 A tabela de pares é sempre publicada inteira, qualquer que seja a leitura.
 "Igual" nunca conta como direção.
 
-**Os limites mantêm a proporção** dos que valiam para 3 réplicas e 9 pares (no
-máximo 1 pior em 9 → 2 em 15; 7 em 9 → 12 em 15; pelo menos 3 pares não empatados
-→ 4). A revisar pelo Lucas antes de congelar o OBJETIVO.
+**Por que a não-inferioridade olha o saldo, e não só os piores** (revisado em
+07/10). Mesmo sem efeito nenhum do harness, o modelo não acerta sempre igual, e
+alguns pares saem diferentes por acaso, para os dois lados. Com 3 pares melhores,
+9 iguais e 3 piores, o harness não fez diferença; contar só os piores ("3 ou mais
+piores contraria") declararia que ele piora. O saldo desconta os melhores, como já
+fazem a regra direcional e a hipótese do modelo. Até 2, a diferença não se separa
+do acaso; de 3 em diante, o harness atrapalha mais do que ajuda.
+
+**Por que 12 de 15** (revisado em 07/10). Se o harness não mudasse nada, cada par
+seria cara ou coroa. A chance de pelo menos X dos 15 caírem do mesmo lado só por
+sorte, somando os dois lados:
+
+| pares do mesmo lado | chance por sorte |
+|---|---|
+| 13 ou mais | 0,7% |
+| **12 ou mais** | **3,5%** |
+| 11 ou mais | 11,8% |
+| 10 ou mais | 30% |
+
+A convenção é aceitar um resultado quando a chance de ele ser só sorte fica abaixo
+de 5%; 12 é o menor número que passa. Com 3 réplicas (9 pares), o equivalente era
+7 de 9. Abaixo de 12, a sorte ainda explica o resultado, mas isso não prova que o
+harness **não** altera: com 10 ou 11 do mesmo lado há indício sem prova, e a
+hipótese é inconclusiva; só com os pares divididos (9 a 6 ou mais equilibrado) ela
+é contrariada.
+
+**Por que 5 na medida sim/não** (revisado em 07/10). A mesma conta da moeda, só
+sobre os pares que diferem: a chance de todos caírem do mesmo lado por sorte é de
+12,5% com 4 pares, 6,3% com 5 e 3,1% com 6. O rigoroso seria 6, mas o exagero é
+raro, e é provável que só uns 3 a 5 pares difiram: com 6, a hipótese do exagero,
+que é principal, ficaria inconclusiva quase sempre, por construção. Fica 5, com os
+6,3% declarados aqui, um pouco acima da convenção de 5%. Antes (para 3 réplicas,
+estendido em proporção) eram 4, com 12,5%.
 
 **Por que o teto sai da contagem.** Um modelo no teto não tem como mostrar
 melhora; contá-lo tornaria uma hipótese direcional impossível de apoiar sempre que
