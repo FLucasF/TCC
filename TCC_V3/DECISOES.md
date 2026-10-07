@@ -224,9 +224,12 @@ corrigindo o Claude).
 site", o "time técnico"), e um cliente leigo dificilmente entregaria um contrato.
 
 **07/10: o conhecimento técnico do cliente é o de um curioso que estuda o básico de
-programação, e o anexo sai do jargão.** Ficam o endereço e os exemplos em JSON;
+programação, e o anexo sai do jargão.** Ficam o endereço e os nomes dos campos;
 saem o verbo (`POST`), os números de status e o `null`, trocados por frases
-simples. *Por quê:* um dono de loja não saberia HTTP; um curioso que estuda o
+simples, e os dois exemplos em JSON viram tabelas (campo, o que é, exemplo), com
+uma frase sobre os tipos e o formato dito uma vez. *Risco aceito:* sem o exemplo
+pronto, o agente monta a estrutura a partir da tabela, e quem montar diferente falha
+na correção por formato, não por conta. *Por quê:* um dono de loja não saberia HTTP; um curioso que estuda o
 básico saberia o que é um endereço e um JSON de exemplo, e é o mínimo para a suíte
 testar. *Consequência:* a suíte aceita qualquer sucesso (2xx) e qualquer recusa
 (4xx) com o código certo, e o `acceptance.sh` conta 405 (outro método) como "não

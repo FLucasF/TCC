@@ -130,14 +130,14 @@ O enunciado e o harness são identificados por conteúdo byte a byte. Confira
 **depois de clonar ou copiar**, antes de rodar:
 
 ```bash
-sha256sum experiment/prompt/prompt.md      # 925d117da3e2f66f...
+sha256sum experiment/prompt/prompt.md      # 8c70bb30493dbfbb...
 sha256sum history/pilot/prompt.md        # 53db3424b3972795...
 docker image inspect --format '{{.Id}}' experimento-harness:v3
 ```
 
 | | |
 |---|---|
-| `experiment/prompt/prompt.md` | `925d117da3e2f66fb28934633af4df10876a57e8dfe4928ea9272b0c4aae7d6d` |
+| `experiment/prompt/prompt.md` | `8c70bb30493dbfbbde8b2d4be857669993335b0e4d6114c8c0b777ee00c69984` |
 | `history/state/state.md` (o State do V4, que nunca rodou: saiu em 07/10) | `4591f7425e1551fd721a88e9053ac81b3f94bea180e45dd569e2dd3bdc35eb4e` |
 | `history/prompt-v3/prompt.md` (rodou no `EXT`, nos `TESTE-STRATEGY` e nos `TESTE-P4`) | `b7cdb594cb49efee4c0081e947a157b6bd2ebaecc015ec0e5b5f93d973f01e35` |
 | `history/prompt-v3/state.md` (rodou nos `TESTE-STATE`) | `ebffe1724ca316b55ea218ef53e3ba4c1928a2ee0b5137be4f36af753ef98580` |

@@ -52,8 +52,29 @@ for (const [, n, linha] of exemplos) {
   confere(onde, "brinde", pega(/brinde (sim|não)/) === "sim", r.brinde);
 }
 
-// o anexo: a requisicao e a resposta de exemplo, os dois primeiros blocos JSON
-const [req, resp] = [...txt.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
+// o anexo: a requisicao e a resposta de exemplo. Desde 07/10 elas sao tabelas (campo, o que
+// e, exemplo); nos enunciados anteriores eram dois blocos JSON, ainda lidos aqui.
+const blocos = [...txt.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
+let req, resp;
+if (blocos.length >= 2) {
+  [req, resp] = blocos;
+} else {
+  // a requisicao de exemplo, como a tabela "O que o site envia" a descreve
+  req = { itens: [{ nome: "Camiseta", precoUnitario: 79.90, quantidade: 2, pesoKg: 0.30 }, { nome: "Tenis", precoUnitario: 249.90, quantidade: 1, pesoKg: 1.20 }],
+          modalidadeEntrega: "EXPRESSA", cupom: "BEMVINDO10", formaPagamento: "PIX", parcelas: 1, nivelClube: "OURO", regiao: "SUDESTE" };
+  const secao = (titulo) => { const i = txt.indexOf(titulo); if (i < 0) return ""; const j = txt.indexOf("\n###", i + titulo.length); return txt.slice(i, j < 0 ? undefined : j); };
+  const exemplo = (s, campo) => s.match(new RegExp("^\\| `" + campo + "` \\|.*\\| ([^|]+) \\|$", "m"))?.[1].trim().replaceAll("`", "");
+  const envia = secao("### O que o site envia");
+  confere("anexo", "exemplo dos itens", exemplo(envia, "itens"), "Camiseta, 79.90, 2, 0.30 e Tênis, 249.90, 1, 1.20");
+  for (const k of ["modalidadeEntrega", "cupom", "formaPagamento", "nivelClube", "regiao"]) confere("anexo", `exemplo de ${k}`, exemplo(envia, k), req[k]);
+  confere("anexo", "exemplo de parcelas", Number(exemplo(envia, "parcelas")), req.parcelas);
+  const devolve = secao("### O que o serviço devolve");
+  resp = {};
+  for (const k of ["subtotalProdutos", "descontoCupom", "frete", "prazoEntregaDias", "seguro", "ajustePagamento", "totalFinal", "parcelas", "valorParcela", "creditoProximaCompra", "brinde"]) {
+    const v = exemplo(devolve, k);
+    resp[k] = v === "true" ? true : v === "false" ? false : v === undefined ? undefined : Number(v);
+  }
+}
 const r = calcular(req);
 for (const [k, v] of Object.entries(resp)) {
   const inteiro = k === "prazoEntregaDias" || k === "parcelas";

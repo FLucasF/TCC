@@ -115,7 +115,7 @@ quem difere dela. São quatro verificações, cada uma pegando um tipo de erro.
 
 | verificação | pega | situação |
 |---|---|---|
-| 1. o enunciado contra a calculadora (`check-prompt.mjs`) | erro de cópia entre os números do texto e a calculadora | **66 de 66** (07/10) |
+| 1. o enunciado contra a calculadora (`check-prompt.mjs`) | erro de cópia entre os números do texto e a calculadora | **73 de 73** (07/10: os 5 exemplos e as tabelas do anexo) |
 | 2. os mutantes (`validate-mutants.mjs`) | uma regra que a suíte não cobra | **17 de 17** reprovados (07/10) |
 | 3. implementações independentes | erro de conta ou de arredondamento na calculadora | **a refazer no V4**, ver abaixo |
 | 4. a revisão das leituras, pelo Lucas | uma leitura do enunciado que a IA fez e o autor não faria | **feita** (07/10), sem divergência |

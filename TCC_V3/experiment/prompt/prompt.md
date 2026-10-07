@@ -84,51 +84,39 @@ Dei uma pesquisada e consegui montar assim. Por favor, siga exatamente estes nom
 
 ### O que o site envia
 
-O site envia os dados da compra para o endereço `/checkout/resumo`, neste formato:
+O site envia os dados da compra para o endereço `/checkout/resumo`, no formato JSON, com estes campos:
 
-```json
-{
-  "itens": [
-    { "nome": "Camiseta", "precoUnitario": 79.90, "quantidade": 2, "pesoKg": 0.30 },
-    { "nome": "Tênis", "precoUnitario": 249.90, "quantidade": 1, "pesoKg": 1.20 }
-  ],
-  "modalidadeEntrega": "EXPRESSA",
-  "cupom": "BEMVINDO10",
-  "formaPagamento": "PIX",
-  "parcelas": 1,
-  "nivelClube": "OURO",
-  "regiao": "SUDESTE"
-}
-```
+| campo | o que é | exemplo |
+|---|---|---|
+| `itens` | a lista dos produtos do carrinho. Cada produto tem quatro campos: `nome`, `precoUnitario`, `quantidade` e `pesoKg` | Camiseta, 79.90, 2, 0.30 e Tênis, 249.90, 1, 1.20 |
+| `modalidadeEntrega` | como o cliente quer receber: `ECONOMICA`, `EXPRESSA`, `RETIRADA_LOJA` ou `MOTOBOY` | `EXPRESSA` |
+| `cupom` | o código do cupom; pode não vir, quando o cliente não usou cupom | `BEMVINDO10` |
+| `formaPagamento` | como vai pagar: `PIX`, `CARTAO` ou `BOLETO` | `PIX` |
+| `parcelas` | em quantas vezes; pode não vir, e nesse caso é 1 | 1 |
+| `nivelClube` | o nível do cliente no clube: `BRONZE`, `PRATA` ou `OURO` | `OURO` |
+| `regiao` | onde o cliente mora: `SUDESTE`, `SUL`, `CENTRO_OESTE`, `NORTE` ou `NORDESTE` | `SUDESTE` |
 
-- `cupom` pode não vir, quando o cliente não usou cupom.
-- `parcelas` pode não vir; nesse caso, é 1.
-- Formas de pagamento: `PIX`, `CARTAO`, `BOLETO`.
-- Níveis do clube: `BRONZE`, `PRATA`, `OURO`.
-- Regiões: `SUDESTE`, `SUL`, `CENTRO_OESTE`, `NORTE`, `NORDESTE`.
+Preço e peso vêm como número com ponto (79.90); quantidade e parcelas, como número inteiro.
 
 ### O que o serviço devolve
 
-Quando dá certo, o serviço devolve o resumo assim:
+Quando dá certo, o serviço devolve, também em JSON, estes campos. O exemplo é a resposta para a compra da tabela acima:
 
-```json
-{
-  "subtotalProdutos": 409.70,
-  "descontoCupom": 40.97,
-  "frete": 0.00,
-  "prazoEntregaDias": 2,
-  "seguro": 4.10,
-  "ajustePagamento": -18.64,
-  "totalFinal": 354.19,
-  "parcelas": 1,
-  "valorParcela": 354.19,
-  "creditoProximaCompra": 20.48,
-  "brinde": false
-}
-```
+| campo | o que é | exemplo |
+|---|---|---|
+| `subtotalProdutos` | a soma dos produtos | 409.70 |
+| `descontoCupom` | o desconto do cupom | 40.97 |
+| `frete` | o frete | 0.00 |
+| `prazoEntregaDias` | o prazo de entrega, em dias | 2 |
+| `seguro` | o seguro do envio | 4.10 |
+| `ajustePagamento` | o ajuste da forma de pagamento: o valor final menos o total do pedido (negativo quando é desconto, positivo quando é tarifa ou juros, zero quando não muda nada) | -18.64 |
+| `totalFinal` | o valor final | 354.19 |
+| `parcelas` | em quantas vezes | 1 |
+| `valorParcela` | o valor de cada parcela | 354.19 |
+| `creditoProximaCompra` | o crédito para a próxima compra | 20.48 |
+| `brinde` | se vai brinde: `true` (sim) ou `false` (não) | `false` |
 
-- `ajustePagamento` = `totalFinal` − total do pedido (negativo quando é desconto, positivo quando é tarifa ou juros, zero quando não muda nada).
-- Todos os valores em dinheiro com 2 casas decimais.
+Todos os valores em dinheiro com 2 casas decimais.
 
 ### Quando dá erro
 

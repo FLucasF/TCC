@@ -2,7 +2,7 @@
 
 | arquivo | hash | pontos de variação | execuções |
 |---|---|---|---|
-| `prompt.md` | `925d117da3e2f66f` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 seguro** | o V4, a rodar |
+| `prompt.md` | `8c70bb30493dbfbb` | P1 entrega · P2 cupons · P3 pagamento · **P4 clube** · **P5 seguro** | o V4, a rodar |
 | `../../history/state/state.md` | `4591f7425e1551fd` | E1 ações por situação · E2 efeitos do cancelamento e da devolução · **E3 texto** (controle negativo) | nenhuma: saiu do V4 em 07/10 |
 | `../../history/prompt-v3/prompt.md` | `b7cdb594cb49efee` | os mesmos do `prompt.md` | `EXT-01` a `03`, `TESTE-STRATEGY-*` e `TESTE-P4-*`, na bancada |
 | `../../history/prompt-v3/state.md` | `ebffe1724ca316b5` | os mesmos do `state.md` | `TESTE-STATE-*`, na bancada |
@@ -43,6 +43,13 @@ e devolve o código do problema"). A suíte passou a aceitar qualquer sucesso (2
 qualquer recusa (4xx) com o código certo, e o `acceptance.sh` conta um 405 (o
 agente escolheu outro método) como "não seguiu o contrato", igual ao 404.
 
+No mesmo dia, os dois exemplos em JSON do anexo viraram **tabelas** (campo, o que
+é, exemplo), com os nomes dos campos iguais, uma frase sobre os tipos ("preço e
+peso vêm como número com ponto") e o formato dito uma vez ("no formato JSON"). O
+texto fica com cara de documento de negócio. O preço disso: sem o exemplo pronto,
+o agente monta a estrutura a partir da tabela, e quem montar diferente falha na
+correção por formato.
+
 **O imposto por região virou seguro por região (07/10).** O imposto somado no
 checkout não existe no Brasil, onde o preço já traz os tributos; era o *sales
 tax* americano. O P5 precisava da mesma **forma** (cinco regiões, só a
@@ -71,7 +78,8 @@ a parcela ficar longe do empate do arredondamento; senão o exemplo testaria
 precisão numérica em vez da regra.
 
 Os números novos **saíram da calculadora de referência**. O
-`check-prompt.mjs` confere os 66 números escritos no texto contra ela. A
+`check-prompt.mjs` confere os 73 números escritos no texto contra ela (os 5
+exemplos e as duas tabelas do anexo). A
 calculadora em si é verificada como descrito no
 [README da suíte](../../evaluation/acceptance-prototype/README.md). Fora o P5 e a
 frase do boleto, as regras de negócio, o contrato e os erros não mudaram, e a
