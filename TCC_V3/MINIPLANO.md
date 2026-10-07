@@ -69,13 +69,13 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
 
 ## 4. Gasta cota
 
-- [ ] **f4.** Teste real do `rodada-niveis.sh`, com a assinatura livre, já com o
+- [ ] **f4.** (Depois da régua, por decisão do Lucas em 07/10.) Teste real do `run-levels.sh`, com a assinatura livre, já com o
       enunciado do V4. Um quarteto de Haiku mede quanto da janela de 5 h uma rodada
       consome; **um quarteto de Sonnet (ou Opus)** produz as implementações
       independentes que verificam a aritmética da calculadora nova (a suíte roda sobre
       elas). Depois, o hash no README. Comandos:
-      `infra/scripts/rodada-niveis.sh TESTE-NIVEIS-01 1 HAIKU` e
-      `infra/scripts/rodada-niveis.sh TESTE-NIVEIS-01 1 SONNET`.
+      `infra/scripts/run-levels.sh TESTE-NIVEIS-01 1 HAIKU` e
+      `infra/scripts/run-levels.sh TESTE-NIVEIS-01 1 SONNET`.
 
 ## 5. Pode esperar (não impede começar a rodar o V4)
 

@@ -123,15 +123,17 @@ Como roda sobre os workspaces já salvos, vale para as 36 execuções existentes
 
 **Objetivo:** todo número do texto do TCC recalculável a partir dos dados brutos. Fica em `infra/scripts/`, no estilo do `agregar.mjs`.
 
+**Versão enxuta (decidida em 07/10):** ficam as checagens 1, 2, 4 e 6, as que acusam um defeito que nenhuma outra peça acusa. A 3 e a 5 saem: a contagem de acertos e os totais para o texto saem direto dos CSVs (o do `agregar.mjs`, o do `acceptance.sh` e o da leitura), sem um segundo cálculo para manter.
+
 Construir uma checagem por vez, nesta ordem:
 
 | # | Checagem | Pode rodar antes da revelação? |
 | --- | --- | --- |
 | 1 | códigos da leitura ↔ mapa do lote, um para um | não |
 | 2 | `resultados.csv` bate com os `meta.json` | sim |
-| 3 | dentro da leitura: contagem de acertos bate com as categorias | sim |
+| ~~3~~ | ~~dentro da leitura: contagem de acertos bate com as categorias~~ (saiu, 07/10) | — |
 | 4 | desenho completo: todas as réplicas de cada modelo × nível (3 × 2 no EXT; 5 × 4 no V4), e os pares ou quartetos simultâneos existentes | sim |
-| 5 | imprime os totais por braço e por par, que vão para o texto | não |
+| ~~5~~ | ~~imprime os totais por braço e por par, que vão para o texto~~ (saiu, 07/10: os totais saem dos CSVs) | — |
 | 6 | o `enunciado_hash` do cabeçalho de `evaluation/<padrao>/gabarito.md` é o `prompt_hash` do `meta.json` de cada execução dos `lotes` do cabeçalho: nenhum pacote lido com gabarito de outro enunciado | sim |
 
 Sai com código 1 e lista os problemas, ou com 0 se estiver tudo coerente.
@@ -232,12 +234,12 @@ Para cada modelo, N0, N1, N2 e N3 rodam **ao mesmo tempo**, um quarteto simultâ
 
 ### A fazer
 
-- [ ] `infra/scripts/rodada-niveis.sh`: roda os quatro níveis de um modelo em paralelo, chamando o `executar.sh` congelado (sem mudá-lo), com a mesma checagem prévia do `rodada.sh`. **Montado em 06/10**, com as recusas testadas sem gastar cota (argumentos inválidos, nível ausente, execução já existente: nada é lançado). Falta o teste real e o hash no README.
+- [ ] `infra/scripts/run-levels.sh`: roda os quatro níveis de um modelo em paralelo, chamando o `executar.sh` congelado (sem mudá-lo), com a mesma checagem prévia do `rodada.sh`. **Montado em 06/10**, com as recusas testadas sem gastar cota (argumentos inválidos, nível ausente, execução já existente: nada é lançado). Falta o teste real e o hash no README.
 - [x] Regras de leitura do §4.1 refeitas para **5 réplicas** e para **pares entre níveis** (N1 × N0, N2 × N1, N3 × N2), e a tendência de N0 a N3 (06/10). As principais seguem em N1 × N0; a tendência é informação (teste de Page), não critério. Os limites mantêm a proporção dos de 3 réplicas e ficam para o Lucas revisar.
 - [ ] Plano de cota: em quantos dias, e em que ordem, as 60 execuções rodam, sempre com a assinatura livre.
 - [x] Enunciados do V4 (06/10): nos dois, o cliente que **entende o básico** e montou a parte técnica pesquisando, no lugar do "desenvolvedor do site" e do "time técnico"; no do Strategy, as três inconsistências do §6 corrigidas (exemplos 1 a 4 com clube e região; resposta do anexo; boleto sobre o total do pedido) e, em 07/10, o imposto por região trocado por **seguro por região**, com a mesma forma (o P5 continua sendo o controle negativo). Hashes: `prompt.md` `d798c11402a52f8c` e, antes de o State sair, `state.md` `4591f7425e1551fd` (hoje em `history/state/`); os que rodaram na bancada estão em `history/prompt-v3/`.
 - [ ] Ao montar o V4: o cabeçalho do gabarito do Strategy passa para o enunciado novo e os lotes do V4 (hoje aponta o do `EXT`, em `history/prompt-v3/`), e o P5 dele passa a falar do seguro.
-- [ ] No teste real do `rodada-niveis.sh` (f4), incluir ao menos um quarteto de Sonnet ou de Opus, e rodar a suíte sobre ele: é a verificação da aritmética da calculadora do V4 por implementações independentes.
+- [ ] No teste real do `run-levels.sh` (f4), incluir ao menos um quarteto de Sonnet ou de Opus, e rodar a suíte sobre ele: é a verificação da aritmética da calculadora do V4 por implementações independentes.
 
 **Pronto quando:** o script de quatro níveis e as regras novas estão congelados com hash, e o OBJETIVO pode ser congelado com eles.
 
@@ -258,7 +260,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | f | `acceptance.sh` (**feito**, 07/10) e **congelar a suíte** | 2 | Claude | c (feito); o congelamento espera a verificação da aritmética no f4 |
 | f2 | **métricas automáticas** (CK + SonarQube, secundárias): montadas, testadas e congeladas com hash em 06/10 — ver `evaluation/tools/README.md` | — | Claude | — (**feito**, 06/10) |
 | f3 | **níveis N0 a N3** montados, com hash, e testados na bancada | 6 | Claude + Lucas | — (**feito**, 06/10) |
-| f4 | `rodada-niveis.sh` (os quatro níveis de um modelo em paralelo) e **congelar** | 6 | Claude | f3 (montado e com as recusas testadas em 06/10; falta o teste real, que gasta cota, e o hash no README) |
+| f4 | `run-levels.sh` (os quatro níveis de um modelo em paralelo) e **congelar** | 6 | Claude | f3 (montado e com as recusas testadas em 06/10; falta o teste real, que gasta cota, e o hash no README) |
 | f5 | regras do §4.1 para 5 réplicas e pares entre níveis, no OBJETIVO | 6 | Claude, revisão do Lucas | — (**feito**: escrito em 06/10, com as principais em N1 × N0 e a tendência pelo teste de Page como informação; limites revisados pelo Lucas em 07/10: o "não piora" pelo saldo, o "altera" contínuo em 12 de 15 com faixa inconclusiva, o sim/não em 5 pares) |
 
 ### Fase 2: medir (só com a fase 1 inteira congelada)
@@ -269,7 +271,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | h | suíte sobre o lote (as hipóteses de correção) | 2 | Claude | não, mas lê dado |
 | h2 | métricas automáticas sobre o lote (`evaluation/tools/metricas.sh <prefixo>`) | — | Claude | não, mas lê dado |
 | i | leitura dupla do lote, kappa e resolução | 4 | Lucas + Claude | sim |
-| j | completar o `verificar.mjs` (checagens 1, 3 e 5, que dependem da leitura), rodar sobre tudo e tirar dele os totais para o texto | 3 | Claude | não |
+| j | completar o `verificar.mjs` (a checagem 1, que depende da leitura) e rodar sobre tudo; os totais para o texto saem dos CSVs | 3 | Claude | não |
 | k | manutenção: extensão, depois da análise do V4; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
 
 **O lote do V4** (o Strategy, com os quatro níveis) é execução e roda só com a fase 1 inteira congelada. Ele é medido pelas etapas g a j, com a régua e a suíte do Strategy. O EXT continua sendo o ensaio: tudo da fase 2 pode ser testado nele antes.

@@ -38,7 +38,7 @@ novos entram depois, um de cada vez, sobre o mesmo corpo.
 O V4 testa **um padrão, o Strategy**: um lote de 4 níveis × 3 modelos × 5
 réplicas = 60 execuções. O State, montado como segundo padrão, saiu em 07/10 e
 está em `history/state/` (§5). As execuções rodam em **quartetos simultâneos**: os quatro níveis de um modelo
-juntos (`infra/scripts/rodada-niveis.sh`). Cada comparação entre dois níveis
+juntos (`infra/scripts/run-levels.sh`). Cada comparação entre dois níveis
 vizinhos tem 15 pares (3 modelos × 5 réplicas). Detalhes, hashes e cuidados estão
 no README.
 

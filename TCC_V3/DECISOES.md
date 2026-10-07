@@ -129,10 +129,20 @@ modelo.** *Por quê:* todos os níveis se comparam em pares sem repetir o N0 em 
 lote, e a tendência de N0 a N3 fica possível. *Descartado:* um lote por nível
 (mais execuções para a mesma informação). *Onde:* plano, Parte 6.
 
-**06/10: o `rodada-niveis.sh` confere tudo antes de lançar qualquer execução, e
-chama o `executar.sh` sem mudá-lo.** Um modelo por vez é o mais seguro para a cota.
+**06/10: o script do quarteto (`run-levels.sh`, que se chamou `rodada-niveis.sh`
+até 07/10) confere tudo antes de lançar qualquer execução, e chama o
+`executar.sh` sem mudá-lo.** Um modelo por vez é o mais seguro para a cota.
 *Por quê:* um quarteto com um nível a menos não serve para a comparação, e é melhor
 falhar sem gastar cota; o `executar.sh` está congelado.
+
+**07/10: o `verificar.mjs` será enxuto (4 checagens), e o `analisar-rodada.mjs` sai
+do V4.** Ficam as checagens que acusam o que nenhuma outra peça acusa: a leitura
+bate com o mapa, o CSV bate com os `meta.json`, o desenho está completo, e o
+gabarito é do enunciado das execuções. *Por quê:* a contagem de acertos e os
+totais para o texto já saem dos CSVs, e repeti-los seria um segundo cálculo para
+manter; o `analisar-rodada.mjs` resumia rodadas antes de o `agregar.mjs` e o
+`verificar.mjs` existirem. *Descartado:* manter as 6 checagens do plano de 03/10.
+*Onde:* plano, Parte 3; a lista dos scripts do V4 está no README.
 
 **06/10: o cache de prompt não é desligado.** Os tokens ficam separados no
 `meta.json`. *Por quê:* um usuário real usa cache, e o isolamento das execuções não
@@ -461,6 +471,13 @@ ambiente do EXT; `infra/docker/aquecimento`, que o `Dockerfile` copia para a ima
 `history/bench-test`, cujos caminhos entram no hash gravado naqueles `meta.json`.
 *Por quê:* preferência do autor, sem mudar nenhum hash: conferido que os scripts
 renomeados fazem exatamente o mesmo.
+
+**07/10: os scripts novos têm nome e variáveis em inglês** (`acceptance.sh`,
+`run-levels.sh`, este renomeado de `rodada-niveis.sh` antes de ser congelado).
+*Por quê:* preferência do autor. Os scripts já congelados (`executar.sh`,
+`rodada.sh`, `extrair-meta.mjs`, `agregar.mjs`, `anonimizar.mjs` e os das
+métricas) ficaram com o nome que têm, porque o README e os registros dos lotes
+os citam assim.
 
 **06/10: depois de cada mudança na bancada, um teste de bancada barato** (Haiku,
 esforço baixo, um enunciado que só pergunta o que o agente recebeu). *Por quê:*

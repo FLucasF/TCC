@@ -158,7 +158,27 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `agregar.mjs` | `a78b48b2e2ec5a44` | nada — o `meta.json` sobrevive |
 | `metricas.sh` | `f8e34e5a1777992b` | perde **as métricas automáticas** (CK, SonarQube) |
 | `agregar-metricas.mjs` | `850afb08da82743a` | nada — as saídas por execução sobrevivem |
+| `run-levels.sh` | (**ainda não congelado**: congela depois do teste real, o f4) | perde **o quarteto** dos níveis N0 a N3 |
 | `acceptance.sh` | `f4028ca51f78d7d4` (**ainda não congelado**: congela com a suíte, depois do f4) | perde **a medida de correção** (a suíte de aceitação por lote) |
+
+### Os scripts do V4, na ordem em que entram
+
+| etapa | script | situação |
+|---|---|---|
+| rodar | `infra/scripts/run-levels.sh`: um quarteto (os níveis N0 a N3 de um modelo, juntos) | a congelar depois do f4 |
+| rodar | `infra/scripts/executar.sh`: uma execução (o `run-levels.sh` chama) | congelado |
+| rodar | `infra/scripts/extrair-meta.mjs`: a transcrição vira `meta.json` (o `executar.sh` chama) | congelado |
+| medir custo | `infra/scripts/agregar.mjs`: os `meta.json` do lote num CSV | congelado |
+| medir correção | `infra/scripts/acceptance.sh`: a suíte em todas as execuções | a congelar depois do f4 |
+| medir desenho | `evaluation/tools/metricas.sh` e `agregar-metricas.mjs`: CK e SonarQube (secundárias) | congelados |
+| ler às cegas | `evaluation/tools/anonimizar.mjs`: os pacotes cegos para a régua | congelado |
+| ler às cegas | `ler-cego.sh`: a leitura do Claude isolada num container | a construir, antes da leitura |
+| conferir | `verificar.mjs`: a versão enxuta, com 4 checagens (plano, Parte 3) | a construir, na fase 2 |
+
+Validam os instrumentos, sem medir o V4: `validar-mutantes.mjs` e
+`conferir-enunciado.mjs`, em `evaluation/acceptance-prototype/`. Ficam fora do V4:
+o `rodada.sh` (o par antigo, que o quarteto substitui) e o `analisar-rodada.mjs`
+(resumo de rodada da bancada, coberto pelo `agregar.mjs` e pelo `verificar.mjs`).
 
 As peças travadas das métricas (o `.jar` do CK, as imagens do SonarQube e do
 scanner, o perfil de regras) estão, com hash, no [README das ferramentas](evaluation/tools/README.md).

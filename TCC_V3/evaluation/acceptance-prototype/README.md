@@ -20,7 +20,7 @@ num container da imagem da bancada, sem token, e roda os casos.
 | `mutantes.mjs` | 17 versões da calculadora de referência com **um** erro plantado cada, um por regra do enunciado que tem armadilha |
 | `validar-mutantes.mjs` | serve a referência e cada mutante por HTTP e roda a suíte contra eles: a referência tem de passar, e cada mutante tem de ser reprovado |
 | `conferir-enunciado.mjs` | confere os números escritos no enunciado do Strategy (os 5 exemplos e a resposta do anexo) contra a calculadora: pega erro de cópia entre os dois, não erro da calculadora |
-| `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares |
+| `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares. **Ferramenta da bancada, fora do V4** (07/10): o `agregar.mjs` e o `verificar.mjs` cobrem o que ela faz; fica sem manutenção |
 
 A suíte conta **casos**, como a hipótese da correção está escrita: um caso
 passa se todos os campos dele batem, e os campos que falharam aparecem nas linhas
