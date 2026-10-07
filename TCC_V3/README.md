@@ -158,6 +158,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `agregar.mjs` | `a78b48b2e2ec5a44` | nada — o `meta.json` sobrevive |
 | `metricas.sh` | `f8e34e5a1777992b` | perde **as métricas automáticas** (CK, SonarQube) |
 | `agregar-metricas.mjs` | `850afb08da82743a` | nada — as saídas por execução sobrevivem |
+| `acceptance.sh` | `f4028ca51f78d7d4` (**ainda não congelado**: congela com a suíte, depois do f4) | perde **a medida de correção** (a suíte de aceitação por lote) |
 
 As peças travadas das métricas (o `.jar` do CK, as imagens do SonarQube e do
 scanner, o perfil de regras) estão, com hash, no [README das ferramentas](evaluation/tools/README.md).

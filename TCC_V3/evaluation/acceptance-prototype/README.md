@@ -6,7 +6,8 @@
 > 1. ~~a revisão das leituras pelo Lucas~~: **feita em 07/10**, sem divergência;
 > 2. a **concordância de implementações independentes** com a calculadora do V4,
 >    no teste de bancada do V4;
-> 3. o `aceitacao.sh` (item f do plano).
+> 3. ~~o script que roda a suíte num lote inteiro~~: **feito em 07/10**, o
+>    `infra/scripts/acceptance.sh` (item f do plano); congela junto com a suíte.
 
 Caixa-preta, pela API HTTP que o enunciado define. Sobe o serviço de um workspace
 num container da imagem da bancada, sem token, e roda os casos.
@@ -31,7 +32,26 @@ A suíte do State (`state.mjs`) foi para `history/state/` quando ele saiu do V4
 
 ## Como rodar
 
-Da raiz do `TCC_V3`, para um workspace:
+Da raiz do `TCC_V3`, para um lote inteiro (é como o V4 é medido):
+
+```bash
+infra/scripts/acceptance.sh V4-STRATEGY-01
+```
+
+Para cada execução do lote, ele sobe o serviço no container sem token, roda os
+21 casos e grava `runs/<id>/acceptance.txt` (o resultado, com o hash da suíte, da
+calculadora, do enunciado e da imagem); no fim, refaz
+`analysis/acceptance-<lote>.csv` a partir desses arquivos. Nunca mede duas vezes
+(execução com `acceptance.txt` é pulada), recusa execução de outro enunciado, e
+separa as situações `all_passed`, `some_failed`, `contract_not_followed` (todo
+caso devolveu 404), `build_failed`, `app_did_not_start` e `no_pom`. Testado em
+07/10 sobre cópias das `TESTE-STRATEGY-01` (fora de `runs/`), mais um pacote sem
+`pom.xml` e um serviço de outro contrato: saíram certas `some_failed`, `no_pom` e
+`contract_not_followed`, as duas recusas (outro enunciado, prefixo inválido) e o
+"nunca mede duas vezes". `all_passed`, `build_failed` e `app_did_not_start` vêm
+direto do código de saída do `executor.sh` e só aparecem com execuções do V4.
+
+Para um workspace só, à mão:
 
 ```bash
 A=$(cygpath -w "$PWD/evaluation/acceptance-prototype")

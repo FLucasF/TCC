@@ -292,6 +292,17 @@ inventada); o brinde conta os produtos antes do cupom; o LEVE3PAGUE2 conta por i
 sobra cai numa parcela, como faz a operadora; na Price, só a parcela é arredondada,
 o padrão do mercado. *Onde:* README da suíte, seção 4.
 
+**07/10: o `acceptance.sh` roda a suíte num lote inteiro.** Nunca mede duas vezes
+(uma execução com `acceptance.txt` é pulada); só mede execução do enunciado atual
+(as da bancada, com imposto, são recusadas, salvo num ensaio declarado); confere o
+ID da imagem; grava em cada resultado os hashes da suíte, da calculadora, do
+enunciado e da imagem; separa "não seguiu o contrato" (todo caso com 404), "não
+compilou" e "não subiu" de "errou casos"; e refaz o CSV do lote a partir dos
+arquivos de cada execução, que são a fonte. *Por quê:* no V4 são 60 execuções, e
+o resultado de correção tem de sair igual para todas, sem nada feito à mão no meio
+e sem chance de medir de novo até dar o resultado esperado. Nome e variáveis em
+inglês, a pedido do Lucas. *Onde:* `infra/scripts/acceptance.sh`.
+
 **07/10: no V4, a aritmética precisa ser verificada de novo.** As implementações da
 bancada seguem o enunciado com imposto e não servem para a calculadora com seguro.
 *Por isso:* o teste de bancada do V4 inclui um quarteto de Sonnet ou de Opus, e a

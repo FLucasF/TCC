@@ -105,7 +105,7 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
 **Como:** testes de caixa-preta via HTTP contra o contrato que cada enunciado já define: `POST /checkout/resumo` no Strategy (`strategy.mjs`). Caixa-preta porque cada execução tem pacotes e classes diferentes. O State tinha a sua (`state.mjs`), que foi para `history/state/` quando ele saiu do V4 (07/10).
 
 - [ ] Casos a partir dos exemplos conferidos do enunciado e da ordem de precedência dos erros.
-- [ ] Um script novo, separado (por exemplo `infra/scripts/aceitacao.sh`), que sobe o app de cada `runs/*/workspace` num container sem token, roda os casos e grava `aceitacao.txt` ao lado do `build.txt`.
+- [x] **Feito em 07/10: `infra/scripts/acceptance.sh`** (nome e variáveis em inglês, a pedido do Lucas). Um script novo, separado, que sobe o app de cada `runs/*/workspace` num container sem token, roda os casos e grava `aceitacao.txt` ao lado do `build.txt`.
 - [ ] Verificar o gabarito (`ref-strategy.mjs`, a calculadora de onde a suíte tira o esperado) em duas frentes. Roteiro em `evaluation/acceptance-prototype/README.md`, seção "Como se sabe que a suíte mede certo".
   - **A aritmética, por implementações independentes:** a suíte roda sobre o que o teste de bancada do V4 (f4) produzir, e as implementações de Opus e Sonnet passam em tudo. Por isso o f4 inclui ao menos um quarteto de Sonnet ou de Opus.
   - **As leituras do enunciado, pelo Lucas, sem IA:** os 5 pontos em que o texto admite mais de uma leitura e a calculadora escolheu uma. Divergência se resolve pelo texto; se o texto não decide, vira inconsistência no §6 do `OBJETIVO.md`. **Feita em 07/10, sem divergência.**
@@ -255,7 +255,7 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 | c | verificar o gabarito do Strategy: as leituras, pelo Lucas (**feito**, 07/10, sem divergência), e a aritmética, por implementações independentes no f4 | 2 | Lucas; f4 | — |
 | d | calibração humana da régua do Strategy (SMOKE e TESTE-P4) e **congelar a régua** | 1 | Lucas | — |
 | e | ~~régua do State~~: saiu com o State (07/10) | — | — | — |
-| f | `aceitacao.sh` e **congelar a suíte** | 2 | Claude | c |
+| f | `acceptance.sh` (**feito**, 07/10) e **congelar a suíte** | 2 | Claude | c (feito); o congelamento espera a verificação da aritmética no f4 |
 | f2 | **métricas automáticas** (CK + SonarQube, secundárias): montadas, testadas e congeladas com hash em 06/10 — ver `evaluation/tools/README.md` | — | Claude | — (**feito**, 06/10) |
 | f3 | **níveis N0 a N3** montados, com hash, e testados na bancada | 6 | Claude + Lucas | — (**feito**, 06/10) |
 | f4 | `rodada-niveis.sh` (os quatro níveis de um modelo em paralelo) e **congelar** | 6 | Claude | f3 (montado e com as recusas testadas em 06/10; falta o teste real, que gasta cota, e o hash no README) |

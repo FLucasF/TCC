@@ -57,7 +57,9 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
 
 ## 3. O que o Claude faz quando você pedir
 
-- [ ] **f.** O `aceitacao.sh` e congelar a suíte (depois do c).
+- [x] **f.** O `infra/scripts/acceptance.sh`: feito e testado em 07/10.
+- [ ] Congelar a suíte e o `acceptance.sh` com hash, depois da verificação da
+      aritmética no f4.
 - [ ] Plano de cota das 60 execuções (depois do f4).
 - [x] Atualizar o item **b** do plano com as trocas (feito em 07/10).
 - [ ] Pendente da sua resposta: anotar no §6 que "o Claude lê código do Claude" (a proteção é a sua
