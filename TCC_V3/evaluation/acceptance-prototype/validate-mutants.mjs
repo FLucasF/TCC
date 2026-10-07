@@ -1,16 +1,16 @@
 // Valida a suite de aceitacao nos dois sentidos, sem modelo nenhum:
 //   1. a calculadora de referencia, servida por HTTP, passa em tudo;
-//   2. cada mutante (mutantes.mjs), servido do mesmo jeito, e REPROVADO.
+//   2. cada mutante (mutants.mjs), servido do mesmo jeito, e REPROVADO.
 // A suite roda como roda nos pacotes: processo separado, pela API.
 //
-// Uso: node evaluation/acceptance-prototype/validar-mutantes.mjs [suite.mjs]
+// Uso: node evaluation/acceptance-prototype/validate-mutants.mjs [suite.mjs]
 // Sai com 0 se a referencia passa e todos os mutantes sao reprovados.
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { MUTANTES } from "./mutantes.mjs";
+import { MUTANTES } from "./mutants.mjs";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const suite = path.resolve(process.argv[2] ?? path.join(aqui, "strategy.mjs"));

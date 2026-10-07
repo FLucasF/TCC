@@ -61,7 +61,7 @@ a parcela ficar longe do empate do arredondamento; senão o exemplo testaria
 precisão numérica em vez da regra.
 
 Os números novos **saíram da calculadora de referência**. O
-`conferir-enunciado.mjs` confere os 66 números escritos no texto contra ela. A
+`check-prompt.mjs` confere os 66 números escritos no texto contra ela. A
 calculadora em si é verificada como descrito no
 [README da suíte](../../evaluation/acceptance-prototype/README.md). Fora o P5 e a
 frase do boleto, as regras de negócio, o contrato e os erros não mudaram, e a

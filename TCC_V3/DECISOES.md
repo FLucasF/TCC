@@ -76,14 +76,14 @@ tabela de scripts.
 
 **24/09: execuções de teste e de fumaça ficam fora da análise pelo prefixo**
 (`SMOKE-`, `TESTE-`, e depois `BATCH-` como piloto). *Por quê:* elas existem para
-achar defeito antes de custar dado; o `agregar.mjs --prefix` separa sem apagar dado
+achar defeito antes de custar dado; o `aggregate.mjs --prefix` separa sem apagar dado
 bruto.
 
 **26/09: um experimento só (o `EXT`), e o `BATCH` vira piloto.** *Por quê:* o
 estímulo do piloto é outro (três pontos), e as execuções não são comparáveis. Ele
 fica como o motivo de P4 e P5. *Onde:* `experiment/prompt/README.md`.
 
-**26/09: a avaliação fica numa pasta por padrão, e o `anonimizar.mjs --padrao`
+**26/09: a avaliação fica numa pasta por padrão, e o `anonymize.mjs --padrao`
 recusa sobrescrever um mapa.** *Por quê:* pacote cego não traz `meta.json`; só a
 pasta liga um pacote ao gabarito dele, e o mapa é a única ligação entre código cego
 e execução. Com um padrão não pesava; com o segundo, pesaria.
@@ -102,7 +102,7 @@ depois, mudança só como emenda datada. *Por quê:* a linha entre preparar e me
 não estava escrita. Rodar a suíte sobre o EXT não gasta tokens, mas já é olhar
 resultado, e por isso fica na segunda fase. *Onde:* `PLANO-IMPLEMENTACAO.md`.
 
-**03/10: o `verificar.mjs` vai para a fase 2, roda só sobre os lotes da análise, e
+**03/10: o `verify.mjs` vai para a fase 2, roda só sobre os lotes da análise, e
 só conta como pronto quando acusa dados corrompidos de propósito.** *Por quê:* os
 dados que ele confere só existem na fase 2; SMOKE, TESTE e BATCH não têm o desenho
 que as checagens exigem. A prova de que acusa vem da mesma ideia dos mutantes (e
@@ -131,17 +131,17 @@ lote, e a tendência de N0 a N3 fica possível. *Descartado:* um lote por nível
 
 **06/10: o script do quarteto (`run-levels.sh`, que se chamou `rodada-niveis.sh`
 até 07/10) confere tudo antes de lançar qualquer execução, e chama o
-`executar.sh` sem mudá-lo.** Um modelo por vez é o mais seguro para a cota.
+`run-one.sh` sem mudá-lo.** Um modelo por vez é o mais seguro para a cota.
 *Por quê:* um quarteto com um nível a menos não serve para a comparação, e é melhor
-falhar sem gastar cota; o `executar.sh` está congelado.
+falhar sem gastar cota; o `run-one.sh` está congelado.
 
-**07/10: o `verificar.mjs` será enxuto (4 checagens), e o `analisar-rodada.mjs` sai
+**07/10: o `verify.mjs` será enxuto (4 checagens), e o `analisar-rodada.mjs` sai
 do V4.** Ficam as checagens que acusam o que nenhuma outra peça acusa: a leitura
 bate com o mapa, o CSV bate com os `meta.json`, o desenho está completo, e o
 gabarito é do enunciado das execuções. *Por quê:* a contagem de acertos e os
 totais para o texto já saem dos CSVs, e repeti-los seria um segundo cálculo para
-manter; o `analisar-rodada.mjs` resumia rodadas antes de o `agregar.mjs` e o
-`verificar.mjs` existirem. *Descartado:* manter as 6 checagens do plano de 03/10.
+manter; o `analisar-rodada.mjs` resumia rodadas antes de o `aggregate.mjs` e o
+`verify.mjs` existirem. *Descartado:* manter as 6 checagens do plano de 03/10.
 *Onde:* plano, Parte 3; a lista dos scripts do V4 está no README.
 
 **06/10: o cache de prompt não é desligado.** Os tokens ficam separados no
@@ -159,7 +159,7 @@ escritas para o futuro. *Onde:* `history/state/README.md`.
 
 **26/09: uma pasta por versão de harness, escolhida por `HARNESS`.** *Por quê:*
 testar `CLAUDE.md`, skills e combinações sem trocar o conteúdo de uma pasta que já
-rodou; sem a variável, o `executar.sh` faz o mesmo de antes, com o mesmo hash.
+rodou; sem a variável, o `run-one.sh` faz o mesmo de antes, com o mesmo hash.
 
 **06/10: a escada N0 a N3, que acumula.** N0 sem harness; N1 o `CLAUDE.md`; N2 o
 N1 mais uma skill; N3 o N2 mais processo. *Por quê:* a proposta do orientador
@@ -280,7 +280,7 @@ rodar sobre o EXT, para a escolha não ser guiada por qual braço ela favorece.
 *Substituída em 06/10:* no V4 as contradições foram corrigidas e a suíte não tem
 mais observações.
 
-**06/10: o `conferir-enunciado.mjs` confere os números escritos no enunciado contra
+**06/10: o `check-prompt.mjs` confere os números escritos no enunciado contra
 a calculadora.** *Por quê:* os exemplos novos do V4 saíram da calculadora, e um
 erro de cópia entre os dois deixaria o enunciado e a suíte se contradizendo. No
 enunciado antigo, ele acusa as inconsistências conhecidas, o que prova que pega
@@ -356,7 +356,7 @@ uma pessoa leria igual: a medida que vale segue sendo a leitura do Lucas.
 **Plano, Parte 4: leitura dupla (Lucas e Claude) com kappa, e a do Claude isolada
 num container que só vê os pacotes cegos.** *Por quê:* hoje a leitura do Claude
 confia que o agente não abriu o mapa; isolada, fica impossível. *07/10:* o
-`ler-cego.sh` fica para depois, porque só é preciso antes da leitura do V4.
+`blind-read.sh` fica para depois, porque só é preciso antes da leitura do V4.
 
 **07/10: o Jev (TypeSafe AI) não entra no estudo.** *Por quê:* a documentação
 oficial diz que ele não é calculadora (fora da correção) e que erra mais com
@@ -474,10 +474,21 @@ renomeados fazem exatamente o mesmo.
 
 **07/10: os scripts novos têm nome e variáveis em inglês** (`acceptance.sh`,
 `run-levels.sh`, este renomeado de `rodada-niveis.sh` antes de ser congelado).
-*Por quê:* preferência do autor. Os scripts já congelados (`executar.sh`,
-`rodada.sh`, `extrair-meta.mjs`, `agregar.mjs`, `anonimizar.mjs` e os das
+*Por quê:* preferência do autor. Os scripts já congelados (`run-one.sh`,
+`rodada.sh`, `extract-meta.mjs`, `aggregate.mjs`, `anonymize.mjs` e os das
 métricas) ficaram com o nome que têm, porque o README e os registros dos lotes
 os citam assim.
+
+**07/10: todos os scripts do V4 vão para o inglês, inclusive os congelados**
+(`run-one.sh`, `extract-meta.mjs`, `aggregate.mjs`, `metrics.sh`,
+`aggregate-metrics.mjs`, `anonymize.mjs`, `validate-mutants.mjs`, `mutants.mjs`,
+`check-prompt.mjs`; e, a construir, `blind-read.sh` e `verify.mjs`). *Por quê:*
+preferência do autor, e o V4 é o momento, antes de qualquer lote que vale. Mover
+um arquivo congelado é permitido; os bytes mudaram só nos nomes que os scripts
+citam, e cada um, desfeita a troca, é byte a byte igual ao anterior. Fica em
+português o `rodada.sh`, que não vai para o V4. *Substitui* a parte da entrada
+anterior que mantinha os congelados com o nome antigo. *Onde:* README, tabela de
+scripts e a nota de 07/10.
 
 **06/10: depois de cada mudança na bancada, um teste de bancada barato** (Haiku,
 esforço baixo, um enunciado que só pergunta o que o agente recebeu). *Por quê:*

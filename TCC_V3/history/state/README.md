@@ -7,9 +7,9 @@ ressalva:
 
 | parte da bancada | como foi testada | resultado |
 |---|---|---|
-| rodar outro enunciado (`PROMPT_FILE` no `executar.sh`) | `TESTE-STATE-01` e `02`, em `runs/` | funciona (a `01` caiu no limite da assinatura; a `02` completou as 6) |
+| rodar outro enunciado (`PROMPT_FILE` no `run-one.sh`) | `TESTE-STATE-01` e `02`, em `runs/` | funciona (a `01` caiu no limite da assinatura; a `02` completou as 6) |
 | suíte de aceitação de outro padrão | `state.mjs` nos pacotes da `TESTE-STATE-02` | 12 de 12 em Opus e Sonnet |
-| anonimizar por padrão (`anonimizar.mjs --padrao`) | a opção existe, e sem ela o piloto sai igual; com o State nunca rodou, porque não se gerou pacote dele | só em parte |
+| anonimizar por padrão (`anonymize.mjs --padrao`) | a opção existe, e sem ela o piloto sai igual; com o State nunca rodou, porque não se gerou pacote dele | só em parte |
 | a régua lendo outro padrão | **nunca feita**: nenhum pacote do State foi lido | não provado |
 
 ## O que está aqui

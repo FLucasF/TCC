@@ -2,9 +2,9 @@
 # Executa UMA run do experimento dentro de um container descartavel.
 #
 # Uso (Git Bash, a partir de qualquer pasta):
-#   infra/scripts/executar.sh <run_id> <modelo> <CONTROL|HARNESS> [replicate]
-#   infra/scripts/executar.sh SMOKE-01-OPUS-CONTROL claude-opus-5 CONTROL
-#   infra/scripts/executar.sh BATCH-01-OPUS-HARNESS claude-opus-5 HARNESS 1
+#   infra/scripts/run-one.sh <run_id> <modelo> <CONTROL|HARNESS> [replicate]
+#   infra/scripts/run-one.sh SMOKE-01-OPUS-CONTROL claude-opus-5 CONTROL
+#   infra/scripts/run-one.sh BATCH-01-OPUS-HARNESS claude-opus-5 HARNESS 1
 #
 # Variaveis opcionais:
 #   IMAGE        padrao experimento-harness:v3
@@ -146,7 +146,7 @@ echo "build pos-execucao: codigo $BUILD_RC"
 
 # ------------------------------------------------------------------ meta.json
 # node.exe e binario do Windows: recebe caminho do Windows, nao o /j/... do Git Bash.
-node "$(cygpath -w "$RAIZ/infra/scripts/extrair-meta.mjs")" "$(cygpath -w "$RUN_DIR")" \
+node "$(cygpath -w "$RAIZ/infra/scripts/extract-meta.mjs")" "$(cygpath -w "$RUN_DIR")" \
     --run_id "$RUN_ID" --model "$MODEL" --condition "$CONDITION" \
     --replicate "$REPLICATE" \
     --start "$START" --end "$END" --duration_s "$DURATION" \

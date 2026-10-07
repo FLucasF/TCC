@@ -48,7 +48,7 @@ docker build -f infra/docker/Dockerfile -t experimento-harness:v3 .
 Uma execução:
 
 ```bash
-infra/scripts/executar.sh SMOKE-00-OPUS-CONTROL claude-opus-5 CONTROL
+infra/scripts/run-one.sh SMOKE-00-OPUS-CONTROL claude-opus-5 CONTROL
 ```
 
 Uma rodada — as **seis simultâneas**, que é o que torna a análise pareada possível:
@@ -65,7 +65,7 @@ infra/scripts/rodada.sh EXT-02 2
 infra/scripts/rodada.sh EXT-03 3
 ```
 
-O `executar.sh` lê o enunciado de `experiment/prompt/prompt.md`, a não ser que
+O `run-one.sh` lê o enunciado de `experiment/prompt/prompt.md`, a não ser que
 `PROMPT_FILE` aponte outro. **O caminho precisa ser absoluto**: ele vira a origem
 de uma montagem do Docker, que recusa caminho relativo, e a execução falharia
 depois de já ter criado a pasta da run. Da raiz do `TCC_V3`, use `$PWD/`:
@@ -85,11 +85,11 @@ com skills está em [`experiment/harnesses/README.md`](experiment/harnesses/READ
 Depois:
 
 ```bash
-node infra/scripts/agregar.mjs --prefix EXT --out analysis/resultados-ext.csv
-node evaluation/tools/anonimizar.mjs EXT-01-OPUS-CONTROL ... --seed N --padrao strategy
+node infra/scripts/aggregate.mjs --prefix EXT --out analysis/resultados-ext.csv
+node evaluation/tools/anonymize.mjs EXT-01-OPUS-CONTROL ... --seed N --padrao strategy
 ```
 
-O `--out` é necessário: sem ele, o `agregar.mjs` grava em `analysis/resultados.csv`,
+O `--out` é necessário: sem ele, o `aggregate.mjs` grava em `analysis/resultados.csv`,
 que é o CSV do **piloto**, e o sobrescreveria. O CSV do EXT traz os custos (as hipóteses de
 custo), então só é gerado na fase 2 do plano, com o `OBJETIVO.md` congelado.
 
@@ -106,14 +106,14 @@ A semente de cada lote fica registrada na última coluna do mapa dele.
 
 | | |
 |---|---|
-| `infra/scripts/executar.sh` | uma execução: preflight, container, `claude -p`, e o build num segundo container **sem o token** |
+| `infra/scripts/run-one.sh` | uma execução: preflight, container, `claude -p`, e o build num segundo container **sem o token** |
 | `infra/scripts/rodada.sh` | as seis de uma rodada, em paralelo |
-| `infra/scripts/extrair-meta.mjs` | transcrição → `meta.json`, 103 campos |
-| `infra/scripts/agregar.mjs` | os `meta.json` → CSV, 37 colunas |
-| `evaluation/tools/anonimizar.mjs` | pacotes cegos: tira o `CLAUDE.md`, normaliza datas, embaralha |
+| `infra/scripts/extract-meta.mjs` | transcrição → `meta.json`, 103 campos |
+| `infra/scripts/aggregate.mjs` | os `meta.json` → CSV, 37 colunas |
+| `evaluation/tools/anonymize.mjs` | pacotes cegos: tira o `CLAUDE.md`, normaliza datas, embaralha |
 
 As **métricas automáticas** (CK e SonarQube, secundárias) têm scripts próprios,
-`evaluation/tools/metricas.sh` e `evaluation/tools/agregar-metricas.mjs`, com as
+`evaluation/tools/metrics.sh` e `evaluation/tools/aggregate-metrics.mjs`, com as
 versões travadas e o passo a passo no [README das ferramentas](evaluation/tools/README.md).
 
 **Nenhum deles olha o código para julgar.** Nenhum aplica a régua, dá nota ou
@@ -151,13 +151,13 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 
 | script | hash | se tiver defeito |
 |---|---|---|
-| `executar.sh` | `6bd76c6e96de9d84` | perde **a execução** |
-| `rodada.sh` | `e6c65d2e4d84ede4` | perde **o pareamento** |
-| `anonimizar.mjs` | `ec6bfe8ecc37abb0` | perde **a cegueira** |
-| `extrair-meta.mjs` | `8c1d1dd228ae5ddf` | nada — a transcrição sobrevive |
-| `agregar.mjs` | `a78b48b2e2ec5a44` | nada — o `meta.json` sobrevive |
-| `metricas.sh` | `f8e34e5a1777992b` | perde **as métricas automáticas** (CK, SonarQube) |
-| `agregar-metricas.mjs` | `850afb08da82743a` | nada — as saídas por execução sobrevivem |
+| `run-one.sh` (era `executar.sh`) | `39d619c6a0469e2f` | perde **a execução** |
+| `rodada.sh` (fora do V4) | `ff82b1c8a50357da` | perde **o pareamento** |
+| `anonymize.mjs` (era `anonimizar.mjs`) | `c03d737b29a098e1` | perde **a cegueira** |
+| `extract-meta.mjs` (era `extrair-meta.mjs`) | `b6dfe6ad4eb05acc` | nada — a transcrição sobrevive |
+| `aggregate.mjs` (era `agregar.mjs`) | `19338b460497b34f` | nada — o `meta.json` sobrevive |
+| `metrics.sh` (era `metricas.sh`) | `135ecbe45c22afe4` | perde **as métricas automáticas** (CK, SonarQube) |
+| `aggregate-metrics.mjs` (era `agregar-metricas.mjs`) | `74479258f31dce1f` | nada — as saídas por execução sobrevivem |
 | `run-levels.sh` | (**ainda não congelado**: congela depois do teste real, o f4) | perde **o quarteto** dos níveis N0 a N3 |
 | `acceptance.sh` | `f4028ca51f78d7d4` (**ainda não congelado**: congela com a suíte, depois do f4) | perde **a medida de correção** (a suíte de aceitação por lote) |
 
@@ -166,19 +166,34 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | etapa | script | situação |
 |---|---|---|
 | rodar | `infra/scripts/run-levels.sh`: um quarteto (os níveis N0 a N3 de um modelo, juntos) | a congelar depois do f4 |
-| rodar | `infra/scripts/executar.sh`: uma execução (o `run-levels.sh` chama) | congelado |
-| rodar | `infra/scripts/extrair-meta.mjs`: a transcrição vira `meta.json` (o `executar.sh` chama) | congelado |
-| medir custo | `infra/scripts/agregar.mjs`: os `meta.json` do lote num CSV | congelado |
+| rodar | `infra/scripts/run-one.sh`: uma execução (o `run-levels.sh` chama) | congelado |
+| rodar | `infra/scripts/extract-meta.mjs`: a transcrição vira `meta.json` (o `run-one.sh` chama) | congelado |
+| medir custo | `infra/scripts/aggregate.mjs`: os `meta.json` do lote num CSV | congelado |
 | medir correção | `infra/scripts/acceptance.sh`: a suíte em todas as execuções | a congelar depois do f4 |
-| medir desenho | `evaluation/tools/metricas.sh` e `agregar-metricas.mjs`: CK e SonarQube (secundárias) | congelados |
-| ler às cegas | `evaluation/tools/anonimizar.mjs`: os pacotes cegos para a régua | congelado |
-| ler às cegas | `ler-cego.sh`: a leitura do Claude isolada num container | a construir, antes da leitura |
-| conferir | `verificar.mjs`: a versão enxuta, com 4 checagens (plano, Parte 3) | a construir, na fase 2 |
+| medir desenho | `evaluation/tools/metrics.sh` e `aggregate-metrics.mjs`: CK e SonarQube (secundárias) | congelados |
+| ler às cegas | `evaluation/tools/anonymize.mjs`: os pacotes cegos para a régua | congelado |
+| ler às cegas | `blind-read.sh`: a leitura do Claude isolada num container | a construir, antes da leitura |
+| conferir | `verify.mjs`: a versão enxuta, com 4 checagens (plano, Parte 3) | a construir, na fase 2 |
 
-Validam os instrumentos, sem medir o V4: `validar-mutantes.mjs` e
-`conferir-enunciado.mjs`, em `evaluation/acceptance-prototype/`. Ficam fora do V4:
+Validam os instrumentos, sem medir o V4: `validate-mutants.mjs` e
+`check-prompt.mjs`, em `evaluation/acceptance-prototype/`. Ficam fora do V4:
 o `rodada.sh` (o par antigo, que o quarteto substitui) e o `analisar-rodada.mjs`
-(resumo de rodada da bancada, coberto pelo `agregar.mjs` e pelo `verificar.mjs`).
+(resumo de rodada da bancada, coberto pelo `aggregate.mjs` e pelo `verify.mjs`).
+
+Em 07/10/2026 os scripts do V4 foram para o inglês: `executar.sh` → `run-one.sh`,
+`extrair-meta.mjs` → `extract-meta.mjs`, `agregar.mjs` → `aggregate.mjs`,
+`metricas.sh` → `metrics.sh`, `agregar-metricas.mjs` → `aggregate-metrics.mjs`,
+`anonimizar.mjs` → `anonymize.mjs` e, na suíte, `validar-mutantes.mjs` →
+`validate-mutants.mjs`, `mutantes.mjs` → `mutants.mjs`, `conferir-enunciado.mjs` →
+`check-prompt.mjs` (e o `rodada-niveis.sh` → `run-levels.sh`, antes). Os scripts
+citam uns aos outros e a si mesmos nos comentários de uso, então os bytes mudaram
+**só nos nomes**: desfeita a troca de nomes, cada um é byte a byte igual à versão
+anterior (conferido pelo hash). Hashes anteriores: `executar.sh` `6bd76c6e96de9d84`,
+`rodada.sh` `e6c65d2e4d84ede4`, `anonimizar.mjs` `ec6bfe8ecc37abb0`,
+`extrair-meta.mjs` `8c1d1dd228ae5ddf`, `agregar.mjs` `a78b48b2e2ec5a44`,
+`metricas.sh` `f8e34e5a1777992b`, `agregar-metricas.mjs` `850afb08da82743a`. Os
+lotes já rodados (o `EXT` e os de teste) rodaram com os nomes antigos; os registros
+datados e o histórico continuam citando esses nomes.
 
 As peças travadas das métricas (o `.jar` do CK, as imagens do SonarQube e do
 scanner, o perfil de regras) estão, com hash, no [README das ferramentas](evaluation/tools/README.md).
@@ -186,11 +201,11 @@ scanner, o perfil de regras) estão, com hash, no [README das ferramentas](evalu
 Em 05/10/2026 as pastas foram renomeadas para inglês (`analise` → `analysis`,
 `avaliacao` → `evaluation`, `experimento` → `experiment`, `historico` → `history`,
 e as de dentro). Três scripts citam pastas e mudaram **só nos caminhos**:
-`executar.sh` era `0efc44e6d2cceec8`, `anonimizar.mjs` era `bcf480270b4984d2`,
-`agregar.mjs` era `4e8001f7a3012b8d`. Conferido que fazem o mesmo: o `executar.sh`
+`run-one.sh` era `0efc44e6d2cceec8`, `anonymize.mjs` era `bcf480270b4984d2`,
+`aggregate.mjs` era `4e8001f7a3012b8d`. Conferido que fazem o mesmo: o `run-one.sh`
 calcula na pasta nova o mesmo hash de harness (`560577922737dbb9`) e de enunciado
-(`b7cdb594cb49efee`); o `anonimizar.mjs` refaz o piloto com a semente 24 com os
-mesmos bytes (pacotes e mapa); o `agregar.mjs` refaz o CSV do piloto idêntico. O
+(`b7cdb594cb49efee`); o `anonymize.mjs` refaz o piloto com a semente 24 com os
+mesmos bytes (pacotes e mapa); o `aggregate.mjs` refaz o CSV do piloto idêntico. O
 caminho **dentro** do container (`/experimento/prompt.md`) não mudou, para o lote
 STATE ver o mesmo ambiente que o EXT viu. Ficaram com o nome em português, de
 propósito: `infra/docker/aquecimento/`, porque o `Dockerfile` a copia para a imagem
@@ -199,7 +214,7 @@ propósito: `infra/docker/aquecimento/`, porque o `Dockerfile` a copia para a im
 
 Em 06/10/2026 os harnesses viraram os níveis da escada do orientador (`only-claude/`
 → `N1/`, `claude-and-skills/` → `N2/`; `only-skills/`
-saiu sem nunca ter rodado). O `executar.sh` mudou em duas linhas: o harness padrão
+saiu sem nunca ter rodado). O `run-one.sh` mudou em duas linhas: o harness padrão
 (`only-claude` → `N1`) e a validação do nome, que passou a aceitar maiúsculas
 (continua recusando espaço, barra e `..`). Era `e571cc45da3c98db`. O hash da árvore
 do `N1/` é o mesmo do `only-claude/` (`560577922737dbb9`), conferido na pasta nova.
@@ -220,11 +235,11 @@ o State saiu do V4, que ficou com um padrão só (60 execuções): ele serviu pa
 provar que a bancada aceita um segundo padrão, e o material dele está em
 `history/state/`.
 
-O `executar.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
+O `run-one.sh` era `be71fb1c98bdc14b` até ganhar a variável `HARNESS`. Os lotes
 `SMOKE`, `BATCH`, `TESTE-P4` e `EXT` rodaram com essa versão; sem `HARNESS`, a nova
 faz o mesmo, com o mesmo hash de harness.
 
-O `anonimizar.mjs` era `6f4e96ec116312e4` até ganhar `--padrao`. Os pacotes e
+O `anonymize.mjs` era `6f4e96ec116312e4` até ganhar `--padrao`. Os pacotes e
 mapas do `BATCH` e do `EXT` foram gerados com essa versão; sem `--padrao`, a nova
 gera os mesmos bytes (conferido regenerando o piloto com a semente 24).
 
@@ -273,7 +288,7 @@ nesta página. O que resolve: fechar o Docker Desktop, `wsl --shutdown`, e
 abrir, o Docker cria as duas de novo. Reiniciar o Windows também libera os arquivos.
 
 **Não edite `meta.json` à mão.** Ele é derivado da transcrição. Se um número
-parecer errado, o conserto é no `extrair-meta.mjs` e rodar de novo — o dado bruto
+parecer errado, o conserto é no `extract-meta.mjs` e rodar de novo — o dado bruto
 está no `.jsonl`.
 
 ---

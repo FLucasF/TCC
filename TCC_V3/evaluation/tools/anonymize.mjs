@@ -1,7 +1,7 @@
 // Prepara os pacotes para a avaliacao as cegas.
 //
 // Uso:
-//   node evaluation/tools/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]
+//   node evaluation/tools/anonymize.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]
 //
 // Com --padrao, pacotes e mapa vao para evaluation/<NOME>/, a pasta do padrao,
 // onde ja mora o gabarito que os le. Se o mapa ja existir la, o script recusa:
@@ -36,7 +36,7 @@ const padrao = iPadrao >= 0 ? ARGS[iPadrao + 1] : null;
 const runs = ARGS.filter((a, i) => !a.startsWith("--") && ARGS[i - 1] !== "--seed" && ARGS[i - 1] !== "--padrao");
 
 if (!runs.length) {
-  console.error("uso: node evaluation/tools/anonimizar.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]");
+  console.error("uso: node evaluation/tools/anonymize.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]");
   process.exit(2);
 }
 if (iPadrao >= 0 && !/^[a-z0-9-]+$/.test(padrao ?? "")) {

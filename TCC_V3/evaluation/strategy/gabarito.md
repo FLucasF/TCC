@@ -9,7 +9,7 @@ lotes: EXT
 
 > **RASCUNHO**, junto com a [régua](../regua.md). Este é o nível 3: vale só para
 > o enunciado e os lotes do cabeçalho acima. O cabeçalho é lido por script: o
-> `verificar.mjs` (Parte 3) confere se `enunciado_hash` é o `prompt_hash` gravado
+> `verify.mjs` (Parte 3) confere se `enunciado_hash` é o `prompt_hash` gravado
 > no `meta.json` de cada execução dos lotes listados.
 >
 > Este arquivo mora na mesma pasta dos pacotes que ele lê (`packages/`, ao lado).

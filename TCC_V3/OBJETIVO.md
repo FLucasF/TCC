@@ -423,7 +423,7 @@ Um **padrão novo** entra como uma linha na primeira tabela, **antes** de rodar:
 4. uma rodada `SMOKE-` antes do lote, para ver se o enunciado não bate no teto
    (os dois braços acertam tudo) nem no chão (nenhum acerta);
 5. a pasta `evaluation/<padrao>/` com o `gabarito.md`, e os pacotes gerados com
-   `anonimizar.mjs --padrao <padrao>`.
+   `anonymize.mjs --padrao <padrao>`.
 
 Uma **versão nova do harness** é uma pasta nova em `experiment/harnesses/`
 (como montar: [`experiment/harnesses/README.md`](experiment/harnesses/README.md)),

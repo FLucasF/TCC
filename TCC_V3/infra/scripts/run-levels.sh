@@ -19,7 +19,7 @@
 # vez e o mais seguro para a cota da assinatura, e os quartetos de modelos
 # diferentes nao precisam ser simultaneos entre si.
 #
-# Nao muda o executar.sh: chama ele quatro vezes, como o rodada.sh chama duas.
+# Nao muda o run-one.sh: chama ele quatro vezes, como o rodada.sh chama duas.
 # Confere TUDO antes de lancar QUALQUER execucao: um quarteto com um nivel a
 # menos nao serve para a comparacao, e e melhor falhar sem gastar cota.
 #
@@ -34,7 +34,7 @@ case "$PREFIX" in ""|*[!A-Za-z0-9-]*) { echo "prefixo invalido: '$PREFIX'" >&2; 
 case "$REPLICATE" in [1-9]|[1-9][0-9]) ;; *) { echo "replicate deve ser inteiro positivo: '$REPLICATE'" >&2; exit 2; } ;; esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-RUN_ONE="$ROOT/infra/scripts/executar.sh"
+RUN_ONE="$ROOT/infra/scripts/run-one.sh"
 EFFORT="${EFFORT:-medium}"
 
 # Os mesmos IDs completos do rodada.sh. O apelido a esquerda entra no run_id.
@@ -52,7 +52,7 @@ for level in N1 N2 N3; do
     dir="$ROOT/experiment/harnesses/$level"
     [ -d "$dir" ] || { echo "nivel $level nao encontrado: $dir" >&2; exit 2; }
     [ -f "$dir/CLAUDE.md" ] || compgen -G "$dir/.claude/skills/*/SKILL.md" >/dev/null \
-        || { echo "nivel $level vazio: o executar.sh o recusaria" >&2; exit 2; }
+        || { echo "nivel $level vazio: o run-one.sh o recusaria" >&2; exit 2; }
 done
 for m in $MODELS; do
     for level in $LEVELS; do

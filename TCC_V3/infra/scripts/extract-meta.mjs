@@ -1,6 +1,6 @@
 // Le a saida stream-json de uma run e escreve runs/<id>/meta.json.
 //
-// Uso: node extrair-meta.mjs <run_dir> --chave valor ...
+// Uso: node extract-meta.mjs <run_dir> --chave valor ...
 //
 // Este script NAO julga nada. Ele transcreve o que aconteceu. O campo `valid`
 // sai sempre `null`: quem decide se uma execucao vale e humano.

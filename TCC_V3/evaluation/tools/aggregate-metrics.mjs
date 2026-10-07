@@ -1,9 +1,9 @@
 // Junta as metricas de um lote (CK e SonarQube) num CSV, uma linha por execucao.
 //
 // Uso:
-//   node evaluation/tools/agregar-metricas.mjs <prefixo>
+//   node evaluation/tools/aggregate-metrics.mjs <prefixo>
 //
-// Le evaluation/metrics/<prefixo>/<run_id>/ (o que o metricas.sh gravou) e o
+// Le evaluation/metrics/<prefixo>/<run_id>/ (o que o metrics.sh gravou) e o
 // meta.json de cada execucao, so para identificar modelo, braco e replica.
 // Grava evaluation/metrics/<prefixo>/metricas.csv. So junta numeros: nenhuma
 // leitura nem nota sai daqui.
@@ -14,9 +14,9 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const prefixo = process.argv[2];
-if (!prefixo) { console.error("uso: node evaluation/tools/agregar-metricas.mjs <prefixo>"); process.exit(1); }
+if (!prefixo) { console.error("uso: node evaluation/tools/aggregate-metrics.mjs <prefixo>"); process.exit(1); }
 const OUT = join(RAIZ, "evaluation", "metrics", prefixo);
-if (!existsSync(OUT)) { console.error(`nao existe ${OUT}: rode antes o metricas.sh`); process.exit(1); }
+if (!existsSync(OUT)) { console.error(`nao existe ${OUT}: rode antes o metrics.sh`); process.exit(1); }
 
 // CSV do CK: os campos nao trazem virgula, mas o caminho do arquivo pode trazer
 // aspas no Windows; este leitor respeita aspas.

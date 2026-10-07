@@ -79,8 +79,8 @@ SMOKE e TESTE-P4 (Parte 1 do plano).
 
 ## 5. Pode esperar (não impede começar a rodar o V4)
 
-- o `ler-cego.sh`: só é preciso antes da **leitura** do V4;
-- o `verificar.mjs` (fase 2);
+- o `blind-read.sh`: só é preciso antes da **leitura** do V4;
+- o `verify.mjs` (fase 2);
 - a manutenção (Parte 5);
 - o piloto do Jev (opcional).
 

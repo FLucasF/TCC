@@ -80,7 +80,7 @@ Sem `HARNESS`, vale `N1`. O `CONTROL` ignora a variável.
    `meta.json`, o que cada execução recebeu.
 
 O `.gitkeep` das pastas `.claude/skills/` só existe para o git guardar a pasta
-vazia. O `executar.sh` não o copia e não o conta no hash, e recusa rodar uma
+vazia. O `run-one.sh` não o copia e não o conta no hash, e recusa rodar uma
 versão com `.claude/skills/` vazia.
 
 ## Cuidados
@@ -117,7 +117,7 @@ escada: `ONLY-CLAUDE` corresponde ao N1, `CLAUDE-SKILLS` ao N2, e `ONLY-SKILLS` 
 variante que saiu.
 
 **Repetido em 06/10/2026**, depois das renomeações das pastas e dos níveis e das
-mudanças no `executar.sh`: `TESTE-BANCADA-02-CONTROL` e `TESTE-BANCADA-02-N1`
+mudanças no `run-one.sh`: `TESTE-BANCADA-02-CONTROL` e `TESTE-BANCADA-02-N1`
 (Haiku, esforço baixo, o mesmo enunciado, hash `b796f244`). O CONTROL recebeu o
 workspace vazio e respondeu que não há `CLAUDE.md`; o N1, recebido **sem passar
 `HARNESS`** (o padrão), chegou só com o `CLAUDE.md`, com o mesmo hash de 26/09

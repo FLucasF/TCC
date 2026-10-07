@@ -1,9 +1,9 @@
 // Junta os meta.json num CSV, uma linha por execucao.
 //
 // Uso:
-//   node infra/scripts/agregar.mjs                     # todas as runs
-//   node infra/scripts/agregar.mjs --prefix BATCH      # so o lote
-//   node infra/scripts/agregar.mjs --out analysis/resultados.csv
+//   node infra/scripts/aggregate.mjs                     # todas as runs
+//   node infra/scripts/aggregate.mjs --prefix BATCH      # so o lote
+//   node infra/scripts/aggregate.mjs --out analysis/resultados.csv
 //
 // So junta o que o meta.json tem. A avaliacao dos pacotes e outra coisa, feita a
 // mao, e e cruzada com isto depois — nao aqui.

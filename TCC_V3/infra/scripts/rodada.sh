@@ -27,7 +27,7 @@ set -uo pipefail
 case $# in 1|2) ;; *) { echo "uso: $0 <prefixo> [replicate]" >&2; exit 2; } ;; esac
 PREFIXO="$1"; REPLICATE="${2:-}"
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-EXEC="$RAIZ/infra/scripts/executar.sh"
+EXEC="$RAIZ/infra/scripts/run-one.sh"
 EFFORT="${EFFORT:-medium}"
 
 # Os tres modelos do bloco, sempre por ID COMPLETO. O apelido a esquerda e o que
@@ -35,7 +35,7 @@ EFFORT="${EFFORT:-medium}"
 #
 # ATENCAO: pede-se `claude-haiku-4-5` e as mensagens voltam com
 # `claude-haiku-4-5-20251001`. Alias e snapshot datado sao o MESMO modelo — ver
-# a normalizacao em extrair-meta.mjs.
+# a normalizacao em extract-meta.mjs.
 MODELOS="OPUS:claude-opus-5 SONNET:claude-sonnet-5 HAIKU:claude-haiku-4-5"
 
 mkdir -p "$RAIZ/runs/logs"

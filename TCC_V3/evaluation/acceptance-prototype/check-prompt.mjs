@@ -3,7 +3,7 @@
 // os exemplos 1 a 4 e a resposta do anexo do enunciado do V4 sairam da calculadora.
 // Nao confere a calculadora: isso e a conferencia humana do gabarito (README).
 //
-// Uso: node evaluation/acceptance-prototype/conferir-enunciado.mjs [enunciado.md]
+// Uso: node evaluation/acceptance-prototype/check-prompt.mjs [enunciado.md]
 // Sai com 0 se todos os numeros batem.
 import fs from "node:fs";
 import path from "node:path";

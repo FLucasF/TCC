@@ -17,10 +17,10 @@ num container da imagem da bancada, sem token, e roda os casos.
 | `executor.sh` | roda **dentro** do container: copia o workspace, reaproveita o `.jar` do build pós-execução (ou compila), sobe o serviço na porta 18080 e roda o teste |
 | `strategy.mjs` | 21 casos do enunciado do Strategy do V4: os 5 exemplos e a resposta de exemplo do anexo, como estão escritos, colisões (OURO + FRETEGRATIS), erros, ordem de precedência, o seguro dentro do limite do boleto e quatro **fronteiras** (o valor exato de "até 5 kg", "passarem de R$ 500", "a partir de R$ 300" e "passa de R$ 1.000") |
 | `ref-strategy.mjs` | a calculadora de referência do Strategy, em centavos, com meio-para-o-par. Reproduz os 5 exemplos e a resposta de exemplo do anexo |
-| `mutantes.mjs` | 17 versões da calculadora de referência com **um** erro plantado cada, um por regra do enunciado que tem armadilha |
-| `validar-mutantes.mjs` | serve a referência e cada mutante por HTTP e roda a suíte contra eles: a referência tem de passar, e cada mutante tem de ser reprovado |
-| `conferir-enunciado.mjs` | confere os números escritos no enunciado do Strategy (os 5 exemplos e a resposta do anexo) contra a calculadora: pega erro de cópia entre os dois, não erro da calculadora |
-| `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares. **Ferramenta da bancada, fora do V4** (07/10): o `agregar.mjs` e o `verificar.mjs` cobrem o que ela faz; fica sem manutenção |
+| `mutants.mjs` | 17 versões da calculadora de referência com **um** erro plantado cada, um por regra do enunciado que tem armadilha |
+| `validate-mutants.mjs` | serve a referência e cada mutante por HTTP e roda a suíte contra eles: a referência tem de passar, e cada mutante tem de ser reprovado |
+| `check-prompt.mjs` | confere os números escritos no enunciado do Strategy (os 5 exemplos e a resposta do anexo) contra a calculadora: pega erro de cópia entre os dois, não erro da calculadora |
+| `analisar-rodada.mjs` | resume os `meta.json` de uma rodada: término, build, versões, tokens, tempo, hashes, isolamento, pares. **Ferramenta da bancada, fora do V4** (07/10): o `aggregate.mjs` e o `verify.mjs` cobrem o que ela faz; fica sem manutenção |
 
 A suíte conta **casos**, como a hipótese da correção está escrita: um caso
 passa se todos os campos dele batem, e os campos que falharam aparecem nas linhas
@@ -93,7 +93,7 @@ A validação da própria suíte, sem modelo nem Docker (sai com 0 se a referên
 passa e todos os mutantes são reprovados):
 
 ```bash
-node evaluation/acceptance-prototype/validar-mutantes.mjs
+node evaluation/acceptance-prototype/validate-mutants.mjs
 ```
 
 A conferência dos números do enunciado contra a calculadora (sai com 0 se todos
@@ -101,7 +101,7 @@ batem; no enunciado da bancada, `history/prompt-v3/prompt.md`, acusa as
 inconsistências conhecidas):
 
 ```bash
-node evaluation/acceptance-prototype/conferir-enunciado.mjs
+node evaluation/acceptance-prototype/check-prompt.mjs
 ```
 
 ## Como se sabe que a suíte mede certo
@@ -112,8 +112,8 @@ quem difere dela. São quatro verificações, cada uma pegando um tipo de erro.
 
 | verificação | pega | situação |
 |---|---|---|
-| 1. o enunciado contra a calculadora (`conferir-enunciado.mjs`) | erro de cópia entre os números do texto e a calculadora | **66 de 66** (07/10) |
-| 2. os mutantes (`validar-mutantes.mjs`) | uma regra que a suíte não cobra | **17 de 17** reprovados (07/10) |
+| 1. o enunciado contra a calculadora (`check-prompt.mjs`) | erro de cópia entre os números do texto e a calculadora | **66 de 66** (07/10) |
+| 2. os mutantes (`validate-mutants.mjs`) | uma regra que a suíte não cobra | **17 de 17** reprovados (07/10) |
 | 3. implementações independentes | erro de conta ou de arredondamento na calculadora | **a refazer no V4**, ver abaixo |
 | 4. a revisão das leituras, pelo Lucas | uma leitura do enunciado que a IA fez e o autor não faria | **feita** (07/10), sem divergência |
 
@@ -136,7 +136,7 @@ próximo enunciado: toda frase dessas pede um caso no valor exato.
 
 Onze mutantes são pegos por **um caso só** (o validador lista quais). Não é
 defeito, mas é o que avisa se uma mudança nos casos deixar uma regra descoberta:
-rodar o `validar-mutantes.mjs` depois de mexer no `strategy.mjs`.
+rodar o `validate-mutants.mjs` depois de mexer no `strategy.mjs`.
 
 Os mutantes testam a suíte **contra a calculadora**: provam que ela reprova o que
 difere do gabarito, não que o gabarito está certo. Isso são as verificações 3 e 4.

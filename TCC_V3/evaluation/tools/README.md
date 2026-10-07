@@ -2,9 +2,9 @@
 
 | arquivo | o que faz |
 |---|---|
-| `anonimizar.mjs` | gera os pacotes cegos para a leitura da régua (ver o README da raiz) |
-| `metricas.sh` | métricas automáticas de cada execução de um lote: CK e SonarQube |
-| `agregar-metricas.mjs` | junta as métricas de um lote num CSV, uma linha por execução |
+| `anonymize.mjs` | gera os pacotes cegos para a leitura da régua (ver o README da raiz) |
+| `metrics.sh` | métricas automáticas de cada execução de um lote: CK e SonarQube |
+| `aggregate-metrics.mjs` | junta as métricas de um lote num CSV, uma linha por execução |
 | `ck/` | o CK, compilado e travado (abaixo) |
 | `sonar/` | o perfil de regras do SonarQube usado, congelado |
 
@@ -28,7 +28,7 @@ proteger o julgamento humano.
 
 ### Versões travadas
 
-Mudar qualquer uma é um instrumento novo. O `metricas.sh` confere o `.jar` e a
+Mudar qualquer uma é um instrumento novo. O `metrics.sh` confere o `.jar` e a
 imagem antes de rodar, e se recusa se não baterem.
 
 | peça | versão | identidade |
@@ -70,13 +70,13 @@ nunca imprimem o token.
 ### Rodar
 
 ```bash
-evaluation/tools/metricas.sh TESTE-STRATEGY-01
+evaluation/tools/metrics.sh TESTE-STRATEGY-01
 ```
 
 Para cada execução do lote: acha o projeto pelo `pom.xml` mais raso (como o
 build da bancada), roda o CK em `src/main/java` e o scanner com as classes de
 `target/classes`, espera o SonarQube processar e grava tudo em
-`evaluation/metrics/<prefixo>/<run_id>/`. No fim, o `agregar-metricas.mjs` gera
+`evaluation/metrics/<prefixo>/<run_id>/`. No fim, o `aggregate-metrics.mjs` gera
 `evaluation/metrics/<prefixo>/metricas.csv`. A pasta `evaluation/metrics/` é
 derivada, e fica fora do git.
 

@@ -2,7 +2,7 @@
 # Metricas automaticas do codigo de cada execucao de um lote: CK e SonarQube.
 #
 # Uso (Git Bash):
-#   evaluation/tools/metricas.sh <prefixo>        (ex.: TESTE-STRATEGY-01)
+#   evaluation/tools/metrics.sh <prefixo>        (ex.: TESTE-STRATEGY-01)
 #
 # Mede o codigo de producao (src/main/java), ja compilado pelo build da bancada
 # (target/classes, que o SonarQube precisa para analisar Java). Nao julga nada:
@@ -98,4 +98,4 @@ for run in $RUNS; do
     echo "ok" > "$dir/status"; echo "  $run: ok"
 done
 
-node "$(cygpath -w "$RAIZ/evaluation/tools/agregar-metricas.mjs")" "$PREFIXO"
+node "$(cygpath -w "$RAIZ/evaluation/tools/aggregate-metrics.mjs")" "$PREFIXO"

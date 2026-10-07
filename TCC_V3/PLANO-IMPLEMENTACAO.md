@@ -4,7 +4,7 @@
 
 ## Visão geral
 
-São sete partes (0 a 6), e nenhuma mexe na bancada de execução congelada: `executar.sh`, `rodada.sh`, prompt, harness e imagem continuam com os mesmos hashes. O TCC_V3 é a bancada de testes: o `EXT` serve para validar os instrumentos, e o lote que vale roda numa versão futura (V4), com 5 réplicas. Tudo o que entra é instrumento de medida, aplicado depois das execuções.
+São sete partes (0 a 6), e nenhuma mexe na bancada de execução congelada: `run-one.sh`, `rodada.sh`, prompt, harness e imagem continuam com os mesmos hashes. O TCC_V3 é a bancada de testes: o `EXT` serve para validar os instrumentos, e o lote que vale roda numa versão futura (V4), com 5 réplicas. Tudo o que entra é instrumento de medida, aplicado depois das execuções.
 
 Regra que vale para todas as partes: um instrumento novo é congelado (commit + hash no README) antes de ser usado em qualquer pacote. É a mesma disciplina que você já usa no pré-registro.
 
@@ -15,7 +15,7 @@ O plano cuida da **avaliação** e da **preparação do V4** (a escada de nívei
 Este plano é executado pelo Claude Code, uma parte por vez. Regras para o agente:
 
 1. **Só implementar o que o Lucas autorizar.** A Parte 0 foi revisada em 26/09. Entre 03 e 06/10, as Partes 2, 3, 5 e 6 foram trabalhadas com autorização dele, passo a passo. A Parte 1 (régua) e a 4 (leitura dupla) seguem em revisão: não mexer sem pedir.
-2. **Não alterar nada congelado:** `executar.sh`, `rodada.sh`, `extrair-meta.mjs`, `agregar.mjs`, `anonimizar.mjs`, `experiment/harnesses/` (os níveis N1 a N3, com hash no README), as ferramentas de métricas (`evaluation/tools/`), o conteúdo dos prompts e o `Dockerfile`. Mover um arquivo congelado é permitido; mudar os bytes dele não. Conferir com `sha256sum` antes e depois de cada movimentação.
+2. **Não alterar nada congelado:** `run-one.sh`, `rodada.sh`, `extract-meta.mjs`, `aggregate.mjs`, `anonymize.mjs`, `experiment/harnesses/` (os níveis N1 a N3, com hash no README), as ferramentas de métricas (`evaluation/tools/`), o conteúdo dos prompts e o `Dockerfile`. Mover um arquivo congelado é permitido; mudar os bytes dele não. Conferir com `sha256sum` antes e depois de cada movimentação.
 3. **Não abrir nem imprimir o `.env`.** Não abrir mapa de anonimização, exceto no passo que pede isso.
 4. **Parar e perguntar antes de:** apagar qualquer arquivo ou pasta, `git subtree`, `git push`, ou qualquer coisa que reescreva histórico.
 5. **Um commit por passo**, em português, no estilo do repositório: título curto e corpo explicando o porquê.
@@ -40,7 +40,7 @@ Rodar dentro de `J:\TCC\TCC_V3`, nesta ordem:
 - [x] **3. Prompt único.** `git mv experiment/prompt/prompt.md history/pilot/prompt.md` e depois `git mv experiment/prompt/prompt-estendido.md experiment/prompt/prompt.md`. Checagem: o `sha256sum` de `experiment/prompt/prompt.md` começa com `b7cdb594cb49efee` e o de `history/pilot/prompt.md` com `53db3424b3972795`.
 - [x] **4. Recriar o mapa do piloto.**
     1. Guardar o mapa atual: `mv evaluation/mapa-anonimizacao.csv evaluation/mapa-anonimizacao.guardado.csv`.
-    2. `node evaluation/tools/anonimizar.mjs $(ls runs | grep '^BATCH-' | LC_ALL=C sort) --seed 24`.
+    2. `node evaluation/tools/anonymize.mjs $(ls runs | grep '^BATCH-' | LC_ALL=C sort) --seed 24`.
     3. Checagem: os 18 códigos do mapa gerado são exatamente os 18 da `evaluation/leitura-claude-cego.csv`. Se não forem, parar.
     4. Mover o mapa gerado para `history/pilot/mapa-anonimizacao.csv`, as 18 pastas geradas em `evaluation/packages/` para `history/pilot/packages/`, e `git mv evaluation/leitura-claude-cego.csv history/pilot/`.
     5. Restaurar: `mv evaluation/mapa-anonimizacao.guardado.csv evaluation/mapa-anonimizacao.csv`.
@@ -111,19 +111,19 @@ O `.gitignore` e o `.gitattributes` do `TCC_V3` continuam valendo dentro da subp
   - **As leituras do enunciado, pelo Lucas, sem IA:** os 5 pontos em que o texto admite mais de uma leitura e a calculadora escolheu uma. Divergência se resolve pelo texto; se o texto não decide, vira inconsistência no §6 do `OBJETIVO.md`. **Feita em 07/10, sem divergência.**
   - Os números dos exemplos 1 a 4 e da resposta do anexo, no enunciado do V4, saíram da calculadora; se uma das frentes acusar erro, eles são recalculados antes de o V4 rodar.
   - *Trocado duas vezes, a confirmar com o orientador.* Em 03/10: a implementação de referência escrita do zero virou uma conferência humana (dois casos calculados à mão e as regras uma a uma). Em 07/10: a conferência virou as duas frentes acima. Motivo: refazer a conta à mão repete o que as implementações independentes já verificam; o risco que sobra é de leitura, e é ele que a revisão do Lucas cobre, em cerca de 15 minutos.
-- [x] Validar também o outro lado: a suíte **reprova** código errado. Cada mutante de `evaluation/acceptance-prototype/mutantes.mjs` (a calculadora com um erro plantado, um por regra do enunciado que tem armadilha) precisa ser reprovado; o `validar-mutantes.mjs` sai com 0. Feito em 03/10: 15 de 15. Refeito em 06/10 para o enunciado do V4: 21 casos, 17 de 17 (o mutante 7 voltou e entrou o 17, a fronteira do boleto). Refeito em 07/10, com o seguro no lugar do imposto: 17 de 17.
+- [x] Validar também o outro lado: a suíte **reprova** código errado. Cada mutante de `evaluation/acceptance-prototype/mutants.mjs` (a calculadora com um erro plantado, um por regra do enunciado que tem armadilha) precisa ser reprovado; o `validate-mutants.mjs` sai com 0. Feito em 03/10: 15 de 15. Refeito em 06/10 para o enunciado do V4: 21 casos, 17 de 17 (o mutante 7 voltou e entrou o 17, a fronteira do boleto). Refeito em 07/10, com o seguro no lugar do imposto: 17 de 17.
 - [x] A unidade é o **caso** (passa ou falha), como a hipótese da correção está escrita, e não a verificação de campo. Pontos em que o enunciado se contradiz entram como observação, sem contar (03/10). No enunciado do V4 as contradições foram corrigidas, e a suíte não tem mais observações (06/10).
 - ~~**State:** conferir a cópia dos valores do `state.mjs` e as fronteiras sem caso~~. Saiu com o State (07/10); o passo ficou anotado em `history/state/README.md`, para quando ele voltar.
 
-Como roda sobre os workspaces já salvos, vale para as 36 execuções existentes sem rodar modelo de novo e sem tocar no `executar.sh`.
+Como roda sobre os workspaces já salvos, vale para as 36 execuções existentes sem rodar modelo de novo e sem tocar no `run-one.sh`.
 
 **Pronto quando:** as duas frentes da verificação do gabarito estão registradas sem divergência aberta, todos os mutantes são reprovados e a suíte está congelada com hash.
 
-## Parte 3 — `verificar.mjs`
+## Parte 3 — `verify.mjs`
 
-**Objetivo:** todo número do texto do TCC recalculável a partir dos dados brutos. Fica em `infra/scripts/`, no estilo do `agregar.mjs`.
+**Objetivo:** todo número do texto do TCC recalculável a partir dos dados brutos. Fica em `infra/scripts/`, no estilo do `aggregate.mjs`.
 
-**Versão enxuta (decidida em 07/10):** ficam as checagens 1, 2, 4 e 6, as que acusam um defeito que nenhuma outra peça acusa. A 3 e a 5 saem: a contagem de acertos e os totais para o texto saem direto dos CSVs (o do `agregar.mjs`, o do `acceptance.sh` e o da leitura), sem um segundo cálculo para manter.
+**Versão enxuta (decidida em 07/10):** ficam as checagens 1, 2, 4 e 6, as que acusam um defeito que nenhuma outra peça acusa. A 3 e a 5 saem: a contagem de acertos e os totais para o texto saem direto dos CSVs (o do `aggregate.mjs`, o do `acceptance.sh` e o da leitura), sem um segundo cálculo para manter.
 
 Construir uma checagem por vez, nesta ordem:
 
@@ -142,7 +142,7 @@ Sai com código 1 e lista os problemas, ou com 0 se estiver tudo coerente.
 
 **Limite a declarar na metodologia:** o script garante coerência entre as fontes, não a correção da classificação. Isso fica com a Parte 4.
 
-**Só os lotes da análise.** Roda sobre os lotes que valem, os do V4 (o EXT serve de ensaio), por padrão, recebendo o lote como argumento, como o `--prefix` do `agregar.mjs`. SMOKE, TESTE e BATCH ficam fora: não sustentam nenhum número do texto, e não têm o desenho que as checagens exigem (uma réplica só, outro enunciado, execuções invalidadas de propósito), então falhariam por construção, e um verificador cheio de exceções esconde problema de verdade. A conferência do mapa do piloto foi única, feita na Parte 0.
+**Só os lotes da análise.** Roda sobre os lotes que valem, os do V4 (o EXT serve de ensaio), por padrão, recebendo o lote como argumento, como o `--prefix` do `aggregate.mjs`. SMOKE, TESTE e BATCH ficam fora: não sustentam nenhum número do texto, e não têm o desenho que as checagens exigem (uma réplica só, outro enunciado, execuções invalidadas de propósito), então falhariam por construção, e um verificador cheio de exceções esconde problema de verdade. A conferência do mapa do piloto foi única, feita na Parte 0.
 
 Em 03/10 conferiu-se à mão, sem ler desfecho, o que as checagens 4 e 6 vão automatizar: as 18 execuções do EXT são 18 combinações distintas (3 réplicas × 3 modelos × 2 braços), todas com o enunciado `b7cdb594…` (o mesmo do cabeçalho do gabarito), a mesma imagem e a mesma versão do Claude Code, e o harness só no braço `HARNESS`.
 
@@ -164,11 +164,11 @@ Em 03/10 conferiu-se à mão, sem ler desfecho, o que as checagens 4 e 6 vão au
 
 A leitura atual confia que o agente não abriu o mapa. O mapa continua em `evaluation/` e os pacotes são cópias exatas de `runs/*/workspace`, então um agente com acesso ao repositório consegue descobrir o braço. A leitura passa a rodar no mesmo tipo de container da bancada, onde isso fica impossível, e não só evitado.
 
-- [ ] Criar `infra/scripts/ler-cego.sh`, no molde do `executar.sh`: `docker run --rm`, mesma imagem, `claude -p` com `--no-session-persistence`.
+- [ ] Criar `infra/scripts/blind-read.sh`, no molde do `run-one.sh`: `docker run --rm`, mesma imagem, `claude -p` com `--no-session-persistence`.
 - [ ] O script recebe **só o nome do padrão** e monta tudo a partir de `evaluation/<padrao>/`, para não haver escolha separada de gabarito que possa errar.
 - [ ] Montar no container só isto: uma cópia de `evaluation/<padrao>/packages/` (somente leitura), a régua e o `gabarito.md` da mesma pasta, e uma pasta de saída para o CSV. Nada do repositório, nem `runs/`, nem o mapa.
 - [ ] A régua entra como prompt, igual ao `prompt.md` na execução.
-- [ ] Reaproveitar o preflight do `executar.sh`: registrar que `~/.claude` está vazio e que não existe `CLAUDE.md` fora da pasta montada. Guardar esse log junto do CSV como prova.
+- [ ] Reaproveitar o preflight do `run-one.sh`: registrar que `~/.claude` está vazio e que não existe `CLAUDE.md` fora da pasta montada. Guardar esse log junto do CSV como prova.
 - [ ] Não fazer a leitura no app do Claude nem numa sessão do Claude Code no seu computador: os dois podem ter memória sobre o TCC.
 
 Por que isso elimina a memória: o container nasce com `~/.claude` vazio (sem memória, sem `CLAUDE.md` de usuário) e é destruído no fim (`--rm`), então nada de uma leitura sobra para a próxima.
@@ -203,7 +203,7 @@ Por que isso elimina a memória: o container nasce com `~/.claude` vazio (sem me
 ### A fazer
 
 - [ ] Escrever os quatro pedidos de mudança no tom do enunciado, sem palavra de arquitetura, com os valores (tarifas, porcentagens, limites) e exemplos conferidos; cada fronteira nova com caso no valor exato.
-- [ ] Estender a bancada para rodar uma sprint sobre uma cópia e tirar as cópias de antes e depois, sem mudar o `executar.sh` congelado (script novo, ou versão nova com hash novo).
+- [ ] Estender a bancada para rodar uma sprint sobre uma cópia e tirar as cópias de antes e depois, sem mudar o `run-one.sh` congelado (script novo, ou versão nova com hash novo).
 - [ ] Hipóteses próprias no `OBJETIVO.md`, com a medida ★ e a regra de leitura por pares, **antes** de rodar.
 
 **Pronto quando:** os quatro pedidos, a extensão da bancada e as hipóteses estão congelados com hash. É a parte maior; pode ficar para depois da análise do primeiro experimento.
@@ -234,7 +234,7 @@ Para cada modelo, N0, N1, N2 e N3 rodam **ao mesmo tempo**, um quarteto simultâ
 
 ### A fazer
 
-- [ ] `infra/scripts/run-levels.sh`: roda os quatro níveis de um modelo em paralelo, chamando o `executar.sh` congelado (sem mudá-lo), com a mesma checagem prévia do `rodada.sh`. **Montado em 06/10**, com as recusas testadas sem gastar cota (argumentos inválidos, nível ausente, execução já existente: nada é lançado). Falta o teste real e o hash no README.
+- [ ] `infra/scripts/run-levels.sh`: roda os quatro níveis de um modelo em paralelo, chamando o `run-one.sh` congelado (sem mudá-lo), com a mesma checagem prévia do `rodada.sh`. **Montado em 06/10**, com as recusas testadas sem gastar cota (argumentos inválidos, nível ausente, execução já existente: nada é lançado). Falta o teste real e o hash no README.
 - [x] Regras de leitura do §4.1 refeitas para **5 réplicas** e para **pares entre níveis** (N1 × N0, N2 × N1, N3 × N2), e a tendência de N0 a N3 (06/10). As principais seguem em N1 × N0; a tendência é informação (teste de Page), não critério. Os limites mantêm a proporção dos de 3 réplicas e ficam para o Lucas revisar.
 - [ ] Plano de cota: em quantos dias, e em que ordem, as 60 execuções rodam, sempre com a assinatura livre.
 - [x] Enunciados do V4 (06/10): nos dois, o cliente que **entende o básico** e montou a parte técnica pesquisando, no lugar do "desenvolvedor do site" e do "time técnico"; no do Strategy, as três inconsistências do §6 corrigidas (exemplos 1 a 4 com clube e região; resposta do anexo; boleto sobre o total do pedido) e, em 07/10, o imposto por região trocado por **seguro por região**, com a mesma forma (o P5 continua sendo o controle negativo). Hashes: `prompt.md` `d798c11402a52f8c` e, antes de o State sair, `state.md` `4591f7425e1551fd` (hoje em `history/state/`); os que rodaram na bancada estão em `history/prompt-v3/`.
@@ -267,13 +267,13 @@ Duas fases, separadas por uma linha: **nenhum dado do experimento é olhado ante
 
 | # | o quê | parte | quem | gasta tokens? |
 | --- | --- | --- | --- | --- |
-| g | gerar o CSV do lote (`agregar.mjs --prefix <lote> --out analysis/resultados-<lote>.csv`: são as hipóteses de custo) e construir o `verificar.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
+| g | gerar o CSV do lote (`aggregate.mjs --prefix <lote> --out analysis/resultados-<lote>.csv`: são as hipóteses de custo) e construir o `verify.mjs` com as checagens 2, 4 e 6 e a prova de que acusa | 3 | Claude | não, mas lê dado |
 | h | suíte sobre o lote (as hipóteses de correção) | 2 | Claude | não, mas lê dado |
-| h2 | métricas automáticas sobre o lote (`evaluation/tools/metricas.sh <prefixo>`) | — | Claude | não, mas lê dado |
+| h2 | métricas automáticas sobre o lote (`evaluation/tools/metrics.sh <prefixo>`) | — | Claude | não, mas lê dado |
 | i | leitura dupla do lote, kappa e resolução | 4 | Lucas + Claude | sim |
-| j | completar o `verificar.mjs` (a checagem 1, que depende da leitura) e rodar sobre tudo; os totais para o texto saem dos CSVs | 3 | Claude | não |
+| j | completar o `verify.mjs` (a checagem 1, que depende da leitura) e rodar sobre tudo; os totais para o texto saem dos CSVs | 3 | Claude | não |
 | k | manutenção: extensão, depois da análise do V4; precisa de pré-registro próprio (os itens dela voltam à fase 1) | 5 | — | sim, e mais |
 
 **O lote do V4** (o Strategy, com os quatro níveis) é execução e roda só com a fase 1 inteira congelada. Ele é medido pelas etapas g a j, com a régua e a suíte do Strategy. O EXT continua sendo o ensaio: tudo da fase 2 pode ser testado nele antes.
 
-A ordem segue corrigir → implementar → testar → rodar. O `verificar.mjs` fica na fase 2 porque ele confere dados, e os que importam (custos, suíte, leituras) só existem ali; construí-lo antes seria fazer uma ferramenta sem material. Com a fase 1 congelada, o V4 rodado e g a j feitos sobre os dois lotes, o experimento fica completo; a Parte 5 é extensão.
+A ordem segue corrigir → implementar → testar → rodar. O `verify.mjs` fica na fase 2 porque ele confere dados, e os que importam (custos, suíte, leituras) só existem ali; construí-lo antes seria fazer uma ferramenta sem material. Com a fase 1 congelada, o V4 rodado e g a j feitos sobre os dois lotes, o experimento fica completo; a Parte 5 é extensão.

@@ -1,6 +1,6 @@
 // Mutantes da calculadora de referencia (ref-strategy.mjs): cada um planta UM erro.
 // Servem para provar que a suite (strategy.mjs) REPROVA codigo errado, e nao so
-// que aprova o certo. Quem roda: validar-mutantes.mjs.
+// que aprova o certo. Quem roda: validate-mutants.mjs.
 //
 // Criterio para entrar: um mutante por regra do enunciado que tem armadilha.
 // Erro grosseiro, que qualquer caso pega (aliquota trocada, tarifa esquecida),
