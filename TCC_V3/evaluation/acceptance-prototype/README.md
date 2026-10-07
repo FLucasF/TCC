@@ -44,12 +44,33 @@ calculadora, do enunciado e da imagem); no fim, refaz
 `analysis/acceptance-<lote>.csv` a partir desses arquivos. Nunca mede duas vezes
 (execução com `acceptance.txt` é pulada), recusa execução de outro enunciado, e
 separa as situações `all_passed`, `some_failed`, `contract_not_followed` (todo
-caso devolveu 404), `build_failed`, `app_did_not_start` e `no_pom`. Testado em
-07/10 sobre cópias das `TESTE-STRATEGY-01` (fora de `runs/`), mais um pacote sem
-`pom.xml` e um serviço de outro contrato: saíram certas `some_failed`, `no_pom` e
-`contract_not_followed`, as duas recusas (outro enunciado, prefixo inválido) e o
-"nunca mede duas vezes". `all_passed`, `build_failed` e `app_did_not_start` vêm
-direto do código de saída do `executor.sh` e só aparecem com execuções do V4.
+caso devolveu 404), `build_failed`, `app_did_not_start` e `no_pom`.
+
+Testado em 07/10, sem gastar cota, sobre cópias fora de `runs/`:
+
+| pacote | o que tinha | resultado |
+|---|---|---|
+| as seis `TESTE-STRATEGY-01` | o enunciado da bancada (sem o campo `seguro`) | recusadas sem `ALLOW_PROMPT_MISMATCH`; com ele, `some_failed`, 8 de 21 |
+| a do Opus, adaptada ao V4 | as alíquotas e a base do seguro, o boleto sobre o total e o campo `seguro` | `all_passed`, 21 de 21 |
+| com um erro de sintaxe | código que não compila | `build_failed` |
+| com o `.jar` trocado por texto | serviço que não sobe | `app_did_not_start` |
+| sem `pom.xml` | — | `no_pom` |
+| um serviço do State | o caminho errado, tudo 404 | `contract_not_followed`, 0 de 21 |
+
+Também saíram certos a recusa de prefixo inválido, o enunciado "confere" e o
+"nunca mede duas vezes".
+
+O 21 de 21 da implementação adaptada é um **indício parcial** de que a
+calculadora do V4 está certa: toda a aritmética que não é do seguro (frete,
+cupons, arredondamento, Price, Pix, boleto, clube) é do código do Opus e bateu com
+ela em todos os casos. A parte do seguro foi escrita na adaptação, então não é
+independente; a verificação completa continua sendo o teste de bancada do V4.
+
+Uma observação sobre o `executor.sh`: quando ele precisa compilar, o
+`-DskipTests` pula a execução dos testes do agente, mas não a compilação deles. Se
+os testes não compilarem, o serviço sai `build_failed` mesmo com o código de
+produção funcionando. Pesa pouco, porque o executor reaproveita o `.jar` que a
+bancada já gerou, e nas 62 execuções da bancada o build passou em todas.
 
 Para um workspace só, à mão:
 
