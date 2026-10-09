@@ -49,12 +49,23 @@ const casos = [
   ["fronteira: boleto com 1000,00 exatos", { itens: [{ nome: "Casaco", precoUnitario: 480.00, quantidade: 2, pesoKg: 4.60 }], modalidadeEntrega: "ECONOMICA", formaPagamento: "BOLETO", nivelClube: "BRONZE", regiao: "SUDESTE" }],
 ];
 const num = (a, b) => typeof a === "number" && Math.abs(a - b / 100) < 0.001;
+// Pontos por tipo de caso (decisao de 09/10): a conta vale 1 ou 0; a recusa vale 1
+// com o codigo e o status de recusa certos, 0,5 com o codigo certo e status de
+// sucesso (a regra de negocio certa, a convencao do HTTP errada), e 0 no resto.
+// O RESULTADO continua tudo ou nada; CONTAS, RECUSAS e PONTOS vem depois dele.
+const placar = { conta: { pontos: 0, casos: 0 }, recusa: { pontos: 0, casos: 0 } };
 for (const [nome, corpo] of casos) {
   const antes = falhas.length;
+  const esp = calcular(corpo);
+  const tipo = esp.erro ? "recusa" : "conta";
+  let parcial = 0;
   try {
-    const esp = calcular(corpo), r = await post(corpo);
+    const r = await post(corpo);
     if (esp.erro) {
-      if (!(r.status >= 400 && r.status < 500 && r.j?.erro === esp.erro)) falhas.push(`${nome}: esperado recusa (4xx) ${esp.erro}, veio ${r.status} ${JSON.stringify(r.j)}`);
+      if (!(r.status >= 400 && r.status < 500 && r.j?.erro === esp.erro)) {
+        if (r.status >= 200 && r.status < 300 && r.j?.erro === esp.erro) parcial = 0.5;
+        falhas.push(`${nome}: esperado recusa (4xx) ${esp.erro}, veio ${r.status} ${JSON.stringify(r.j)}${parcial ? " [vale 0,5: codigo certo, status de sucesso]" : ""}`);
+      }
     } else if (!(r.status >= 200 && r.status < 300)) {
       falhas.push(`${nome}: esperado sucesso (2xx), veio ${r.status} ${JSON.stringify(r.j)}`);
     } else {
@@ -67,7 +78,12 @@ for (const [nome, corpo] of casos) {
     }
   } catch (err) { falhas.push(`${nome}: excecao no teste: ${err.message}`); }
   if (falhas.length === antes) passaram++;
+  placar[tipo].casos++;
+  placar[tipo].pontos += falhas.length === antes ? 1 : parcial;
 }
 console.log(`RESULTADO: ${passaram} de ${casos.length} casos passaram`);
+console.log(`CONTAS: ${placar.conta.pontos} de ${placar.conta.casos}`);
+console.log(`RECUSAS: ${placar.recusa.pontos} de ${placar.recusa.casos}`);
+console.log(`PONTOS: ${placar.conta.pontos + placar.recusa.pontos} de ${casos.length}`);
 for (const f of falhas) console.log("  FALHA " + f);
 process.exit(falhas.length ? 1 : 0);

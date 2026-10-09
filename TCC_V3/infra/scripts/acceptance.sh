@@ -91,6 +91,10 @@ for run_dir in "${RUN_DIRS[@]}"; do
         passed="$(printf '%s' "$result_line" | sed -n 's/^RESULTADO: \([0-9]*\) de \([0-9]*\) casos.*/\1/p')"
         total="$(printf '%s' "$result_line" | sed -n 's/^RESULTADO: \([0-9]*\) de \([0-9]*\) casos.*/\2/p')"
     fi
+    # Os pontos por tipo de caso (09/10): CONTAS, RECUSAS (com o 0,5) e PONTOS, "x de n".
+    # Ficam vazios quando o servico nem chegou a responder (sem pom, build, nao subiu).
+    points() { printf '%s\n' "$raw" | sed -n "s/^$1: \([0-9.]*\) de \([0-9]*\)\$/\1 de \2/p" | head -1; }
+    contas="$(points CONTAS)"; recusas="$(points RECUSAS)"; pontos="$(points PONTOS)"
     case $rc in
         0) status="all_passed" ;;
         1) status="some_failed"
@@ -114,6 +118,9 @@ for run_dir in "${RUN_DIRS[@]}"; do
         echo "status: $status"
         echo "passed: $passed"
         echo "total: $total"
+        echo "contas: $contas"
+        echo "recusas: $recusas"
+        echo "pontos: $pontos"
         echo "---"
         printf '%s\n' "$raw"
     } > "$out"
@@ -123,14 +130,17 @@ done
 # ------------------------------------------------------------------ o CSV do lote
 # Refeito a partir dos acceptance.txt, que sao a fonte: o CSV nunca diverge deles.
 {
-    echo "run_id,status,passed,total,suite_hash,reference_hash,prompt_hash,prompt_check"
+    echo "run_id,status,passed,total,suite_hash,reference_hash,prompt_hash,prompt_check,contas,recusas,pontos"
     for run_dir in "${RUN_DIRS[@]}"; do
         f="${run_dir%/}/acceptance.txt"; [ -f "$f" ] || continue
         field() { sed -n "s/^$1: //p" "$f" | head -1; }
         prompt_line="$(field prompt)"
-        printf '%s,%s,%s,%s,%s,%s,%s,%s\n' "$(field run_id)" "$(field status)" "$(field passed)" "$(field total)" \
+        # contas/recusas/pontos so o valor (o total e fixo: 12, 9 e 21); vazio nas
+        # medicoes anteriores a 09/10, que nao tinham essas linhas.
+        printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "$(field run_id)" "$(field status)" "$(field passed)" "$(field total)" \
             "$(field suite | cut -d' ' -f2)" "$(field reference | cut -d' ' -f2)" \
-            "${prompt_line%% *}" "$(printf '%s' "${prompt_line#* }" | cut -d' ' -f1)"
+            "${prompt_line%% *}" "$(printf '%s' "${prompt_line#* }" | cut -d' ' -f1)" \
+            "$(field contas | cut -d' ' -f1)" "$(field recusas | cut -d' ' -f1)" "$(field pontos | cut -d' ' -f1)"
     done
 } > "$CSV_FILE"
 printf '\nCSV: %s\n' "$CSV_FILE"
