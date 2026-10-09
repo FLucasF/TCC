@@ -52,6 +52,9 @@ precisa mudar?*
 
 ## 3. O roteiro de cada pacote
 
+**Você não pontua nada.** Em cada pergunta, você escolhe a palavra da lista e escreve a
+linha que a prova (`arquivo:linha`). A nota sai depois, por script.
+
 1. **Abra o pacote** (a cópia cega: sem comentários, sem README; as linhas estão no
    mesmo lugar do original).
 2. **Busque os nomes do clube** e leia as linhas que aparecerem:
@@ -62,14 +65,20 @@ precisa mudar?*
    ```bash
    grep -rniE "credito|fretegratis|brinde" <pacote>/src/main
    ```
-4. **Limpe o ruído** (§6) e responda à `localizacao` e à `selecao`.
-5. **Busque as regiões** e responda à `forma` e à `proporcao`:
+4. **Primeiro limpe o ruído** (§6): homônimos de outro ponto, pedaços de palavra,
+   `import`, campos da entrada e da saída, listas de válidos.
+5. **Depois, a casa de cada nível:** cada um tem uma unidade própria (uma classe, uma
+   constante de enum com corpo, uma entrada de mapa)? Se não tem, tudo o que é dele está
+   fora da casa.
+6. **Aplique os três testes** (§4) em cada linha que sobrou **fora** da casa dos níveis,
+   e responda à `localizacao` e à `selecao`.
+7. **Busque as regiões** e responda à `forma` e à `proporcao`:
    ```bash
    grep -rnE "SUDESTE|NORDESTE|NORTE|Norte|Sudeste" <pacote>/src/main
    ```
-6. **Na dúvida, `indeterminado`**, e a dúvida escrita. Não é errar: conta como
+8. **Na dúvida, `indeterminado`**, e a dúvida escrita. Não é errar: conta como
    discordância, e a dúvida mostra onde a régua não está clara.
-7. **Achou que sabia o nível?** Escreva na coluna `achei_que_sabia_nivel` (por exemplo,
+9. **Achou que sabia o nível?** Escreva na coluna `achei_que_sabia_nivel` (por exemplo,
    "N2 ou N3: a classe se chama EstrategiaClube").
 
 ---
@@ -87,11 +96,32 @@ precisa mudar?*
 cita todos os níveis só para conferir se o código existe); uma constante de um nível
 declarada fora dele; uma função genérica que não cita o nível.
 
+**Os três testes, em cada linha de fora da casa dos níveis.** É assim que você valida
+sozinho:
+
+| teste | a pergunta | se a resposta for… |
+|---|---|---|
+| **1. nomeia?** | se a loja criasse um nível Diamante parecido, **esta linha precisaria mudar**? | sim: a linha é específica de um nível |
+| **2. é lista de válidos?** | ela só confere se o código existe, citando **todos** os níveis? | sim: não conta |
+| **3. está fora da casa?** | o método onde ela está é **do nível**, ou é **de todos** (do frete, do serviço)? | de todos: está fora da casa |
+
+Uma linha que passa nos três (específica, não é lista, fora da casa) basta para
+`espalhado`, e ela é a evidência. Se nenhuma passa, `isolado`, e a evidência é a casa de
+um nível e as linhas de fora que usam o nível sem nomear.
+
 **Exemplo inventado de `espalhado`:**
 ```java
 // no serviço, e não na classe do Ouro
 if (nivel instanceof NivelOuro) return BigDecimal.ZERO;
 ```
+
+**Ser texto não decide.** Os níveis podem chegar como texto e o código estar `isolado`:
+```java
+Map<String, Nivel> niveis = Map.of("OURO", new NivelOuro(), "PRATA", new NivelPrata());
+nivel = niveis.get(codigo);           // cada nível tem a sua classe; o resto só pergunta a ela
+```
+O contrário também vale: se os níveis **não têm casa nenhuma** (só texto comparado em
+métodos de todos), tudo o que é deles está fora da casa, e é `espalhado`.
 
 ### `selecao`: o caminho do texto até a conta nomeia níveis?
 

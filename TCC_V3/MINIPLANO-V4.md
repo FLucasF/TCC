@@ -132,15 +132,16 @@ v - decidido que sim · x - decidido que não
       da calibração do L3RG ("nomear", "valor", o `if` de validação na tabela, o ruído
       da busca), e o `GUIA-DA-REGUA.md` cortado para ela. 🤖, revisado pelo 👤
       *Escrita em 09/10, com o gabarito do V4 (só os casos de cada ponto, o seguro no
-      P5). A régua foi revisada pelo Lucas em 09/10 (de acordo); o gabarito e o
-      guia ainda não.*
+      P5). A régua, o gabarito e o guia foram revisados pelo Lucas em 09/10 (de
+      acordo).*
 - [x] 🔴 **Reescrever o `OBJETIVO.md`**: hipóteses principais (padrão pelo Semgrep, correção,
       qualidade, modelo), os limites do §4.1 recalculados para 25 pares, a regra de
       saída, os pesos da nota, de onde veio a complexidade cognitiva (o ensaio). 🤖,
       revisado pelo 👤 *Escrito e revisado pelo Lucas em 09/10 (de acordo; a qualidade
       fica como principal). Falta só a lista dos 5 modelos, que sai do mapa.*
-- [ ] 🔴 **Calibração do Lucas**: 1 ou 2 pacotes de treino com a régua enxuta, cronometrando
-      o primeiro. 👤
+- [x] 🔴 **Calibração do Lucas**: 1 ou 2 pacotes de treino com a régua enxuta, cronometrando
+      o primeiro. 👤 *Feito em 09/10: 2 pacotes, 8 de 8 com o Semgrep; 6 ajustes de texto
+      na régua e no guia. O Lucas treina sozinho com pacotes do V3 antes do V4.*
 - [ ] 🔴 **Congelar o `OBJETIVO`** (commit e hash) **antes** da primeira execução do V4. 👤
 
 ## Passo 6. Montar e rodar o V4
@@ -197,3 +198,4 @@ v - decidido que sim · x - decidido que não
 | 09/10 | passo 3 sem cota fechado: o alarme, o exagero de mentira, o teste nos 4 Opus (40 de 40), a regra do mapa registrada e o Semgrep congelado; o mapa fica para o fim, com o passo 2 |
 | 09/10 | passo 5: a régua enxuta, o gabarito do V4, o guia e o `OBJETIVO` escritos (rascunhos para o Lucas revisar); o README do projeto atualizado |
 | 09/10 | o Lucas revisou o `OBJETIVO` e a régua e ficou de acordo; a qualidade fica como hipótese principal |
+| 09/10 | gabarito e guia revisados; calibração em 2 pacotes (8 de 8 com o Semgrep), 6 ajustes de texto aplicados; a régua fica pronta para congelar |

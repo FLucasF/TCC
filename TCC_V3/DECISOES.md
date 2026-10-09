@@ -512,6 +512,17 @@ precisa de pacotes novos, inclusive um com exagero, que o EXT não tem. *Limite:
 forma de escrever que ninguém previu derruba a regra em silêncio; por isso a
 conferência humana. *Onde:* `evaluation/tools/semgrep/`.
 
+**09/10: a calibração da régua versão 4, em 2 pacotes, encerrada.** O Lucas leu, com
+a régua enxuta e o guia, um pacote do `TESTE-P4` e um do EXT (cópias cegas sem
+comentários, com códigos novos, em `evaluation/calibration-v4/`). O resultado do Semgrep
+foi calculado antes e só aberto depois: **8 de 8** (as 4 perguntas nos 2 pacotes, um
+`espalhado` com `if` sobre texto e um `isolado` com classes e catálogo). Os 6 achados
+foram de clareza do texto, e entraram na régua e no guia sem mudar regra nenhuma (o
+caso sem unidade própria, a evidência de cada valor, o roteiro com os três testes por
+linha). *Encerrada por decisão do Lucas:* o Claude ajudou a entender o que responder, e
+o Lucas treina sozinho com pacotes do V3 antes da leitura do V4. *Onde:*
+`evaluation/calibration-v4/notas-lucas.md`.
+
 **09/10: o Lucas confere o Semgrep lendo 20 pacotes às cegas, um por modelo × nível,
 com uma regra de saída pré-registrada.** *Proposta.* Ele responde às mesmas perguntas
 sem ver o Semgrep; as duas leituras são commitadas; um script compara. Se a

@@ -55,6 +55,11 @@ a dúvida na coluna `duvida`. Na conferência, `indeterminado` conta como discor
 | `isolado` | todo o código **específico** de cada nível está numa unidade só dele |
 | `espalhado` | algum nível tem código específico **também** em outra unidade, **inclusive** um `if` que o nomeia numa validação ou na escolha do código de erro |
 
+**Se o nível não tem unidade própria** (os níveis só existem como texto ou como
+constantes de um enum sem corpo, comparados em métodos de todos), qualquer código
+específico de um nível está, por definição, fora da casa dele: é `espalhado`. Ser texto
+não decide nada por si: um mapa de texto para uma classe por nível é `isolado`.
+
 **Não conta como código do nível fora dele:**
 - o nome usado só como chave de registro ou numa **lista de válidos** (um bloco que cita
   todos os níveis só para conferir se o código existe);
@@ -122,6 +127,15 @@ leitor,blind_code,P4_localizacao,P4_selecao,P5_forma,P5_proporcao,evidencia,duvi
 ```
 
 - `evidencia`: o `arquivo:linha` de cada resposta, na ordem das colunas, separados por `;`.
+  O que vai em cada uma:
+
+  | valor | a evidência |
+  |---|---|
+  | `isolado` | a casa de um nível (a classe ou a constante dele) **e** as linhas de fora que usam o nível sem nomear |
+  | `espalhado` | a linha de fora que faz algo só para um nível |
+  | `consulta` | a linha onde o nível é achado sem nomear (o `Map.get`, o `valueOf`, o catálogo) |
+  | `condicional-unica`, `condicional-no-calculo` | a linha do `switch`/`if` que nomeia o nível |
+  | `forma` e `proporcao` | a linha onde a variação por região está escrita |
 - `achei_que_sabia_nivel`: vazio, ou o nível e o motivo (por exemplo, "N2 ou N3: a
   classe se chama EstrategiaClube"). Se o leitor acertar o nível muitas vezes, o
   cegamento vazou, e isso vai para as limitações.
