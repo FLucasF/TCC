@@ -64,14 +64,20 @@ v - decidido que sim · x - decidido que não
 
 ## Passo 2. Um quarteto de Sonnet ou Opus no enunciado do V4 💰
 
-- [ ] 🔴 **Verificar a calculadora do seguro.** Nenhuma implementação real do V4 fez 21
+- [x] 🔴 **Verificar a calculadora do seguro.** Nenhuma implementação real do V4 fez 21
       de 21 ainda (o Haiku: 20, 17, 11, 12, 20). Uma implementação independente que
       chegue a 21 de 21 confirma a calculadora; se um caso falhar em todos os modelos
       fortes, a suspeita é da calculadora, e o caso é revisto **antes** do V4.
-- [ ] 🔴 **Medir a cota** de um quarteto de modelo forte (o f4 só mediu o Haiku: 10 a
-      15% da janela de 5 h). Anotar o percentual antes e depois. 👤
-- [ ] Com esse número: o **plano de cota** das 100 execuções (quantas janelas, quantos
-      dias). 🤖
+      *Feito em 09/10: o quarteto do Opus 5 (`TESTE-NIVEIS-01-OPUS`), 4 implementações,
+      21 de 21 cada (`DECISOES.md`, §5).*
+- [x] 🔴 **Medir a cota** de um quarteto de modelo forte (o f4 só mediu o Haiku: 10 a
+      15% da janela de 5 h). Anotar o percentual antes e depois. 👤 *Feito em 09/10: o
+      quarteto do Opus 5 gasta cerca de 80%; começou em 20% e o N3 bateu no limite.*
+- [x] Com esse número: o **plano de cota** das 100 execuções (quantas janelas, quantos
+      dias). 🤖 *Feito em 09/10 (`DECISOES.md`, §2): um quarteto do Opus por janela
+      zerada (5 janelas), os do Haiku 4.5 cabem em 1; os outros 3 modelos se estimam
+      pelo custo do N0 no mapa. Medido no plano anterior: com o Claude Max (09/10), o
+      mapa mede de novo o gasto por janela, e o plano é refeito com esse número.*
 
 ## Passo 3. O mapa e o fechamento do Semgrep 💰
 
@@ -120,8 +126,12 @@ v - decidido que sim · x - decidido que não
       sabia o nível?". *Feito em 09/10:* o `sample.mjs` gera a planilha em branco.
 - [x] **Nota de 0 a 100:** script com os pesos que forem pré-registrados. *Feito em
       09/10* (`evaluation/tools/nota.mjs`; pesos A, com B e C ao lado, e a trava).
-- [ ] `verify.mjs` enxuto: confere que todas as execuções têm a mesma imagem, a mesma
-      versão do Claude Code e os modelos certos.
+- [x] `verify.mjs` enxuto: confere que todas as execuções têm a mesma imagem, a mesma
+      versão do Claude Code e os modelos certos. *Feito em 09/10*
+      (`infra/scripts/verify.mjs`, com o desenho em `experiment/desenho-v4.json`): as 4
+      checagens do plano, mais o modelo que respondeu, o corte pela cota, o quarteto
+      que não começou junto, a suíte de cada medição e os valores da planilha. A prova:
+      `verify-teste.mjs`, 37 de 37 casos (33 defeitos acusados na checagem certa).
 
 ## Passo 5. Pré-registro e calibração
 
@@ -199,3 +209,4 @@ v - decidido que sim · x - decidido que não
 | 09/10 | passo 5: a régua enxuta, o gabarito do V4, o guia e o `OBJETIVO` escritos (rascunhos para o Lucas revisar); o README do projeto atualizado |
 | 09/10 | o Lucas revisou o `OBJETIVO` e a régua e ficou de acordo; a qualidade fica como hipótese principal |
 | 09/10 | gabarito e guia revisados; calibração em 2 pacotes (8 de 8 com o Semgrep), 6 ajustes de texto aplicados; a régua fica pronta para congelar |
+| 09/10 | passo 2 registrado (a calculadora confirmada pelo Opus, a cota e o plano de cota); o `verify.mjs` pronto e provado (37 de 37); falta só o que gasta cota: o mapa, a escolha dos 5, congelar, criar o `TCC_V4` e rodar |

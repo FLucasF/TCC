@@ -176,7 +176,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | ler às cegas | `evaluation/tools/sample.mjs`: sorteia os 20 pacotes do Lucas e, depois, a releitura | a congelar com a régua |
 | conferir | `evaluation/tools/compare.mjs`: a leitura do Lucas × o Semgrep, e a regra de saída | a congelar com a régua |
 | resumir | `evaluation/tools/nota.mjs`: a nota de 0 a 100 de cada execução | a congelar com a régua |
-| conferir | `verify.mjs`: a versão enxuta, com 4 checagens (plano, Parte 3) | a construir |
+| conferir | `infra/scripts/verify.mjs`: as fontes do lote batem entre si (o desenho em `experiment/desenho-v4.json`); a prova de que acusa é o `verify-teste.mjs` | a congelar com o `OBJETIVO` |
 
 O `blind-read.sh` (a leitura do Claude isolada num container) não é mais preciso: desde 09/10 o Claude não lê os pacotes.
 
@@ -309,10 +309,12 @@ suíte, o SonarQube e o CK, e o Semgrep para o padrão), e a leitura humana às 
 
 A **régua** está em [`evaluation/regua.md`](evaluation/regua.md), versão 4 (enxuta: 4
 perguntas, no P4 e no P5), com o gabarito em `evaluation/strategy/gabarito.md` e o guia
-em `evaluation/GUIA-DA-REGUA.md`. **Ainda não está congelada:** falta a calibração do
-Lucas em 1 ou 2 pacotes e o hash dela neste README. A versão 3 (8 propriedades,
+em `evaluation/GUIA-DA-REGUA.md`. Calibrada pelo Lucas em 2 pacotes em 09/10
+(`evaluation/calibration-v4/`); **ainda não está congelada:** o hash dela entra neste
+README junto com o `OBJETIVO`, antes da primeira execução do V4. A versão 3 (8 propriedades,
 calibrada por dois leitores automáticos, [relatório](evaluation/calibracao-relatorio.md))
 está no histórico do git.
 
 As execuções com prefixo `SMOKE-` e `TESTE-` são de validação e estão **fora** da
-análise; as pastas `evaluation/calibration-*` guardam a calibração da régua antiga.
+análise; as pastas `evaluation/calibration-*` guardam a calibração da régua antiga,
+menos a `calibration-v4/`, que é a da régua enxuta.

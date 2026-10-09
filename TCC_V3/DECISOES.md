@@ -208,6 +208,25 @@ aprovação prévia. *O risco aceito:* se o professor discordar de uma escolha d
 ela vira limitação no texto, porque mudá-la exigiria rodar de novo. *Onde:*
 `MINIPLANO-V4.md`, passos 1 e 7.
 
+**09/10: a cota medida, e o plano de cota do V4.** Na assinatura, numa janela de 5 h:
+um quarteto do **Haiku 4.5** gasta **10 a 15%**; um quarteto do **Opus 5**, cerca de
+**80%**. O quarteto do Opus começou com a janela em 20% e o N3 bateu no limite
+("You've hit your session limit") perto do fim. *A regra:* um quarteto do Opus só
+começa com a janela **zerada**, e nada mais roda nela; os quartetos dos modelos
+menores podem dividir uma janela, desde que a soma estimada fique abaixo de 80%.
+Quarteto cortado pela cota é refeito inteiro (o `verify.mjs` acusa, ver §9). *A
+conta:* os 5 quartetos do Opus 5 pedem **5 janelas**; os 5 do Haiku 4.5, **1**; os
+dos outros 3 modelos saem do mapa (uma execução no N0 dá o custo do N0, e o N3 gasta
+cerca de 3 vezes o N0). *Limite:* o limite semanal da assinatura não foi medido; se
+ele apertar, as rodadas se espalham por mais dias, sem mudar o desenho (a ordem das
+rodadas é sorteada, e cada quarteto é inteiro). *Onde:* `MINIPLANO-V4.md`, passo 2.
+*Atualizada no mesmo dia:* o Lucas assinou o **Claude Max**, e os percentuais acima
+são do plano anterior. A janela fica maior, mas a regra fica como margem de
+segurança, porque um corte custa o quarteto inteiro. As 5 execuções do mapa medem de
+novo o gasto por janela no plano novo, e o plano de cota é refeito com esse número.
+Trocar de plano não muda o experimento: o modelo, o effort e a bancada são os
+mesmos, e a assinatura só muda quanto cabe numa janela.
+
 ## 3. Níveis de harness
 
 **26/09: uma pasta por versão de harness, escolhida por `HARNESS`.** *Por quê:*
@@ -404,6 +423,18 @@ código errado ou sem recusa. *Por quê:* a regra de negócio estava certa e só
 convenção do HTTP falhou; zerar o caso trataria isso como não saber o erro. No
 quarteto do Haiku, o N1 vai de 11 para 13,5 de 21 e o N2 de 12 para 14,5; o N0 e o
 N3 não mudam.
+
+**09/10: a calculadora do seguro está confirmada pelo quarteto do Opus 5.** As
+quatro execuções do `TESTE-NIVEIS-01-OPUS` (N0 a N3, escritas sem ver a calculadora
+nem a suíte) fizeram **21 de 21** cada uma, medidas com a suíte atual
+(`7742de00…`): 12 de 12 contas e 9 de 9 recusas. *Por que vale:* quatro
+implementações independentes, escritas só a partir do enunciado, chegando aos mesmos
+valores da calculadora nos 21 casos tornam improvável um erro dela, e nenhum caso
+falhou em todos os modelos fortes.
+Fecha o passo 2 do `MINIPLANO-V4` e a pendência da entrada de 07/10 sobre a
+calculadora com seguro. *Limite:* o N3 foi cortado pela cota no fim (ver §2), mas o
+código já estava completo; como teste, serve para a calculadora, e num lote que vale
+ele seria refeito.
 
 ## 6. Leitura de desenho (a régua)
 
@@ -734,6 +765,23 @@ scripts e a nota de 07/10.
 **06/10: depois de cada mudança na bancada, um teste de bancada barato** (Haiku,
 esforço baixo, um enunciado que só pergunta o que o agente recebeu). *Por quê:*
 conferir que nada quebrou sem gastar uma execução de verdade.
+
+**09/10: o `verify.mjs` construído, com o desenho do lote num arquivo.** O desenho do
+V4 (prefixo, réplicas, níveis com o hash de cada harness, imagem, versão do Claude
+Code, effort, suíte, gabarito) fica em `experiment/desenho-v4.json`, que congela com
+o `OBJETIVO`; os modelos entram depois do mapa, e até lá o script recusa rodar. As 4
+checagens de 07/10 (o desenho completo, o gabarito do enunciado das execuções, o CSV
+igual aos `meta.json`, a leitura com o mapa) ganharam o que a bancada mostrou que
+falta conferir: o modelo que **respondeu** (e não só o pedido), a execução cortada
+pela cota, o quarteto que não começou junto (um nível refeito sozinho), a suíte com
+que cada execução foi medida e os valores da planilha do Lucas fora da lista da
+régua. *A prova de que acusa:* `infra/scripts/verify-teste.mjs` monta um lote
+sintético e corrompe uma cópia por caso: o lote limpo e 3 variações legítimas saem
+com 0, e os 33 defeitos saem com 1 na checagem certa (37 de 37). Rodado sobre o
+`TESTE-NIVEIS-01` real, acusou o que já se sabia (o Haiku medido com a suíte antiga,
+o N3 do Opus cortado pela cota, o lote fora do gabarito, o CSV sem as linhas) e
+nada mais. *Limite:* garante coerência entre as fontes, não que a classificação
+esteja certa. *Onde:* `PLANO-IMPLEMENTACAO.md`, Parte 3.
 
 ## 10. Documentação
 

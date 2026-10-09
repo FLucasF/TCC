@@ -148,6 +148,8 @@ Em 03/10 conferiu-se à mão, sem ler desfecho, o que as checagens 4 e 6 vão au
 
 **Pronto quando:** roda limpo sobre o EXT (o ensaio), e cada cópia corrompida (ou dado sintético) faz sair com 1 na checagem certa; depois, sobre os lotes do V4.
 
+**Construído em 09/10** (`infra/scripts/verify.mjs`, com o desenho do lote em `experiment/desenho-v4.json`). O EXT não serve mais de ensaio limpo: o gabarito agora é o do V4 (outro enunciado) e a suíte mudou, então ele falharia por construção. No lugar, a prova é sintética (`verify-teste.mjs`: 37 de 37, os 33 defeitos acusados na checagem certa), e a conferência em dado real foi o `TESTE-NIVEIS-01`, onde ele acusou só os problemas já conhecidos. Detalhe e checagens a mais: `DECISOES.md`, §9.
+
 ## Parte 4 — Leitura dupla e kappa
 
 **Objetivo:** mostrar que a classificação não depende de quem leu. É o que responde à orientação de não deixar a IA solta.
