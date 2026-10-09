@@ -1,7 +1,13 @@
 // Prepara os pacotes para a avaliacao as cegas.
 //
 // Uso:
-//   node evaluation/tools/anonymize.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME]
+//   node evaluation/tools/anonymize.mjs <run_id> [run_id ...] [--seed N] [--padrao NOME] [--sem-comentarios]
+//
+// Com --sem-comentarios (a copia que o Lucas le no V4, decisao de 09/10): os
+// comentarios do .java, do .xml e as linhas de comentario de .properties/.yml saem,
+// e os .md (README e afins) nao entram. As LINHAS ficam no mesmo lugar (o comentario
+// vira linha vazia), para o arquivo:linha da leitura bater com o do Semgrep, que roda
+// no codigo original. Sem a opcao, o pacote sai byte a byte igual ao de antes.
 //
 // Com --padrao, pacotes e mapa vao para evaluation/<NOME>/, a pasta do padrao,
 // onde ja mora o gabarito que os le. Se o mapa ja existir la, o script recusa:
@@ -33,6 +39,7 @@ const iSeed = ARGS.indexOf("--seed");
 const seed = iSeed >= 0 ? Number(ARGS[iSeed + 1]) : 20260923;
 const iPadrao = ARGS.indexOf("--padrao");
 const padrao = iPadrao >= 0 ? ARGS[iPadrao + 1] : null;
+const semComentarios = ARGS.includes("--sem-comentarios");
 const runs = ARGS.filter((a, i) => !a.startsWith("--") && ARGS[i - 1] !== "--seed" && ARGS[i - 1] !== "--padrao");
 
 if (!runs.length) {
@@ -58,9 +65,49 @@ const DATA_FIXA = new Date("2026-01-01T00:00:00Z");
 const FORA_DIR = new Set(["target", ".claude", ".git", "node_modules", ".mvn"]);
 const FORA_ARQ = new Set(["CLAUDE.md", "meta.json", "claude-output.jsonl", "stderr.txt", "build.txt"]);
 
-// Comentario no codigo citando o harness e RESULTADO DO MODELO e NAO se remove.
-// Registra-se, e o numero vai para as ameacas a validade.
+// Sem --sem-comentarios, comentario citando o harness e RESULTADO DO MODELO e NAO se
+// remove: registra-se, e o numero vai para as ameacas a validade. Com a opcao (V4),
+// todos os comentarios saem da copia, mas a pista continua contada no ORIGINAL, para o
+// mapa dizer quantos pacotes tinham pista antes da limpeza.
 const PISTA = /CLAUDE\.md|harness|orienta[cç][oõ]es de projeto|\bskill\b/i;
+
+// Tira os comentarios de um .java sem mexer em texto entre aspas, e sem mudar o numero
+// de linhas: cada quebra de linha dentro de um comentario fica onde estava.
+function semComentariosJava(fonte) {
+  let saida = "", i = 0;
+  const n = fonte.length;
+  while (i < n) {
+    const c = fonte[i], d = fonte[i + 1];
+    if (c === '"' && fonte.startsWith('"""', i)) {            // bloco de texto
+      const fim = fonte.indexOf('"""', i + 3);
+      const ate = fim < 0 ? n : fim + 3;
+      saida += fonte.slice(i, ate); i = ate;
+    } else if (c === '"' || c === "'") {                      // texto ou caractere
+      let j = i + 1;
+      while (j < n && fonte[j] !== c && fonte[j] !== "\n") j += fonte[j] === "\\" ? 2 : 1;
+      saida += fonte.slice(i, j + 1); i = j + 1;
+    } else if (c === "/" && d === "/") {                      // comentario de linha
+      while (i < n && fonte[i] !== "\n") i++;
+    } else if (c === "/" && d === "*") {                      // comentario de bloco
+      const fim = fonte.indexOf("*/", i + 2);
+      const ate = fim < 0 ? n : fim + 2;
+      saida += fonte.slice(i, ate).replace(/[^\n]/g, ""); i = ate;
+    } else { saida += c; i++; }
+  }
+  return saida.replace(/[ \t]+$/gm, "");
+}
+const semComentariosXml = (t) => t.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, "")).replace(/[ \t]+$/gm, "");
+const semComentariosLinha = (t) => t.replace(/^[ \t]*[#!].*$/gm, "");
+
+function copiaSemComentarios(origem, alvo, relativo) {
+  const ext = relativo.toLowerCase().split(".").pop();
+  const limpar = ext === "java" ? semComentariosJava
+    : ext === "xml" ? semComentariosXml
+    : ["properties", "yml", "yaml"].includes(ext) ? semComentariosLinha
+    : null;
+  if (!limpar) return copyFileSync(origem, alvo);
+  writeFileSync(alvo, limpar(readFileSync(origem, "utf8")));
+}
 
 // Gerador deterministico, para o embaralhamento ser reproduzivel a partir da
 // semente registrada. Nao precisa ser bom, precisa ser o mesmo sempre.
@@ -129,10 +176,15 @@ for (const run of ordem) {
   for (const origem of lista) {
     const relativo = origem.slice(ws.length + 1);
     const alvo = join(destino, relativo);
-    mkdirSync(dirname(alvo), { recursive: true });
-    copyFileSync(origem, alvo);
-    // Normaliza a data. Sem isto, o braco HARNESS tem arquivos mais novos.
-    utimesSync(alvo, DATA_FIXA, DATA_FIXA);
+    // Com --sem-comentarios, o .md nao e copiado, mas a pista nele ainda e contada (abaixo).
+    const copia = !(semComentarios && /\.md$/i.test(relativo));
+    if (copia) {
+      mkdirSync(dirname(alvo), { recursive: true });
+      if (semComentarios) copiaSemComentarios(origem, alvo, relativo);
+      else copyFileSync(origem, alvo);
+      // Normaliza a data. Sem isto, o braco HARNESS tem arquivos mais novos.
+      utimesSync(alvo, DATA_FIXA, DATA_FIXA);
+    }
 
     if (/\.(java|md|xml|properties|ya?ml|txt)$/i.test(relativo)) {
       let texto = "";
@@ -181,8 +233,13 @@ if (vazamentos.length) {
     console.log(`  ${v.cod}`);
     for (const p of v.pistas.slice(0, 5)) console.log(`      ${p}`);
   }
-  console.log("\n  Pista no codigo e RESULTADO DO MODELO e nao se remove.");
-  console.log("  Quem avalia anota que viu, e o numero entra nas ameacas a validade.");
+  if (semComentarios) {
+    console.log("\n  Os comentarios sairam da copia; o numero acima e o que havia no original.");
+    console.log("  O que sobra (nomes de classe, por exemplo) quem avalia anota na planilha.");
+  } else {
+    console.log("\n  Pista no codigo e RESULTADO DO MODELO e nao se remove.");
+    console.log("  Quem avalia anota que viu, e o numero entra nas ameacas a validade.");
+  }
 }
 
 console.log(`

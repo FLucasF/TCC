@@ -2,7 +2,11 @@
 
 | arquivo | o que faz |
 |---|---|
-| `anonymize.mjs` | gera os pacotes cegos para a leitura da régua (ver o README da raiz) |
+| `anonymize.mjs` | gera os pacotes cegos para a leitura (ver o README da raiz); com `--sem-comentarios` (o V4), a cópia sai sem comentários e sem `.md`, com as linhas no mesmo lugar |
+| `semgrep/` | o detector do padrão (P1 a P5), sem IA; ver `semgrep/README.md` |
+| `sample.mjs` | sorteia a amostra do Lucas (1 pacote por modelo × nível) e, depois, a releitura; gera as planilhas em branco |
+| `compare.mjs` | compara duas leituras pergunta por pergunta (o Lucas × o Semgrep, ou a leitura × a releitura) e aplica a regra de saída |
+| `nota.mjs` | a nota de 0 a 100 de cada execução (pesos A, com B e C ao lado; a trava de quem não compila ou não sobe) |
 | `metrics.sh` | métricas automáticas de cada execução de um lote: CK e SonarQube |
 | `aggregate-metrics.mjs` | junta as métricas de um lote num CSV, uma linha por execução |
 | `ck/` | o CK, compilado e travado (abaixo) |
