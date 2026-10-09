@@ -2,7 +2,7 @@
 padrao: strategy
 enunciado: experiment/prompt/prompt.md
 enunciado_hash: 8c70bb30493dbfbbde8b2d4be857669993335b0e4d6114c8c0b777ee00c69984
-lotes: V4-STRATEGY
+lotes: V4-STRATEGY, V4-EXPLOR
 ---
 
 # Gabarito: enunciado do Strategy (V4)

@@ -158,14 +158,15 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `aggregate.mjs` (era `agregar.mjs`) | `19338b460497b34f` | nada — o `meta.json` sobrevive |
 | `metrics.sh` (era `metricas.sh`) | `135ecbe45c22afe4` | perde **as métricas automáticas** (CK, SonarQube) |
 | `aggregate-metrics.mjs` (era `agregar-metricas.mjs`) | `74479258f31dce1f` | nada — as saídas por execução sobrevivem |
-| `run-levels.sh` | (**ainda não congelado**: congela depois do teste real, o f4) | perde **o quarteto** dos níveis N0 a N3 |
+| `run-levels.sh` | (**ainda não congelado**: congela com o `OBJETIVO`; desde 09/10 lê os modelos e o effort de `experiment/desenho-v4.json`) | perde **o quarteto** dos níveis N0 a N3 |
 | `acceptance.sh` | `49f5e38ac3bd6451` (**ainda não congelado**: congela com a suíte; era `821d58ecfd853bbb` até gravar contas, recusas e pontos, em 09/10) | perde **a medida de correção** (a suíte de aceitação por lote) |
 
 ### Os scripts do V4, na ordem em que entram
 
 | etapa | script | situação |
 |---|---|---|
-| rodar | `infra/scripts/run-levels.sh`: um quarteto (os níveis N0 a N3 de um modelo, juntos) | a congelar depois do f4 |
+| rodar | `experiment/ordem-v4.csv`: a ordem dos 25 quartetos, com o comando de cada um (sorteada por `infra/scripts/draw-order.mjs`, semente 20261009); depois, `experiment/ordem-v4-exploratorio.csv`, o lote exploratório (semente 20261010) | sorteadas em 09/10 |
+| rodar | `infra/scripts/run-levels.sh`: um quarteto (os níveis N0 a N3 de um modelo, juntos), com o modelo pelo apelido do desenho | a congelar com o `OBJETIVO` |
 | rodar | `infra/scripts/run-one.sh`: uma execução (o `run-levels.sh` chama) | congelado |
 | rodar | `infra/scripts/extract-meta.mjs`: a transcrição vira `meta.json` (o `run-one.sh` chama) | congelado |
 | medir custo | `infra/scripts/aggregate.mjs`: os `meta.json` do lote num CSV | congelado |

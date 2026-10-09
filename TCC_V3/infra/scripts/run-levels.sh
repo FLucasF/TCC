@@ -2,9 +2,15 @@
 # Roda os quatro niveis da escada (N0 a N3) do mesmo modelo, TODOS ao mesmo
 # tempo: um quarteto simultaneo, no lugar do par simultaneo do rodada.sh.
 #
-# Uso:  infra/scripts/run-levels.sh <prefixo> <replicate> <OPUS|SONNET|HAIKU|TODOS>
-#       infra/scripts/run-levels.sh V4-STRATEGY-01 1 HAIKU     (4 execucoes)
-#       infra/scripts/run-levels.sh V4-STRATEGY-01 1 TODOS     (12 execucoes)
+# Uso:  infra/scripts/run-levels.sh <prefixo> <replicate> <APELIDO>
+#       infra/scripts/run-levels.sh V4-STRATEGY-01 1 HAIKU45     (4 execucoes)
+#
+# O APELIDO e uma chave de "modelos" do desenho (experiment/desenho-v4.json, ou o
+# arquivo em DESENHO=...), e o ID completo do modelo e o effort saem de la: uma lista
+# so, a mesma que o verify.mjs confere. Desde 09/10 (o mapa): HAIKU45, SONNET45,
+# OPUS46, SONNET5 e OPUS5. Um quarteto por vez, na ordem de experiment/ordem-v4.csv.
+# Se o prefixo for do lote do desenho, ele tem de ser <prefixo do lote>-<replica com
+# 2 digitos> (V4-STRATEGY-03 com a replica 3): o verify.mjs so reconhece esse nome.
 #
 # Os niveis (ver experiment/harnesses/README.md):
 #   N0 = braco CONTROL, workspace vazio
@@ -15,9 +21,9 @@
 # SIMULTANEO DE PROPOSITO, pelo mesmo motivo do rodada.sh: os quatro niveis de um
 # modelo rodam no mesmo instante, para horario, fila e carga de servidor serem os
 # mesmos, e a analise compara os niveis em pares (N1 x N0, N2 x N1, N3 x N2).
-# Com TODOS, os tres modelos tambem rodam juntos (12 containers); um modelo por
-# vez e o mais seguro para a cota da assinatura, e os quartetos de modelos
-# diferentes nao precisam ser simultaneos entre si.
+# Os quartetos de modelos diferentes nao precisam ser simultaneos entre si, e um
+# modelo por vez e o mais seguro para a cota da assinatura. (Ate 09/10 havia a opcao
+# TODOS, com tres modelos juntos; saiu com o desenho de 5 modelos.)
 #
 # Nao muda o run-one.sh: chama ele quatro vezes, como o rodada.sh chama duas.
 # Confere TUDO antes de lancar QUALQUER execucao: um quarteto com um nivel a
@@ -28,23 +34,34 @@
 
 set -uo pipefail
 
-case $# in 3) ;; *) { echo "uso: $0 <prefixo> <replicate> <OPUS|SONNET|HAIKU|TODOS>" >&2; exit 2; } ;; esac
+case $# in 3) ;; *) { echo "uso: $0 <prefixo> <replicate> <APELIDO do desenho>" >&2; exit 2; } ;; esac
 PREFIX="$1"; REPLICATE="$2"; WHICH="$3"
 case "$PREFIX" in ""|*[!A-Za-z0-9-]*) { echo "prefixo invalido: '$PREFIX'" >&2; exit 2; } ;; esac
 case "$REPLICATE" in [1-9]|[1-9][0-9]) ;; *) { echo "replicate deve ser inteiro positivo: '$REPLICATE'" >&2; exit 2; } ;; esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 RUN_ONE="$ROOT/infra/scripts/run-one.sh"
-EFFORT="${EFFORT:-medium}"
+DESENHO="${DESENHO:-$ROOT/experiment/desenho-v4.json}"
+[ -f "$DESENHO" ] || { echo "desenho nao encontrado: $DESENHO" >&2; exit 2; }
+# Absoluto: o arquivo de ordem traz DESENHO=experiment/..., relativo a raiz do TCC_V3.
+DESENHO="$(cd "$(dirname "$DESENHO")" && pwd -P)/$(basename "$DESENHO")"
+# caminho para o node: no Git Bash do Windows precisa virar C:\..., no Linux nao
+host_path() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi; }
 
-# Os mesmos IDs completos do rodada.sh. O apelido a esquerda entra no run_id.
-case "$WHICH" in
-    OPUS)   MODELS="OPUS:claude-opus-5" ;;
-    SONNET) MODELS="SONNET:claude-sonnet-5" ;;
-    HAIKU)  MODELS="HAIKU:claude-haiku-4-5" ;;
-    TODOS)  MODELS="OPUS:claude-opus-5 SONNET:claude-sonnet-5 HAIKU:claude-haiku-4-5" ;;
-    *) { echo "modelo deve ser OPUS, SONNET, HAIKU ou TODOS: '$WHICH'" >&2; exit 2; } ;;
-esac
+# O ID completo e o effort vem do desenho; o apelido entra no run_id.
+LIDO="$(node -e '
+const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); const [, , apelido, prefixo, replica] = process.argv;
+const id = (d.modelos || {})[apelido];
+if (!id) { console.error(`apelido deve ser um de: ${Object.keys(d.modelos || {}).join(", ") || "(o desenho ainda nao tem modelos)"}`); process.exit(1); }
+if (prefixo.startsWith(d.prefixo + "-") && prefixo !== `${d.prefixo}-${String(replica).padStart(2, "0")}`) {
+  console.error(`no lote ${d.prefixo}, a replica ${replica} roda com o prefixo ${d.prefixo}-${String(replica).padStart(2, "0")}, nao ${prefixo}`); process.exit(1);
+}
+console.log(id, d.effort);
+' "$(host_path "$DESENHO")" "$WHICH" "$PREFIX" "$REPLICATE")" || exit 2
+MODEL_ID="${LIDO% *}"; DESIGN_EFFORT="${LIDO#* }"
+EFFORT="${EFFORT:-$DESIGN_EFFORT}"
+[ "$EFFORT" = "$DESIGN_EFFORT" ] || { echo "EFFORT=$EFFORT, o desenho pede $DESIGN_EFFORT" >&2; exit 2; }
+MODELS="$WHICH:$MODEL_ID"
 LEVELS="N0 N1 N2 N3"
 
 # ------------------------------------------------------------------ preflight

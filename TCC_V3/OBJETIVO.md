@@ -5,8 +5,9 @@
 > vê o resultado analisado. Este arquivo só vale como pré-registro depois de
 > commitado **antes** da primeira execução do V4; a data do commit é a prova.
 >
-> Revisado pelo Lucas em 09/10. **Falta, antes de congelar:** a lista dos **5 modelos**,
-> que sai do mapa pela regra do `DECISOES.md` (§2) e entra aqui no §2.
+> Revisado pelo Lucas em 09/10. Os **5 modelos** saíram do mapa em 09/10, pela regra do
+> `DECISOES.md` (§2), e estão no §2. **Falta só o congelamento:** o commit, e o hash no
+> README.
 
 O [README](README.md) diz **como** o experimento roda. Este arquivo diz **para
 quê**: a pergunta, o que conta como resposta, e o que já foi testado. O **porquê**
@@ -35,14 +36,35 @@ componentes de harness novos entram depois, um de cada vez, sobre o mesmo corpo.
 | **o que varia dentro de um lote** | só o **nível** do harness: N0 (braço `CONTROL`, workspace vazio), N1, N2 e N3 (braço `HARNESS`, com a pasta do nível em `experiment/harnesses/`) |
 | **o harness** | **fixo dentro de um nível**. Não é ajustado ao enunciado. Cada nível é uma pasta de `experiment/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
 | **o enunciado** | um só, **igual em todos os níveis** (`experiment/prompt/prompt.md`, `8c70bb30…`). Escrito como o dono de uma loja que estuda o básico de programação por curiosidade: as regras do negócio no texto e, num anexo, o contrato da API em linguagem simples (o endereço e tabelas com os nomes dos campos, sem verbo, sem números de status e sem bloco de JSON). Sem palavra de arquitetura |
-| **os modelos** | **5**, escolhidos por um mapa no N0, antes do V4, pela regra do `DECISOES.md` (§2): o Haiku 4.5 (o mais fraco) e o Opus 5 (o topo) entram sempre, e mais três entre Haiku 5.5, Sonnet 4.5, Sonnet 4.6 e Sonnet 5. *A lista final entra aqui antes de congelar.* O modelo é fator de bloco, chamado sempre pelo ID completo |
+| **os modelos** | **5**: **Haiku 4.5** (`claude-haiku-4-5`), **Sonnet 4.5** (`claude-sonnet-4-5`), **Opus 4.6** (`claude-opus-4-6`), **Sonnet 5** (`claude-sonnet-5`) e **Opus 5** (`claude-opus-5`). Escolhidos por um mapa no N0 (`TESTE-MAPA-01`, 09/10), pela regra do `DECISOES.md` (§2), escrita antes de rodar: o Haiku 4.5 (o mais fraco) e o Opus 5 (o topo) entram sempre; dos outros cinco candidatos (Haiku 5.5, Sonnet 4.5, Sonnet 4.6, Sonnet 5 e Opus 4.6), o de menor nota A, o do meio e o de maior. No mapa, três ficaram fora do teto (Haiku 4.5, Sonnet 4.5 e Opus 4.6) e dois no teto (Sonnet 5 e Opus 5). O modelo é fator de bloco, chamado sempre pelo ID completo, que o `run-levels.sh` lê de `experiment/desenho-v4.json` |
 | **a unidade de análise** | o **par simultâneo**: dois níveis vizinhos do mesmo modelo, que rodaram no mesmo instante, dentro do mesmo quarteto |
 
 O V4 é **um lote de 4 níveis × 5 modelos × 5 réplicas = 100 execuções**, em **25
 quartetos**: os quatro níveis de um modelo rodam juntos (`infra/scripts/run-levels.sh`),
 um quarteto de cada vez, e cada rodada tem uma réplica de cada modelo, em ordem
-sorteada. Um quarteto interrompido (por cota ou servidor) é refeito inteiro. Cada
+sorteada (`experiment/ordem-v4.csv`, semente 20261009, `infra/scripts/draw-order.mjs`);
+as rodadas vão em sequência. Um quarteto interrompido (por cota ou servidor) é refeito inteiro. Cada
 comparação entre dois níveis vizinhos tem **25 pares** (5 modelos × 5 réplicas).
+
+**O exploratório.** Depois dos 25 quartetos acima, que são o estudo **confirmatório**,
+roda, **obrigatoriamente** (decisão do Lucas, 09/10: o trabalho só fecha com os dois
+lotes), um segundo lote, `V4-EXPLOR`, com os outros modelos disponíveis no Claude:
+**Haiku 5.5, Sonnet 4.6, Opus 4.7, Opus 4.8 e Sonnet 5.5** (decisão de 09/10, depois
+do mapa). Ficam fora o Fable e o Opus 5.5, que exige um Claude Code mais novo que o da
+bancada (2.1.280 ou mais; a imagem tem o 2.1.269). O desenho é o mesmo: 4 níveis × 5
+modelos × 5 réplicas = 100 execuções, a mesma imagem, o mesmo enunciado, as mesmas
+medidas automáticas (a suíte, o Semgrep, o SonarQube e o CK, e a nota), em ordem
+sorteada (`experiment/ordem-v4-exploratorio.csv`, semente 20261010), com o desenho em
+`experiment/desenho-v4-exploratorio.json`. **Nenhuma hipótese é testada nele:** as
+regras do §4 valem só para o confirmatório, e o exploratório entra no texto como
+tabelas e gráficos marcados como exploratórios (por exemplo, as gerações Opus 4.6 →
+4.7 → 4.8 → 5 e Sonnet 4.5 → 4.6 → 5 → 5.5). Não tem leitura humana: o Semgrep dele
+não é conferido, e a conferência dos 20 pacotes (§4.10) só vale para o confirmatório.
+*Por quê:* mostra o panorama dos modelos sem mudar o que foi pré-registrado. Os 5
+do confirmatório saíram de uma regra fixada antes do mapa, e trocar o conjunto depois
+de ver o mapa seria um desvio. No N0 do mapa (uma execução cada), o Haiku 5.5 (nota A
+70) e o Opus 4.7 (60) ficaram fora do teto, e o Sonnet 4.6, o Opus 4.8 e o Sonnet 5.5
+no teto (100).
 
 **O TCC_V3 é a bancada de testes.** Os lotes daqui (o `EXT`, os `TESTE-*`) serviram
 para validar a bancada, o enunciado e os instrumentos, e não entram na análise.
@@ -222,7 +244,7 @@ N0 < N1 < N2 < N3. Ele é publicado com o p, por modelo e no conjunto, mas **nã
 nenhuma hipótese**.
 
 **Exemplo, com números inventados.** Na hipótese do desenho (N1 × N0), o Haiku 4.5 tem
-4 pares melhores e 1 igual; o Haiku 5.5, 3 melhores e 2 iguais; os outros três modelos
+4 pares melhores e 1 igual; o Opus 4.6, 3 melhores e 2 iguais; os outros três modelos
 estão no teto, com 5 pares iguais cada. Os dois modelos fora do teto têm mais melhores
 que piores, e nenhum modelo piorou. **A hipótese do desenho é apoiada.** A do modelo
 também: o Haiku 4.5, o mais fraco no N0, tem o maior saldo (+4).
@@ -478,6 +500,16 @@ de *Processo*, do N3.
   **somado** a essa base.
 - **A manutenção ficou de fora** (09/10): o custo de acrescentar um caso novo não é
   medido.
+- **O P3 (pagamento) não tem frase de crescimento** no enunciado, ao contrário do P1,
+  do P2 e do P4: um `switch` sobre as 3 formas conta como erro no Semgrep sem que o
+  enunciado dê motivo para separá-las. Por isso, e por não ter conferência humana, o
+  P3 é só secundário.
+- **O exploratório não confirma nada.** Os 5 modelos dele são descritos, não testados,
+  e o Semgrep dele não tem conferência humana. O Opus 5.5 ficou fora porque exige um
+  Claude Code mais novo que o da bancada.
+- **O mapa é uma execução por modelo.** Ele só põe os modelos em degraus, e o lugar de
+  cada um pode variar de uma execução para outra (o Haiku 4.5 fez 20 e depois 17 de 21
+  no N0).
 
 ## 7. Códigos usados até 05/10
 

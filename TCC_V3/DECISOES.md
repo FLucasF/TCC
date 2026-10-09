@@ -194,6 +194,70 @@ fora do teto. *Por quê:* a regra fica fixa antes de ver qualquer resultado e s�
 N0, que não diz nada sobre o efeito do harness. *Limite:* uma execução por modelo é
 ruidosa (o Haiku 4.5 fez 20 e depois 17 no N0); o mapa só põe os modelos em degraus.
 
+**09/10: o mapa rodou, e a regra escolheu Haiku 4.5, Sonnet 4.5, Opus 4.6, Sonnet 5 e
+Opus 5.** As 5 execuções que faltavam (`TESTE-MAPA-01-*-N0`) rodaram juntas, às 18:04,
+com o enunciado do V4; todas compilaram, subiram e responderam com o modelo pedido.
+Notas A no N0 (suíte, Semgrep): Haiku 4.5 57,8 (20 de 21, nenhum ponto certo); Sonnet
+4.5 66,1 (15 de 21, P1 e P4); Haiku 5.5 70,0 (21, só o P1); Opus 4.6 80,0 (21, P1 e P2,
+**P4 errado**); Sonnet 4.6, Sonnet 5 e Opus 5 100. Pela regra: (1) Haiku 4.5 e Opus 5;
+(2) ninguém sai; (3) o menor é o Sonnet 4.5, o do meio o Opus 4.6, e o maior um empate
+entre o Sonnet 4.6 e o Sonnet 5, decidido pelo mais barato: o **Sonnet 5** (menor preço
+por token, e gastou menos no mapa, $1,41 contra $1,66); (4) três fora do teto (Haiku
+4.5, Sonnet 4.5, Opus 4.6), sem troca. O Haiku 5.5 fica fora. *Conferido à mão, sem
+mudar nada:* as linhas que decidem a ordem são reais (no Opus 4.6, um `if` que zera o
+frete do `"OURO"` e um `switch` sobre o nível que calcula o crédito no serviço; no
+Sonnet 4.5, um `switch` sobre o tipo do cupom e um `if` do cartão no meio da conta). A
+ordem não depende do P4 do Opus 4.6: com ele certo, a nota seria 90, ainda no meio. *O
+Haiku 4.5 não foi medido de novo:* foi medido com a suíte anterior (`f77d1488…`), que
+tem os mesmos 21 casos e só não separava contas e recusas; a única falha dele é uma
+recusa com o código errado, que vale 0 nas duas, então os números (12 contas, 8
+recusas) saem do resultado gravado. *Detalhe do Sonnet 4.5:* 4 das recusas falharam
+com o 400 genérico do Spring, porque os campos do pedido viraram `enum` Java e um valor
+inexistente para na conversão do JSON, antes da validação dele. *Corrigido no
+`OBJETIVO`:* o rascunho listava só quatro candidatos ao lado dos dois fixos (sem o Opus
+4.6); a regra que vale é a deste arquivo, commitada às 16:51, antes do mapa, com os
+cinco. *A ordem das rodadas:* sorteada uma vez (`infra/scripts/draw-order.mjs`, semente
+**20261009**), em `experiment/ordem-v4.csv`: cada rodada tem os 5 modelos em ordem
+própria, e as rodadas vão em sequência. *Onde:* o `acceptance.txt` de cada execução
+(os CSVs de `analysis/` não vão para o git e se refazem com o `acceptance.sh` e o
+`detect.sh`), `OBJETIVO` §2, `experiment/desenho-v4.json`.
+
+**09/10: um lote exploratório com os outros modelos, separado do confirmatório.**
+*Decisão do Lucas, depois do mapa.* Ele quis mostrar todos os modelos do Claude, menos
+o Fable. Trocar os 5 do confirmatório agora seria um desvio do pré-registro (a regra
+foi fixada antes do mapa), e os modelos a mais quase todos ficariam no teto, onde não
+há efeito para medir. Por isso, um segundo lote, `V4-EXPLOR`, com **Haiku 5.5, Sonnet
+4.6, Opus 4.7, Opus 4.8 e Sonnet 5.5**, no mesmo desenho (4 níveis × 5 réplicas, 100
+execuções), rodado **depois** do confirmatório, com as mesmas medidas automáticas e
+**sem hipótese nem leitura humana**: entra no texto como tabelas exploratórias. É
+**obrigatório** (o Lucas descartou deixá-lo opcional, "se sobrar tempo"): o trabalho
+só fecha com os dois lotes. Os IDs
+novos foram testados antes com o enunciado barato da bancada (`TESTE-IDS-01-*`,
+centavos cada): Opus 4.7, Opus 4.8 e Sonnet 5.5 responderam com o modelo pedido; o
+**Opus 5.5 ficou fora**, porque a API o recusa no Claude Code 2.1.269 da imagem ("does
+not support this model; version 2.1.280 or newer"). *Descartados:* uma imagem à parte
+com o Claude Code novo só para ele (a comparação com os outros misturaria o modelo e a
+versão do Claude Code) e atualizar a bancada inteira (refazer o mapa e os testes). *O
+gabarito* passa a valer para os dois lotes (`lotes: V4-STRATEGY, V4-EXPLOR`). *A
+ordem:* sorteada uma vez, semente **20261010**, em `experiment/ordem-v4-exploratorio.csv`;
+o comando de cada quarteto leva `DESENHO=` para o arquivo do exploratório. *A cota:*
+Haiku 5.5 ~5% por quarteto, Sonnet 4.6 ~12%, Sonnet 5.5 ~10%, Opus 4.7 e 4.8 ~16% cada
+(os três últimos estimados por modelos vizinhos, sem N0 medido); uma rodada ~60% de
+uma janela, o lote ~3 janelas; com o confirmatório, ~5,5 janelas no total. *Achado no
+teste:* o `run-levels.sh` não achava um `DESENHO` em caminho relativo (o que o arquivo
+de ordem usa); corrigido antes de qualquer execução. *Onde:* `OBJETIVO` §2,
+`experiment/desenho-v4-exploratorio.json`.
+*O N0 dos três modelos novos, para saber se o lote vale (09/10, depois do sorteio da
+ordem e sem mudar nada do desenho):* o Opus 4.7, o Opus 4.8 e o Sonnet 5.5 rodaram uma
+vez no N0, como o mapa (`TESTE-MAPA-01-*-N0`, 19:18). Os três fizeram 21 de 21. Notas
+A: **Opus 4.7 60,0** (os quatro pontos errados no Semgrep: tudo num serviço só, com
+`switch`), Opus 4.8 100, Sonnet 5.5 100. Com o Haiku 5.5 (70,0) e o Sonnet 4.6 (100)
+do mapa, o exploratório tem **dois modelos fora do teto** (Haiku 5.5 e Opus 4.7), e o
+estudo todo, cinco. A linha do Opus no N0 não é uma escada (4.6: 80, 4.7: 60, 4.8 e 5:
+100); a do Sonnet é (4.5: 66,1; 4.6, 5 e 5.5: 100). *Limite:* uma execução por modelo.
+*O Lucas manteve o lote como obrigatório* depois de ver esses números; o N0 não diz
+nada sobre o efeito do harness, que é o que o lote mede.
+
 **09/10: as propostas do redesenho são decididas pelo Lucas, e o professor vê o
 resultado analisado.** O professor pediu reunião só com um resultado pronto e
 analisado. Por isso, as entradas de 09/10 marcadas como "proposta, a confirmar com o
@@ -226,6 +290,25 @@ segurança, porque um corte custa o quarteto inteiro. As 5 execuções do mapa m
 novo o gasto por janela no plano novo, e o plano de cota é refeito com esse número.
 Trocar de plano não muda o experimento: o modelo, o effort e a bancada são os
 mesmos, e a assinatura só muda quanto cabe numa janela.
+*Refeito com o mapa, no Max (09/10):* as 5 execuções do mapa custaram $6,94 em preço
+de lista e levaram a janela de 23% para 31%, cerca de **$0,87 por 1%** (a leitura é
+inteira, então ±12%). Estimativa por quarteto: Haiku 4.5 ~4% ($3,11, medido no f4);
+Sonnet 4.5 ~7%; Sonnet 5 ~10%; Opus 5 ~12% ($10,30, medido); Opus 4.6 ~16%. Os três
+sem quarteto medido usam o N0 do mapa × 6,4 (a maior razão quarteto/N0 medida, a do
+Haiku; a do Opus foi 4,9). Uma rodada (os 5 quartetos) dá **cerca de 50% de uma
+janela**, e o lote todo, cerca de 2,5 janelas. *A regra nova, que substitui a do Opus
+em janela zerada:* um quarteto só começa com **pelo menos 30% da janela livre** (perto
+do dobro do maior quarteto). *Limite:* o limite semanal do Max continua não medido.
+*Refeito de novo, com o exploratório (09/10):* as 3 execuções novas custaram $3,97 e
+levaram a janela de 33% para 39% ($0,66 por 1%). Juntando as duas medidas, 14% por
+$10,91: **~$0,78 por 1%**. Por quarteto (quarteto medido, ou o N0 × 6,4):
+confirmatório, Haiku 4.5 ~4%, Sonnet 4.5 ~8%, Sonnet 5 ~12%, Opus 5 ~13%, Opus 4.6
+~18%, uma rodada ~55%, o lote ~2,8 janelas; exploratório, Sonnet 5.5 ~3%, Haiku 5.5
+~6%, Opus 4.7 ~12%, Sonnet 4.6 ~14%, Opus 4.8 ~18%, uma rodada ~53%, o lote ~2,7
+janelas. **Total: ~5,5 janelas.** Com o maior quarteto em ~18%, a regra sobe para
+**pelo menos 35% da janela livre** antes de começar um quarteto. As estimativas
+substituem as do lote exploratório escritas acima (as do Opus 4.7 e do Sonnet 5.5
+eram altas demais).
 
 ## 3. Níveis de harness
 
@@ -344,6 +427,22 @@ uma leitura ambígua com o FRETEGRATIS, e o boleto passou a usar o total do pedi
 *Descartado:* embalagem para presente com preço fixo (parece tabela de preço, e o
 controle negativo arriscava ficar no piso, sem ninguém exagerando); trocar o
 cenário inteiro (recomeçar a preparação).
+
+**09/10: o enunciado do V4 fica como está, depois da revisão do Lucas.** Duas
+perguntas, as duas decididas por manter: (1) **o contrato fica fixo** (o endereço,
+os nomes dos campos, o campo `erro`, os códigos e a ordem das recusas). *Por quê:* a
+suíte é caixa-preta e precisa chamar todos os pacotes do mesmo jeito. Achar o
+endereço por script daria certo na maioria das vezes, mas criaria uma falha que não
+tem a ver com o harness, e mapear campos ou códigos escolhidos pelo modelo exigiria
+interpretação, que saiu da avaliação. O "como o modelo trata o erro" continua livre
+e medido: o status HTTP não é dito (daí o 0,5) e a organização da validação aparece
+no SonarQube e no CK. *Descartado:* soltar só o nome do campo do erro (a suíte
+procuraria o código em qualquer campo); seguro, mas sem ganho para a pergunta. (2)
+**o P3 (pagamento) fica sem frase de crescimento**, ao contrário do P1, do P2 e do
+P4. *Por quê:* o P3 é secundário, e no piloto os modelos já separavam o pagamento
+sem a frase. *Limite:* um `switch` sobre as 3 formas conta como erro no Semgrep sem
+que o enunciado dê motivo para separá-las; vai para as limitações. Os 73 números
+foram conferidos de novo (`check-prompt.mjs`: 73 de 73).
 
 ## 5. Correção (a suíte de aceitação)
 

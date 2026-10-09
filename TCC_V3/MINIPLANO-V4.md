@@ -77,7 +77,10 @@ v - decidido que sim · x - decidido que não
       dias). 🤖 *Feito em 09/10 (`DECISOES.md`, §2): um quarteto do Opus por janela
       zerada (5 janelas), os do Haiku 4.5 cabem em 1; os outros 3 modelos se estimam
       pelo custo do N0 no mapa. Medido no plano anterior: com o Claude Max (09/10), o
-      mapa mede de novo o gasto por janela, e o plano é refeito com esse número.*
+      mapa mede de novo o gasto por janela, e o plano é refeito com esse número.
+      Refeito com o mapa e com o N0 do exploratório: ~$0,78 por 1% da janela; uma
+      rodada ~55%; o confirmatório ~2,8 janelas, o exploratório ~2,7, o total ~5,5; um
+      quarteto só começa com pelo menos 35% livre.*
 
 ## Passo 3. O mapa e o fechamento do Semgrep 💰
 
@@ -86,11 +89,14 @@ v - decidido que sim · x - decidido que não
       pelo Semgrep no N0. 🤖 *Feito em 09/10* (`DECISOES.md`, §2): o Haiku 4.5 e o Opus 5
       entram sempre; dos outros, o de menor nota A, o do meio e o de maior, com pelo menos
       2 fora do teto no grupo final.
-- [ ] 🔴 **Rodar o mapa**: cada candidato 1 vez no N0. O Haiku 4.5 e o Opus 5 já rodaram;
-      faltam Haiku 5.5, Sonnet 4.5, 4.6 e 5, e Opus 4.6 (5 execuções). 💰 *Fica para o fim,
-      junto com o passo 2 (decisão do Lucas, 09/10).*
-- [ ] 🔴 **Escolher os 5** pela regra, e pôr os 5 no `run-levels.sh`, com a ordem sorteada
-      das rodadas. 🤖
+- [x] 🔴 **Rodar o mapa**: cada candidato 1 vez no N0. O Haiku 4.5 e o Opus 5 já rodaram;
+      faltam Haiku 5.5, Sonnet 4.5, 4.6 e 5, e Opus 4.6 (5 execuções). 💰 *Feito em 09/10
+      (`TESTE-MAPA-01`): as 5 juntas, todas compilaram e subiram; 8% da janela do Max.*
+- [x] 🔴 **Escolher os 5** pela regra, e pôr os 5 no `run-levels.sh`, com a ordem sorteada
+      das rodadas. 🤖 *Feito em 09/10: Haiku 4.5, Sonnet 4.5, Opus 4.6, Sonnet 5 e Opus 5
+      (`DECISOES.md`, §2). Os 5 estão em `experiment/desenho-v4.json`, que o
+      `run-levels.sh` passou a ler; a ordem, em `experiment/ordem-v4.csv` (semente
+      20261009).*
 - [x] 🔴 **Testar o P5 do Semgrep** em pacotes novos (os do mapa e um quarteto do Haiku
       5.5), lidos antes de rodar. 🤖 *Feito em 09/10 com os 4 Opus do passo 2, que as regras
       nunca tinham visto: 40 de 40, o P5 8 de 8.*
@@ -166,6 +172,11 @@ v - decidido que sim · x - decidido que não
 - [ ] Commit do CSV do Semgrep; comparação; regra de saída. 🤖
 - [ ] Abrir o mapa; tabelas por nível e modelo. 🤖
 - [ ] Releitura de 4 ou 5 pacotes, uma ou duas semanas depois. 👤
+- [ ] 🔴 **O exploratório**, obrigatório (decisão de 09/10): os 25 quartetos do `V4-EXPLOR` (Haiku 5.5,
+      Sonnet 4.6, Opus 4.7, Opus 4.8, Sonnet 5.5), na ordem de
+      `experiment/ordem-v4-exploratorio.csv`, **depois** do confirmatório; a suíte, as
+      métricas e o Semgrep neles; tabelas marcadas como exploratórias. Sem leitura
+      humana. 💰
 
 ## Passo 7. Reunião com o professor, com o resultado analisado 👤
 
@@ -210,3 +221,6 @@ v - decidido que sim · x - decidido que não
 | 09/10 | o Lucas revisou o `OBJETIVO` e a régua e ficou de acordo; a qualidade fica como hipótese principal |
 | 09/10 | gabarito e guia revisados; calibração em 2 pacotes (8 de 8 com o Semgrep), 6 ajustes de texto aplicados; a régua fica pronta para congelar |
 | 09/10 | passo 2 registrado (a calculadora confirmada pelo Opus, a cota e o plano de cota); o `verify.mjs` pronto e provado (37 de 37); falta só o que gasta cota: o mapa, a escolha dos 5, congelar, criar o `TCC_V4` e rodar |
+| 09/10 | o Lucas revisou o enunciado e manteve como está (o contrato fixo, o P3 sem frase de crescimento); o mapa rodou e a regra escolheu Haiku 4.5, Sonnet 4.5, Opus 4.6, Sonnet 5 e Opus 5; ordem sorteada; plano de cota refeito no Max. Falta: congelar, criar o `TCC_V4` e rodar |
+| 09/10 | o Lucas pediu o panorama de todos os modelos: virou o lote exploratório `V4-EXPLOR` (5 modelos, 100 execuções, sem hipótese), à parte do confirmatório; o Opus 5.5 ficou fora (exige um Claude Code mais novo); ordem sorteada |
+| 09/10 | o N0 do Opus 4.7, do Opus 4.8 e do Sonnet 5.5: o Opus 4.7 com 60 (fora do teto), os outros dois com 100; o exploratório fica obrigatório, com dois modelos fora do teto; cota refeita (~5,5 janelas no total). Falta: congelar, criar o `TCC_V4` e rodar |

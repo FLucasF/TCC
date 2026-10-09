@@ -42,7 +42,7 @@ if (!Number.isInteger(seed)) morrer("informe --seed N (inteiro), e registre a se
 // O mesmo gerador do anonymize.mjs: reproduzivel a partir da semente.
 function rng(s) {
   let x = s >>> 0 || 1;
-  return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 0xffffffff; };
+  return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; // 2^32: nunca da 1
 }
 const aleatorio = rng(seed);
 const sorteia = (lista) => lista[Math.floor(aleatorio() * lista.length)];
