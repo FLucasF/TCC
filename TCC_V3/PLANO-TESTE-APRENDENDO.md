@@ -30,6 +30,13 @@ com os BATCH na mesma pasta, e só o mapa de anonimização diria quais são qua
 como o V4, e os seis que mais travaram nas rodadas dos agentes: se a régua aguenta
 nesses, aguenta no resto. São 28 leituras de ponto (2 × 5 + 6 × 3).
 
+**Regra de parada (08/10):** não é preciso ler os 8. O mínimo é o `L3RG` e o
+`L7MG` inteiros; depois, pacotes do piloto **até dois seguidos passarem sem
+hesitação**, com pelo menos um código que não seja `classes`. Deve dar entre 12 e
+16 leituras de ponto. A calibração só serve para a régua ganhar regras: não entra
+em estatística nenhuma (o kappa é da Parte 4, sobre os pacotes do V4). O motivo
+está no [`DECISOES.md`](DECISOES.md), §6.
+
 Cada pasta tem o **gabarito** daquele enunciado (`gabarito.md`), que é o que se usa
 na leitura dos pacotes dela.
 
@@ -76,12 +83,17 @@ grep -rniE "sudeste|sul\b|centro_oeste|norte|nordeste" evaluation/<pasta>/packag
 
 | pacote | ponto | situação |
 |---|---|---|
-| `L3RG` | P1 | **em andamento**: a busca rodou (quatro classes `EntregaEconomica`, `EntregaExpressa`, `EntregaMotoboy`, `RetiradaLoja`, todas `implements ModalidadeEntrega`, nas linhas 10). O próximo passo é abrir `ModalidadeEntrega.java` (o que ele é, quais métodos declara) e decidir a `forma`, com a evidência |
-| os outros 27 pontos | — | a fazer |
+| `L3RG` | P1 | **feito** em 08/10: na planilha `evaluation/calibration-strategy/leitura-lucas.csv`; as notas (nenhuma hesitação, duas observações sobre o texto) em `notas-lucas.md`, na mesma pasta |
+| `L3RG` | P2 (cupom) | **feito** em 08/10 |
+| `L3RG` | P3 (pagamento) | **feito** em 08/10, com três hesitações (`selecao`, `assinatura`, `custo_caso_novo`) |
+| `L3RG` | P4 (clube) | **feito** em 08/10, com o `custo_caso_novo` `indeterminado`; depois dele, o [`GUIA-DA-REGUA.md`](evaluation/GUIA-DA-REGUA.md) |
+| `L3RG` | P5 (controle negativo) | **o próximo** |
+| `L7MG` | P1 a P5 | a fazer |
+| piloto | até dois pacotes seguidos sem hesitação | a fazer |
 
 ## Quando termina
 
-- [ ] Os 8 pacotes lidos, com as planilhas do Lucas commitadas **antes** da comparação
+- [ ] Os pacotes lidos até a regra de parada, com as planilhas do Lucas commitadas **antes** da comparação
       com os agentes (a data do commit prova a independência).
 - [ ] Cada hesitação e cada divergência resolvida: regra nova na régua (§5) ou
       esclarecimento no texto, com entrada no [`DECISOES.md`](DECISOES.md).

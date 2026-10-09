@@ -155,6 +155,59 @@ agregação funcionaram); a régua dele nunca foi calibrada. Com um padrão, o V
 de 120 para 60 execuções, metade da cota. As hipóteses "entre padrões" ficam
 escritas para o futuro. *Onde:* `history/state/README.md`.
 
+**09/10: o V4 passa a ter 5 modelos × 5 réplicas (100 execuções), escolhidos por um
+mapa.** *Proposta, a confirmar com o professor.* Antes do V4, cada candidato (Haiku
+4.5 e 5.5, Sonnet 4.5, 4.6 e 5, Opus 4.6 e 5) roda uma vez no N0, e ficam 5 que
+formem uma escada: todos compilam, há modelos no teto e pelo menos 2 fora dele,
+olhando a suíte e o P4 pelo Semgrep. O Haiku 4.5 fica fixo como o mais fraco; o
+Fable fica fora (escolha do Lucas: caro, e cairia no teto). *Por quê:* no ensaio do
+EXT, o Sonnet e o Opus acertaram tudo nos dois braços; com 3 modelos, só um ficava
+fora do teto, e a regra direcional ("na maioria dos modelos fora do teto") virava a
+opinião de um modelo só. *Descartado:* os 14 modelos Claude no experimento (280
+execuções, quase todas no teto); o Haiku 5.5 como o fraco (pioraria o teto); 5 × 3
+réplicas (os mesmos 60, mas poucas réplicas por modelo), que fica de plano B se a
+cota apertar. *Teste:* o Haiku 4.5 no N0, com o enunciado do V4, compilou, subiu e
+fez 20 de 21 (`TESTE-MAPA-01`). *Pendente:* as regras do §4.1 foram calibradas para
+15 pares; com 25, os limites precisam ser recalculados antes de congelar.
+
+**09/10: os quartetos rodam um por vez, em ordem sorteada a cada rodada, e um quarteto
+interrompido é refeito inteiro.** *Proposta.* Cada rodada tem uma réplica de cada
+modelo, numa ordem sorteada. *Por quê:* o que protege a comparação é o quarteto do
+mesmo instante; a ordem sorteada espalha um dia ruim por todos os modelos, em vez de
+cair num só. *Descartado:* rodar tudo junto. O Docker tem 15,5 GB, e 20 containers
+compilando ao mesmo tempo estouram a memória; a cota acabaria no meio; e muitas
+sessões na mesma conta podem receber erro de limite, o que muda o comportamento do
+agente. *Medido no f4 (09/10):* um quarteto de Haiku 4.5 gastou uns 10 a 15% da
+janela de 5 h, e o N3 processou cerca de 3 vezes mais tokens que o N0.
+
+**09/10: a regra de escolha dos 5 modelos, escrita antes de rodar o mapa.** Candidatos:
+Haiku 4.5, Haiku 5.5, Sonnet 4.5, Sonnet 4.6, Sonnet 5, Opus 4.6 e Opus 5. Cada um roda
+**uma vez no N0**, com o enunciado do V4, e recebe a suíte, o Semgrep e a nota A. O
+Haiku 4.5 (`TESTE-MAPA-01`: 20 de 21, P4 errado) e o Opus 5 (`TESTE-NIVEIS-01-OPUS-N0`:
+21 de 21, P4 certo) já rodaram assim; faltam 5 execuções. **No teto** quer dizer 21 de
+21 e o P4 certo (isolado, e escolhido por consulta ou fábrica). A regra: (1) o Haiku 4.5
+(o mais fraco) e o Opus 5 (o topo) entram sempre; (2) sai quem não compila ou não sobe;
+(3) dos que sobram, ordenados pela nota A, entram **o de menor nota, o do meio e o de
+maior nota** (empate: o mais barato); (4) se o grupo final tiver menos de 2 modelos fora
+do teto, o de maior nota escolhido em (3) é trocado pelo próximo abaixo dele que esteja
+fora do teto. *Por quê:* a regra fica fixa antes de ver qualquer resultado e só olha o
+N0, que não diz nada sobre o efeito do harness. *Limite:* uma execução por modelo é
+ruidosa (o Haiku 4.5 fez 20 e depois 17 no N0); o mapa só põe os modelos em degraus.
+
+**09/10: as propostas do redesenho são decididas pelo Lucas, e o professor vê o
+resultado analisado.** O professor pediu reunião só com um resultado pronto e
+analisado. Por isso, as entradas de 09/10 marcadas como "proposta, a confirmar com o
+professor" passam a ser decisões do Lucas: a avaliação automática na base com a
+leitura em amostra, o Semgrep no lugar do PR-Agent, 5 modelos × 5 réplicas pelo mapa
+e o avaliador único com releitura. Ficam em aberto só o peso da recusa com status de
+sucesso e os pesos da nota. Duas decisões novas: **a manutenção fica fora do V4**
+(vira trabalho futuro, e a hipótese *Desenho: caso novo com pouca edição* deixa de
+ser medida), e **o PR-Agent fica fora**, nem como ilustração. *Por quê:* o que dá
+valor ao pré-registro é o commit do `OBJETIVO` congelado antes de rodar, e não uma
+aprovação prévia. *O risco aceito:* se o professor discordar de uma escolha depois,
+ela vira limitação no texto, porque mudá-la exigiria rodar de novo. *Onde:*
+`MINIPLANO-V4.md`, passos 1 e 7.
+
 ## 3. Níveis de harness
 
 **26/09: uma pasta por versão de harness, escolhida por `HARNESS`.** *Por quê:*
@@ -335,6 +388,23 @@ bancada seguem o enunciado com imposto e não servem para a calculadora com segu
 *Por isso:* o teste de bancada do V4 inclui um quarteto de Sonnet ou de Opus, e a
 suíte roda sobre ele.
 
+**09/10: recusar com status de sucesso conta como falha, e a suíte passa a relatar as
+contas e as recusas separadas.** *Decisão do Lucas.* No quarteto do Haiku
+(`TESTE-NIVEIS-01`), o N1 e o N2 devolveram o código de erro certo com status de
+sucesso. Isso é prática ruim, e um programador experiente usaria um status de erro;
+então o caso falha. *A separação (proposta):* os 12 casos de conta e os 9 de recusa
+em dois números, para o texto mostrar por que uma execução caiu. Só o N1 e o N2
+fizeram isso, o que pode ser efeito do harness. *Descartado:* voltar os números de
+status ao enunciado (o cliente curioso não os conhece) e aceitar qualquer status
+(esconderia uma diferença que o harness pode causar).
+*Ajustada no mesmo dia, pelo Lucas:* o erro não zera o caso; tem peso próprio. Cada
+caso de recusa vale 1 com o código e o status certos, **0,5** com o código certo e
+status de sucesso (valor proposto, a confirmar antes de congelar a suíte), e 0 com o
+código errado ou sem recusa. *Por quê:* a regra de negócio estava certa e só a
+convenção do HTTP falhou; zerar o caso trataria isso como não saber o erro. No
+quarteto do Haiku, o N1 vai de 11 para 13,5 de 21 e o N2 de 12 para 14,5; o N0 e o
+N3 não mudam.
+
 ## 6. Leitura de desenho (a régua)
 
 **24/09: antes da régua, uma leitura estrutural só para ver se o sinal aparece**
@@ -370,6 +440,26 @@ clara para quem a segue à letra antes de gastar a leitura humana. Não mostra q
 uma pessoa leria igual: a medida que vale segue sendo a leitura do Lucas.
 *Onde:* `evaluation/calibracao-relatorio.md`.
 
+**07/10: a calibração humana sobre 8 pacotes fora da análise** (os dois do
+`TESTE-P4`, de 5 pontos, e os seis do piloto que mais travaram os agentes), com o
+Lucas decidindo cada valor e o Claude só explicando a régua. *Por quê:* os SMOKE
+estão misturados com os BATCH, e separá-los exigiria abrir o mapa. *Onde:*
+`PLANO-TESTE-APRENDENDO.md`.
+
+**08/10: a calibração humana para por uma regra, não pelo número de pacotes.**
+Mínimo: o `L3RG` e o `L7MG` inteiros (5 pontos, o formato do V4). Depois, pacotes
+do piloto até **dois seguidos passarem sem hesitação**, com pelo menos um código
+que não seja `classes`. Deve ficar entre 12 e 16 leituras de ponto, em vez de 28.
+*Por quê:* a calibração só serve para a régua ganhar regras; ela não entra em
+estatística nenhuma (o kappa é da Parte 4, sobre os pacotes do V4), e o critério
+escrito sempre foi "pronto quando não houver hesitação". O 8 foi uma escolha de
+07/10, não uma exigência. *Descartado:* parar no `L3RG`, que só tem um tipo de
+desenho (classes com catálogo) e nunca testaria `enum`, `switch` nem mapa.
+*O que pesa contra cortar mais:* na Parte 4 o Lucas lê à mão os pacotes do V4, e
+cada hesitação resolvida agora poupa a mesma dúvida em dezenas deles.
+*Substituída no mesmo dia:* a calibração do L3RG ficou de lado (entrada "a
+calibração humana do L3RG fica de lado", abaixo).
+
 **Plano, Parte 4: leitura dupla (Lucas e Claude) com kappa, e a do Claude isolada
 num container que só vê os pacotes cegos.** *Por quê:* hoje a leitura do Claude
 confia que o agente não abriu o mapa; isolada, fica impossível. *07/10:* o
@@ -383,6 +473,66 @@ Pior: um leitor levado por nomes de classe daria nota maior aos níveis com a sk
 de padrões, e o viés andaria junto com o tratamento. *Ficou como ideia futura:* um
 nível de sensor de desenho no harness, com perguntas pequenas sobre cada trecho
 editado.
+
+**08/10: a calibração humana do L3RG fica de lado.** Depois do P4 do L3RG, o Lucas
+achou o tamanho da avaliação inviável e decidiu refazer a validação depois, sobre a
+régua nova. As planilhas e as notas (`calibration-strategy/leitura-lucas.csv` e
+`notas-lucas.md`) ficam como registro, e as propostas de texto que saíram delas
+(definir "nomear" e "valor", o `if` de validação dentro da tabela, o aviso sobre o
+ruído da busca) valem para a régua nova. *Substitui* a regra de parada de 08/10.
+*Onde:* `evaluation/GUIA-DA-REGUA.md`.
+
+**09/10: a avaliação passa a ser automática na base, com leitura humana em amostra
+para conferir, e o Claude deixa de ser leitor.** *Proposta, a confirmar com o
+professor.* As camadas: correção (a suíte), qualidade (SonarQube e CK), padrão (o
+Semgrep, abaixo) e a leitura do Lucas numa amostra. *Por quê:* é o que o professor
+propôs em 12/09 ("base em métricas automáticas; rubrica humana cega como
+complemento, numa amostra"); a leitura de tudo à mão (1.560 respostas) era inviável;
+e a leitura do Claude sobre código do Claude é o risco "avaliador da mesma família"
+da tabela dele. *Descartado:* a régua de 8 propriedades lida nos pacotes inteiros
+pelo Claude e pelo Lucas. A assinatura, a parte comum e o custo do caso novo saem da
+leitura: a assinatura é quase o "espalhado" do P4, o SonarQube mede a duplicação, e
+a manutenção mede o custo de verdade. *Ensaio:* aplicada ao EXT em 08 e 09/10 (a
+suíte do V3, as métricas e a leitura de 6 pacotes sorteados).
+
+**09/10: o padrão é medido pelo Semgrep, com regras próprias, do P1 ao P5.** *Decisão
+do Lucas.* Regras determinísticas, sem IA, sobre os nomes dos casos do gabarito: em
+cada ponto positivo, se um caso aparece numa condição fora da sua unidade
+(localização) e se a escolha do caso faz a conta (seleção); no controle negativo, a
+forma e a proporção. *Por quê:* mede os 100 pacotes, sem IA e com o mesmo resultado
+sempre, e é o que permite a hipótese do desenho continuar principal. *Descartado:* o
+PR-Agent, sugerido pelo professor (é um modelo de linguagem: IA avaliando IA, com
+resultado que não se repete, em texto livre, e feito para revisar mudanças, não
+projetos inteiros); e linters prontos (PMD, Checkstyle, SpotBugs), que repetem o
+SonarQube e não sabem o que é um caso do negócio. *Validação:* regras escritas
+olhando 5 pacotes de treino (o Haiku do V4), congeladas e testadas em pacotes do EXT
+lidos antes: P4 36 de 36 (18 pacotes) e P1 a P3 36 de 36 (6 pacotes). O P5 errou 10
+de 18 na primeira versão (`SUDESTE(new BigDecimal(...))`); foi corrigido, e ainda
+precisa de pacotes novos, inclusive um com exagero, que o EXT não tem. *Limite:* uma
+forma de escrever que ninguém previu derruba a regra em silêncio; por isso a
+conferência humana. *Onde:* `evaluation/tools/semgrep/`.
+
+**09/10: o Lucas confere o Semgrep lendo 20 pacotes às cegas, um por modelo × nível,
+com uma regra de saída pré-registrada.** *Proposta.* Ele responde às mesmas perguntas
+sem ver o Semgrep; as duas leituras são commitadas; um script compara. Se a
+concordância numa pergunta ficar abaixo de 18 de 20, aquela pergunta vira descritiva
+(só a amostra). Nas discordâncias, a regra não é corrigida para refazer a conta
+oficial. *Por quê:* o ensaio mostrou que uma regra pode errar em silêncio (o P5 da
+primeira versão), e a regra de saída barrou isso no ensaio (2 de 6). *Pendente:* se a
+conferência cobre só o P4 e o P5 (cerca de 4 a 6 h) ou o P1 a P5 (7 a 10 h).
+
+**09/10: um avaliador só, com releitura.** *Decisão do Lucas.* Sem segundo leitor
+humano; no lugar da concordância entre leitores, ele relê 4 ou 5 dos 20 pacotes uma
+ou duas semanas depois, sem ver as respostas antigas. *Contraria* o documento do
+professor de 12/09 ("dois avaliadores"), e por isso vai à reunião.
+
+**09/10: a cópia que o Lucas lê vai sem nenhum comentário e sem README.** *Decisão do
+Lucas.* *Substitui* a regra do `anonymize.mjs` ("comentário citando o harness é
+resultado do modelo e não se remove"), que valia quando a régua lia tudo. Agora a
+leitura humana só olha a estrutura, e as ferramentas rodam no código original.
+Remover todos os comentários é mais seguro que caçar os que citam o harness. A coluna
+`condition_leaks` continua (quantos pacotes tinham pista), e a planilha ganha a
+coluna "achei que sabia o nível?", para o que sobra, como nomes de classe.
 
 ## 7. Métricas automáticas
 
@@ -409,6 +559,17 @@ anônima, e isso distorceria a comparação entre desenhos com `enum` e com clas
 *Por quê:* uma conferência independente da régua, decidida antes dos dados. Uma
 divergência manda reler o par e é registrada; nunca se resolve trocando um número
 pelo outro.
+
+**09/10: o SonarQube fica, e nenhum linter a mais.** Um linter pronto daria os mesmos
+números com outro nome; o SonarQube entrega a complexidade cognitiva pronta, a medida
+que mais discriminou no ensaio (caiu com harness em 8 de 9 pares do EXT).
+*Descartado:* trocar pelo PMD, que é mais leve, mas não dá o número por projeto e
+nunca rodou aqui.
+
+**09/10: a complexidade cognitiva é candidata a hipótese principal de qualidade,
+escolhida a partir do ensaio.** *Proposta.* O texto declara que a escolha veio do EXT
+(V3); o V4 são dados novos, e, se foi sorte no ensaio, o V4 mostra. *Atenção:* no
+quarteto do Haiku do V4 (uma réplica), a complexidade subiu com o harness.
 
 ## 8. Regras de leitura das hipóteses
 
@@ -460,6 +621,58 @@ lado; 3 a 0 ou 4 a 0 é inconclusivo.** *Por quê:* com 4, a chance de sorte era
 12,5%; com 5, 6,3% (declarado, um pouco acima da convenção); com 6, 3,1%, mas o
 exagero é raro e a hipótese principal ficaria inconclusiva quase sempre.
 *Descartado:* 4 (fraco demais) e 6 (quase impossível de alcançar).
+
+**09/10: o teto e o custo do N3 são resultados, não defeitos.** *Decisão do Lucas.*
+Mostrar que o Opus e o Sonnet não precisam de harness para certas coisas responde a
+*Modelo: no teto, não piora*; e um N3 que gasta muito mais sem melhorar é o exagero
+que o TCC quer mostrar. O custo sai ao lado de cada resultado, porque um N3 que
+melhora também pode estar só gastando mais.
+
+**09/10: uma nota de 0 a 100 por execução, só como resumo.** *Proposta.* O Lucas pediu
+uma nota como a de uma prova. Ela entra com os pesos escritos antes de rodar e sempre
+ao lado dos componentes, e as hipóteses continuam sobre as medidas separadas. *Por
+quê:* os pesos são uma escolha, e uma nota única esconderia o caso em que o harness
+melhora uma camada e piora outra (o Haiku do EXT: código mais simples, contas mais
+erradas). O benchmark do Akita usa nota de 0 a 100 e precisou de um catálogo de
+descontos e de um verificador, porque as notas escorregavam de um modelo para outro.
+
+**09/10: os pesos da nota, o valor da recusa parcial e o alcance da conferência.**
+*Decisões do Lucas.* (1) **Nota, pesos A:** contas 30 (12 casos, proporcional),
+recusas 20 (9 casos; o caso com o código certo e status de sucesso vale **0,5**),
+padrão 40 (P1 a P4, 10 por ponto: 10 com a localização e a seleção certas, 5 com
+uma, 0 com nenhuma) e P5 sem exagero 10. **Trava:** não compilou ou não subiu, nota
+0, como no documento do professor ("sem corretude, as demais notas não valem"). As
+variantes B (40+20+40) e C (35+25+40) são publicadas ao lado. *Por quê:* metade
+correção, metade padrão, porque o padrão é o tema e um desenho que calcula errado não
+serve; errar o valor cobrado pesa mais que errar o erro mostrado. No quarteto do Haiku
+(`TESTE-NIVEIS-01`), as três variantes deram a mesma ordem (N3 87,5; N0 51,1; N2
+45,6; N1 43,1 na A): os pesos mudam o número, não a conclusão. A qualidade do Sonar
+fica fora da nota, porque não tem um "100" natural. (2) **A conferência do Lucas
+cobre o P4 e o P5.** O Semgrep mede do P1 ao P5; o P1 a P3 ficam sem conferência
+humana e entram como **secundários**, e a hipótese principal do padrão fica no P4 (a
+do exagero, no P5). *Descartado:* conferir do P1 ao P5 (7 a 10 h em vez de 4 a 6 h).
+*Correção:* a suíte tem 12 casos de conta e 9 de recusa (as entradas anteriores
+diziam 11 e 10).
+
+**09/10: as regras de leitura recalculadas para 25 pares** (5 modelos × 5 réplicas).
+Com a mesma lógica da moeda das regras para 15 pares: o "altera" contínuo passa a
+**18 de 25** (4,3% de chance por sorte; 16 ou 17, inconclusiva; 15 ou menos do lado
+maior, contrariada); o "altera" sim/não continua sobre os pares não empatados, com o
+mesmo teto de 6,3%, agora numa tabela (5 a 0, 8 a 1, 10 a 2, 11 a 3...); o "não piora"
+passa a saldo **até 3** (a mesma proporção, cerca de 13% dos pares, que o 2 tinha em
+15). *Por quê:* os limites de 07/10 foram escritos para 15 pares; mantê-los com 25
+deixaria as regras mais frouxas do que o pretendido. *Onde:* `OBJETIVO.md` §4.1.
+
+**09/10: o `OBJETIVO` reescrito para o V4 redesenhado.** As hipóteses principais
+passam a ser: o desenho no **P4** (Semgrep, conferido), o exagero no P5 (Semgrep,
+conferido), a correção (os pontos da suíte, com o 0,5), a qualidade (complexidade
+cognitiva, **ainda proposta**) e o modelo. Saem do V4, por falta de instrumento:
+*Desenho: comporta o caso exigente* e *Desenho: caso novo com pouca edição*. Viram
+medidas por métrica: *não repete o comum* (duplicação), *mais arquivos* (classes) e
+*estrutura especulativa* (CBO e LCOM). Entram a conferência, a releitura e a nota (§4.10)
+e as limitações novas (§6). *Revisado pelo Lucas no mesmo dia:* de acordo com o texto, e
+**a qualidade (a complexidade cognitiva) fica como hipótese principal**. Pendente
+antes de congelar: só a lista dos 5 modelos, que sai do mapa.
 
 ## 9. Integridade e reprodutibilidade da bancada
 

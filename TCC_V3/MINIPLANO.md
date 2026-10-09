@@ -1,5 +1,8 @@
 # Miniplano: o que falta antes do V4
 
+> **Substituído em 09/10 pelo [`MINIPLANO-V4.md`](MINIPLANO-V4.md)**, depois do
+> redesenho da avaliação. Fica como registro do caminho até ali.
+
 > Escrito em 06/10/2026, para retomar no dia seguinte. A base técnica está pronta
 > (bancada, níveis N0 a N3, enunciados do V4, suíte, métricas). Falta conferir,
 > calibrar e aprovar. O detalhe de cada item está na fase 1 do
