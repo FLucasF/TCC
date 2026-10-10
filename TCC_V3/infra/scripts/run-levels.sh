@@ -5,10 +5,11 @@
 # Uso:  infra/scripts/run-levels.sh <prefixo> <replicate> <APELIDO>
 #       infra/scripts/run-levels.sh V4-STRATEGY-01 1 HAIKU45     (4 execucoes)
 #
-# O APELIDO e uma chave de "modelos" do desenho (experiment/desenho-v4.json, ou o
+# O APELIDO e uma chave de "modelos" do desenho (experiment/desenho-v5.json, ou o
 # arquivo em DESENHO=...), e o ID completo do modelo e o effort saem de la: uma lista
-# so, a mesma que o verify.mjs confere. Desde 09/10 (o mapa): HAIKU45, SONNET45,
-# OPUS46, SONNET5 e OPUS5. Um quarteto por vez, na ordem de experiment/ordem-v4.csv.
+# so, a mesma que o verify.mjs confere. No V5 (10/10), os 11 do desenho: HAIKU45, HAIKU55,
+# SONNET45, SONNET46, SONNET5, SONNET55, OPUS46, OPUS47, OPUS48, OPUS5 e OPUS55. Um
+# quarteto por vez, na ordem de experiment/ordem-v5.csv.
 # Se o prefixo for do lote do desenho, ele tem de ser <prefixo do lote>-<replica com
 # 2 digitos> (V4-STRATEGY-03 com a replica 3): o verify.mjs so reconhece esse nome.
 #
@@ -54,7 +55,7 @@ case "$REPLICATE" in [1-9]|[1-9][0-9]) ;; *) { echo "replicate deve ser inteiro 
 # ------------------------------------------------------------------ 2. o desenho
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 RUN_ONE="$ROOT/infra/scripts/run-one.sh"
-DESENHO="${DESENHO:-$ROOT/experiment/desenho-v4.json}"
+DESENHO="${DESENHO:-$ROOT/experiment/desenho-v5.json}"
 [ -f "$DESENHO" ] || { echo "desenho nao encontrado: $DESENHO" >&2; exit 2; }
 # Absoluto: o arquivo de ordem traz DESENHO=experiment/..., relativo a raiz do TCC_V3.
 DESENHO="$(cd "$(dirname "$DESENHO")" && pwd -P)/$(basename "$DESENHO")"

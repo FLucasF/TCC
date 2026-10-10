@@ -20,7 +20,14 @@ Da raiz do `TCC_V3`, com o Docker aberto:
 evaluation/tools/semgrep/detect.sh <raiz-dos-pacotes> <saida.csv>
 ```
 
-A raiz tem uma subpasta por pacote, cada uma com `src/main/java`. No V4, a raiz são as
+A raiz tem uma subpasta por pacote. Dentro dela, o projeto é o do `pom.xml` mais raso
+(fora de `target/`), a mesma regra do build, da suíte e das métricas, esteja ele na raiz
+do pacote ou numa subpasta (`checkout/pom.xml`); num multimódulo, valem os `src/main` dos
+módulos listados no pom; sem `pom.xml`, o `src/main` mais raso. Um pacote em que nada é
+lido sai com o aviso `sem-codigo`, e o `verify.mjs` recusa o lote. *Por quê:* no ensaio de
+10/10, a versão que só aceitava `<pacote>/src/main` leu zero arquivos em 4 dos 100
+pacotes do V4 (todos de um modelo, em níveis com harness), e o "indeterminado" virava
+zero na nota; o `copia-limpa-teste.mjs` prova os 9 formatos de pasta. No V4, a raiz são as
 cópias cegas (`evaluation/strategy/packages`), e o CSV sai por código. A saída tem uma
 linha por pacote, com as respostas, a **evidência** (`regra=quantas(primeiro arquivo:linha)`,
 só do que contou) e os **avisos** (trechos que o Semgrep não conseguiu ler), e, no
@@ -31,7 +38,8 @@ cabeçalho, o hash das regras, do classificador, do removedor de comentários e 
 | `pontos.mjs` | os nomes dos casos de cada ponto, com os sinônimos em inglês (a única tabela a mudar para outro enunciado) |
 | `gerar-regras.mjs` | gera o `regras.yml` a partir da tabela; nunca se edita o `regras.yml` à mão |
 | `regras.yml` | as 51 regras (10 por ponto positivo, 11 do controle negativo) |
-| `copia-limpa.mjs` | a cópia sem comentários que o Semgrep lê, com as linhas no mesmo lugar (o mesmo removedor da cópia cega, `../sem-comentarios.mjs`) |
+| `copia-limpa.mjs` | a cópia sem comentários que o Semgrep lê, com as linhas no mesmo lugar (o mesmo removedor da cópia cega, `../sem-comentarios.mjs`), só do projeto que o build compila |
+| `copia-limpa-teste.mjs` | prova a escolha do projeto em 9 formatos de pasta (raiz, subpasta, rascunho, multimódulo, sem pom, dois poms, sem código, `.git`/`target`, recursos) |
 | `classificar.mjs` | transforma as linhas marcadas nas respostas da régua |
 | `detect.sh` | roda tudo; recusa se o `regras.yml` não for o que o gerador produz, ou se a saída já existir |
 | `corpus/` | os quatro corpora de validação e o `validar.sh`, que refaz a validação inteira |

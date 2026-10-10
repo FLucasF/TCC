@@ -2,10 +2,10 @@
 padrao: strategy
 enunciado: experiment/prompt/prompt.md
 enunciado_hash: 8c70bb30493dbfbbde8b2d4be857669993335b0e4d6114c8c0b777ee00c69984
-lotes: V4-STRATEGY, V4-EXPLOR
+lotes: V5-STRATEGY
 ---
 
-# Gabarito: enunciado do Strategy (V4)
+# Gabarito: enunciado do Strategy (V5)
 
 > **CONGELADO em 09/10/2026**, junto com a [régua](../regua.md) (versão 4, enxuta). Vale só para o
 > enunciado e os lotes do cabeçalho, que é lido por script: o `verify.mjs` confere que

@@ -24,7 +24,9 @@ isso as definições abaixo são as mesmas que as regras do Semgrep implementam.
 - O pacote é lido **sem saber o nível nem o modelo**. A cópia que o Lucas recebe vem sem
   comentários e sem README (`anonymize.mjs --sem-comentarios`), com as linhas no mesmo
   lugar do original. O mapa só é aberto depois que a planilha estiver commitada.
-- Só conta `src/main`, e só o código que alguma coisa chama.
+- Só conta o `src/main` **do projeto**, e só o código que alguma coisa chama. O projeto é
+  o do `pom.xml` mais raso, como no build: às vezes ele está numa subpasta do pacote
+  (`checkout/src/main`); um rascunho com `pom.xml` mais fundo não conta.
 - Comece pela busca dos nomes dos casos do gabarito (`evaluation/strategy/gabarito.md`).
   Ela traz **ruído**, que se descarta:
   - **homônimos de outro ponto:** o `freteGratis()` do clube aparece na busca do cupom
@@ -126,7 +128,9 @@ conta. Taxas num arquivo de configuração (`seguro.taxas.norte=0.025`) também 
 
 A **nota** de 0 a 100 (`evaluation/tools/nota.mjs`) dá 10 por ponto positivo com as
 duas respostas certas, 5 com uma, 0 com nenhuma, e 10 ao P5 sem exagero; ela é resumo, e
-as hipóteses são lidas nas respostas separadas.
+as hipóteses são lidas nas respostas separadas. Um ponto em que o Semgrep respondeu
+`indeterminado` **não pontua**: a execução fica **sem nota** e é listada à parte (a dúvida
+é da ferramenta, não do código), como o par "sem dado" nas hipóteses.
 
 ## 5. A planilha
 

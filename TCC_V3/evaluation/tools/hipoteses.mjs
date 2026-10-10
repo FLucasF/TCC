@@ -18,15 +18,15 @@
 //      N2 x N1 ou N3 x N2), o tipo de regra e o que e "melhor";
 //   4. as REGRAS do secao 4.1, uma funcao por tipo, e o relatorio.
 //
-// Um PAR e o mesmo modelo e a mesma replica em dois niveis vizinhos (25 por comparacao).
+// Um PAR e o mesmo modelo e a mesma replica em dois niveis vizinhos (55 por comparacao no V5: 11 modelos x 5 replicas).
 // Tres escolhas que o OBJETIVO nao fazia, decididas aqui antes dos dados (DECISOES.md):
 //   - um par com "indeterminado" (ou sem medida) sai da conta como "sem dado", e e contado;
-//   - o saldo maximo da nao-inferioridade e 13% dos pares, arredondado (3 em 25, 2 em 15,
+//   - o saldo maximo da nao-inferioridade e 13% dos pares, arredondado (7 em 55, 3 em 25, 2 em 15,
 //     a mesma proporcao que o OBJETIVO usa para justificar o 3);
 //   - na hipotese do modelo, se dois modelos empatam como o mais fraco, ela e apoiada se
 //     o maior saldo, sem empate, for de um deles.
 // Com --conferencia (a saida do compare.mjs), as hipoteses que dependem de uma pergunta
-// reprovada (abaixo de 18 de 20) viram "descritiva". Com --exploratorio, nenhuma
+// reprovada (abaixo de 90%: 40 de 44 no V5) viram "descritiva". Com --exploratorio, nenhuma
 // hipotese tem veredito: o lote so descreve.
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";

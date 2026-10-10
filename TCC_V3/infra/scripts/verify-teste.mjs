@@ -141,6 +141,12 @@ const CASOS = [
   ["leitura", "planilha sem um codigo da amostra", (r) => { const a = join(r, "leitura", "leitura-lucas.csv"); writeFileSync(a, readFileSync(a, "utf8").split("\n").filter((l) => !l.startsWith("lucas,C04,")).join("\n")); }],
   ["leitura", "valor fora da regua (isolada)", (r) => trocar(join(r, "leitura", "leitura-lucas.csv"), "lucas,C01,isolado", "lucas,C01,isolada")],
   ["leitura", "Semgrep sem um pacote", (r) => { const a = join(r, "semgrep.csv"); writeFileSync(a, readFileSync(a, "utf8").split("\n").filter((l) => !l.startsWith("C07,")).join("\n")); }],
+  // O ensaio de 10/10: o projeto numa subpasta, nenhum arquivo lido, tudo "indeterminado".
+  ["leitura", "Semgrep nao achou codigo num pacote", (r) => {
+    const a = join(r, "semgrep.csv");
+    const linhas = readFileSync(a, "utf8").trim().split("\n");
+    writeFileSync(a, [linhas[0] + ",avisos", ...linhas.slice(1).map((l) => (l.startsWith("C05,") ? 'C05,indeterminado,"sem-codigo: nenhum .java em src/main"' : l + ',""'))].join("\n") + "\n");
+  }, "C05: nenhum codigo lido"],
   ["leitura", "releitura com codigo fora da amostra", (r) => { writeFileSync(join(r, "leitura", "releitura.csv"), "blind_code\nC01\n"); writeFileSync(join(r, "leitura", "releitura-lucas.csv"), "leitor,blind_code,P4_localizacao,P4_selecao,P5_forma,P5_proporcao\nlucas,C12,isolado,consulta,mapa,dados\n"); }],
 ];
 

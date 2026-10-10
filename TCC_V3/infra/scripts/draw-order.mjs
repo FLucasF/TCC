@@ -39,9 +39,9 @@ const embaralha = (lista) => {
 
 // Ordem fixa antes do sorteio: o resultado so depende da semente.
 const apelidos = Object.keys(D.modelos).sort();
-// O run-levels.sh le o experiment/desenho-v4.json por padrao; outro desenho (o
+// O run-levels.sh le o experiment/desenho-v5.json por padrao (ate o V4, o -v4); outro desenho (o
 // exploratorio) vai no comando, para o quarteto nao rodar com os modelos errados.
-const PADRAO = "experiment/desenho-v4.json";
+const PADRAO = "experiment/desenho-v5.json";
 const env = arqDesenho.replace(/\\/g, "/") === PADRAO ? "" : `DESENHO=${arqDesenho.replace(/\\/g, "/")} `;
 const linhas = [];
 let posicao = 0;

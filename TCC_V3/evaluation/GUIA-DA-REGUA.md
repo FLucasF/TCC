@@ -56,14 +56,19 @@ precisa mudar?*
 linha que a prova (`arquivo:linha`). A nota sai depois, por script.
 
 1. **Abra o pacote** (a cópia cega: sem comentários, sem README; as linhas estão no
-   mesmo lugar do original).
+   mesmo lugar do original) e **ache o projeto**: a pasta do `pom.xml` mais raso. Quase
+   sempre é a raiz do pacote, mas às vezes é uma subpasta (`<pacote>/checkout/`). Nos
+   comandos abaixo, `<projeto>` é essa pasta:
+   ```bash
+   find <pacote> -name pom.xml -not -path "*/target/*"
+   ```
 2. **Busque os nomes do clube** e leia as linhas que aparecerem:
    ```bash
-   grep -rnE "BRONZE|PRATA|OURO|Bronze|Prata|Ouro" <pacote>/src/main
+   grep -rnE "BRONZE|PRATA|OURO|Bronze|Prata|Ouro" <projeto>/src/main
    ```
 3. **Busque também o que o clube faz**, porque um remendo pode não escrever o nome:
    ```bash
-   grep -rniE "credito|fretegratis|brinde" <pacote>/src/main
+   grep -rniE "credito|fretegratis|brinde" <projeto>/src/main
    ```
 4. **Primeiro limpe o ruído** (§6): homônimos de outro ponto, pedaços de palavra,
    `import`, campos da entrada e da saída, listas de válidos.
@@ -74,7 +79,7 @@ linha que a prova (`arquivo:linha`). A nota sai depois, por script.
    e responda à `localizacao` e à `selecao`.
 7. **Busque as regiões** e responda à `forma` e à `proporcao`:
    ```bash
-   grep -rnE "SUDESTE|NORDESTE|NORTE|Norte|Sudeste" <pacote>/src/main
+   grep -rnE "SUDESTE|NORDESTE|NORTE|Norte|Sudeste" <projeto>/src/main
    ```
 8. **Na dúvida, `indeterminado`**, e a dúvida escrita. Não é errar: conta como
    discordância, e a dúvida mostra onde a régua não está clara.

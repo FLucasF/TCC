@@ -7,7 +7,7 @@
 #   infra/scripts/run-one.sh BATCH-01-OPUS-HARNESS claude-opus-5 HARNESS 1
 #
 # Variaveis opcionais:
-#   IMAGE        padrao experimento-harness:v3
+#   IMAGE        padrao experimento-harness:v5 (o V4 rodou na v3)
 #   EFFORT       padrao medium
 #   PROMPT_FILE  padrao experiment/prompt/prompt.md
 #   HARNESS      padrao N1. Nome de uma pasta de experiment/harnesses/,
@@ -46,7 +46,7 @@ REPLICATE="${4:-}"
 case "$REPLICATE" in ""|[1-9]|[1-9][0-9]) ;; *) morrer "replicate deve ser inteiro positivo: '$REPLICATE'" ;; esac
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-IMAGE="${IMAGE:-experimento-harness:v3}"
+IMAGE="${IMAGE:-experimento-harness:v5}"
 EFFORT="${EFFORT:-medium}"
 
 RUN_DIR="$RAIZ/runs/$RUN_ID"

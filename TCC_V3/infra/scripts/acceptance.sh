@@ -50,8 +50,8 @@ CSV_FILE="${CSV_FILE:-$ROOT/analysis/acceptance-$PREFIX.csv}"
 SUITE_DIR="$ROOT/evaluation/acceptance-prototype"
 SUITE_FILE="strategy.mjs"
 PROMPT_FILE="$ROOT/experiment/prompt/prompt.md"
-IMAGE="experimento-harness:v3"
-EXPECTED_IMAGE_ID="sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6"
+IMAGE="experimento-harness:v5"
+EXPECTED_IMAGE_ID="sha256:8e96815c94d1662d82fdfc0683a16ea3f5f9c322888268a11609c7bf77b6921b"
 
 fail() { echo "ERRO: $*" >&2; exit 2; }
 # caminho para o Docker: no Git Bash do Windows precisa virar C:\..., no Linux nao

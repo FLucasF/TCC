@@ -1,16 +1,54 @@
 # Ferramentas de avaliação
 
-| arquivo | o que faz |
-|---|---|
-| `anonymize.mjs` | gera os pacotes cegos para a leitura (ver o README da raiz); com `--sem-comentarios` (o V4), a cópia sai sem comentários e sem `.md`, com as linhas no mesmo lugar |
-| `semgrep/` | o detector do padrão (P1 a P5), sem IA; ver `semgrep/README.md` |
-| `sample.mjs` | sorteia a amostra do Lucas (1 pacote por modelo × nível) e, depois, a releitura; gera as planilhas em branco |
-| `compare.mjs` | compara duas leituras pergunta por pergunta (o Lucas × o Semgrep, ou a leitura × a releitura) e aplica a regra de saída |
-| `nota.mjs` | a nota de 0 a 100 de cada execução (pesos A, com B e C ao lado; a trava de quem não compila ou não sobe) |
-| `metrics.sh` | métricas automáticas de cada execução de um lote: CK e SonarQube |
-| `aggregate-metrics.mjs` | junta as métricas de um lote num CSV, uma linha por execução |
-| `ck/` | o CK, compilado e travado (abaixo) |
-| `sonar/` | o perfil de regras do SonarQube usado, congelado |
+Os instrumentos que **avaliam** o código dos agentes, depois que as execuções rodaram.
+Os que **rodam** e **conferem** a bancada estão em `infra/scripts/` (README lá). Cada
+script tem, no topo, um bloco **COMO LER** com as partes dele na ordem em que rodam.
+Nenhum usa IA: os agentes do experimento são Claude, e um avaliador da mesma família é
+o risco que o OBJETIVO aponta.
+
+## A ordem, depois de um lote rodado
+
+```
+anonymize.mjs ──> pacotes cegos ──> semgrep/detect.sh ──> analysis/semgrep-<lote>.csv ─┐
+              └─> mapa (código → execução, fora do git até a leitura ser commitada)    │
+sample.mjs    ──> amostra + planilha em branco ──> leitura do Lucas ──> compare.mjs ──>│ conferência
+metrics.sh    ──> CK e SonarQube por execução ──> aggregate-metrics.mjs ──> metricas.csv│
+nota.mjs      ──> a nota de 0 a 100 (resumo)                                           │
+hipoteses.mjs ──> as tabelas e o veredito de cada hipótese  <──────────────────────────┘
+```
+
+## Os scripts
+
+| arquivo | o que faz | como faz |
+|---|---|---|
+| `anonymize.mjs` | gera os **pacotes cegos** que o Lucas lê e o Semgrep mede | embaralha as execuções com uma semente e dá a cada uma um código de 4 letras; copia o código para `evaluation/<padrão>/packages/<código>/` sem o que entregaria o nível (`CLAUDE.md`, `.claude/`, `meta.json`, transcrição, `target/`, o `.git` do agente) e, com `--sem-comentarios`, sem comentários e sem `.md`, com as linhas no mesmo lugar; iguala as datas dos arquivos; conta as pistas da condição no código (que não se removem: são resultado do modelo); grava o mapa código → execução. Recusa sobrescrever um mapa |
+| `sem-comentarios.mjs` | tira os comentários de um arquivo **sem mudar o número de linhas** | apaga os comentários (`//` e `/* */` no `.java`, sem tocar o que está entre aspas nem nos blocos `"""`; `<!-- -->` no `.xml`; as linhas que começam com `#` ou `!` no `.properties` e no `.yml`) e deixa cada quebra de linha onde estava. É o mesmo removedor da cópia cega e da cópia do Semgrep, para o `arquivo:linha` das duas leituras bater |
+| `semgrep/` | o **detector do padrão** (P1 a P5) | regras fixas do Semgrep, sem IA, sobre a cópia limpa do projeto que o build compila; ver `semgrep/README.md` |
+| `sample.mjs` | sorteia a **amostra** do Lucas e, semanas depois, a **releitura** | modo `amostra`: lê o mapa, agrupa os códigos por modelo × nível e sorteia 1 por grupo com a semente; escreve só os códigos, em ordem alfabética (nada diz o grupo), e a planilha em branco. Modo `releitura`: sorteia, entre os da amostra, os que o Lucas relê, num comando separado de propósito (quem sabe desde o começo quais vai reler pode guardar as respostas) |
+| `compare.mjs` | compara **duas leituras** pergunta por pergunta e aplica a regra de saída | casa as linhas pelo código do pacote; em cada uma das 4 perguntas (P4 `localizacao` e `selecao`, P5 `forma` e `proporcao`) conta as respostas iguais; célula vazia ou `indeterminado` conta como discordância; a pergunta **vale** para o lote com 90% de concordância, senão vira descritiva. Lista cada discordância com a evidência dos dois lados, para abrir o código e ver quem tem razão |
+| `nota.mjs` | a **nota de 0 a 100** de cada execução, como resumo | junta a suíte (contas de 12, recusas de 9) e o Semgrep (P1 a P5): pesos A = contas 30, recusas 20, desenho 50 (10 por ponto com as duas respostas certas, 5 com uma, 0 com nenhuma; P5 sem exagero, 10), com as variantes B e C ao lado. Não compilou ou não subiu: nota 0. Um ponto `indeterminado` no Semgrep: a execução fica **sem nota**, marcada (decisão de 10/10) |
+| `hipoteses.mjs` | as **tabelas e o veredito** de cada hipótese do OBJETIVO (§4) | junta por execução tudo o que foi medido (Semgrep pelo mapa, suíte, métricas, custo, uso da skill e do revisor); forma os pares (mesmo modelo, mesma réplica, níveis vizinhos); aplica a regra de cada tipo de hipótese (direcional, não-inferioridade, sem direção) com os limites calculados para o número de pares; um par com `indeterminado` sai como "sem dado" e é contado. Com `--conferencia`, as hipóteses de uma pergunta reprovada viram descritivas |
+| `metrics.sh` | **métricas automáticas** de cada execução: CK e SonarQube | confere as versões travadas (o hash do `.jar` do CK, as imagens do SonarQube e do scanner); para cada execução, acha o projeto pelo `pom.xml` mais raso, roda o CK no código e o scanner do SonarQube nas classes compiladas, e espera o servidor devolver as medidas. Recusa refazer uma análise que já está no servidor |
+| `aggregate-metrics.mjs` | junta as métricas de um lote num CSV | as colunas `sonar_*` vêm do que o servidor devolveu; as `ck_*`, do CSV por classe do CK, resumidas em contagens, médias e máximos; o modelo, o braço e o nível vêm do `meta.json` e do `run_id` |
+| `ck/` | o CK, compilado e travado | ver "Versões travadas", abaixo |
+| `sonar/` | o perfil de regras do SonarQube usado, congelado | ver "Versões travadas", abaixo |
+
+## Os testes
+
+Cada instrumento que decide alguma coisa tem um teste que roda sozinho, sem Docker e
+sem dado real, e sai com 1 se algum caso falhar:
+
+```bash
+node evaluation/tools/nota-teste.mjs                    # 12 de 12: os pesos, o meio ponto, a trava, o indeterminado
+node evaluation/tools/hipoteses-teste.mjs               # 17 de 17: um lote de mentira com o veredito planejado
+node evaluation/tools/semgrep/copia-limpa-teste.mjs     # 9 de 9: os formatos de pasta que um agente pode deixar
+evaluation/tools/semgrep/corpus/validar.sh              # os 4 corpora do Semgrep (precisa do Docker)
+```
+
+| teste | o que prova | como prova |
+|---|---|---|
+| `nota-teste.mjs` | que a nota faz a conta dos pesos e trata a trava e o `indeterminado` como a régua manda | monta CSVs da suíte e do Semgrep com 12 execuções de conta feita à mão (tudo certo = 100; P4 errado = 90; meio ponto = 95; exagero no P5 = 90; metade das contas = 85; `indeterminado` = sem nota; não compilou = 0) e compara com o que o `nota.mjs` devolve |
+| `hipoteses-teste.mjs` | que o `hipoteses.mjs` aplica as regras do §4.1 como estão escritas | monta um lote de mentira com os resultados planejados para cada hipótese dar um veredito conhecido, e muda uma coisa por caso: cada caso tem de dar o veredito que a regra manda |
 
 ## Métricas automáticas
 

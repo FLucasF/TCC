@@ -310,6 +310,107 @@ janelas. **Total: ~5,5 janelas.** Com o maior quarteto em ~18%, a regra sobe par
 substituem as do lote exploratório escritas acima (as do Opus 4.7 e do Sonnet 5.5
 eram altas demais).
 
+**10/10, emenda de operação: a margem da janela passa a ser por modelo.** *Decisão do
+Lucas, durante as rodadas.* A regra do `COMO-RODAR-V4.md` (congelado) era começar um
+quarteto só com **35% da janela livre**, uma margem genérica pensada para o quarteto mais
+caro. Com 19 quartetos medidos, a margem passa a ser a de cada modelo: começar se a
+janela livre for pelo menos **1,5 × o maior gasto já medido daquele modelo + 5 pontos**
+(a folga para a própria conversa, que gasta da mesma cota). Gastos medidos na janela de
+5 h (o maior de cada um): Opus 4.6 ~23%, Opus 5 ~13%, Sonnet 4.5 ~10%, Sonnet 5 ~7%,
+Haiku 4.5 ~7%; precisam livres, então, 40%, 25%, 20%, 16% e 16%. No exploratório, até o
+primeiro quarteto de cada modelo ser medido, vale a estimativa (Opus 4.8 ~18%, Sonnet
+4.6 ~14%, Opus 4.7 ~12%, Haiku 5.5 ~6%, Sonnet 5.5 ~3%), e depois o medido. *Por quê:* a
+margem genérica fazia esperar 5 h com espaço para um quarteto barato (o caso: 68% usados
+e o Opus 5 como próximo). *O que não muda:* nada do experimento. É só **quando** começar
+um quarteto; a ordem, os quartetos, as medidas e a análise ficam como congelados, e um
+quarteto cortado continua sendo refeito inteiro. Primeiro uso: o `V4-STRATEGY-04` OPUS5,
+lançado com 68% usados.
+
+**10/10: o `.git` de um agente sai do workspace antes do commit.** O agente do
+`V4-STRATEGY-04-HAIKU45-N3` rodou `git init` na própria pasta, e o commit da rodada 4
+guardou o workspace como repositório embutido: só um ponteiro, sem o código. *Correção*
+(commit `0f69708`): o `.git` do agente foi movido para `runs/<id>/git-do-agente/`, com os
+mesmos bytes, e o código entrou como arquivos normais; nenhum arquivo do agente mudou.
+Fora do workspace, o histórico do agente (que pode citar o harness) também não entra na
+cópia cega. *Daqui em diante:* antes de cada commit de rodada, procurar `.git` nos
+workspaces e fazer o mesmo, e conferir que não sobra nenhum ponteiro. Não muda nenhuma
+medida: a suíte, o Semgrep e as métricas leem só o código.
+
+**10/10: o V4 é descartado antes da análise e refeito como V5, com os 11 modelos num
+lote só.** *Contexto:* o `OBJETIVO` do V4 foi congelado (09/10, `06a1172`) com 5
+modelos no confirmatório e 5 num exploratório sem hipótese. Com o confirmatório rodado
+e o exploratório começando, o Lucas esclareceu que a intenção era que **todos** os
+modelos entrassem nas conclusões; a separação tinha passado na revisão por um
+mal-entendido. *Descartados:* (1) uma emenda no V4 juntando os dois lotes: funcionaria
+sem rodar nada de novo, mas os lotes rodaram em momentos diferentes, e a conclusão
+dependeria de uma emenda depois do congelamento; (2) reescrever o `OBJETIVO` do V4 como
+se os 10 modelos tivessem sido o plano: falsearia o pré-registro, que está publicado no
+git com outra data. *Decisão do Lucas:* refazer tudo como V5, com pré-registro novo,
+congelado antes da primeira execução do V5, e incluir o **Opus 5.5** (exige o Claude Code
+2.1.280 ou mais: a imagem passa para a `v5`, com o 2.1.288, para todos os modelos, para o
+modelo não se misturar com a versão do Claude Code). Fica fora só o Fable. O V4 vira
+registro (`TCC_V4/`, commit `6c371f4`), e **nenhum dado dele entra em conclusão do V5**.
+
+**10/10: o V4 serve de ensaio geral da análise antes do V5.** *Decisão do Lucas:* "aproveita
+o V4 para testar tudo", com a leitura humana **simulada pelo Claude** ("esse dado não vai
+ser utilizado no TCC"), só para ver se o fluxo funciona, se valida o que deve e se a
+correção não alucina. *O que rodou:* os passos 2 a 4 do `COMO-RODAR-V4` nos 100 pacotes do
+confirmatório, com os scripts congelados. A leitura simulada foi às cegas, sem ver o
+Semgrep antes; as 95 citações `arquivo:linha` dela foram conferidas por script contra o
+código (a conferência pegou 3 erros plantados de propósito). *O que achou:* um **defeito
+no Semgrep**: o `copia-limpa.mjs` só aceitava `<pacote>/src/main`, e um projeto numa
+subpasta (`checkout/src/main`) ficava sem nenhum arquivo lido, com "indeterminado" em
+tudo. Foram 4 de 100 pacotes, **todos de um modelo, em níveis com harness** (um erro não
+aleatório); o build, a suíte e as métricas achavam o projeto, só o Semgrep não. As
+hipóteses tratavam o "indeterminado" como sem dado; a nota, como zero. O defeito mudava
+3 dos 32 vereditos. *Quem viu o quê:* o Claude viu os resultados do V4; o Lucas, só os
+operacionais (a concordância, os defeitos, quantos vereditos mudavam), sem a direção de
+nenhum efeito, e não abre o ensaio antes da sua leitura do V5. *Registro:*
+`TCC_V4/analysis/ensaio/LEIA-ME.md`.
+
+**10/10: as correções que o ensaio pediu, no V5.** (1) O Semgrep lê o projeto do
+`pom.xml` mais raso, a mesma regra do build, da suíte e das métricas (num multimódulo, os
+`src/main` dos módulos do pom; sem pom, o `src/main` mais raso), provado em 9 formatos de
+pasta (`copia-limpa-teste.mjs`; a versão do V4 falha em 5). Regressão nos 100 pacotes do
+V4: só as 4 linhas com subpasta mudaram, 96 idênticas; a leitura simulada sobe para 20 de
+20, e os 4 batem nas 16 respostas; os 4 corpora continuam 80/80, 44/44, 10/10, 12/12.
+(2) O classificador marca `sem-codigo` num pacote sem `.java` lido, e o `verify.mjs`
+**recusa** o lote (teste novo no `verify-teste`, 39 de 39). (3) **A nota:** um ponto
+`indeterminado` do Semgrep deixa a execução **sem nota** (e não zero), listada à parte,
+como o par "sem dado" nas hipóteses (*decisão do Lucas*, entre isso e calcular o desenho
+só sobre os pontos medidos, que preencheria um dado que ninguém mediu); régua §4,
+`OBJETIVO` §4.10, `nota-teste.mjs` 12 de 12. (4) O `detect.sh` funciona com
+`MSYS_NO_PATHCONV=1` no terminal (o gerador de regras recebia um caminho que o Node não
+entendia, e a mensagem dizia "regras diferentes"). (5) A régua (§1) e o guia (passo 1)
+mandam achar o projeto pelo `pom.xml` antes de buscar: a busca humana em
+`<pacote>/src/main` teria o mesmo defeito.
+
+**10/10: o tamanho do V5 e as regras que dependem dele.** 11 modelos × 5 réplicas × 4
+níveis = 220 execuções, 55 quartetos, **55 pares** por comparação. As regras são as do
+§4.1, com os limites pela mesma conta: contínua sem direção, apoiada com **36 de 55**
+(3,0% por sorte), contrariada com 33 ou menos; não-inferioridade, saldo até **7** (13% de
+55); sim/não, a tabela do sinal a 6,3%. *Decisões do Lucas:* a conferência fica em **90%,
+40 de 44** (1 pacote por modelo × nível); a releitura, **11 dos 44** (25%, a proporção do
+V4). *Sementes:* a ordem, **20261020**; os códigos cegos, **20261021**; a amostra,
+**20261022**; a releitura, no dia. Os scripts não mudam de lógica: o `hipoteses.mjs` e o
+`compare.mjs` já calculavam os limites a partir do número de pares e de pacotes.
+
+**10/10: a imagem v5 e os testes antes de congelar.** `experimento-harness:v5`
+(`sha256:8e96815c…`): só a linha do Claude Code muda (2.1.269 → **2.1.288**, a mais nova com
+pelo menos uma semana; o 2.1.280 é o primeiro que aceita o Opus 5.5). O `run-one.sh` e o
+`acceptance.sh` passam a usar a v5. *Conferido:* a suíte de aceitação na v5 deu o mesmo
+resultado que na v3 em 8 execuções do V4 (8 de 8, inclusive a com subpasta e a que não
+subiu); a bancada (`TESTE-BANCADA-03-*`) deu o harness certo em cada nível, a skill só no
+N2 e no N3, o revisor só no N3, o isolamento limpo, e a skill de verificação foi carregada
+e usada (`SKILL-CARREGADA-OK`); os 11 modelos responderam com o ID pedido
+(`TESTE-IDS-02-*`). A versão nova traz uma skill embutida a mais (`plugin-authoring`),
+igual para todos. O **quarteto de ensaio do Opus 5.5** (`TESTE-V5-01`, enunciado real):
+4 de 4 completas e com build, o modelo pedido em todas, o harness certo em cada nível, o
+`meta.json` inteiro na versão nova (tokens, custo, tempo de API, ferramentas,
+subagente); a suíte mediu as 4 e o Semgrep leu os 4 projetos sem nenhum
+`indeterminado`. Gasto: até 6% da janela (com o trabalho da conversa junto), então o
+Opus 5.5 precisa de 14% livres pela regra da janela (`COMO-RODAR-V5.md`).
+
 ## 3. Níveis de harness
 
 **26/09: uma pasta por versão de harness, escolhida por `HARNESS`.** *Por quê:*

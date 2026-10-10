@@ -2,9 +2,9 @@
 //
 // Uso:
 //   node evaluation/tools/sample.mjs amostra   <mapa.csv> <pasta-de-saida> --seed N
-//   node evaluation/tools/sample.mjs releitura <pasta-de-saida> --seed N [--quantos 5]
+//   node evaluation/tools/sample.mjs releitura <pasta-de-saida> --seed N [--quantos 11]
 //
-// "amostra": 1 pacote por modelo x nivel (no V4, 5 x 4 = 20), sorteado entre as
+// "amostra": 1 pacote por modelo x nivel (no V5, 11 x 4 = 44), sorteado entre as
 // replicas. Le o mapa de anonimizacao para saber o modelo e o nivel de cada codigo,
 // mas so escreve CODIGOS, em ordem alfabetica: nada na saida diz o braco.
 //   <saida>/amostra.csv             os codigos sorteados
@@ -22,7 +22,7 @@
 // COMO LER. No modo "amostra": le o mapa, agrupa os codigos por modelo x nivel (20
 // grupos de 5 replicas) e sorteia 1 codigo de cada grupo com a semente. A saida so tem
 // os codigos, em ordem alfabetica, para nada dizer de que grupo veio cada um. No modo
-// "releitura": sorteia, entre os 20, os 4 ou 5 que o Lucas le de novo semanas depois.
+// "releitura": sorteia, entre os 44, os 11 (25%) que o Lucas le de novo semanas depois.
 // O sorteio e reproduzivel: a mesma semente da sempre os mesmos codigos.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
@@ -38,7 +38,7 @@ const modo = args[0];
 const iSeed = args.indexOf("--seed");
 const seed = iSeed >= 0 ? Number(args[iSeed + 1]) : NaN;
 const iQuantos = args.indexOf("--quantos");
-const quantos = iQuantos >= 0 ? Number(args[iQuantos + 1]) : 5;
+const quantos = iQuantos >= 0 ? Number(args[iQuantos + 1]) : 11; // V5: 11 dos 44 (25%); no V4, 4 ou 5 dos 20
 const posicionais = args.slice(1).filter((a, i, l) => !a.startsWith("--") && !["--seed", "--quantos"].includes(l[i - 1]));
 
 const morrer = (m) => { console.error(`ERRO: ${m}`); process.exit(1); };
@@ -87,7 +87,7 @@ if (modo === "amostra") {
   console.log(`  ${join(saida, "leitura-lucas.csv")}  <- a planilha em branco`);
 } else {
   const [saida] = posicionais;
-  if (!saida) morrer("uso: sample.mjs releitura <pasta-de-saida> --seed N [--quantos 5]");
+  if (!saida) morrer("uso: sample.mjs releitura <pasta-de-saida> --seed N [--quantos 11]");
   const amostra = readFileSync(join(saida, "amostra.csv"), "utf8").trim().split(/\r?\n/).slice(1);
   if (quantos > amostra.length) morrer(`a amostra tem ${amostra.length} pacotes; nao da para reler ${quantos}`);
   const escolhidos = embaralha(amostra.sort()).slice(0, quantos).sort();

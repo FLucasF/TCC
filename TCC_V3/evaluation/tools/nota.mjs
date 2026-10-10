@@ -14,7 +14,8 @@
 // 10 por ponto: 10 com a localizacao e a selecao certas, 5 com uma, 0 com nenhuma; P5
 // sem exagero, 10). Variantes publicadas ao lado: B (40, 20, 40) e C (35, 25, 40).
 // Trava: nao compilou ou nao subiu (no_pom, build_failed, app_did_not_start), nota 0.
-// "indeterminado" no Semgrep conta como errado, e a linha sai marcada.
+// "indeterminado" no Semgrep deixa o ponto vazio e a execucao SEM NOTA (sem dado),
+// marcada "sem nota" (decisao de 10/10; ate o V4, contava como errado).
 //
 // COMO LER. Para cada execucao do CSV da suite: (1) acha a linha dela no CSV do
 // Semgrep (pelo run_id, ou pelo codigo cego via mapa); (2) padrao(): da 10, 5 ou 0 a
@@ -66,17 +67,22 @@ const acc = ler(arqAcc);
 const sem = new Map(ler(arqSem).map((r) => [r.pacote, r]));
 const execucaoDe = new Map(arqMapa ? ler(arqMapa).map((r) => [r.run_id, r.blind_code]) : []);
 
+// Um ponto com "indeterminado" fica vazio, e nao zero: a duvida e da ferramenta, nao do
+// codigo. Com um ponto vazio, a execucao fica sem nota (sem dado), como o par nas
+// hipoteses. Decisao do Lucas, 10/10, depois do ensaio do V4: la, 4 pacotes que o
+// Semgrep nao leu (todos de um modelo, em niveis com harness) levavam zero no desenho.
 function padrao(s) {
   const pontos = [], marcas = [];
   for (const p of ["P1", "P2", "P3", "P4"]) {
     const loc = s[`${p}_localizacao`], sel = s[`${p}_selecao`];
-    if (loc === "indeterminado" || sel === "indeterminado") marcas.push(`${p} indeterminado`);
+    if (loc === "indeterminado" || sel === "indeterminado") { marcas.push(`${p} indeterminado`); pontos.push(""); continue; }
     const certos = (loc === "isolado") + (sel === "consulta" || sel === "condicional-unica");
     pontos.push(certos === 2 ? 10 : certos === 1 ? 5 : 0);
   }
-  if (s.P5_proporcao === "indeterminado") marcas.push("P5 indeterminado");
-  pontos.push(s.P5_proporcao === "dados" || s.P5_proporcao === "condicional" ? 10 : 0);
-  return { pontos, total: pontos.reduce((a, b) => a + b, 0), marcas };
+  if (s.P5_proporcao === "indeterminado") { marcas.push("P5 indeterminado"); pontos.push(""); }
+  else pontos.push(s.P5_proporcao === "dados" || s.P5_proporcao === "condicional" ? 10 : 0);
+  const medido = marcas.length === 0;
+  return { pontos, total: medido ? pontos.reduce((a, b) => a + b, 0) : null, marcas };
 }
 
 const fmt = (x) => x.toFixed(1);
@@ -93,9 +99,12 @@ for (const r of acc) {
     erros++; continue;
   }
   const contas = travado ? 0 : Number(r.contas), recusas = travado ? 0 : Number(r.recusas);
+  // A trava vem antes: nao compilar ou nao subir e resultado do codigo, medido. So sem
+  // trava um ponto indeterminado deixa a execucao sem nota.
+  const semNota = !travado && pd.total === null;
   const notas = Object.values(PESOS).map(([wc, wr, wp]) =>
-    travado ? 0 : contas / CONTAS * wc + recusas / RECUSAS * wr + pd.total / PADRAO * wp);
-  const marcas = [...(travado ? [`trava: ${r.status}`] : []), ...pd.marcas].join("; ");
-  console.log([r.run_id, r.status, contas, recusas, ...pd.pontos, ...notas.map(fmt), marcas].join(","));
+    travado ? 0 : semNota ? null : contas / CONTAS * wc + recusas / RECUSAS * wr + pd.total / PADRAO * wp);
+  const marcas = [...(travado ? [`trava: ${r.status}`] : []), ...(semNota ? ["sem nota"] : []), ...pd.marcas].join("; ");
+  console.log([r.run_id, r.status, contas, recusas, ...pd.pontos, ...notas.map((n) => (n === null ? "" : fmt(n))), marcas].join(","));
 }
 process.exit(erros ? 1 : 0);

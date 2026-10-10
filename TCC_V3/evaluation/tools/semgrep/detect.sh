@@ -35,15 +35,18 @@ AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # A versao travada. Trocar a imagem e um instrumento novo.
 IMAGEM="semgrep/semgrep@sha256:30e6afa99ebd8e7b4115d4904898108eb4bf77025819e9263f09cf14e6f6e549"
 
-# As regras em uso tem de ser exatamente as que o gerador produz.
-node "$AQUI/gerar-regras.mjs" | cmp -s - "$AQUI/regras.yml" \
-    || morrer "regras.yml difere do gerar-regras.mjs: gere de novo antes de rodar"
-
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 # Sem MSYS_NO_PATHCONV, o Git Bash troca "/pacotes" por "C:/Program Files/Git/pacotes";
 # com ele, os outros caminhos vao convertidos a mao (cygpath -m), quando houver cygpath.
 win() { cygpath -m "$1" 2>/dev/null || echo "$1"; }
+
+# As regras em uso tem de ser exatamente as que o gerador produz. O gerador falhar e
+# outro erro: com MSYS_NO_PATHCONV=1 no terminal, o node recebia /j/... e nao achava o
+# arquivo, e a mensagem dizia "regras diferentes" (ensaio de 10/10).
+node "$(win "$AQUI/gerar-regras.mjs")" > "$TMP/regras-geradas.yml" || morrer "o gerar-regras.mjs falhou"
+cmp -s "$TMP/regras-geradas.yml" "$AQUI/regras.yml" \
+    || morrer "regras.yml difere do gerar-regras.mjs: gere de novo antes de rodar"
 ABS_PACOTES="$(cd "$PACOTES" && pwd -P)"
 
 # O Semgrep le uma copia sem comentarios, com as linhas no mesmo lugar (09/10): as

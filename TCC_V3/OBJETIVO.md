@@ -1,13 +1,13 @@
 # Objetivo
 
-> **CONGELADO em 09/10/2026, antes da primeira execução do V4.** É o pré-registro do
-> experimento: o commit de congelamento e o hash deste arquivo no README são a prova.
-> Escrito para o V4 redesenhado (a avaliação automática na base, o Semgrep, 5 modelos ×
-> 5 réplicas, mais o lote exploratório) e revisado pelo Lucas, que toma as decisões; o
-> orientador vê o resultado analisado. Os 5 modelos saíram do mapa pela regra do
-> `DECISOES.md` (§2). **Daqui em diante, nada muda:** uma mudança vira emenda datada,
-> no fim deste arquivo, com o motivo, e as conclusões dizem o que foi lido antes e o
-> que foi lido depois dela.
+> **RASCUNHO do V5 (10/10/2026)**: congela antes da primeira execução do V5. É o
+> pré-registro do experimento: o commit de congelamento e o hash deste arquivo no README
+> são a prova. Escrito para o V5 (11 modelos × 5 réplicas num lote só, a imagem `v5`) e
+> revisado pelo Lucas, que toma as decisões; o orientador vê o resultado analisado.
+> Substitui o pré-registro do V4 (congelado em 09/10, commit `06a1172`), descartado
+> antes da análise pelo motivo do §2. **Daqui em diante, nada muda:** uma mudança vira
+> emenda datada, no fim deste arquivo, com o motivo, e as conclusões dizem o que foi
+> lido antes e o que foi lido depois dela.
 
 O [README](README.md) diz **como** o experimento roda. Este arquivo diz **para
 quê**: a pergunta, o que conta como resposta, e o que já foi testado. O **porquê**
@@ -26,7 +26,7 @@ de cada escolha está no [`DECISOES.md`](DECISOES.md).
 orientação de 12/09: padrões de projeto, com e sem harness, em mais de um modelo.
 Manter software, arquitetura, testes e banco de dados ficam fora deste recorte.
 
-O V4 testa **um padrão, o Strategy**, e a escada de harness de N0 a N3. Padrões e
+O V5 testa **um padrão, o Strategy**, e a escada de harness de N0 a N3. Padrões e
 componentes de harness novos entram depois, um de cada vez, sobre o mesmo corpo.
 
 ## 2. O que fica fixo, e o que varia
@@ -36,37 +36,44 @@ componentes de harness novos entram depois, um de cada vez, sobre o mesmo corpo.
 | **o que varia dentro de um lote** | só o **nível** do harness: N0 (braço `CONTROL`, workspace vazio), N1, N2 e N3 (braço `HARNESS`, com a pasta do nível em `experiment/harnesses/`) |
 | **o harness** | **fixo dentro de um nível**. Não é ajustado ao enunciado. Cada nível é uma pasta de `experiment/harnesses/`, identificada pelo hash da árvore, gravado em `environment.harness_hash` no `meta.json` |
 | **o enunciado** | um só, **igual em todos os níveis** (`experiment/prompt/prompt.md`, `8c70bb30…`). Escrito como o dono de uma loja que estuda o básico de programação por curiosidade: as regras do negócio no texto e, num anexo, o contrato da API em linguagem simples (o endereço e tabelas com os nomes dos campos, sem verbo, sem números de status e sem bloco de JSON). Sem palavra de arquitetura |
-| **os modelos** | **5**: **Haiku 4.5** (`claude-haiku-4-5`), **Sonnet 4.5** (`claude-sonnet-4-5`), **Opus 4.6** (`claude-opus-4-6`), **Sonnet 5** (`claude-sonnet-5`) e **Opus 5** (`claude-opus-5`). Escolhidos por um mapa no N0 (`TESTE-MAPA-01`, 09/10), pela regra do `DECISOES.md` (§2), escrita antes de rodar: o Haiku 4.5 (o mais fraco) e o Opus 5 (o topo) entram sempre; dos outros cinco candidatos (Haiku 5.5, Sonnet 4.5, Sonnet 4.6, Sonnet 5 e Opus 4.6), o de menor nota A, o do meio e o de maior. No mapa, três ficaram fora do teto (Haiku 4.5, Sonnet 4.5 e Opus 4.6) e dois no teto (Sonnet 5 e Opus 5). O modelo é fator de bloco, chamado sempre pelo ID completo, que o `run-levels.sh` lê de `experiment/desenho-v4.json` |
+| **os modelos** | **11**, todos os disponíveis no Claude Code em 10/10/2026 menos o Fable (decisão do Lucas): **Haiku 4.5** (`claude-haiku-4-5`), **Haiku 5.5** (`claude-haiku-5-5`), **Sonnet 4.5** (`claude-sonnet-4-5`), **Sonnet 4.6** (`claude-sonnet-4-6`), **Sonnet 5** (`claude-sonnet-5`), **Sonnet 5.5** (`claude-sonnet-5-5`), **Opus 4.6** (`claude-opus-4-6`), **Opus 4.7** (`claude-opus-4-7`), **Opus 4.8** (`claude-opus-4-8`), **Opus 5** (`claude-opus-5`) e **Opus 5.5** (`claude-opus-5-5`). Todos na análise principal. O modelo é fator de bloco, chamado sempre pelo ID completo, que o `run-levels.sh` lê de `experiment/desenho-v5.json`. Um mapa no N0, antes do V4 (`TESTE-MAPA-01`, 09/10, uma execução por modelo; ver o `DECISOES.md`, §2), mostrou que há modelos no teto e fora dele, que é o que a escada precisa (§4.6); o Opus 5.5 não estava no mapa. Quem está no teto, para as regras do §4.1, sai das execuções do próprio V5 |
 | **a unidade de análise** | o **par simultâneo**: dois níveis vizinhos do mesmo modelo, que rodaram no mesmo instante, dentro do mesmo quarteto |
 
-O V4 é **um lote de 4 níveis × 5 modelos × 5 réplicas = 100 execuções**, em **25
+O V5 é **um lote de 4 níveis × 11 modelos × 5 réplicas = 220 execuções**, em **55
 quartetos**: os quatro níveis de um modelo rodam juntos (`infra/scripts/run-levels.sh`),
-um quarteto de cada vez, e cada rodada tem uma réplica de cada modelo, em ordem
-sorteada (`experiment/ordem-v4.csv`, semente 20261009, `infra/scripts/draw-order.mjs`);
-as rodadas vão em sequência. Um quarteto interrompido (por cota ou servidor) é refeito inteiro. Cada
-comparação entre dois níveis vizinhos tem **25 pares** (5 modelos × 5 réplicas).
+um quarteto de cada vez, e cada rodada tem uma réplica de cada modelo (11 quartetos),
+em ordem sorteada (`experiment/ordem-v5.csv`, semente 20261020,
+`infra/scripts/draw-order.mjs`); as rodadas vão em sequência. Um quarteto interrompido
+(por cota ou servidor) é refeito inteiro. Cada comparação entre dois níveis vizinhos tem
+**55 pares** (11 modelos × 5 réplicas). A imagem é a `experimento-harness:v5`, com o
+Claude Code **2.1.288** (`sha256:8e96815c…`): o Opus 5.5 exige 2.1.280 ou mais, e todos os
+modelos rodam na mesma versão, para o modelo não se misturar com a versão do Claude Code.
 
-**O exploratório.** Depois dos 25 quartetos acima, que são o estudo **confirmatório**,
-roda, **obrigatoriamente** (decisão do Lucas, 09/10: o trabalho só fecha com os dois
-lotes), um segundo lote, `V4-EXPLOR`, com os outros modelos disponíveis no Claude:
-**Haiku 5.5, Sonnet 4.6, Opus 4.7, Opus 4.8 e Sonnet 5.5** (decisão de 09/10, depois
-do mapa). Ficam fora o Fable e o Opus 5.5, que exige um Claude Code mais novo que o da
-bancada (2.1.280 ou mais; a imagem tem o 2.1.269). O desenho é o mesmo: 4 níveis × 5
-modelos × 5 réplicas = 100 execuções, a mesma imagem, o mesmo enunciado, as mesmas
-medidas automáticas (a suíte, o Semgrep, o SonarQube e o CK, e a nota), em ordem
-sorteada (`experiment/ordem-v4-exploratorio.csv`, semente 20261010), com o desenho em
-`experiment/desenho-v4-exploratorio.json`. **Nenhuma hipótese é testada nele:** as
-regras do §4 valem só para o confirmatório, e o exploratório entra no texto como
-tabelas e gráficos marcados como exploratórios (por exemplo, as gerações Opus 4.6 →
-4.7 → 4.8 → 5 e Sonnet 4.5 → 4.6 → 5 → 5.5). Não tem leitura humana: o Semgrep dele
-não é conferido, e a conferência dos 20 pacotes (§4.10) só vale para o confirmatório.
-*Por quê:* mostra o panorama dos modelos sem mudar o que foi pré-registrado. Os 5
-do confirmatório saíram de uma regra fixada antes do mapa, e trocar o conjunto depois
-de ver o mapa seria um desvio. No N0 do mapa (uma execução cada), o Haiku 5.5 (nota A
-70) e o Opus 4.7 (60) ficaram fora do teto, e o Sonnet 4.6, o Opus 4.8 e o Sonnet 5.5
-no teto (100).
+**O que veio antes: o V4.** O pré-registro de 09/10 (o V4, commit `06a1172`) separava os
+modelos em dois lotes: 5 num confirmatório, escolhidos por um mapa no N0, e 5 num
+exploratório só descritivo. Não era o desenho pretendido pelo Lucas, que queria concluir
+sobre todos os modelos testados; a separação passou na revisão por um mal-entendido. O
+V4 rodou o confirmatório inteiro (100 execuções) e 3 quartetos do exploratório, e **foi
+descartado antes da análise**: em vez de emendá-lo, o experimento é refeito como V5, com
+este pré-registro, congelado antes da primeira execução do V5. **Nenhum dado do V4 entra
+em conclusão do V5.**
 
-**O TCC_V3 é a bancada de testes.** Os lotes daqui (o `EXT`, os `TESTE-*`) serviram
+Antes de ser descartado, o V4 serviu de **ensaio geral da análise** (10/10): todos os
+passos rodaram nos 100 pacotes, com a leitura humana **simulada pelo Claude** (que não vale
+como conferência, pelo §3), só para exercitar o fluxo. O ensaio achou um defeito no
+Semgrep (um projeto numa subpasta não era lido: 4 de 100 pacotes, todos de um modelo, em
+níveis com harness) e levou a três mudanças, já neste desenho: o Semgrep lê o projeto do
+`pom.xml` mais raso, como o build; o `verify.mjs` recusa um pacote sem código lido; e uma
+resposta `indeterminado` do Semgrep deixa a execução sem nota, em vez de zero (§4.10).
+**Quem viu o quê:** o Claude, que operou as rodadas e o ensaio, viu os resultados do V4; o
+Lucas viu só os operacionais (a concordância, os defeitos, quantos vereditos o defeito
+mudava), sem a direção de nenhum efeito, e não abre o ensaio antes da sua leitura do V5.
+As hipóteses, as regras do §4.1 e a régua são as do V4; o que mudou foi o número de
+modelos, os limites que dependem dele e as correções acima. Nenhuma hipótese, regra ou
+limite foi escolhido olhando para os resultados do V4. O registro está no `TCC_V4/` e no
+commit `6c371f4` (`TCC_V4/analysis/ensaio/LEIA-ME.md`).
+
+**O TCC_V3 é a bancada de testes.** Os lotes daqui (o `EXT`, os `TESTE-*`) e o V4 serviram
 para validar a bancada, o enunciado e os instrumentos, e não entram na análise.
 
 ## 3. O que conta como influência
@@ -76,10 +83,10 @@ quatro, todos medidos **sem IA** em todas as execuções:
 
 | eixo | a pergunta | instrumento | em quantas |
 |---|---|---|---|
-| **desenho** | aplicou o padrão onde o enunciado pede, e deixou de aplicar onde seria exagero? | o **Semgrep**, com regras próprias sobre os casos do gabarito (`evaluation/tools/semgrep/`), **conferido** pela leitura humana às cegas (§4.10) | 100 (o Semgrep); 20 (a conferência) |
-| **correção** | o código calcula e recusa o que o enunciado pede? | a suíte de aceitação, via HTTP: 12 casos de conta e 9 de recusa (`infra/scripts/acceptance.sh`) | 100 |
-| **qualidade** | o código ficou mais simples ou mais complicado? | SonarQube e CK (`evaluation/tools/metrics.sh`) | 100 |
-| **custo e processo** | quanto gastou, e como trabalhou, para chegar lá? | `meta.json`: `tokens.input_total`, `tokens.output`, `timing.duration_api_ms`, `outcome.turns`, `outcome.tool_calls_by_name` | 100 |
+| **desenho** | aplicou o padrão onde o enunciado pede, e deixou de aplicar onde seria exagero? | o **Semgrep**, com regras próprias sobre os casos do gabarito (`evaluation/tools/semgrep/`), **conferido** pela leitura humana às cegas (§4.10) | 220 (o Semgrep); 44 (a conferência) |
+| **correção** | o código calcula e recusa o que o enunciado pede? | a suíte de aceitação, via HTTP: 12 casos de conta e 9 de recusa (`infra/scripts/acceptance.sh`) | 220 |
+| **qualidade** | o código ficou mais simples ou mais complicado? | SonarQube e CK (`evaluation/tools/metrics.sh`) | 220 |
+| **custo e processo** | quanto gastou, e como trabalhou, para chegar lá? | `meta.json`: `tokens.input_total`, `tokens.output`, `timing.duration_api_ms`, `outcome.turns`, `outcome.tool_calls_by_name` | 220 |
 
 **Nenhum modelo de IA avalia nada.** O Claude não lê os pacotes: os agentes do
 experimento são Claude, e um avaliador da mesma família é o risco que o documento do
@@ -144,10 +151,10 @@ harness pode puxar para os dois lados).
 
 - **nível**: N0 a N3, a escada de harness (§5). O N0 é o braço `CONTROL`; o N1, o N2 e
   o N3, o braço `HARNESS`, como fica gravado no `meta.json`.
-- **quarteto**: os quatro níveis de um mesmo modelo, rodados no mesmo instante. O V4
-  tem 25: 5 modelos × 5 réplicas.
+- **quarteto**: os quatro níveis de um mesmo modelo, rodados no mesmo instante. O V5
+  tem 55: 11 modelos × 5 réplicas.
 - **par**: dois níveis vizinhos do mesmo quarteto (N1 × N0, N2 × N1, N3 × N2). Cada
-  comparação tem 25 pares.
+  comparação tem 55 pares.
 - **melhor, igual, pior**: em cada par, como o nível de cima ficou em relação ao de
   baixo, no que a hipótese mede.
 - **teto**: um modelo cujo nível de baixo já acerta tudo o que a hipótese mede, nas 5
@@ -161,36 +168,36 @@ escada inteira, de N0 a N3.
 ### 4.1 Como uma hipótese é lida
 
 Com 5 réplicas, cada modelo tem 5 pares por comparação: mesmo com os 5 na mesma
-direção, o menor p de um teste de sinal é 0,0625. Somando os 25 pares, o teste de
+direção, o menor p de um teste de sinal é 0,0625. Somando os 55 pares, o teste de
 sinal junta modelos que se comportam diferente. Por isso a leitura é **por pares,
-descritiva, e decidida aqui antes dos dados**; o teste de sinal sobre os 25 pares
+descritiva, e decidida aqui antes dos dados**; o teste de sinal sobre os 55 pares
 pode ser reportado ao lado, como informação, não como critério.
 
 | tipo de hipótese | apoiada quando | contrariada quando |
 |---|---|---|
 | **direcional** | na maioria dos modelos **fora do teto** há mais pares melhores que piores, e em nenhum modelo (no teto ou não) há mais piores que melhores | na maioria dos modelos fora do teto há mais pares piores que melhores |
-| **não-inferioridade** ("não piora") | o **saldo** (pares piores − pares melhores) é no máximo 3 | o saldo é 4 ou mais |
-| **sem direção** ("altera"), medida contínua (tokens, tempo) | pelo menos **18 dos 25** pares vão na mesma direção, qualquer que seja | o lado maior tem no máximo 15 pares (eles se dividem); com 16 ou 17, inconclusiva |
+| **não-inferioridade** ("não piora") | o **saldo** (pares piores − pares melhores) é no máximo 13% dos pares comparados, arredondado: **7** com os 55 pares | o saldo passa disso |
+| **sem direção** ("altera"), medida contínua (tokens, tempo) | pelo menos **36 dos 55** pares vão na mesma direção, qualquer que seja | o lado maior tem no máximo 33 pares (eles se dividem); com 34 ou 35, inconclusiva |
 | **sem direção** ("altera"), medida sim/não (exagerou ou não) | pelo menos 5 pares não empatados, e o lado maior no mínimo da tabela abaixo | no máximo 2 pares não empatados, ou eles se dividem (o lado menor tem pelo menos um terço deles); o resto é inconclusivo |
 
 Fora desses casos, a hipótese é **inconclusiva**, e isso é resultado, não falha. A
 tabela de pares é sempre publicada inteira, qualquer que seja a leitura. "Igual"
 nunca conta como direção.
 
-**Por que 18 de 25.** Se o harness não mudasse nada, cada par seria cara ou coroa. A
-chance de pelo menos X dos 25 caírem do mesmo lado só por sorte, somando os dois lados:
+**Por que 36 de 55.** Se o harness não mudasse nada, cada par seria cara ou coroa. A
+chance de pelo menos X dos 55 caírem do mesmo lado só por sorte, somando os dois lados:
 
 | pares do mesmo lado | chance por sorte |
 |---|---|
-| 19 ou mais | 1,5% |
-| **18 ou mais** | **4,3%** |
-| 17 ou mais | 10,8% |
-| 16 ou mais | 23% |
+| 37 ou mais | 1,4% |
+| **36 ou mais** | **3,0%** |
+| 35 ou mais | 5,8% |
+| 34 ou mais | 10,5% |
 
 A convenção é aceitar um resultado quando a chance de ele ser só sorte fica abaixo de
-5%; 18 é o menor número que passa (com 15 pares, era 12, a 3,5%). Com 16 ou 17 do
-mesmo lado há indício sem prova, e a hipótese é inconclusiva; só com os pares
-divididos (15 a 10 ou mais equilibrado) ela é contrariada.
+5%; 36 é o menor número que passa (no V4, com 25 pares, era 18, a 4,3%). Com 34 ou 35
+do mesmo lado há indício sem prova, e a hipótese é inconclusiva; só com os pares
+divididos (33 a 22 ou mais equilibrado: no máximo 60% de um lado) ela é contrariada.
 
 **A medida sim/não.** Quando a medida é exagerou ou não, a maioria dos pares tende a
 empatar (nenhum dos dois exagerou). Contam então só os pares em que os níveis diferem,
@@ -213,11 +220,13 @@ sempre, por construção):
 Acima de 15, o lado maior precisa de uma chance por sorte de no máximo 6,3% no teste
 de sinal de dois lados, calculada da mesma forma.
 
-**Por que o saldo até 3 na não-inferioridade.** Mesmo sem efeito nenhum do harness, o
-modelo não acerta sempre igual, e alguns pares saem diferentes por acaso, para os dois
-lados. O saldo desconta os melhores. Com 15 pares, até 2 não se separava do acaso;
-com 25, a mesma proporção (cerca de 13% dos pares) dá 3. De 4 em diante, o harness
-atrapalha mais do que ajuda.
+**Por que o saldo até 13% dos pares na não-inferioridade.** Mesmo sem efeito nenhum do
+harness, o modelo não acerta sempre igual, e alguns pares saem diferentes por acaso,
+para os dois lados. O saldo desconta os melhores. Com 15 pares, até 2 não se separava do
+acaso; com 25, a mesma proporção (cerca de 13% dos pares) dava 3; com os 55 do V5, dá
+7. Acima disso, o harness atrapalha mais do que ajuda. Quando a hipótese conta só uma
+parte dos modelos (a do teto, que só olha os modelos no teto), vale a mesma proporção
+sobre os pares deles: 1 com um modelo (5 pares), 2 com três (15), 3 com cinco (25).
 
 **Por que o teto sai da contagem.** Um modelo no teto não tem como mostrar melhora;
 contá-lo tornaria uma hipótese direcional impossível de apoiar sempre que vários
@@ -244,10 +253,11 @@ N0 < N1 < N2 < N3. Ele é publicado com o p, por modelo e no conjunto, mas **nã
 nenhuma hipótese**.
 
 **Exemplo, com números inventados.** Na hipótese do desenho (N1 × N0), o Haiku 4.5 tem
-4 pares melhores e 1 igual; o Opus 4.6, 3 melhores e 2 iguais; os outros três modelos
-estão no teto, com 5 pares iguais cada. Os dois modelos fora do teto têm mais melhores
-que piores, e nenhum modelo piorou. **A hipótese do desenho é apoiada.** A do modelo
-também: o Haiku 4.5, o mais fraco no N0, tem o maior saldo (+4).
+4 pares melhores e 1 igual; o Opus 4.6, 3 melhores e 2 iguais; o Haiku 5.5, 2 melhores,
+2 iguais e 1 pior; os outros oito modelos estão no teto, com 5 pares iguais cada. Os
+três modelos fora do teto têm mais melhores que piores, e nenhum modelo tem mais piores
+que melhores. **A hipótese do desenho é apoiada.** A do modelo também: o Haiku 4.5, o
+mais fraco no N0, tem o maior saldo (+4).
 
 ### 4.2 Desenho
 
@@ -262,8 +272,8 @@ Um ponto tem **acerto** quando o Semgrep responde `isolado` e, na seleção, `co
 | **Desenho: isola cada caso no P1 a P3** | o mesmo, na entrega, no cupom e no pagamento | Semgrep, **sem conferência humana** | declarada: mais |
 | **Desenho: não repete o comum** | a `HARNESS` repete menos o que é comum aos casos | `sonar_duplicated_lines_density` | declarada: menos |
 | **Desenho: réplicas mais parecidas** | as 5 réplicas de um modelo dão respostas mais parecidas entre si no N1 que no N0 (as do Semgrep do P1 ao P5) | Semgrep | declarada: mais parecidas |
-| ~~Desenho: comporta o caso exigente~~ | fora do V4: a pergunta saiu da régua (09/10); é quase o "espalhado" do P4 | — | — |
-| ~~Desenho: caso novo com pouca edição~~ | fora do V4: a manutenção ficou para trabalho futuro (09/10) | — | — |
+| ~~Desenho: comporta o caso exigente~~ | fora do V4 e do V5: a pergunta saiu da régua (09/10); é quase o "espalhado" do P4 | — | — |
+| ~~Desenho: caso novo com pouca edição~~ | fora do V4 e do V5: a manutenção ficou para trabalho futuro (09/10) | — | — |
 
 ### 4.3 Exagero
 
@@ -325,12 +335,12 @@ O ensaio já sugere a hipótese do modelo e *Modelo: no teto, não piora*: no EX
 Opus e o Sonnet acertaram o P4 e a suíte nos dois braços, e só o Haiku variou. No
 teste do V4 (`TESTE-NIVEIS-01`), os quatro níveis do Opus fizeram 21 de 21. Onde o
 modelo já acerta sozinho, não há espaço para efeito positivo, e a pergunta passa a ser
-se o harness atrapalha. Por isso a escada de 5 modelos tem modelos no teto e fora dele.
+se o harness atrapalha. Por isso a escada de 11 modelos tem modelos no teto e fora dele.
 
 ### 4.7 Entre padrões
 
 Comparação **observacional**: cada padrão é um lote próprio, sem par entre lotes.
-**Nenhuma destas roda no V4**, que tem um padrão só; ficam escritas para quando
+**Nenhuma destas roda no V5**, que tem um padrão só; ficam escritas para quando
 um segundo padrão entrar (o State está pronto para isso em `history/state/`).
 
 | hipótese | o que afirma | direção | quando |
@@ -341,7 +351,7 @@ um segundo padrão entrar (o State está pronto para isso em `history/state/`).
 
 ### 4.8 Entre níveis do harness
 
-No V4, os níveis rodam no mesmo quarteto, então estas comparações também são
+No V5, os níveis rodam no mesmo quarteto, então estas comparações também são
 **por pares** (N2 × N1, N3 × N2), lidas com as regras do §4.1. Cada nível acumula
 o anterior (§5), e por isso cada um é comparado com o de logo abaixo.
 
@@ -384,8 +394,8 @@ As métricas são as colunas do `metricas.csv` (ver
 
 **De onde veio a complexidade cognitiva.** No ensaio do EXT (V3), ela foi a métrica
 que mais mudou com o harness (caiu em 8 dos 9 pares), e por isso entra como
-principal (decisão do Lucas, 09/10). É uma escolha feita olhando dados anteriores, e por isso declarada aqui: o
-V4 são dados novos, e, se o ensaio foi sorte, o V4 mostra. No teste do Haiku do V4 (uma
+principal (decisão do Lucas, 09/10, antes do V4). É uma escolha feita olhando dados anteriores, e por isso declarada aqui: o
+V5 são dados novos, e, se o ensaio foi sorte, o V5 mostra. No teste do Haiku de preparo do V4 (uma
 réplica, `TESTE-NIVEIS-01`), ela **subiu** com o harness.
 
 **Como se lê.** Cada métrica é lida por pares, com a regra do §4.1 do tipo da
@@ -397,24 +407,26 @@ RFC, DIT) são **descritivas**: publicadas, sem hipótese.
 
 ### 4.10 A conferência do Semgrep, a releitura e a nota
 
-**A conferência.** O Semgrep mede o desenho dos 100 pacotes. Para saber se ele mede
-certo, o Lucas lê **20 pacotes**, um por modelo × nível, sorteados com semente
+**A conferência.** O Semgrep mede o desenho dos 220 pacotes. Para saber se ele mede
+certo, o Lucas lê **44 pacotes**, um por modelo × nível, sorteados com semente
 registrada (`evaluation/tools/sample.mjs`), **às cegas**: a cópia vem sem comentários
 e sem README, com os códigos anonimizados, e ele não vê o resultado do Semgrep. Ele
 responde às 4 perguntas da régua no P4 e no P5 (`evaluation/regua.md`). As duas
 leituras são commitadas antes da comparação, e um script compara
 (`evaluation/tools/compare.mjs`).
 
-**A regra de saída.** Uma pergunta do Semgrep **vale para os 100 pacotes** se a
-concordância for de pelo menos **18 de 20**. Abaixo disso, ela vira **descritiva**: as
-hipóteses que dependem dela são lidas só nos 20 pacotes conferidos, e a discordância
+**A regra de saída.** Uma pergunta do Semgrep **vale para os 220 pacotes** se a
+concordância for de pelo menos **90%: 40 de 44** (no V4, 18 de 20). Abaixo disso, ela
+vira **descritiva**: as hipóteses que dependem dela são lidas só nos 44 pacotes
+conferidos, e a discordância
 entra nas limitações. Célula vazia ou `indeterminado`, de qualquer lado, conta como
 discordância. Nas discordâncias, a regra do Semgrep **não** é corrigida para refazer a
 conta oficial; uma regra corrigida pode aparecer como análise extra, marcada como tal.
 O P1 a P3 não têm conferência humana e entram só como secundários.
 
 **A releitura.** Há um leitor só. No lugar da concordância entre dois leitores, ele
-relê **4 ou 5** dos 20 pacotes uma ou duas semanas depois, sorteados nesse momento, sem
+relê **11** dos 44 pacotes (25%, a mesma proporção do V4) uma ou duas semanas depois,
+sorteados nesse momento, sem
 ver as respostas antigas, e a mesma comparação mede se ele responde igual. A coluna
 `achei_que_sabia_nivel` da planilha mede se o cegamento vazou (por exemplo, por nomes
 de classe).
@@ -422,7 +434,9 @@ de classe).
 **A nota.** Cada execução recebe uma nota de 0 a 100, **como resumo**: as hipóteses são
 lidas nas medidas separadas. Pesos A: contas 30, recusas 20, padrão 50 (P1 a P4, 10
 por ponto: 10 com a localização e a seleção certas, 5 com uma, 0 com nenhuma; o P5 sem
-exagero, 10). Quem não compila ou não sobe tem nota 0. As variantes B (40, 20, 40) e C
+exagero, 10). Quem não compila ou não sobe tem nota 0. Um ponto em que o Semgrep
+respondeu `indeterminado` não pontua: a execução fica sem nota e é contada à parte, como
+o par "sem dado" nas hipóteses. As variantes B (40, 20, 40) e C
 (35, 25, 40) são publicadas ao lado, para mostrar se a ordem depende dos pesos
 (`evaluation/tools/nota.mjs`). A qualidade do SonarQube fica fora da nota, porque não
 tem um "100" natural.
@@ -435,7 +449,7 @@ tem um "100" natural.
 
 | padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
 |---|---|---|---|---|---|---|
-| **Strategy** | `experiment/prompt/prompt.md` (`8c70bb30…`) | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 seguro por região | `V4-STRATEGY-01` a `05` (confirmatório) e `V4-EXPLOR-01` a `05` (exploratório) | `evaluation/strategy/` | pronto para o V4; ensaiado no `EXT` (V3) e nos `TESTE-MAPA-01`, `TESTE-NIVEIS-01` e `TESTE-DIFICIL-01` (V4) |
+| **Strategy** | `experiment/prompt/prompt.md` (`8c70bb30…`) | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 seguro por região | `V5-STRATEGY-01` a `05` | `evaluation/strategy/` | pronto para o V5; ensaiado no `EXT` (V3), nos `TESTE-MAPA-01`, `TESTE-NIVEIS-01` e `TESTE-DIFICIL-01` e no V4 inteiro, usado como ensaio geral (§2) |
 | **State** | `history/state/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | nenhum | `history/state/` | **fora do V4** (07/10). Serviu para provar que a bancada aceita um segundo padrão |
 
 ### Os instrumentos
@@ -443,8 +457,8 @@ tem um "100" natural.
 | instrumento | estado | onde |
 |---|---|---|
 | a suíte (21 casos) | a referência confirmada por 4 implementações independentes do Opus (21 de 21 cada); 17 mutantes reprovados | `evaluation/acceptance-prototype/`, `infra/scripts/acceptance.sh` |
-| o Semgrep | versão 2 (09/10): quatro corpora de formas de escrever, com a resposta da régua escrita antes (80/80, 44/44 no de controle, 10/10, 12/12), e regressão nos 64 pacotes reais (637 de 640 respostas iguais à versão 1, as 3 mudanças conferidas no código) | `evaluation/tools/semgrep/` |
-| SonarQube e CK | travados por hash; rodados no EXT e nos testes do V4 | `evaluation/tools/` |
+| o Semgrep | versão 2 (09/10): quatro corpora de formas de escrever, com a resposta da régua escrita antes (80/80, 44/44 no de controle, 10/10, 12/12), e regressão nos 64 pacotes reais (637 de 640 respostas iguais à versão 1, as 3 mudanças conferidas no código); a escolha do projeto corrigida no ensaio do V4 (10/10: o `pom.xml` mais raso, 9 formatos de pasta testados, os 4 corpora iguais, e 96 de 100 pacotes do V4 idênticos, os 4 que mudaram eram os com subpasta) | `evaluation/tools/semgrep/` |
+| SonarQube e CK | travados por hash; rodados no EXT, nos testes do V4 e no ensaio do V4 (100 de 100) | `evaluation/tools/` |
 | a régua (versão 4) e o guia | revisados pelo Lucas e calibrados em 2 pacotes (8 de 8 com o Semgrep), em 09/10 | `evaluation/regua.md`, `evaluation/GUIA-DA-REGUA.md` |
 
 ### Os harnesses
@@ -484,8 +498,15 @@ de *Processo*, do N3.
 - **Os instrumentos foram desenhados com a ajuda de um modelo de IA** (o Claude, da
   mesma família dos agentes). Nenhum deles usa IA para avaliar, e a conferência humana
   é o que valida o Semgrep.
-- **O ensaio influenciou escolhas**: a complexidade cognitiva como principal e a
-  escada de 5 modelos vieram do que o EXT e os testes mostraram.
+- **O ensaio influenciou escolhas**: a complexidade cognitiva como principal veio do
+  que o EXT mostrou.
+- **O V4 rodou antes, com os mesmos modelos e o mesmo enunciado** (§2). O Claude, que
+  opera a bancada, viu os resultados dele; o Lucas, só os operacionais. As hipóteses, as
+  regras e a régua não mudaram por causa dele, e nenhum dado dele entra nas conclusões,
+  mas este pré-registro foi congelado depois de uma execução completa do mesmo
+  experimento, e isso fica declarado. O que o V4 mudou foi o instrumento (a escolha do
+  projeto no Semgrep, a trava do `verify.mjs`, a nota sem `indeterminado`), por um
+  defeito achado no ensaio, não por um resultado.
 - **O N3 gasta muito mais** (no teste, cerca de 3 vezes os tokens do N0). Se ele
   melhorar, pode ser o processo ou só mais computação; o custo sai ao lado de cada
   resultado.
@@ -499,19 +520,20 @@ de *Processo*, do N3.
   página do padrão.
 - **Não mede o harness fora do Claude Code.** Os modelos rodam no Claude Code como ele
   vem, que já traz as suas próprias orientações. O efeito medido é o do harness
-  **somado** a essa base.
+  **somado** a essa base, na versão **2.1.288** (a do V4 era a 2.1.269; a nova traz uma
+  skill embutida a mais, `plugin-authoring`, igual para todos os níveis e modelos).
 - **A manutenção ficou de fora** (09/10): o custo de acrescentar um caso novo não é
   medido.
 - **O P3 (pagamento) não tem frase de crescimento** no enunciado, ao contrário do P1,
   do P2 e do P4: um `switch` sobre as 3 formas conta como erro no Semgrep sem que o
   enunciado dê motivo para separá-las. Por isso, e por não ter conferência humana, o
   P3 é só secundário.
-- **O exploratório não confirma nada.** Os 5 modelos dele são descritos, não testados,
-  e o Semgrep dele não tem conferência humana. O Opus 5.5 ficou fora porque exige um
-  Claude Code mais novo que o da bancada.
-- **O mapa é uma execução por modelo.** Ele só põe os modelos em degraus, e o lugar de
-  cada um pode variar de uma execução para outra (o Haiku 4.5 fez 20 e depois 17 de 21
-  no N0).
+- **O mapa é uma execução por modelo**, e no V5 não escolhe nada: todos os modelos
+  entram. Ele só mostrou que há modelos no teto e fora dele, e o lugar de cada um pode
+  variar de uma execução para outra (o Haiku 4.5 fez 20 e depois 17 de 21 no N0). Quem
+  está no teto, para as regras, sai das próprias execuções do V5.
+- **Onze modelos, uma família.** São todos Claude, de três tamanhos e várias gerações;
+  o estudo não diz nada sobre modelos de outras empresas.
 
 ## 7. Códigos usados até 05/10
 

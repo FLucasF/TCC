@@ -12,7 +12,7 @@
 // P4_selecao, P5_forma, P5_proporcao.
 //
 // Regra de saida (09/10): uma pergunta VALE para o lote inteiro se a concordancia for
-// pelo menos o limite (0,9: 18 de 20). Abaixo disso, ela vira DESCRITIVA. Celula vazia
+// pelo menos o limite (0,9: 40 de 44 no V5; 18 de 20 no V4). Abaixo disso, ela vira DESCRITIVA. Celula vazia
 // ou "indeterminado", de qualquer lado, conta como discordancia: na duvida, nao vale.
 //
 // COMO LER. Le as duas planilhas, casa as linhas pelo codigo do pacote e, em cada uma

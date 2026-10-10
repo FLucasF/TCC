@@ -1,5 +1,5 @@
 # Imagem única do experimento. Build a partir da raiz de experimento-harness/:
-#   docker build -f infra/docker/Dockerfile -t experimento-harness:v3 .
+#   docker build -f infra/docker/Dockerfile -t experimento-harness:v5 .
 #
 # Tudo com versão exata. Mudou qualquer linha = nova tag da imagem + registro no diário.
 
@@ -17,7 +17,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends git jq ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @anthropic-ai/claude-code@2.1.269
+RUN npm install -g @anthropic-ai/claude-code@2.1.288
 
 # A imagem oficial do Maven define MAVEN_CONFIG=/root/.m2 e um entrypoint que
 # copia configurações para lá. Nenhum dos dois serve para um usuário não-root.

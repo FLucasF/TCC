@@ -37,6 +37,7 @@
 // regra: e o que o Lucas confere quando discorda do Semgrep.
 
 import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { PONTOS, REGIOES_CLASSE, nomes, casoDe } from "./pontos.mjs";
 
 const [jsonPath, raiz, raizNoJson = raiz] = process.argv.slice(2);
@@ -194,6 +195,12 @@ function negativo(pac, h) {
 }
 
 const pacotes = readdirSync(raiz, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+// Um pacote sem nenhum .java na copia limpa nao foi medido (o projeto nao foi achado).
+// As respostas saem indeterminado, como sempre; o aviso "sem-codigo" faz o verify.mjs
+// recusar o lote, em vez de a falta virar zero na nota (ensaio de 10/10).
+const temJava = (dir) => readdirSync(dir, { withFileTypes: true })
+  .some((e) => (e.isDirectory() ? temJava(join(dir, e.name)) : e.name.endsWith(".java")));
+for (const pac of pacotes) if (!temJava(join(raiz, pac))) (avisos[pac] ??= []).push("sem-codigo: nenhum .java em src/main");
 console.log([
   "pacote",
   "P1_localizacao", "P1_selecao", "P2_localizacao", "P2_selecao",
