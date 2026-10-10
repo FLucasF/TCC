@@ -1,0 +1,110 @@
+// A nota de 0 a 100 de cada execucao, como RESUMO (decisao de 09/10). As hipoteses
+// sao lidas nas medidas separadas; a nota so as junta para o leitor.
+//
+// Uso:
+//   node evaluation/tools/nota.mjs <acceptance.csv> <semgrep.csv> [mapa.csv]
+//
+// <acceptance.csv> e o CSV do lote que o infra/scripts/acceptance.sh gera (com as
+// colunas contas e recusas, da suite de 09/10). <semgrep.csv> e a saida do
+// evaluation/tools/semgrep/detect.sh. Se o Semgrep rodou nos pacotes cegos, passe o
+// mapa de anonimizacao para ligar cada codigo a sua execucao.
+//
+// Pesos A (a nota principal): contas 30 (12 casos), recusas 20 (9 casos, a recusa com o
+// codigo certo e status de sucesso vale 0,5, ja contada pela suite), padrao 50 (P1 a P4,
+// 10 por ponto: 10 com a localizacao e a selecao certas, 5 com uma, 0 com nenhuma; P5
+// sem exagero, 10). Variantes publicadas ao lado: B (40, 20, 40) e C (35, 25, 40).
+// Trava: nao compilou ou nao subiu (no_pom, build_failed, app_did_not_start), nota 0.
+// "indeterminado" no Semgrep deixa o ponto vazio e a execucao SEM NOTA (sem dado),
+// marcada "sem nota" (decisao de 10/10; ate o V4, contava como errado).
+//
+// COMO LER. Para cada execucao do CSV da suite: (1) acha a linha dela no CSV do
+// Semgrep (pelo run_id, ou pelo codigo cego via mapa); (2) padrao(): da 10, 5 ou 0 a
+// cada ponto P1 a P4 (as duas respostas certas, uma, nenhuma) e 10 ao P5 sem exagero;
+// (3) aplica os pesos: nota = contas/12 x peso + recusas/9 x peso + padrao/50 x peso.
+// Exemplo, pesos A: 12 contas, 8 recusas e padrao 30 dao 30 + 17,8 + 30 = 77,8.
+// Quem nao compilou ou nao subiu leva 0, sem conta.
+
+import { readFileSync } from "node:fs";
+
+const PESOS = { A: [30, 20, 50], B: [40, 20, 40], C: [35, 25, 40] };
+const CONTAS = 12, RECUSAS = 9, PADRAO = 50;
+const TRAVA = new Set(["no_pom", "build_failed", "app_did_not_start"]);
+
+const [arqAcc, arqSem, arqMapa] = process.argv.slice(2);
+if (!arqAcc || !arqSem) {
+  console.error("uso: node nota.mjs <acceptance.csv> <semgrep.csv> [mapa.csv]");
+  process.exit(2);
+}
+
+// CSV com campos entre aspas (a evidencia e os avisos do Semgrep podem ter virgula).
+// Ate 09/10 este leitor so cortava o ultimo campo entre aspas; o CSV do Semgrep passou
+// a ter dois, e um leitor de verdade nao depende disso.
+function campos(linha) {
+  const r = []; let c = "", aspas = false;
+  for (let i = 0; i < linha.length; i++) {
+    const ch = linha[i];
+    if (aspas) {
+      if (ch === '"' && linha[i + 1] === '"') { c += '"'; i++; }
+      else if (ch === '"') aspas = false;
+      else c += ch;
+    } else if (ch === '"') aspas = true;
+    else if (ch === ",") { r.push(c); c = ""; }
+    else c += ch;
+  }
+  r.push(c);
+  return r;
+}
+function ler(arquivo) {
+  const linhas = readFileSync(arquivo, "utf8").trim().split(/\r?\n/).filter((l) => !l.startsWith("#"));
+  const cab = campos(linhas[0]);
+  return linhas.slice(1).map((l) => {
+    const v = campos(l);
+    return Object.fromEntries(cab.map((c, i) => [c, v[i] ?? ""]));
+  });
+}
+
+const acc = ler(arqAcc);
+const sem = new Map(ler(arqSem).map((r) => [r.pacote, r]));
+const execucaoDe = new Map(arqMapa ? ler(arqMapa).map((r) => [r.run_id, r.blind_code]) : []);
+
+// Um ponto com "indeterminado" fica vazio, e nao zero: a duvida e da ferramenta, nao do
+// codigo. Com um ponto vazio, a execucao fica sem nota (sem dado), como o par nas
+// hipoteses. Decisao do Lucas, 10/10, depois do ensaio do V4: la, 4 pacotes que o
+// Semgrep nao leu (todos de um modelo, em niveis com harness) levavam zero no desenho.
+function padrao(s) {
+  const pontos = [], marcas = [];
+  for (const p of ["P1", "P2", "P3", "P4"]) {
+    const loc = s[`${p}_localizacao`], sel = s[`${p}_selecao`];
+    if (loc === "indeterminado" || sel === "indeterminado") { marcas.push(`${p} indeterminado`); pontos.push(""); continue; }
+    const certos = (loc === "isolado") + (sel === "consulta" || sel === "condicional-unica");
+    pontos.push(certos === 2 ? 10 : certos === 1 ? 5 : 0);
+  }
+  if (s.P5_proporcao === "indeterminado") { marcas.push("P5 indeterminado"); pontos.push(""); }
+  else pontos.push(s.P5_proporcao === "dados" || s.P5_proporcao === "condicional" ? 10 : 0);
+  const medido = marcas.length === 0;
+  return { pontos, total: medido ? pontos.reduce((a, b) => a + b, 0) : null, marcas };
+}
+
+const fmt = (x) => x.toFixed(1);
+console.log("run_id,status,contas,recusas,P1,P2,P3,P4,P5,nota_A,nota_B,nota_C,marcas");
+let erros = 0;
+for (const r of acc) {
+  const chave = execucaoDe.get(r.run_id) ?? r.run_id;
+  const s = sem.get(chave);
+  if (!s) { console.error(`ERRO: ${r.run_id} sem linha no Semgrep (chave ${chave})`); erros++; continue; }
+  const pd = padrao(s);
+  const travado = TRAVA.has(r.status);
+  if (!travado && (r.contas === "" || r.recusas === "")) {
+    console.error(`ERRO: ${r.run_id} sem contas/recusas: medido com a suite anterior a 09/10`);
+    erros++; continue;
+  }
+  const contas = travado ? 0 : Number(r.contas), recusas = travado ? 0 : Number(r.recusas);
+  // A trava vem antes: nao compilar ou nao subir e resultado do codigo, medido. So sem
+  // trava um ponto indeterminado deixa a execucao sem nota.
+  const semNota = !travado && pd.total === null;
+  const notas = Object.values(PESOS).map(([wc, wr, wp]) =>
+    travado ? 0 : semNota ? null : contas / CONTAS * wc + recusas / RECUSAS * wr + pd.total / PADRAO * wp);
+  const marcas = [...(travado ? [`trava: ${r.status}`] : []), ...(semNota ? ["sem nota"] : []), ...pd.marcas].join("; ");
+  console.log([r.run_id, r.status, contas, recusas, ...pd.pontos, ...notas.map((n) => (n === null ? "" : fmt(n))), marcas].join(","));
+}
+process.exit(erros ? 1 : 0);

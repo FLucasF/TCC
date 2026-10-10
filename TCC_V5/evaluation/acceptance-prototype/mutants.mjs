@@ -1,0 +1,56 @@
+// Mutantes da calculadora de referencia (ref-strategy.mjs): cada um planta UM erro.
+// Servem para provar que a suite (strategy.mjs) REPROVA codigo errado, e nao so
+// que aprova o certo. Quem roda: validate-mutants.mjs.
+//
+// Criterio para entrar: um mutante por regra do enunciado que tem armadilha.
+// Erro grosseiro, que qualquer caso pega (aliquota trocada, tarifa esquecida),
+// nao entra: nao diz nada sobre a suite.
+//
+// Cada troca [de, para] precisa aparecer exatamente uma vez no ref-strategy.mjs.
+export const MUTANTES = [
+  { id: "MUT1", regra: "FRETEGRATIS: o frete aparece normalmente e o desconto fica igual ao frete", origem: "erro observado: Haiku HARNESS, TESTE-STRATEGY-01",
+    trocas: [['if (cupom === "FRETEGRATIS") desconto = frete;', 'if (cupom === "FRETEGRATIS") { frete = 0; desconto = 0; }']] },
+  { id: "MUT2", regra: "FRETEGRATIS vale para qualquer nivel do clube", origem: "erro observado: Haiku CONTROL, TESTE-STRATEGY-01",
+    trocas: [['if (cupom === "FRETEGRATIS") desconto = frete;', 'if (cupom === "FRETEGRATIS") desconto = 0;']] },
+  { id: "MUT3", regra: "arredondamento meio-para-o-par em cada etapa", origem: "armadilha do enunciado",
+    trocas: [["if (r * 2n > den || (r * 2n === den && q % 2n === 1n)) q += 1n;", "if (r * 2n >= den) q += 1n;"],
+             ["return f % 2 === 0 ? f : f + 1;", "return f + 1;"]] },
+  // MUT4 era "imposto sobre os produtos ja com o desconto"; desde 07/10 o P5 e o seguro,
+  // sobre os produtos SEM desconto, e o erro plantado e o contrario.
+  { id: "MUT4", regra: "seguro sobre os produtos sem desconto e sem frete", origem: "armadilha do enunciado",
+    trocas: [["pct(subtotal, PCT_SEGURO[p.regiao])", "pct(subtotal - desconto, PCT_SEGURO[p.regiao])"]] },
+  { id: "MUT5", regra: "precedencia dos erros: regiao antes de modalidade", origem: "erro observado: Haiku HARNESS, TESTE-STRATEGY-01",
+    trocas: [['  if (!Object.hasOwn(PCT_SEGURO, p.regiao ?? "")) return { erro: "REGIAO_INVALIDA" };\n', ""],
+             ["  const peso = itens", '  if (!Object.hasOwn(PCT_SEGURO, p.regiao ?? "")) return { erro: "REGIAO_INVALIDA" };\n  const peso = itens']] },
+  { id: "MUT6", regra: "cartao: ate 3x sem juros", origem: "fronteira",
+    trocas: [["if (n <= 3)", "if (n < 3)"]] },
+  // MUT7 saiu em 03/10, quando o enunciado da bancada definia o limite do boleto de dois
+  // jeitos, e voltou em 06/10. Desde 07/10 o limite e sobre o total do pedido, que inclui o
+  // seguro, e o erro plantado e deixar o seguro de fora. Os ids nao mudam.
+  { id: "MUT7", regra: "boleto recusado quando o total do pedido, com o seguro, passa de R$ 1.000", origem: "armadilha do enunciado",
+    trocas: [["totalPedido > 100000", "subtotal - desconto + frete > 100000"]] },
+  { id: "MUT8", regra: "motoboy leva pedidos de ate 5 kg", origem: "fronteira",
+    trocas: [["peso > 5", "peso >= 5"]] },
+  { id: "MUT9", regra: "LEVE3PAGUE2: a cada 3 unidades de um mesmo item, uma sai de graca", origem: "armadilha do enunciado",
+    trocas: [["desconto = itens.reduce((s, i) => s + centavos(Math.floor(i.quantidade / 3) * i.precoUnitario), 0);",
+              "{ const u = itens.flatMap((i) => Array(i.quantidade).fill(i.precoUnitario)).sort((a, b) => a - b); desconto = u.slice(0, Math.floor(u.length / 3)).reduce((s, x) => s + centavos(x), 0); }"]] },
+  { id: "MUT10", regra: "brinde do OURO se os produtos passarem de R$ 500", origem: "fronteira",
+    trocas: [["subtotal > 50000", "subtotal >= 50000"]] },
+  { id: "MUT11", regra: "MENOS50 so para compras a partir de R$ 300 em produtos", origem: "fronteira",
+    trocas: [["subtotal < 30000", "subtotal <= 30000"]] },
+  { id: "MUT12", regra: "credito do clube sobre os produtos sem desconto e sem frete", origem: "armadilha do enunciado",
+    trocas: [['p.nivelClube === "PRATA" ? pct(subtotal, 200) : p.nivelClube === "OURO" ? pct(subtotal, 500) : 0',
+              'p.nivelClube === "PRATA" ? pct(subtotal - desconto, 200) : p.nivelClube === "OURO" ? pct(subtotal - desconto, 500) : 0']] },
+  { id: "MUT13", regra: "peso do pedido sem arredondar", origem: "armadilha do enunciado",
+    trocas: [["const peso = itens.reduce((s, i) => s + i.pesoKg * i.quantidade, 0);",
+              "const peso = Math.ceil(itens.reduce((s, i) => s + i.pesoKg * i.quantidade, 0));"]] },
+  { id: "MUT14", regra: "cartao com juros: parcela arredondada, e o final e parcela x numero de parcelas", origem: "armadilha do enunciado",
+    trocas: [["totalFinal = parcela * n;", "totalFinal = centavos((totalPedido / 100) * i / (1 - Math.pow(1 + i, -n)) * n);"]] },
+  { id: "MUT15", regra: "Pix: 5% de desconto no total do pedido", origem: "armadilha do enunciado",
+    trocas: [["totalFinal = totalPedido - pct(totalPedido, 500);", "totalFinal = totalPedido - pct(subtotal, 500);"]] },
+  { id: "MUT16", regra: "colisao OURO + FRETEGRATIS: o OURO zera o frete, e o desconto do cupom fica igual a esse frete zerado", origem: "colisao citada na hipotese Correcao: casos de borda",
+    trocas: [['  if (p.nivelClube === "OURO") frete = 0;', '  const freteOriginal = frete;\n  if (p.nivelClube === "OURO") frete = 0;'],
+             ['if (cupom === "FRETEGRATIS") desconto = frete;', 'if (cupom === "FRETEGRATIS") desconto = freteOriginal;']] },
+  { id: "MUT17", regra: "boleto so e recusado quando PASSA de R$ 1.000", origem: "fronteira",
+    trocas: [["totalPedido > 100000", "totalPedido >= 100000"]] },
+];
