@@ -160,7 +160,9 @@ v - decidido que sim · x - decidido que não
 - [x] 🔴 **Calibração do Lucas**: 1 ou 2 pacotes de treino com a régua enxuta, cronometrando
       o primeiro. 👤 *Feito em 09/10: 2 pacotes, 8 de 8 com o Semgrep; 6 ajustes de texto
       na régua e no guia. O Lucas treina sozinho com pacotes do V3 antes do V4.*
-- [ ] 🔴 **Congelar o `OBJETIVO`** (commit e hash) **antes** da primeira execução do V4. 👤
+- [x] 🔴 **Congelar o `OBJETIVO`** (commit e hash) **antes** da primeira execução do V4. 👤
+      *Feito em 09/10, depois da revisão do Lucas: o `OBJETIVO` e todo o resto (113
+      arquivos) no `CONGELADO-V4.sha256`; os principais no README.*
 
 ## Passo 6. Montar e rodar o V4
 
@@ -227,3 +229,4 @@ v - decidido que sim · x - decidido que não
 | 09/10 | o Lucas pediu o panorama de todos os modelos: virou o lote exploratório `V4-EXPLOR` (5 modelos, 100 execuções, sem hipótese), à parte do confirmatório; o Opus 5.5 ficou fora (exige um Claude Code mais novo); ordem sorteada |
 | 09/10 | o N0 do Opus 4.7, do Opus 4.8 e do Sonnet 5.5: o Opus 4.7 com 60 (fora do teto), os outros dois com 100; o exploratório fica obrigatório, com dois modelos fora do teto; cota refeita (~5,5 janelas no total). Falta: congelar, criar o `TCC_V4` e rodar |
 | 09/10 | a tentativa de endurecer o enunciado (3 regras que cruzam etapas) não tirou os fortes do 100; fica o original. Ensaio do quarteto pelo desenho (o harness certo em cada nível). Semgrep versão 2, depois da revisão rigorosa (dois defeitos da própria versão 2 pegos pela regressão e corrigidos). Revisão dos scripts com "COMO LER"; travas no `run-levels.sh`; coluna `nivel` nas métricas; o `verify` lista os avisos do Semgrep. Falta: o Lucas revisar o `OBJETIVO`, congelar, criar o `TCC_V4` e rodar |
+| 09/10 | revisão final de tudo o que vai ao V4 (coerência, suíte, Semgrep, verify, estatística do §4.1); o `.gitignore` passa a registrar o CSV do Semgrep e o `metricas.csv`; o passo a passo `COMO-RODAR-V4.md`; a análise pré-registrada (`hipoteses.mjs`, 17 de 17). **O Lucas revisou o `OBJETIVO` e o V4 foi congelado** (`CONGELADO-V4.sha256`, 113 arquivos). Falta: montar o `TCC_V4` e rodar |

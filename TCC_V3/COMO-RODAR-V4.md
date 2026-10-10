@@ -1,7 +1,7 @@
 # Como rodar o V4, passo a passo
 
-> Escrito em 09/10/2026, antes do congelamento. Vai para o `TCC_V4` como
-> `COMO-RODAR.md` e congela junto com o `OBJETIVO`. Todos os comandos são do Git Bash,
+> **CONGELADO em 09/10/2026**, junto com o `OBJETIVO`, antes da primeira execução. Vai
+> para o `TCC_V4` com o mesmo nome. Todos os comandos são do Git Bash,
 > a partir da raiz do `TCC_V4`. O porquê de cada passo está no `OBJETIVO.md` e no
 > `DECISOES.md`; aqui fica só **o que fazer, em que ordem, e o que conferir**.
 

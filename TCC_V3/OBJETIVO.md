@@ -1,13 +1,13 @@
 # Objetivo
 
-> **RASCUNHO**, reescrito em 09/10/2026 para o V4 redesenhado (a avaliação automática
-> na base, o Semgrep, 5 modelos × 5 réplicas). As decisões são do Lucas; o orientador
-> vê o resultado analisado. Este arquivo só vale como pré-registro depois de
-> commitado **antes** da primeira execução do V4; a data do commit é a prova.
->
-> Revisado pelo Lucas em 09/10. Os **5 modelos** saíram do mapa em 09/10, pela regra do
-> `DECISOES.md` (§2), e estão no §2. **Falta só o congelamento:** o commit, e o hash no
-> README.
+> **CONGELADO em 09/10/2026, antes da primeira execução do V4.** É o pré-registro do
+> experimento: o commit de congelamento e o hash deste arquivo no README são a prova.
+> Escrito para o V4 redesenhado (a avaliação automática na base, o Semgrep, 5 modelos ×
+> 5 réplicas, mais o lote exploratório) e revisado pelo Lucas, que toma as decisões; o
+> orientador vê o resultado analisado. Os 5 modelos saíram do mapa pela regra do
+> `DECISOES.md` (§2). **Daqui em diante, nada muda:** uma mudança vira emenda datada,
+> no fim deste arquivo, com o motivo, e as conclusões dizem o que foi lido antes e o
+> que foi lido depois dela.
 
 O [README](README.md) diz **como** o experimento roda. Este arquivo diz **para
 quê**: a pergunta, o que conta como resposta, e o que já foi testado. O **porquê**

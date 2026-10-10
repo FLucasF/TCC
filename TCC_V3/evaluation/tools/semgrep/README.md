@@ -126,6 +126,19 @@ inteiro; texto de comentário era lido como código.
 
 A versão 1 foi congelada em 09/10 de manhã (`regras.yml` `2d255bf4…`, `classificar.mjs`
 `104e7ff1…`) e substituída pela versão 2 no mesmo dia, antes de qualquer pacote do V4
-existir (`DECISOES.md`, §6). Os hashes da versão 2 entram aqui no congelamento do V4.
-Qualquer mudança depois disso é um instrumento novo: ganha entrada no `DECISOES.md` e é
-testada de novo. **Nada muda depois que os pacotes do V4 existirem.**
+existir (`DECISOES.md`, §6). **A versão 2 foi congelada com o V4, em 09/10/2026:**
+
+| arquivo | sha256 |
+|---|---|
+| `pontos.mjs` | `4cc085d7391478f34ef136fa4dd0f9caebf95da5d9bfa9e780c140e603642542` |
+| `gerar-regras.mjs` | `2475f4a3f17379d3987af630b9dd47158fad105691e51e9aec74c6f7601e1a16` |
+| `regras.yml` | `4cf151b183fd67a167e18bf5779649b99704f7e95e167403fed6d2f495ace9c2` |
+| `copia-limpa.mjs` | `9fc654caca2cc5ea49fa682114a9ab6b448edac263d72a3833a4ec1f78af5b17` |
+| `classificar.mjs` | `bc9db272266da5553cded7f002a3684337d8fb4d14a5081027412c5c742acb00` |
+| `detect.sh` | `3f2048a483ffb41f90733ca086fa1ce69b27f610f441b3f0df50a02bdc6581bc` |
+| `../sem-comentarios.mjs` | `975b41f7720ac8d1a132cf3dbac60ff9d80a8f3ba1f33b61ffb2bf3c1f08c48f` |
+| imagem | `semgrep/semgrep@sha256:30e6afa99ebd8e7b4115d4904898108eb4bf77025819e9263f09cf14e6f6e549` |
+
+Os demais arquivos da pasta (os corpora e este README) estão no `CONGELADO-V4.sha256`,
+na raiz. Qualquer mudança depois disso é um instrumento novo: ganha entrada no
+`DECISOES.md` e é testada de novo. **Nada muda depois que os pacotes do V4 existirem.**

@@ -1006,6 +1006,19 @@ confirmou o lançamento pelo desenho e o harness de cada nível: N0 nada, N1 o
 `CLAUDE.md`, N2 também a skill, N3 também o revisor. *Os 5 congelados* não tinham
 rodado no V4; os hashes novos de todos entram no congelamento.
 
+**09/10: o V4 congelado.** Depois da revisão final (a coerência entre enunciado,
+gabarito, harness, imagem, desenhos e ordens; a suíte com os mutantes; o Semgrep; o
+`verify`; as contas do §4.1 recalculadas) e da revisão do `OBJETIVO` pelo Lucas, o
+pré-registro foi congelado **antes da primeira execução do V4**. *O que congela:* 113
+arquivos, listados com o sha256 no `CONGELADO-V4.sha256` (o `OBJETIVO`, o
+`COMO-RODAR-V4.md`, a régua, o guia, o gabarito, `experiment/`, a suíte e a validação
+dela, `evaluation/tools/` inteiro e `infra/`); os principais estão na tabela do README.
+*O que não congela:* este `DECISOES.md` (registra o que acontecer, inclusive emendas),
+o README e o `MINIPLANO-V4.md`. *Como se confere:* `sha256sum -c CONGELADO-V4.sha256`
+no `TCC_V4`, depois da cópia, e em qualquer clone (o `.gitattributes` mantém o fim de
+linha LF, então o hash é o mesmo em qualquer máquina). *Daqui em diante:* uma mudança
+no que congelou vira emenda datada no fim do `OBJETIVO`, com o motivo.
+
 ## 10. Documentação
 
 **24/09: cada documento faz um trabalho só, e o git é o diário.** 1.753 linhas de

@@ -149,36 +149,36 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | imagem `experimento-harness:v3` | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
 | Claude Code, na imagem | `2.1.269` |
 
-| script | hash | se tiver defeito |
+| script | hash (congelado em 09/10; a lista completa é o `CONGELADO-V4.sha256`) | se tiver defeito |
 |---|---|---|
-| `run-one.sh` (era `executar.sh`) | `39d619c6a0469e2f` | perde **a execução** |
+| `run-one.sh` (era `executar.sh`) | `f033395313c82fb1` (era `39d619c6a0469e2f`; mudaram só comentários, conferido no `git diff`) | perde **a execução** |
+| `run-levels.sh` | `328b17c5b0431744` | perde **o quarteto** dos níveis N0 a N3 |
+| `extract-meta.mjs` (era `extrair-meta.mjs`) | `a4c873d3f84f562d` (era `b6dfe6ad4eb05acc`; só comentários) | nada — a transcrição sobrevive |
+| `aggregate.mjs` (era `agregar.mjs`) | `936cc9c005ef19e9` (era `19338b460497b34f`; só comentários) | nada — o `meta.json` sobrevive |
+| `acceptance.sh` | `11674d3f51ecd922` | perde **a medida de correção** |
+| `metrics.sh` (era `metricas.sh`) | `8c6ea09252a9a561` (era `135ecbe45c22afe4`; só comentários) | perde **as métricas automáticas** (CK, SonarQube) |
+| `aggregate-metrics.mjs` (era `agregar-metricas.mjs`) | `a5ae0773cf9a9ff7` (era `74479258f31dce1f`; ganhou a coluna `nivel`) | nada — as saídas por execução sobrevivem |
+| `anonymize.mjs` (era `anonimizar.mjs`) | `7ffddc046ad4e5c2` (era `4836f9213ad687a6`; o removedor de comentários foi para `sem-comentarios.mjs`, saída idêntica) | perde **a cegueira** |
 | `rodada.sh` (fora do V4) | `ff82b1c8a50357da` | perde **o pareamento** |
-| `anonymize.mjs` (era `anonimizar.mjs`) | `4836f9213ad687a6` (era `c03d737b29a098e1` até ganhar o `--sem-comentarios`, em 09/10; sem a opção, o pacote sai idêntico) | perde **a cegueira** |
-| `extract-meta.mjs` (era `extrair-meta.mjs`) | `b6dfe6ad4eb05acc` | nada — a transcrição sobrevive |
-| `aggregate.mjs` (era `agregar.mjs`) | `19338b460497b34f` | nada — o `meta.json` sobrevive |
-| `metrics.sh` (era `metricas.sh`) | `135ecbe45c22afe4` | perde **as métricas automáticas** (CK, SonarQube) |
-| `aggregate-metrics.mjs` (era `agregar-metricas.mjs`) | `74479258f31dce1f` | nada — as saídas por execução sobrevivem |
-| `run-levels.sh` | (**ainda não congelado**: congela com o `OBJETIVO`; desde 09/10 lê os modelos e o effort de `experiment/desenho-v4.json`) | perde **o quarteto** dos níveis N0 a N3 |
-| `acceptance.sh` | `49f5e38ac3bd6451` (**ainda não congelado**: congela com a suíte; era `821d58ecfd853bbb` até gravar contas, recusas e pontos, em 09/10) | perde **a medida de correção** (a suíte de aceitação por lote) |
 
 ### Os scripts do V4, na ordem em que entram
 
 | etapa | script | situação |
 |---|---|---|
 | rodar | `experiment/ordem-v4.csv`: a ordem dos 25 quartetos, com o comando de cada um (sorteada por `infra/scripts/draw-order.mjs`, semente 20261009); depois, `experiment/ordem-v4-exploratorio.csv`, o lote exploratório (semente 20261010) | sorteadas em 09/10 |
-| rodar | `infra/scripts/run-levels.sh`: um quarteto (os níveis N0 a N3 de um modelo, juntos), com o modelo pelo apelido do desenho | a congelar com o `OBJETIVO` |
-| rodar | `infra/scripts/run-one.sh`: uma execução (o `run-levels.sh` chama) | congelado |
+| rodar | `infra/scripts/run-levels.sh`: um quarteto (os níveis N0 a N3 de um modelo, juntos), com o modelo pelo apelido do desenho | congelado em 09/10 |
+| rodar | `infra/scripts/run-one.sh`: uma execução (o `run-levels.sh` chama) | congelado em 09/10 |
 | rodar | `infra/scripts/extract-meta.mjs`: a transcrição vira `meta.json` (o `run-one.sh` chama) | congelado |
 | medir custo | `infra/scripts/aggregate.mjs`: os `meta.json` do lote num CSV | congelado |
-| medir correção | `infra/scripts/acceptance.sh`: a suíte em todas as execuções | a congelar depois do f4 |
-| medir desenho | `evaluation/tools/semgrep/detect.sh`: o padrão do P1 ao P5, sem IA (versão 2; `corpus/validar.sh` refaz a validação) | a congelar com o `OBJETIVO` |
+| medir correção | `infra/scripts/acceptance.sh`: a suíte em todas as execuções | congelado em 09/10 |
+| medir desenho | `evaluation/tools/semgrep/detect.sh`: o padrão do P1 ao P5, sem IA (versão 2; `corpus/validar.sh` refaz a validação) | congelado em 09/10 |
 | medir qualidade | `evaluation/tools/metrics.sh` e `aggregate-metrics.mjs`: CK e SonarQube | congelados |
-| ler às cegas | `evaluation/tools/anonymize.mjs --sem-comentarios`: os pacotes cegos, sem comentários | a congelar com a régua |
-| ler às cegas | `evaluation/tools/sample.mjs`: sorteia os 20 pacotes do Lucas e, depois, a releitura | a congelar com a régua |
-| conferir | `evaluation/tools/compare.mjs`: a leitura do Lucas × o Semgrep, e a regra de saída | a congelar com a régua |
-| resumir | `evaluation/tools/nota.mjs`: a nota de 0 a 100 de cada execução | a congelar com a régua |
-| decidir | `evaluation/tools/hipoteses.mjs`: os pares, o teto e o veredito de cada hipótese pelas regras do §4.1 do `OBJETIVO`; a prova é o `hipoteses-teste.mjs` (17 de 17) | a congelar com o `OBJETIVO` |
-| conferir | `infra/scripts/verify.mjs`: as fontes do lote batem entre si (o desenho em `experiment/desenho-v4.json`); a prova de que acusa é o `verify-teste.mjs` | a congelar com o `OBJETIVO` |
+| ler às cegas | `evaluation/tools/anonymize.mjs --sem-comentarios`: os pacotes cegos, sem comentários | congelado em 09/10 |
+| ler às cegas | `evaluation/tools/sample.mjs`: sorteia os 20 pacotes do Lucas e, depois, a releitura | congelado em 09/10 |
+| conferir | `evaluation/tools/compare.mjs`: a leitura do Lucas × o Semgrep, e a regra de saída | congelado em 09/10 |
+| resumir | `evaluation/tools/nota.mjs`: a nota de 0 a 100 de cada execução | congelado em 09/10 |
+| decidir | `evaluation/tools/hipoteses.mjs`: os pares, o teto e o veredito de cada hipótese pelas regras do §4.1 do `OBJETIVO`; a prova é o `hipoteses-teste.mjs` (17 de 17) | congelado em 09/10 |
+| conferir | `infra/scripts/verify.mjs`: as fontes do lote batem entre si (o desenho em `experiment/desenho-v4.json`); a prova de que acusa é o `verify-teste.mjs` | congelado em 09/10 |
 
 O `blind-read.sh` (a leitura do Claude isolada num container) não é mais preciso: desde 09/10 o Claude não lê os pacotes.
 
@@ -300,20 +300,50 @@ está no `.jsonl`.
 
 ---
 
+## O V4 congelado (09/10/2026)
+
+O pré-registro do V4 foi **congelado em 09/10/2026, antes da primeira execução**: o
+`OBJETIVO`, o passo a passo (`COMO-RODAR-V4.md`), a régua, o guia, o gabarito, o
+enunciado, os três harnesses, os dois desenhos e as duas ordens, a suíte, o Semgrep, as
+métricas e todos os scripts, inclusive o da análise (`hipoteses.mjs`). O commit de
+congelamento é a prova; a lista completa, com o sha256 de cada um dos 113 arquivos, é o
+[`CONGELADO-V4.sha256`](CONGELADO-V4.sha256). Para conferir uma cópia (no `TCC_V4`, ou
+depois de clonar):
+
+```bash
+sha256sum -c CONGELADO-V4.sha256 --quiet     # sem saída: tudo idêntico
+```
+
+| o que | sha256 (16 primeiros) |
+|---|---|
+| `OBJETIVO.md` | `fee6d667c534d6ff` |
+| `COMO-RODAR-V4.md` | `b20a13d688842706` |
+| `evaluation/regua.md` (versão 4) | `92056c336412805d` |
+| `evaluation/GUIA-DA-REGUA.md` | `a4e31883b69a1ae3` |
+| `evaluation/strategy/gabarito.md` | `514ab32688ebe7ba` |
+| `experiment/prompt/prompt.md` | `8c70bb30493dbfbb` |
+| `experiment/desenho-v4.json` / `desenho-v4-exploratorio.json` | `69ddd55f64e57b47` / `39ce6195d9b29cb2` |
+| `experiment/ordem-v4.csv` / `ordem-v4-exploratorio.csv` | `a4459f47d0bc5dd9` / `3cb53de49a4633d2` |
+| a suíte (`strategy.mjs`) e a calculadora (`ref-strategy.mjs`) | `42ee8a2e4a61a00e` / `76cfc53aa8f4760a` |
+| o Semgrep (`regras.yml` e `classificar.mjs`) | `4cf151b183fd67a1` / `bc9db272266da555` |
+| a análise (`hipoteses.mjs`) | `e661a09577ddf81f` |
+| os harnesses N1, N2, N3 (árvore, como o `run-one.sh` calcula) | `560577922737dbb9`, `27987df0bd1febe2`, `5f4c492bf3d12f68` |
+| a imagem `experimento-harness:v3` (Claude Code 2.1.269) | `sha256:54de317c40864b3e…` |
+
+**Daqui em diante nada disso muda.** Uma mudança vira emenda datada no fim do
+`OBJETIVO`, com o motivo, e as conclusões dizem o que foi lido antes e depois dela.
+
 ## O que falta, e não é engenharia
 
-O desenho do V4 foi refeito em 08 e 09/10/2026: a avaliação é automática na base (a
-suíte, o SonarQube e o CK, e o Semgrep para o padrão), e a leitura humana às cegas, em
-20 pacotes, confere o Semgrep. O que falta para rodar está no
-[`MINIPLANO-V4.md`](MINIPLANO-V4.md); o porquê de cada escolha, no
-[`DECISOES.md`](DECISOES.md); as hipóteses e as regras de leitura, no
-[`OBJETIVO.md`](OBJETIVO.md).
+Rodar, pelo [`COMO-RODAR-V4.md`](COMO-RODAR-V4.md), na pasta `TCC_V4`. O porquê de cada
+escolha está no [`DECISOES.md`](DECISOES.md); as hipóteses e as regras de leitura, no
+[`OBJETIVO.md`](OBJETIVO.md); o histórico da preparação, no
+[`MINIPLANO-V4.md`](MINIPLANO-V4.md).
 
 A **régua** está em [`evaluation/regua.md`](evaluation/regua.md), versão 4 (enxuta: 4
 perguntas, no P4 e no P5), com o gabarito em `evaluation/strategy/gabarito.md` e o guia
-em `evaluation/GUIA-DA-REGUA.md`. Calibrada pelo Lucas em 2 pacotes em 09/10
-(`evaluation/calibration-v4/`); **ainda não está congelada:** o hash dela entra neste
-README junto com o `OBJETIVO`, antes da primeira execução do V4. A versão 3 (8 propriedades,
+em `evaluation/GUIA-DA-REGUA.md`; calibrada pelo Lucas em 2 pacotes em 09/10
+(`evaluation/calibration-v4/`) e congelada com o `OBJETIVO`. A versão 3 (8 propriedades,
 calibrada por dois leitores automáticos, [relatório](evaluation/calibracao-relatorio.md))
 está no histórico do git.
 

@@ -1,9 +1,9 @@
 # Régua de leitura
 
-> **RASCUNHO, versão 4 (enxuta)**, de 09/10/2026. Substitui a versão 3 (8
-> propriedades, lida inteira pelo Claude e pelo Lucas), que está no histórico do git;
-> o porquê está no [`DECISOES.md`](../DECISOES.md), §6. Só vale depois de congelada:
-> commit e hash no README, **antes** de qualquer leitura do V4.
+> **Versão 4 (enxuta), CONGELADA em 09/10/2026**, antes de qualquer execução e de
+> qualquer leitura do V4 (o hash está no README). Substitui a versão 3 (8 propriedades,
+> lida inteira pelo Claude e pelo Lucas), que está no histórico do git; o porquê está no
+> [`DECISOES.md`](../DECISOES.md), §6. Calibrada pelo Lucas em 2 pacotes do V3.
 >
 > A régua lê **desenho**, não correção: um erro de regra de negócio não muda nenhuma
 > resposta (no máximo vai para `observacao`). A correção é medida pela suíte.
