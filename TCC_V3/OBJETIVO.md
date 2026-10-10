@@ -1,6 +1,6 @@
 # Objetivo
 
-> **RASCUNHO do V5 (10/10/2026)**: congela antes da primeira execução do V5. É o
+> **CONGELADO em 10/10/2026, antes da primeira execução do V5.** É o
 > pré-registro do experimento: o commit de congelamento e o hash deste arquivo no README
 > são a prova. Escrito para o V5 (11 modelos × 5 réplicas num lote só, a imagem `v5`) e
 > revisado pelo Lucas, que toma as decisões; o orientador vê o resultado analisado.

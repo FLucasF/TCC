@@ -132,7 +132,7 @@ O enunciado e o harness são identificados por conteúdo byte a byte. Confira
 ```bash
 sha256sum experiment/prompt/prompt.md      # 8c70bb30493dbfbb...
 sha256sum history/pilot/prompt.md        # 53db3424b3972795...
-docker image inspect --format '{{.Id}}' experimento-harness:v3
+docker image inspect --format '{{.Id}}' experimento-harness:v5
 ```
 
 | | |
@@ -145,21 +145,22 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | `experiment/harnesses/N1/` (árvore; era `only-claude/`) | `560577922737dbb9252fe3dbd0e26d06e45a7abe6b455c002eae61f8ea24b882` |
 | `experiment/harnesses/N2/` (árvore; com a skill `gof-patterns`) | `27987df0bd1febe2aff3731e15b9de2b5b7d35b6dd85cb46e3098518915389ac` |
 | `experiment/harnesses/N3/` (árvore; o N2 + processo com revisor) | `5f4c492bf3d12f6811b648cc4ac15cac0b06513b47e069e6bc5d077acf4df3df` |
-| `infra/docker/Dockerfile` | `f9dd2d29f2038775d3a522e716e98d6044bf29eeead33f5812fea41bb578abdf` |
-| imagem `experimento-harness:v3` | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
-| Claude Code, na imagem | `2.1.269` |
+| `infra/docker/Dockerfile` | `d656baa83bd0ad33dd01ca37e1bdcbdeec0ce9486823b9c946f31283b60a893a` (o da v3, até o V4: `f9dd2d29f2038775…`) |
+| imagem `experimento-harness:v5` (o V5) | `sha256:8e96815c94d1662d82fdfc0683a16ea3f5f9c322888268a11609c7bf77b6921b` |
+| imagem `experimento-harness:v3` (até o V4) | `sha256:54de317c40864b3ea2932396e6d492c63347e9ebf35a816616d572f699e2abd6` |
+| Claude Code, na imagem | `2.1.288` na v5 (`2.1.269` na v3) |
 
-| script | hash (congelado em 09/10; a lista completa é o `CONGELADO-V4.sha256`) | se tiver defeito |
+| script | hash (congelado em 10/10 para o V5; a lista completa é o `CONGELADO-V5.sha256`) | se tiver defeito |
 |---|---|---|
-| `run-one.sh` (era `executar.sh`) | `f033395313c82fb1` (era `39d619c6a0469e2f`; mudaram só comentários, conferido no `git diff`) | perde **a execução** |
-| `run-levels.sh` | `328b17c5b0431744` | perde **o quarteto** dos níveis N0 a N3 |
+| `run-one.sh` (era `executar.sh`) | `ce359fc5875210cf` (no V4, `f033395313c82fb1`; a imagem padrão passou para a v5) | perde **a execução** |
+| `run-levels.sh` | `fab88fd4f5565bba` (no V4, `328b17c5b0431744`; o desenho padrão passou para o do V5) | perde **o quarteto** dos níveis N0 a N3 |
 | `extract-meta.mjs` (era `extrair-meta.mjs`) | `a4c873d3f84f562d` (era `b6dfe6ad4eb05acc`; só comentários) | nada — a transcrição sobrevive |
 | `aggregate.mjs` (era `agregar.mjs`) | `936cc9c005ef19e9` (era `19338b460497b34f`; só comentários) | nada — o `meta.json` sobrevive |
-| `acceptance.sh` | `11674d3f51ecd922` | perde **a medida de correção** |
+| `acceptance.sh` | `e7574b5d61c0534f` (no V4, `11674d3f51ecd922`; a imagem conferida passou para a v5) | perde **a medida de correção** |
 | `metrics.sh` (era `metricas.sh`) | `8c6ea09252a9a561` (era `135ecbe45c22afe4`; só comentários) | perde **as métricas automáticas** (CK, SonarQube) |
 | `aggregate-metrics.mjs` (era `agregar-metricas.mjs`) | `a5ae0773cf9a9ff7` (era `74479258f31dce1f`; ganhou a coluna `nivel`) | nada — as saídas por execução sobrevivem |
 | `anonymize.mjs` (era `anonimizar.mjs`) | `7ffddc046ad4e5c2` (era `4836f9213ad687a6`; o removedor de comentários foi para `sem-comentarios.mjs`, saída idêntica) | perde **a cegueira** |
-| `rodada.sh` (fora do V4) | `ff82b1c8a50357da` | perde **o pareamento** |
+| `rodada.sh` (fora do V4 e do V5) | `ff82b1c8a50357da` | perde **o pareamento** |
 
 ### Os scripts do V4, na ordem em que entram
 
@@ -299,6 +300,40 @@ parecer errado, o conserto é no `extract-meta.mjs` e rodar de novo — o dado b
 está no `.jsonl`.
 
 ---
+
+## O V5 congelado (10/10/2026)
+
+O pré-registro do V5 foi **congelado em 10/10/2026, antes da primeira execução**. Ele
+substitui o do V4, descartado antes da análise (`DECISOES.md`, 10/10): os 11 modelos
+num lote só, na imagem `v5`. Congelados: o `OBJETIVO`, o passo a passo
+(`COMO-RODAR-V5.md`), a régua (versão 5), o guia, o gabarito, o enunciado, os três
+harnesses, o desenho e a ordem do V5, a suíte, o Semgrep, as métricas, todos os scripts
+e os testes de cada um, os READMEs das pastas que vão para o V5 e o `.dockerignore`. A
+lista, com o sha256 de cada um dos 122 arquivos, é o
+[`CONGELADO-V5.sha256`](CONGELADO-V5.sha256). Para conferir uma cópia (no `TCC_V5`, ou
+depois de clonar):
+
+```bash
+sha256sum -c CONGELADO-V5.sha256 --quiet     # sem saída: tudo idêntico
+```
+
+| o que | sha256 (16 primeiros) |
+|---|---|
+| `OBJETIVO.md` | `dd0f71494042dc4c` |
+| `COMO-RODAR-V5.md` | `5a0fa4cabe0c4a6c` |
+| `evaluation/regua.md` (versão 5) | `b0942718fdc4548f` |
+| `evaluation/GUIA-DA-REGUA.md` | `a00227b79161b968` |
+| `evaluation/strategy/gabarito.md` | `d40f4b888a15d876` |
+| `experiment/prompt/prompt.md` | `8c70bb30493dbfbb` (o mesmo do V4) |
+| `experiment/desenho-v5.json` / `ordem-v5.csv` | `5361eb0715cf9418` / `26ba9a18334b4309` |
+| a suíte (`strategy.mjs`) e a calculadora (`ref-strategy.mjs`) | `42ee8a2e4a61a00e` / `76cfc53aa8f4760a` (as mesmas do V4) |
+| o Semgrep (`regras.yml`, `classificar.mjs`, `copia-limpa.mjs`) | `4cf151b183fd67a1` (as mesmas regras do V4) / `8cae11295d7ed3ba` / `b581c774a9782925` |
+| a análise (`hipoteses.mjs`) e a nota (`nota.mjs`) | `15217cb1f6af927e` / `29c5e3644f5e5feb` |
+| os harnesses N1, N2, N3 (árvore, como o `run-one.sh` calcula) | `560577922737dbb9`, `27987df0bd1febe2`, `5f4c492bf3d12f68` (os mesmos do V4) |
+| a imagem `experimento-harness:v5` (Claude Code 2.1.288) | `sha256:8e96815c94d1662d…` |
+
+**Daqui em diante nada disso muda.** Uma mudança vira emenda datada no fim do
+`OBJETIVO`, com o motivo. O V5 roda numa cópia exata destes arquivos, no `TCC_V5`.
 
 ## O V4 congelado (09/10/2026)
 

@@ -411,6 +411,18 @@ subagente); a suíte mediu as 4 e o Semgrep leu os 4 projetos sem nenhum
 `indeterminado`. Gasto: até 6% da janela (com o trabalho da conversa junto), então o
 Opus 5.5 precisa de 14% livres pela regra da janela (`COMO-RODAR-V5.md`).
 
+**10/10: o V5 é congelado, antes da primeira execução.** *Decisão do Lucas*, depois de
+revisar o `OBJETIVO`, o `COMO-RODAR-V5`, este registro, a régua e o guia ("revisei, pode
+commitar e congelar"). Antes do congelamento, a pedido dele, cada pasta ganhou um README
+dizendo o que ela é e como é organizada (`.claude`, `analysis`, `evaluation`,
+`experiment`, `history`, `infra`, `runs`). *O que congela:* os 122 arquivos do
+`CONGELADO-V5.sha256` (os 113 do V4, menos os 5 que eram só dele, e mais o
+`COMO-RODAR-V5`, o desenho e a ordem do V5, os dois testes novos, os READMEs das pastas
+que vão para o V5 e o `.dockerignore`, para o `TCC_V5` construir a imagem sozinho). O
+`OBJETIVO`, a régua (agora versão 5), o guia, o gabarito e o `COMO-RODAR-V5` passam de
+"RASCUNHO" a "CONGELADO em 10/10/2026". *Depois:* o `TCC_V5` é a cópia exata desses
+arquivos, e o V5 roda lá.
+
 ## 3. Níveis de harness
 
 **26/09: uma pasta por versão de harness, escolhida por `HARNESS`.** *Por quê:*

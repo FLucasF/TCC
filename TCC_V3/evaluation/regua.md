@@ -1,9 +1,12 @@
 # Régua de leitura
 
-> **Versão 4 (enxuta), CONGELADA em 09/10/2026**, antes de qualquer execução e de
-> qualquer leitura do V4 (o hash está no README). Substitui a versão 3 (8 propriedades,
-> lida inteira pelo Claude e pelo Lucas), que está no histórico do git; o porquê está no
-> [`DECISOES.md`](../DECISOES.md), §6. Calibrada pelo Lucas em 2 pacotes do V3.
+> **Versão 5, CONGELADA em 10/10/2026**, antes de qualquer execução e de qualquer
+> leitura do V5 (o hash está no README). É a versão 4 (enxuta, congelada em 09/10 para o
+> V4) com duas mudanças que o ensaio do V4 pediu (`DECISOES.md`, §2, 10/10): o §1 (o
+> projeto é o do `pom.xml` mais raso) e o §4 (um `indeterminado` do Semgrep deixa a
+> execução sem nota). A versão 3 (8 propriedades, lida inteira pelo Claude e pelo Lucas)
+> está no histórico do git; o porquê da troca está no [`DECISOES.md`](../DECISOES.md),
+> §6. Calibrada pelo Lucas em 2 pacotes do V3.
 >
 > A régua lê **desenho**, não correção: um erro de regra de negócio não muda nenhuma
 > resposta (no máximo vai para `observacao`). A correção é medida pela suíte.

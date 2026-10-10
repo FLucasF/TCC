@@ -7,7 +7,8 @@ lotes: V5-STRATEGY
 
 # Gabarito: enunciado do Strategy (V5)
 
-> **CONGELADO em 09/10/2026**, junto com a [régua](../regua.md) (versão 4, enxuta). Vale só para o
+> **CONGELADO em 10/10/2026**, junto com a [régua](../regua.md) (versão 5), para o V5; o
+> do V4 (09/10) só tinha outros lotes no cabeçalho. Vale só para o
 > enunciado e os lotes do cabeçalho, que é lido por script: o `verify.mjs` confere que
 > o `enunciado_hash` é o `prompt_hash` gravado no `meta.json` de cada execução dos
 > lotes. A versão anterior (enunciado do V3, com o imposto, lote EXT) está no

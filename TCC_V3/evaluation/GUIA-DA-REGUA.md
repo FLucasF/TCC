@@ -1,8 +1,9 @@
 # Guia da régua: o que você responde em cada pacote
 
-> Para o Lucas, junto com a [`regua.md`](regua.md) (versão 4, enxuta). Explica a régua
+> Para o Lucas, junto com a [`regua.md`](regua.md) (versão 5). Explica a régua
 > em linguagem de leitura, e não a substitui: quando os dois divergirem, vale a régua.
-> Reescrito em 09/10/2026 para a régua enxuta; a versão anterior (8 propriedades) está
+> Reescrito em 09/10/2026 para a régua enxuta; em 10/10, o passo 1 passou a achar o
+> projeto pelo `pom.xml` (o ensaio do V4). A versão anterior (8 propriedades) está
 > no histórico do git. Os exemplos de código "errado" são **inventados**.
 
 ---
