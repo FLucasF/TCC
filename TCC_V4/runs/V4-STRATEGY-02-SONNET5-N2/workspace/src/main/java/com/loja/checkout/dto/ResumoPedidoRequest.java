@@ -1,0 +1,18 @@
+package com.loja.checkout.dto;
+
+import java.util.List;
+
+public record ResumoPedidoRequest(
+        List<ItemRequest> itens,
+        String modalidadeEntrega,
+        String cupom,
+        String formaPagamento,
+        Integer parcelas,
+        String nivelClube,
+        String regiao
+) {
+
+    public int parcelasOuPadrao() {
+        return parcelas == null ? 1 : parcelas;
+    }
+}
