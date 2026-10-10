@@ -1,0 +1,23 @@
+package com.loja.checkout.dominio;
+
+import java.math.BigDecimal;
+
+/** A fórmula do seguro é igual para toda região; só a porcentagem muda. */
+public enum Regiao {
+
+    SUDESTE(new BigDecimal("0.01")),
+    SUL(new BigDecimal("0.01")),
+    CENTRO_OESTE(new BigDecimal("0.015")),
+    NORTE(new BigDecimal("0.025")),
+    NORDESTE(new BigDecimal("0.02"));
+
+    private final BigDecimal percentualSeguro;
+
+    Regiao(BigDecimal percentualSeguro) {
+        this.percentualSeguro = percentualSeguro;
+    }
+
+    public BigDecimal percentualSeguro() {
+        return percentualSeguro;
+    }
+}
