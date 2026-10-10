@@ -7,6 +7,11 @@
 // meta.json de cada execucao, so para identificar modelo, braco e replica.
 // Grava evaluation/metrics/<prefixo>/metricas.csv. So junta numeros: nenhuma
 // leitura nem nota sai daqui.
+//
+// COMO LER. Para cada execucao: as colunas sonar_* vem do measures.json (o que o
+// servidor do SonarQube devolveu); as colunas ck_* vem do class.csv do CK (uma linha
+// por classe), resumidas em contagens, medias e maximos. A coluna "condition" diz
+// CONTROL ou HARNESS, e a "nivel" diz N0 a N3 (tirada do fim do run_id).
 
 import { readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -41,7 +46,10 @@ for (const run of readdirSync(OUT, { withFileTypes: true }).filter((d) => d.isDi
   const dir = join(OUT, run);
   const meta = JSON.parse(readFileSync(join(RAIZ, "runs", run, "meta.json"), "utf8"));
   const status = existsSync(join(dir, "status")) ? readFileSync(join(dir, "status"), "utf8").trim() : "incompleto";
-  const l = { run_id: run, model: meta.model_requested, condition: meta.condition, replicate: meta.replicate ?? "", status };
+  // O nivel (N0 a N3) e o fim do run_id do V4 (V4-STRATEGY-01-HAIKU45-N2); vazio nos
+  // lotes da bancada, que tinham so CONTROL e HARNESS (coluna nivel desde 09/10).
+  const nivel = run.match(/-(N\d)$/)?.[1] ?? "";
+  const l = { run_id: run, model: meta.model_requested, condition: meta.condition, nivel, replicate: meta.replicate ?? "", status };
 
   const sonarArq = join(dir, "sonar", "measures.json");
   const medidas = existsSync(sonarArq) ? JSON.parse(readFileSync(sonarArq, "utf8")).component?.measures ?? [] : [];

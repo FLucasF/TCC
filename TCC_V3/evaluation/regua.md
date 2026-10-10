@@ -38,7 +38,9 @@ de valores; escolhe-se um.
 **Nomear um caso** é escrever qual ele é: o texto `"OURO"`, a constante `OURO`, a classe
 `NivelOuro`, `instanceof NivelOuro`, `case OURO ->`. O teste: *se eu criar um caso
 parecido, esta linha precisa mudar?* Se precisa, ela nomeia. `nivel.freteGratis()` não
-nomeia: pergunta a qualquer nível, e o novo responde sozinho.
+nomeia: pergunta a qualquer nível, e o novo responde sozinho. Também nomeiam: o nome
+traduzido (`Tier.GOLD` é o `OURO`) e a comparação pela ordem (`nivel.compareTo(PRATA) > 0`,
+`nivel.ordinal() >= 2`), porque um nível novo no meio da escada muda a conta.
 
 **Unidade** é uma classe, uma constante de enum (com ou sem corpo), uma entrada de mapa
 ou uma função.
@@ -106,6 +108,14 @@ O enunciado diz que só a porcentagem muda. Separar cada região numa peça é o
 | `dados` | a variação como dado: um `enum` que só carrega números, um mapa de números, uma tabela |
 | `condicional` | um `switch`/`if` que só **devolve o número** de cada região |
 | `estrutura` | uma classe por região, uma constante de enum **com corpo**, ou um mapa ou `switch` que devolve um **objeto** por região |
+
+**Objeto não é sempre estrutura.** Uma lista ou mapa de objetos **da mesma classe**
+para todas as regiões, só com os números (`new Taxa("NORTE", 0.025)`, uma linha por
+região), é uma tabela: `dados`, e a `forma` é `mapa` se estiver num mapa, ou `outro`.
+É `estrutura` quando cada região tem **classe própria** (`new SeguroNorte()`), **corpo
+próprio** (uma classe anônima `new Seguro() { ... }`, uma constante de enum com `{ }`)
+ou **função própria** (`"NORTE", s -> s.multiply(...)`), mesmo que todas façam a mesma
+conta. Taxas num arquivo de configuração (`seguro.taxas.norte=0.025`) também são `dados`.
 
 ## 4. A ficha (aplicada depois, por conta)
 

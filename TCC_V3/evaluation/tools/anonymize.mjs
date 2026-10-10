@@ -26,13 +26,26 @@
 // no .gitignore de proposito. Mova-o para fora desta pasta antes de avaliar.
 //
 // Este script NAO gera planilha de notas. A avaliacao ainda nao esta desenhada,
-// e inventar colunas aqui seria decidir por ela.
+// e inventar colunas aqui seria decidir por ela. (Desde 09/10 a planilha e do
+// sample.mjs, que le o mapa que este script grava.)
+//
+// COMO LER, e onde entra no V4. Roda uma vez, nas 100 execucoes do lote, com
+// --padrao strategy --sem-comentarios:
+//   1. embaralha as execucoes com a semente e da a cada uma um codigo de 4 letras;
+//   2. copia o codigo de cada uma para evaluation/strategy/packages/<CODIGO>/, sem o
+//      que entregaria o nivel (CLAUDE.md, .claude/, meta.json...) e sem comentarios;
+//   3. iguala as datas dos arquivos (senao a data diria qual pacote e de qual nivel);
+//   4. conta as "pistas" (o codigo citando CLAUDE.md, harness, skill) no original;
+//   5. grava o mapa codigo -> execucao, que o Lucas NAO abre ate a leitura ser commitada.
+// Depois: o Semgrep roda nas copias cegas (o CSV sai por codigo), o sample.mjs sorteia
+// os 20 que o Lucas le, e o compare.mjs cruza as duas leituras pelo codigo.
 
 import {
   readdirSync, existsSync, mkdirSync, copyFileSync, writeFileSync,
   readFileSync, utimesSync, statSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
+import { copiaSemComentarios } from "./sem-comentarios.mjs";
 
 const ARGS = process.argv.slice(2);
 const iSeed = ARGS.indexOf("--seed");
@@ -71,43 +84,7 @@ const FORA_ARQ = new Set(["CLAUDE.md", "meta.json", "claude-output.jsonl", "stde
 // mapa dizer quantos pacotes tinham pista antes da limpeza.
 const PISTA = /CLAUDE\.md|harness|orienta[cç][oõ]es de projeto|\bskill\b/i;
 
-// Tira os comentarios de um .java sem mexer em texto entre aspas, e sem mudar o numero
-// de linhas: cada quebra de linha dentro de um comentario fica onde estava.
-function semComentariosJava(fonte) {
-  let saida = "", i = 0;
-  const n = fonte.length;
-  while (i < n) {
-    const c = fonte[i], d = fonte[i + 1];
-    if (c === '"' && fonte.startsWith('"""', i)) {            // bloco de texto
-      const fim = fonte.indexOf('"""', i + 3);
-      const ate = fim < 0 ? n : fim + 3;
-      saida += fonte.slice(i, ate); i = ate;
-    } else if (c === '"' || c === "'") {                      // texto ou caractere
-      let j = i + 1;
-      while (j < n && fonte[j] !== c && fonte[j] !== "\n") j += fonte[j] === "\\" ? 2 : 1;
-      saida += fonte.slice(i, j + 1); i = j + 1;
-    } else if (c === "/" && d === "/") {                      // comentario de linha
-      while (i < n && fonte[i] !== "\n") i++;
-    } else if (c === "/" && d === "*") {                      // comentario de bloco
-      const fim = fonte.indexOf("*/", i + 2);
-      const ate = fim < 0 ? n : fim + 2;
-      saida += fonte.slice(i, ate).replace(/[^\n]/g, ""); i = ate;
-    } else { saida += c; i++; }
-  }
-  return saida.replace(/[ \t]+$/gm, "");
-}
-const semComentariosXml = (t) => t.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, "")).replace(/[ \t]+$/gm, "");
-const semComentariosLinha = (t) => t.replace(/^[ \t]*[#!].*$/gm, "");
-
-function copiaSemComentarios(origem, alvo, relativo) {
-  const ext = relativo.toLowerCase().split(".").pop();
-  const limpar = ext === "java" ? semComentariosJava
-    : ext === "xml" ? semComentariosXml
-    : ["properties", "yml", "yaml"].includes(ext) ? semComentariosLinha
-    : null;
-  if (!limpar) return copyFileSync(origem, alvo);
-  writeFileSync(alvo, limpar(readFileSync(origem, "utf8")));
-}
+// O removedor de comentarios mora em sem-comentarios.mjs (09/10), que o Semgrep tambem usa.
 
 // Gerador deterministico, para o embaralhamento ser reproduzivel a partir da
 // semente registrada. Nao precisa ser bom, precisa ser o mesmo sempre.

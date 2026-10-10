@@ -162,6 +162,12 @@ return subtotal.compareTo(QUINHENTOS) > 0;
 número). Só é estrutura quando a região tem **corpo** `{ ... }` ou vira um **objeto**
 próprio.
 
+**Objeto de uma classe só é dado.** `List.of(new Taxa("NORTE", 0.025), new Taxa("SUL",
+0.01), ...)` é uma tabela: todas as regiões usam a **mesma** classe, só os números
+mudam → `dados`. Já `new SeguroNorte()`, uma classe anônima `new Seguro() { ... }` ou
+uma função por região (`"NORTE", s -> s.multiply(...)`) dão a cada região um pedaço de
+código próprio → `estrutura`.
+
 ---
 
 ## 6. As armadilhas da busca

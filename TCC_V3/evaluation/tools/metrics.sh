@@ -17,6 +17,18 @@
 # evaluation/metrics/<prefixo>/metricas.csv, uma linha por execucao.
 # Recusa rodar se a pasta de saida ja existe, ou se alguma execucao ja foi
 # analisada no SonarQube: uma analise nunca e refeita por cima de outra.
+#
+# COMO LER. Duas ferramentas, as duas so contam, sem julgar:
+#   - o CK (um .jar) le o codigo-fonte e mede cada classe: acoplamento (CBO),
+#     complexidade somada dos metodos (WMC), coesao (LCOM), heranca (DIT)...
+#   - o SonarQube (um servidor no Docker) recebe o codigo e as classes compiladas por
+#     um "scanner" e devolve linhas de codigo, complexidade ciclomatica e COGNITIVA (a
+#     hipotese da qualidade), duplicacao e code smells.
+# Tres partes: (1) preflight: confere que as versoes sao as travadas (o hash do .jar
+# do CK, a imagem do SonarQube e do scanner) e que nenhuma execucao foi analisada
+# antes; (2) por execucao: acha o projeto, roda o CK, roda o scanner e espera o
+# servidor devolver as medidas; (3) no fim, o aggregate-metrics.mjs junta tudo no CSV.
+# O SonarQube fica DESLIGADO durante as execucoes do V4 e ligado so para esta etapa.
 
 set -uo pipefail
 morrer() { printf '\033[31mERRO: %s\033[0m\n' "$*" >&2; exit 1; }

@@ -171,7 +171,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | rodar | `infra/scripts/extract-meta.mjs`: a transcrição vira `meta.json` (o `run-one.sh` chama) | congelado |
 | medir custo | `infra/scripts/aggregate.mjs`: os `meta.json` do lote num CSV | congelado |
 | medir correção | `infra/scripts/acceptance.sh`: a suíte em todas as execuções | a congelar depois do f4 |
-| medir desenho | `evaluation/tools/semgrep/detect.sh`: o padrão do P1 ao P5, sem IA | congelado em 09/10 |
+| medir desenho | `evaluation/tools/semgrep/detect.sh`: o padrão do P1 ao P5, sem IA (versão 2; `corpus/validar.sh` refaz a validação) | a congelar com o `OBJETIVO` |
 | medir qualidade | `evaluation/tools/metrics.sh` e `aggregate-metrics.mjs`: CK e SonarQube | congelados |
 | ler às cegas | `evaluation/tools/anonymize.mjs --sem-comentarios`: os pacotes cegos, sem comentários | a congelar com a régua |
 | ler às cegas | `evaluation/tools/sample.mjs`: sorteia os 20 pacotes do Lucas e, depois, a releitura | a congelar com a régua |

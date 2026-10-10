@@ -150,6 +150,12 @@ const LIMPOS = [
   ["o agente parou por conta propria (so aviso)", (r) => { json(r, id(1, "FRACO", "N2"), (m) => { Object.assign(m.outcome, { termination: "max_turns", terminal_reason: "max_turns", final_message: "parei" }); }); regerar(r); }],
   ["planilha ainda em branco (so aviso)", (r) => { const a = join(r, "leitura", "leitura-lucas.csv"); writeFileSync(a, readFileSync(a, "utf8").replace(/isolado,consulta,enum-dados,dados/g, ",,,")); }],
   ["indeterminado e valor da lista", (r) => trocar(join(r, "leitura", "leitura-lucas.csv"), "lucas,C01,isolado", "lucas,C01,indeterminado")],
+  // [descricao, mudanca, trecho que tem de aparecer na saida (opcional)]
+  ["aviso do Semgrep num pacote (so aviso, listado)", (r) => {
+    const a = join(r, "semgrep.csv");
+    const linhas = readFileSync(a, "utf8").trim().split("\n");
+    writeFileSync(a, [linhas[0] + ",avisos", ...linhas.slice(1).map((l) => l + (l.startsWith("C03,") ? ',"sem chamada: X.java:9 (metodo velho)"' : ',""'))].join("\n") + "\n");
+  }, "Semgrep, C03: sem chamada"],
 ];
 
 const base = mkdtempSync(join(tmpdir(), "verify-teste-"));
@@ -161,10 +167,10 @@ try {
   const copia = (i) => { const r = join(base, `caso-${i}`); cpSync(modelo, r, { recursive: true }); return r; };
 
   console.log("tem de passar (sair 0):");
-  LIMPOS.forEach(([desc, f], i) => {
+  LIMPOS.forEach(([desc, f, esperado], i) => {
     const r = copia(`limpo-${i}`); f(r);
     const { codigo, saida } = rodar(r);
-    const ok = codigo === 0;
+    const ok = codigo === 0 && (!esperado || saida.includes(esperado));
     if (!ok) falhas++;
     console.log(`  ${ok ? "ok   " : "FALHA"} ${desc}` + (ok ? "" : `\n${saida}`));
   });

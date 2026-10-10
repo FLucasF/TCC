@@ -108,7 +108,9 @@ v - decidido que sim · x - decidido que não
       vira `indeterminado`, e não `isolado`. 🤖 *Feito em 09/10 (testado com o clube em
       inglês: `GOLD`, `SILVER`).*
 - [x] Congelar o Semgrep (hash das regras, do classificador e da imagem no README). 🤖
-      *Feito em 09/10* (`evaluation/tools/semgrep/README.md`).
+      *Feito em 09/10* (`evaluation/tools/semgrep/README.md`). *Substituído no mesmo dia
+      pela versão 2, depois da revisão rigorosa (corpora 80/80, 44/44, 10/10, 12/12;
+      regressão nos 64 pacotes reais, 637 de 640 iguais). Congela com o `OBJETIVO`.*
 
 ## Passo 4. Implementar o que foi decidido 🤖
 
@@ -224,3 +226,4 @@ v - decidido que sim · x - decidido que não
 | 09/10 | o Lucas revisou o enunciado e manteve como está (o contrato fixo, o P3 sem frase de crescimento); o mapa rodou e a regra escolheu Haiku 4.5, Sonnet 4.5, Opus 4.6, Sonnet 5 e Opus 5; ordem sorteada; plano de cota refeito no Max. Falta: congelar, criar o `TCC_V4` e rodar |
 | 09/10 | o Lucas pediu o panorama de todos os modelos: virou o lote exploratório `V4-EXPLOR` (5 modelos, 100 execuções, sem hipótese), à parte do confirmatório; o Opus 5.5 ficou fora (exige um Claude Code mais novo); ordem sorteada |
 | 09/10 | o N0 do Opus 4.7, do Opus 4.8 e do Sonnet 5.5: o Opus 4.7 com 60 (fora do teto), os outros dois com 100; o exploratório fica obrigatório, com dois modelos fora do teto; cota refeita (~5,5 janelas no total). Falta: congelar, criar o `TCC_V4` e rodar |
+| 09/10 | a tentativa de endurecer o enunciado (3 regras que cruzam etapas) não tirou os fortes do 100; fica o original. Ensaio do quarteto pelo desenho (o harness certo em cada nível). Semgrep versão 2, depois da revisão rigorosa (dois defeitos da própria versão 2 pegos pela regressão e corrigidos). Revisão dos scripts com "COMO LER"; travas no `run-levels.sh`; coluna `nivel` nas métricas; o `verify` lista os avisos do Semgrep. Falta: o Lucas revisar o `OBJETIVO`, congelar, criar o `TCC_V4` e rodar |

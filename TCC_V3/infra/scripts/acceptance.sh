@@ -21,6 +21,18 @@
 # - "Nao compilou", "nao subiu" e "nao seguiu o contrato" sao situacoes proprias,
 #   separadas de "errou casos".
 #
+# COMO LER. Tres partes:
+#   1. preflight: confere o Docker, que a imagem e a da bancada (pelo ID), e calcula os
+#      hashes da suite, da calculadora de referencia e do enunciado;
+#   2. "uma por vez": para cada execucao ainda nao medida, sobe um container que
+#      compila o projeto do agente, liga o servico e manda os 21 pedidos da suite
+#      (tudo isso e o executor.sh); le a saida e decide o status pelo codigo de saida
+#      (0 passou tudo, 1 errou casos, 3 sem pom, 4 nao compilou, 5 nao subiu);
+#      grava runs/<id>/acceptance.txt com o cabecalho (hashes, status, pontos) e a
+#      saida completa da suite embaixo;
+#   3. "o CSV do lote": refaz o analysis/acceptance-<prefixo>.csv lendo os
+#      acceptance.txt (os pontos por tipo vem daqui para a nota).
+#
 # Variaveis (para teste da propria ferramenta; o padrao e o do experimento):
 #   RUNS_DIR   onde estao as execucoes      (padrao: runs/)
 #   CSV_FILE   o CSV do lote                (padrao: analysis/acceptance-<prefixo>.csv)

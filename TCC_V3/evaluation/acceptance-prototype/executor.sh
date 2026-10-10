@@ -2,6 +2,15 @@
 # Roda DENTRO do container: sobe o servico de um workspace e aplica um teste.
 # Uso: executor.sh <arquivo-de-teste.mjs>
 # /ws = workspace (somente leitura), /aceitacao = esta pasta.
+#
+# COMO LER. Quem chama e o infra/scripts/acceptance.sh, um container por execucao.
+#   1. copia o workspace para /tmp (o original fica so para leitura) e acha o pom mais raso;
+#   2. usa o .jar que o build do run-one.sh ja gerou; se nao houver, compila (sem testes);
+#   3. liga o servico na porta 18080 e espera ele responder (ate 90 s);
+#   4. roda a suite (strategy.mjs), que manda os 21 pedidos e imprime o RESULTADO.
+# O codigo de saida diz o que houve: 0 passou tudo, 1 errou casos, 3 sem pom,
+# 4 build falhou, 5 o servico morreu ao subir. Se ele passar dos 90 s vivo e sem
+# responder, a suite roda assim mesmo e os casos falham (nos testes, subiu em segundos).
 set -uo pipefail
 cp -r /ws /tmp/ws
 POM="$(find /tmp/ws -name pom.xml -not -path '*/target/*' -printf '%d %p\n' | sort -n | head -1 | cut -d' ' -f2-)"

@@ -30,6 +30,13 @@
 //
 // O mapa e lido, mas o script nunca imprime a ligacao codigo -> execucao de um pacote
 // coerente: so as que estao erradas, e essas ja nao sao segredo de nenhuma leitura.
+//
+// COMO LER. Primeiro monta a lista das execucoes ESPERADAS a partir do desenho (5
+// replicas x 5 modelos x 4 niveis = 100 run_ids). Depois, cada checagem tem um titulo
+// "[n]" abaixo e so ACUMULA problemas na lista (erro) ou avisos (aviso); nada para no
+// meio. No fim, imprime tudo e sai com 1 se houver algum erro. Quando rodar: depois de
+// cada rodada (as checagens [4], [6] e [2]) e no fim, com o mapa, a amostra e o CSV do
+// Semgrep (a [1]).
 
 import { readFileSync, existsSync, mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -297,8 +304,12 @@ else {
 
   const arqSem = opt("semgrep");
   if (arqSem) {
-    const pacotes = lerCsv(daRaiz(arqSem)).objetos.map((l) => l.pacote);
+    const linhasSem = lerCsv(daRaiz(arqSem)).objetos;
+    const pacotes = linhasSem.map((l) => l.pacote);
     const conj = new Set(pacotes);
+    // Os avisos do Semgrep (trecho que ele nao leu, metodo que nada chama): nao sao erro,
+    // mas o pacote merece um olhar a mao antes de a resposta dele entrar na conta.
+    for (const l of linhasSem) if ((l.avisos ?? "").trim()) aviso("leitura", `Semgrep, ${l.pacote}: ${l.avisos}`);
     if (conj.size !== pacotes.length) erro("leitura", `${arqSem}: pacote repetido`);
     // O Semgrep roda nos pacotes cegos (codigos) ou no original (run_id); qualquer um serve.
     const universo = [...porCodigo.keys()].some((c) => conj.has(c)) ? [...porCodigo.keys()] : [...ID_ESPERADO];

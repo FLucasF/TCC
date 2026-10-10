@@ -22,6 +22,17 @@
 # O workspace nasce VAZIO. As versoes (Java 21, Spring Boot 4.1.1) sao PEDIDAS
 # no enunciado, nao impostas pelo ambiente — desobedecer nao invalida a
 # execucao, vira dado em `foundation.versions_obeyed`.
+#
+# COMO LER. Uma execucao passa por 5 etapas, cada uma com um titulo "----" abaixo:
+#   1. preflight: confere tudo antes (condicao, ID do modelo, .env, imagem, harness);
+#   2. workspace: cria runs/<id>/workspace; no braco HARNESS, copia para la a pasta
+#      do nivel (CLAUDE.md, skill, revisor) e calcula o hash dela;
+#   3. execucao: um container descartavel roda o Claude Code com o enunciado, sem
+#      perguntar nada (-p, sem pedir permissao) e grava a transcricao em JSON;
+#   4. build: OUTRO container, sem o token, roda "mvn verify" no que o agente deixou;
+#   5. meta.json: o extract-meta.mjs le a transcricao e grava o resumo da execucao.
+# O que fica em runs/<id>/: workspace/ (o codigo do agente), claude-output.jsonl (a
+# transcricao), stderr.txt, build.txt (o mvn verify) e meta.json.
 
 set -uo pipefail
 
@@ -103,6 +114,13 @@ printf '\033[36m=== %s  %s  %s ===\033[0m\n' "$RUN_ID" "$MODEL" "$CONDITION"
 # ------------------------------------------------------------------ execucao
 START="$(date -Iseconds)"; T0="$(date +%s)"
 
+# O container: --rm apaga ao terminar; o .env entra como variavel de ambiente (o
+# token da assinatura); o workspace e montado em /workspace (o agente trabalha nele);
+# o enunciado entra so para leitura. As tres linhas "[pre]" vao para o stderr.txt e
+# provam o isolamento: a versao do Claude Code, que ~/.claude esta vazio (nenhuma
+# configuracao do autor) e que nao ha CLAUDE.md fora do workspace. O enunciado entra
+# pela entrada padrao (< /experimento/prompt.md), e "$0"/"$1" sao o modelo e o effort.
+
 docker run --rm --name "exp-$RUN_ID" \
     --env-file "$ENV_WIN" \
     --mount "type=bind,source=$WS_WIN,target=/workspace" \
@@ -145,6 +163,9 @@ BUILD_RC=$?
 echo "build pos-execucao: codigo $BUILD_RC"
 
 # ------------------------------------------------------------------ meta.json
+# Tudo o que o script sabe (horarios, codigos de saida, hashes da imagem, do enunciado
+# e do harness) vai como argumento; o resto (modelo que respondeu, tokens, custo,
+# ferramentas usadas) o extract-meta.mjs tira da transcricao.
 # node.exe e binario do Windows: recebe caminho do Windows, nao o /j/... do Git Bash.
 node "$(cygpath -w "$RAIZ/infra/scripts/extract-meta.mjs")" "$(cygpath -w "$RUN_DIR")" \
     --run_id "$RUN_ID" --model "$MODEL" --condition "$CONDITION" \

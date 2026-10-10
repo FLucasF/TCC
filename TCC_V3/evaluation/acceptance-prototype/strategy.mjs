@@ -7,6 +7,15 @@
 // e trocou o imposto pelo seguro por regiao (07/10); por isso nao ha observacoes, so casos.
 // O enunciado nao diz os numeros de status (07/10): sucesso e qualquer 2xx, recusa e
 // qualquer 4xx, desde que venha o codigo de erro certo.
+//
+// COMO LER. Tres partes: (1) post() manda um pedido ao servico do agente; (2) a lista
+// "casos" sao os 21 pedidos: os 5 exemplos do enunciado, a resposta do anexo, as
+// combinacoes que cruzam regras (OURO com FRETEGRATIS, boleto no limite), as recusas
+// (um pedido que tem de dar erro), a ordem das recusas ("precedencia": dois problemas
+// no mesmo pedido, qual aparece) e as fronteiras ("ate 5 kg" com 5 kg exatos); (3) o
+// laco no fim: para cada caso, a calculadora de referencia diz a resposta certa, e o
+// caso passa se todos os campos baterem. Uma conta vale 1 ou 0; uma recusa vale 1, ou
+// 0,5 com o codigo certo e status de sucesso.
 import { calcular } from "./ref-strategy.mjs";
 const BASE = process.env.BASE;
 let passaram = 0; const falhas = [];

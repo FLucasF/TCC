@@ -4,6 +4,17 @@
 //
 // Este script NAO julga nada. Ele transcreve o que aconteceu. O campo `valid`
 // sai sempre `null`: quem decide se uma execucao vale e humano.
+//
+// COMO LER. Quem chama e o run-one.sh, no fim de cada execucao. Quatro partes:
+//   1. "transcricao": le o claude-output.jsonl (uma linha JSON por evento do Claude
+//      Code) e separa o "init" (como a sessao comecou: modelo, ferramentas, skills) e
+//      os "result" (como terminou: tokens, custo, turnos);
+//   2. "o projeto": olha o workspace e acha o pom.xml, as versoes pedidas (Java 21,
+//      Spring Boot 4.1.1), as dependencias e o pacote raiz;
+//   3. "o encerramento": decide o termino (completed, error, interrupted...) pelo
+//      codigo de saida e pelo result;
+//   4. "meta.json": monta o arquivo. Cada campo tem um comentario dizendo de onde vem.
+// O meta.json e a fonte de tudo que o aggregate.mjs e o verify.mjs leem depois.
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";

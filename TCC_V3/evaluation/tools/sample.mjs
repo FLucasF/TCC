@@ -18,6 +18,12 @@
 //
 // O run_id do V4 termina em <replica>-<MODELO>-<NIVEL> (ex.: V4-STRATEGY-03-HAIKU45-N2).
 // Nada e sobrescrito: se a saida ja existe, o script recusa.
+//
+// COMO LER. No modo "amostra": le o mapa, agrupa os codigos por modelo x nivel (20
+// grupos de 5 replicas) e sorteia 1 codigo de cada grupo com a semente. A saida so tem
+// os codigos, em ordem alfabetica, para nada dizer de que grupo veio cada um. No modo
+// "releitura": sorteia, entre os 20, os 4 ou 5 que o Lucas le de novo semanas depois.
+// O sorteio e reproduzivel: a mesma semente da sempre os mesmos codigos.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";

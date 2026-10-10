@@ -444,6 +444,28 @@ sem a frase. *Limite:* um `switch` sobre as 3 formas conta como erro no Semgrep 
 que o enunciado dê motivo para separá-las; vai para as limitações. Os 73 números
 foram conferidos de novo (`check-prompt.mjs`: 73 de 73).
 
+**09/10: a tentativa de endurecer o enunciado não quebrou o teto, e o original fica.**
+Depois do mapa (metade dos modelos com nota A 100 no N0), o Lucas quis subir a
+dificuldade para poucos modelos chegarem a 100. *O teste:* um rascunho
+(`history/prompt-harder-draft/prompt.md`, `1ff05157…`) com três regras que cruzam
+etapas, do mesmo tipo do OURO que zera o frete: o OURO parcela sem juros até 6x (P4 no
+cartão), a retirada na loja não tem seguro (P1 no seguro) e o boleto aumenta o prazo em
+2 dias (P3 na entrega); os exemplos 3 e 4 recalculados. Rodou só o N0 dos três modelos
+mais fortes (`TESTE-DIFICIL-01-*-N0`: Sonnet 4.6, Opus 4.8 e Opus 5), medidos só pelo
+Semgrep (a suíte não conhece as regras novas). *Resultado:* os três continuaram com o
+P1 a P4 certos, e o código confirma: cada regra virou uma pergunta à unidade do caso
+(`temSeguro()`, `diasAdicionais()`, `parcelasSemJuros()`), sem nenhum `if` pelo nome.
+*Decisão do Lucas:* voltar ao enunciado original (`8c70bb30…`), que nunca foi mudado.
+*Por quê:* nos modelos fortes, aplicar o Strategy não depende de quão difíceis são as
+regras; tirá-los do 100 pediria pegadinhas artificiais, e o estudo deixaria de medir
+um uso realista. O teste vira argumento no texto: endurecido com regras que cruzam
+etapas, o enunciado continuou no teto para os fortes, o que reforça que o teto é dos
+modelos, não da tarefa. *Custo:* $7,40, 9% da janela. *Achado do Semgrep, a decidir:*
+no Opus 5, o seguro por região veio como uma lista de objetos de uma classe só
+(`new RegiaoFixa("NORTE", new BigDecimal("2.5"))`, uma linha por região), que pela
+régua é **dados**; o Semgrep não previu essa forma e deu `outro` e `indeterminado` (o
+alarme funcionou: disse "não sei", não errou).
+
 ## 5. Correção (a suíte de aceitação)
 
 **30/09: a correção é medida por uma suíte de caixa-preta pela API.** *Por quê:*
@@ -675,6 +697,39 @@ Remover todos os comentários é mais seguro que caçar os que citam o harness. 
 `condition_leaks` continua (quantos pacotes tinham pista), e a planilha ganha a
 coluna "achei que sabia o nível?", para o que sobra, como nomes de classe.
 
+**09/10: o Semgrep versão 2, depois de uma revisão rigorosa pedida pelo Lucas.**
+*Substitui* a versão congelada de manhã (antes de qualquer pacote do V4 existir). *O
+método:* corpora de pacotes pequenos, cada um com uma forma de escrever, com a resposta
+da régua escrita antes de rodar (`evaluation/tools/semgrep/corpus/`): o corpus 1 (40
+pacotes) guiou as correções, e a versão 1 acertou **41 de 80** respostas nele; o corpus
+2 (22 pacotes, **controle**, escrito depois) deu 42 de 44 na primeira passada, com as
+duas falhas que eu tinha previsto; os corpora 3 e 4 cobrem a revisão do código, a
+regressão e os nomes em inglês. Todos acertam tudo na versão 2. *A medida que importa*
+foi a **regressão nos 64 pacotes reais** (EXT, piloto, testes do V4): 637 de 640
+respostas iguais. A versão 1 errava em 3 pacotes reais (uma recusa por
+`return Optional.of(...)` lida como conta; um `instanceof PagamentoPix` nunca visto; a
+lista `RegiaoFixa` do Opus 5), e as três mudanças foram conferidas no código. A primeira
+passada da regressão pegou **dois defeitos que a própria versão 2 tinha introduzido**
+(`case SUDESTE, SUL ->` lido como função por região; `instanceof` dentro de uma recusa
+contado como conta), corrigidos antes de fechar. *Defeitos da versão 1:* o
+`metavariable-regex` do Semgrep casa só a partir do começo do texto, e por isso o
+`instanceof NivelOuro` e a recusa sem `throw` nunca funcionaram; o mapa do P5 deixava
+passar um objeto por região; um recurso do Java 21 parava o lote inteiro; comentário
+era lido como código (agora o Semgrep lê uma cópia sem comentários, a mesma da cópia
+cega). *O que entrou:* comparações nos dois sentidos, `Objects.equals`, `compareTo`,
+constantes de outro nome; o `switch` com *pattern matching*; a fábrica por `if`; a recusa
+sem `throw`; o registro (`suporta()`); conjuntos parciais; os **sinônimos em inglês**
+(`GOLD` é o `OURO`), porque um enum traduzido com um remendo em inglês daria um
+`isolado` falso em silêncio; no P5, objeto de uma classe só (dado) separado de classe
+por região (estrutura), classe anônima e função por região, constantes, `entry()`,
+configuração. *Descartados por exagero* (decisão do Lucas, depois de ver que a versão 1
+já errava pouco no código real): o aviso de método que nada chama (o Spring chama
+métodos que o código não chama) e o `ordinal()` (não diz de qual ponto é o caso); ficam
+como limites. *A régua e o guia* ganharam as frases correspondentes (o nome traduzido e
+a comparação pela ordem nomeiam; objeto de uma classe só é dado; classe anônima ou
+função por região é estrutura), para o Lucas e o Semgrep lerem pela mesma definição.
+*Onde:* `evaluation/tools/semgrep/README.md`; o `validar.sh` refaz a validação inteira.
+
 ## 7. Métricas automáticas
 
 **06/10: SonarQube e CK como instrumento secundário de desenho.** Pedido na
@@ -881,6 +936,52 @@ com 0, e os 33 defeitos saem com 1 na checagem certa (37 de 37). Rodado sobre o
 o N3 do Opus cortado pela cota, o lote fora do gabarito, o CSV sem as linhas) e
 nada mais. *Limite:* garante coerência entre as fontes, não que a classificação
 esteja certa. *Onde:* `PLANO-IMPLEMENTACAO.md`, Parte 3.
+
+**09/10 (registro de uma escolha antiga): o shell orquestra, o Node pensa.** Os
+scripts da bancada se dividem em dois tipos. Os `.sh` (Bash) **orquestram**: sobem
+containers, criam pastas, lançam e esperam processos, encadeiam programas
+(`run-levels.sh`, `run-one.sh`, `acceptance.sh`, `executor.sh`, `metrics.sh`,
+`detect.sh`). Os `.mjs` (JavaScript no Node) têm a **lógica**: leem JSON e CSV,
+fazem contas e decidem (`extract-meta`, `aggregate`, a suíte e a calculadora, o
+classificador do Semgrep, `nota`, `compare`, `sample`, `verify`). *Por que o Node:* ele
+já está em todo lugar onde os scripts rodam, sem instalar nada: a imagem da bancada
+precisa dele para o Claude Code (que é um pacote npm), e a suíte roda dentro dela;
+os scripts usam só a biblioteca padrão (nenhum `npm install`, nenhuma versão de
+pacote a travar), e o Node 24 traz `fetch`, de que a suíte precisa. *Por que `.mjs`:*
+diz ao Node que o arquivo é um módulo moderno (`import`, `await` no topo) sem precisar
+de um `package.json`. *Por que a lógica não fica em shell:* o Bash não lê JSON (seria
+preciso o `jq`), só faz conta com inteiros (a nota, o 0,5 da recusa e os centavos não
+cabem), lida mal com CSV entre aspas, trata tudo como texto e, no Git Bash do Windows,
+ainda converte caminhos sozinho (`/pacotes` virando `C:/Program Files/Git/pacotes`).
+*O ponto fraco, declarado:* JavaScript tem **tipagem dinâmica**; um número que chega
+como texto, um campo com nome errado ou uma coluna deslocada não dão erro, passam em
+silêncio. *A mitigação* é por teste, não por tipo: o `verify-teste.mjs` (dados
+corrompidos de propósito), os corpora do Semgrep, os mutantes da suíte e a
+comparação antes e depois a cada mudança. *Descartados:* TypeScript (precisa de
+compilação, e os tipos somem na hora de rodar: o JSON e o CSV continuariam sem
+garantia sem uma validação campo a campo); Java (o JDK está na imagem, mas é mais
+código para ler CSV e JSON sem biblioteca, e reescrever agora reabriria scripts já
+validados sem mudar nenhum resultado).
+
+**09/10: a revisão dos scripts do V4, com comentários para o Lucas ler.** Cada script
+que roda no V4 ganhou um bloco "COMO LER" (as partes, o que entra, o que sai, onde ele
+entra no fluxo). Em 10 deles (inclusive 4 dos congelados: `run-one.sh`,
+`extract-meta.mjs`, `aggregate.mjs` e `metrics.sh`) **só comentários** mudaram, e isso
+foi conferido no `git diff`: nenhuma linha de código entrou ou saiu. Os outros têm as
+mudanças abaixo. *Mudanças de código,
+por defeito ou risco achado na revisão:* (1) o `run-levels.sh` recusa `PROMPT_FILE` e
+`IMAGE` no lote do desenho (esquecidas no terminal depois de um ensaio, trocariam o
+enunciado ou a imagem do V4 em silêncio); um desenho de ensaio leva `"ensaio": true`;
+(2) o `nota.mjs` lê o CSV com aspas de verdade (o anterior só cortava o último campo
+entre aspas, e o CSV do Semgrep passou a ter dois); as notas do mapa saem idênticas;
+(3) o `aggregate-metrics.mjs` ganhou a coluna `nivel` (N0 a N3), a pedido do Lucas; o
+resto do CSV sai idêntico; (4) o `verify.mjs` lista os pacotes com aviso do Semgrep
+(teste: 38 de 38); (5) o removedor de comentários saiu do `anonymize.mjs` para
+`sem-comentarios.mjs`, que o Semgrep também usa (saída idêntica em 2151 arquivos). *O
+ensaio do quarteto* (`TESTE-ENSAIO-01`, o enunciado barato da bancada, centavos)
+confirmou o lançamento pelo desenho e o harness de cada nível: N0 nada, N1 o
+`CLAUDE.md`, N2 também a skill, N3 também o revisor. *Os 5 congelados* não tinham
+rodado no V4; os hashes novos de todos entram no congelamento.
 
 ## 10. Documentação
 

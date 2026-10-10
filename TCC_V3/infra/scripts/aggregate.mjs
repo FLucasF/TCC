@@ -5,8 +5,14 @@
 //   node infra/scripts/aggregate.mjs --prefix BATCH      # so o lote
 //   node infra/scripts/aggregate.mjs --out analysis/resultados.csv
 //
-// So junta o que o meta.json tem. A avaliacao dos pacotes e outra coisa, feita a
-// mao, e e cruzada com isto depois — nao aqui.
+// So junta o que o meta.json tem. A avaliacao dos pacotes e outra coisa (a suite,
+// o Semgrep, as metricas e a leitura do Lucas), e e cruzada com isto depois — nao aqui.
+//
+// COMO LER. A lista COLUNAS, logo abaixo, e o coracao do script: cada linha e uma
+// coluna do CSV, com o nome e a funcao que tira o valor do meta.json (ex.: "turns" vem
+// de meta.outcome.turns). O resto so percorre runs/, filtra pelo prefixo e escreve.
+// No V4: node infra/scripts/aggregate.mjs --prefix V4-STRATEGY-, e o verify.mjs confere
+// que o CSV e igual ao que este script gera dos meta.json.
 
 import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";

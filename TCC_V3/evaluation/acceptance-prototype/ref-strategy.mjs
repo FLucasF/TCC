@@ -1,6 +1,14 @@
 // Calculadora de referencia do enunciado do Strategy (experiment/prompt/prompt.md).
 // Dinheiro em centavos inteiros; arredondamento meio-para-o-par em cada etapa.
 // O P5 e o seguro do envio por regiao (no enunciado da bancada, ate 06/10, era um imposto).
+//
+// COMO LER. calcular(pedido) devolve ou { erro: "CODIGO" } ou o resumo, com o dinheiro
+// em CENTAVOS inteiros (40970 = R$ 409,70), para nao ter erro de ponto flutuante. Ela
+// segue o enunciado na ordem: primeiro as recusas, na ordem da tabela de erros; depois
+// subtotal, cupom, frete, seguro, total, ajuste do pagamento, credito e brinde. A suite
+// (strategy.mjs) compara o servico do agente com ela; os 73 numeros escritos no
+// enunciado foram conferidos contra ela (check-prompt.mjs), e 4 implementacoes
+// independentes do Opus 5 chegaram aos mesmos valores nos 21 casos (09/10).
 export const PCT_SEGURO = { SUDESTE: 100, SUL: 100, CENTRO_OESTE: 150, NORTE: 250, NORDESTE: 200 }; // em pontos-base
 
 // (valorCentavos * pontosBase / 10000), arredondado meio-para-o-par

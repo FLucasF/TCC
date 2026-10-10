@@ -14,6 +14,12 @@
 // Regra de saida (09/10): uma pergunta VALE para o lote inteiro se a concordancia for
 // pelo menos o limite (0,9: 18 de 20). Abaixo disso, ela vira DESCRITIVA. Celula vazia
 // ou "indeterminado", de qualquer lado, conta como discordancia: na duvida, nao vale.
+//
+// COMO LER. Le as duas planilhas, casa as linhas pelo codigo do pacote e, em cada uma
+// das 4 perguntas, conta em quantos pacotes as duas respostas sao iguais. Imprime uma
+// tabela (pergunta, concordaram, decisao) e, embaixo, cada discordancia com a evidencia
+// dos dois lados (o arquivo:linha), para abrir o codigo e ver quem tem razao. A conta
+// oficial e a primeira: corrigir uma regra depois de ver a discordancia nao a refaz.
 
 import { readFileSync } from "node:fs";
 

@@ -31,14 +31,27 @@
 #
 # Chamava-se rodada-niveis.sh ate 07/10; o nome e as variaveis foram para o
 # ingles, sem mudar a logica.
+#
+# COMO LER (para quem le o V4 pela primeira vez). O script tem 4 partes:
+#   1. confere os 3 argumentos (formato do prefixo e da replica);
+#   2. le o desenho: troca o apelido (HAIKU45) pelo ID do modelo (claude-haiku-4-5)
+#      e pega o effort; recusa o que nao bate com o desenho;
+#   3. "preflight": confere que as pastas dos niveis existem e que nenhuma das 4
+#      execucoes ja existe em runs/ (uma execucao nunca e refeita por cima);
+#   4. lanca as 4 execucoes em paralelo (o "&" no fim da linha) e espera todas.
+# Cada execucao e o run-one.sh, que sobe um container, roda o Claude Code com o
+# enunciado e grava runs/<id>/ (meta.json, transcricao, workspace, build.txt).
 
 set -uo pipefail
 
+# ------------------------------------------------------------------ 1. argumentos
 case $# in 3) ;; *) { echo "uso: $0 <prefixo> <replicate> <APELIDO do desenho>" >&2; exit 2; } ;; esac
 PREFIX="$1"; REPLICATE="$2"; WHICH="$3"
+# So letras, numeros e hifen: o prefixo vira nome de pasta e de container.
 case "$PREFIX" in ""|*[!A-Za-z0-9-]*) { echo "prefixo invalido: '$PREFIX'" >&2; exit 2; } ;; esac
 case "$REPLICATE" in [1-9]|[1-9][0-9]) ;; *) { echo "replicate deve ser inteiro positivo: '$REPLICATE'" >&2; exit 2; } ;; esac
 
+# ------------------------------------------------------------------ 2. o desenho
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 RUN_ONE="$ROOT/infra/scripts/run-one.sh"
 DESENHO="${DESENHO:-$ROOT/experiment/desenho-v4.json}"
@@ -49,6 +62,9 @@ DESENHO="$(cd "$(dirname "$DESENHO")" && pwd -P)/$(basename "$DESENHO")"
 host_path() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi; }
 
 # O ID completo e o effort vem do desenho; o apelido entra no run_id.
+# O node le o JSON e imprime "<id> <effort>" (ex.: "claude-haiku-4-5 medium"); se o
+# apelido nao existe, ou o prefixo nao bate com a replica, ele sai com erro e o
+# script para aqui, antes de lancar qualquer coisa.
 LIDO="$(node -e '
 const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); const [, , apelido, prefixo, replica] = process.argv;
 const id = (d.modelos || {})[apelido];
@@ -56,21 +72,34 @@ if (!id) { console.error(`apelido deve ser um de: ${Object.keys(d.modelos || {})
 if (prefixo.startsWith(d.prefixo + "-") && prefixo !== `${d.prefixo}-${String(replica).padStart(2, "0")}`) {
   console.error(`no lote ${d.prefixo}, a replica ${replica} roda com o prefixo ${d.prefixo}-${String(replica).padStart(2, "0")}, nao ${prefixo}`); process.exit(1);
 }
-console.log(id, d.effort);
+console.log(id, d.effort, d.ensaio ? "ensaio" : prefixo.startsWith(d.prefixo + "-") ? "lote" : "fora");
 ' "$(host_path "$DESENHO")" "$WHICH" "$PREFIX" "$REPLICATE")" || exit 2
-MODEL_ID="${LIDO% *}"; DESIGN_EFFORT="${LIDO#* }"
+read -r MODEL_ID DESIGN_EFFORT NO_LOTE <<< "$LIDO"
+# O effort de fora (EFFORT=...) so e aceito se for o do desenho.
 EFFORT="${EFFORT:-$DESIGN_EFFORT}"
 [ "$EFFORT" = "$DESIGN_EFFORT" ] || { echo "EFFORT=$EFFORT, o desenho pede $DESIGN_EFFORT" >&2; exit 2; }
+# No lote do desenho, nada de enunciado ou imagem trocados por variavel de ambiente
+# (o run-one.sh aceita PROMPT_FILE e IMAGE para os ensaios da bancada; esquecidos no
+# terminal, mudariam o V4 sem aviso, e o verify.mjs so acusaria depois de gastar a cota).
+# Um desenho de ensaio da bancada (com "ensaio": true) pode usar as duas.
+if [ "$NO_LOTE" = "lote" ]; then
+    for v in PROMPT_FILE IMAGE; do
+        [ -n "${!v:-}" ] && { echo "$v esta definido ($v=${!v}); no lote do desenho, rode sem ele" >&2; exit 2; }
+    done
+fi
 MODELS="$WHICH:$MODEL_ID"
 LEVELS="N0 N1 N2 N3"
 
-# ------------------------------------------------------------------ preflight
+# ------------------------------------------------------------------ 3. preflight
+# As pastas dos niveis N1 a N3 tem de existir e ter conteudo (o N0 nao tem pasta:
+# e o workspace vazio).
 for level in N1 N2 N3; do
     dir="$ROOT/experiment/harnesses/$level"
     [ -d "$dir" ] || { echo "nivel $level nao encontrado: $dir" >&2; exit 2; }
     [ -f "$dir/CLAUDE.md" ] || compgen -G "$dir/.claude/skills/*/SKILL.md" >/dev/null \
         || { echo "nivel $level vazio: o run-one.sh o recusaria" >&2; exit 2; }
 done
+# Nenhuma das 4 execucoes pode existir ainda: um quarteto e sempre inteiro e novo.
 for m in $MODELS; do
     for level in $LEVELS; do
         id="$PREFIX-${m%%:*}-$level"
@@ -79,12 +108,15 @@ for m in $MODELS; do
 done
 mkdir -p "$ROOT/runs/logs"
 
+# ------------------------------------------------------------------ 4. lancar e esperar
 RUN_COUNT=$(( $(echo $MODELS | wc -w) * 4 ))
 printf '\033[36m=== quarteto %s  |  replica %s  |  effort=%s  |  %s execucoes em paralelo ===\033[0m\n' \
     "$PREFIX" "$REPLICATE" "$EFFORT" "$RUN_COUNT"
 START="$(date +%s)"
 PIDS=""; IDS=""
 
+# Cada execucao vai para o fundo ("&"), com a saida no runs/logs/<id>.log; o $! e o
+# numero do processo, guardado para esperar por ele depois.
 for m in $MODELS; do
     alias="${m%%:*}"; model="${m#*:}"
     for level in $LEVELS; do
@@ -101,6 +133,7 @@ for m in $MODELS; do
     done
 done
 
+# Espera as 4, na ordem em que foram lancadas, e conta quantas sairam com erro.
 echo "aguardando..."
 FAILURES=0
 set -- $IDS
@@ -111,6 +144,8 @@ for p in $PIDS; do
     shift
 done
 
+# Resumo: a ultima linha do log de cada execucao (o run-one.sh imprime ali o termino,
+# os turnos, os tokens e se compilou).
 printf '\nquarteto terminou em %ss  |  falhas: %s\n' "$(( $(date +%s) - START ))" "$FAILURES"
 for id in $IDS; do
     [ -f "$ROOT/runs/$id/meta.json" ] && printf '  %-34s %s\n' "$id" "$(tail -n 1 "$ROOT/runs/logs/$id.log")"
