@@ -870,6 +870,29 @@ e as limitações novas (§6). *Revisado pelo Lucas no mesmo dia:* de acordo com
 **a qualidade (a complexidade cognitiva) fica como hipótese principal**. Pendente
 antes de congelar: só a lista dos 5 modelos, que sai do mapa.
 
+**09/10: a análise também é pré-registrada, como código (`evaluation/tools/hipoteses.mjs`).**
+O script monta os pares de cada hipótese, tira os modelos no teto e dá o veredito pelas
+regras do §4.1, e congela com o `OBJETIVO`: depois dos dados, a análise é só rodar.
+*Por quê:* feita à mão depois de ver os resultados, a conta deixa escolhas abertas
+(qual par conta, o que é "melhor" num empate, quem está no teto), e é isso que o
+pré-registro impede. *A prova* é o `hipoteses-teste.mjs`: um lote de mentira com
+resultados planejados e 17 variações, cada uma com o veredito que a regra manda (17 de
+17); e o script leu os arquivos reais do `TESTE-NIVEIS-01` sem erro, apontando as
+medidas que faltavam. As hipóteses sem regra de pares no `OBJETIVO` (*réplicas mais
+parecidas*, *sinal muda por modelo*, *só valem se carregadas*, *só vale se usado*) saem
+como tabelas descritivas, sem veredito. Um defeito achado no teste real e corrigido:
+sem nenhum par com dado, a não-inferioridade dava "apoiada"; agora dá "sem dado".
+**Três escolhas que o `OBJETIVO` não fazia, decididas antes dos dados:** (1) um par com
+`indeterminado` do Semgrep, ou sem medida, sai da conta como "sem dado" e é contado na
+tabela (contá-lo como erro puniria o modelo por um limite do instrumento); (2) o saldo
+máximo da não-inferioridade é **13% dos pares, arredondado**: 3 em 25 e 2 em 15, a
+proporção que o próprio `OBJETIVO` usa para justificar o 3, e que vale para as contas
+com menos pares (*Modelo: no teto, não piora* só olha os modelos no teto); (3) se dois
+modelos empatam como o mais fraco no N0, a hipótese do modelo é apoiada quando o maior
+saldo, sem empate, é de um deles. *Confirmadas pelo Lucas no mesmo dia*, com a opção de
+calcular todas as hipóteses (e não só as 5 principais): as secundárias ganham veredito,
+mas continuam sem sustentar conclusão sozinhas (§4 do `OBJETIVO`).
+
 ## 9. Integridade e reprodutibilidade da bancada
 
 **24/09 e 26/09: tudo sai do git com LF, e os arquivos com hash citado são

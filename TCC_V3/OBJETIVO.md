@@ -383,7 +383,7 @@ As métricas são as colunas do `metricas.csv` (ver
 | **Qualidade: menos code smells** | `sonar_code_smells` | menor | o que o SonarQube aponta como problema de manutenção |
 
 **De onde veio a complexidade cognitiva.** No ensaio do EXT (V3), ela foi a métrica
-que mais mudou com o harness (caiu em 8 dos 9 pares), e por isso é proposta como
+que mais mudou com o harness (caiu em 8 dos 9 pares), e por isso entra como
 principal (decisão do Lucas, 09/10). É uma escolha feita olhando dados anteriores, e por isso declarada aqui: o
 V4 são dados novos, e, se o ensaio foi sorte, o V4 mostra. No teste do Haiku do V4 (uma
 réplica, `TESTE-NIVEIS-01`), ela **subiu** com o harness.
@@ -435,7 +435,7 @@ tem um "100" natural.
 
 | padrão | enunciado | pontos positivos | controle negativo | lote | avaliação | estado |
 |---|---|---|---|---|---|---|
-| **Strategy** | `experiment/prompt/prompt.md` (`8c70bb30…`) | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 seguro por região | `V4-STRATEGY-01` a `05` | `evaluation/strategy/` | pronto para o V4; ensaiado no `EXT` (V3) e nos `TESTE-MAPA-01` e `TESTE-NIVEIS-01` (V4) |
+| **Strategy** | `experiment/prompt/prompt.md` (`8c70bb30…`) | P1 entrega, P2 cupom, P3 pagamento, P4 clube | P5 seguro por região | `V4-STRATEGY-01` a `05` (confirmatório) e `V4-EXPLOR-01` a `05` (exploratório) | `evaluation/strategy/` | pronto para o V4; ensaiado no `EXT` (V3) e nos `TESTE-MAPA-01`, `TESTE-NIVEIS-01` e `TESTE-DIFICIL-01` (V4) |
 | **State** | `history/state/state.md` | E1 ações por situação, E2 efeitos do cancelamento e da devolução | E3 texto para o cliente | nenhum | `history/state/` | **fora do V4** (07/10). Serviu para provar que a bancada aceita um segundo padrão |
 
 ### Os instrumentos
@@ -443,9 +443,9 @@ tem um "100" natural.
 | instrumento | estado | onde |
 |---|---|---|
 | a suíte (21 casos) | a referência confirmada por 4 implementações independentes do Opus (21 de 21 cada); 17 mutantes reprovados | `evaluation/acceptance-prototype/`, `infra/scripts/acceptance.sh` |
-| o Semgrep | congelado em 09/10; P1 a P4 validados no EXT e nos 4 Opus, o P5 nos 4 Opus e em 4 exageros de mentira | `evaluation/tools/semgrep/` |
+| o Semgrep | versão 2 (09/10): quatro corpora de formas de escrever, com a resposta da régua escrita antes (80/80, 44/44 no de controle, 10/10, 12/12), e regressão nos 64 pacotes reais (637 de 640 respostas iguais à versão 1, as 3 mudanças conferidas no código) | `evaluation/tools/semgrep/` |
 | SonarQube e CK | travados por hash; rodados no EXT e nos testes do V4 | `evaluation/tools/` |
-| a régua (versão 4) e o guia | rascunho de 09/10; a calibração do Lucas em 1 ou 2 pacotes falta | `evaluation/regua.md`, `evaluation/GUIA-DA-REGUA.md` |
+| a régua (versão 4) e o guia | revisados pelo Lucas e calibrados em 2 pacotes (8 de 8 com o Semgrep), em 09/10 | `evaluation/regua.md`, `evaluation/GUIA-DA-REGUA.md` |
 
 ### Os harnesses
 
@@ -474,9 +474,11 @@ de *Processo*, do N3.
 - **Não compara padrões nem versões de harness estatisticamente.** Dentro de um lote
   há pares; entre lotes, não.
 - **O Semgrep pode errar em silêncio.** Uma forma de escrever que as regras não
-  previram passa sem aviso (no ensaio, isso aconteceu no P5 e foi corrigido). O alarme
-  de nomes desconhecidos e a conferência humana reduzem o risco, mas não o eliminam, e
-  o P1 a P3 não têm conferência.
+  previram passa sem aviso (no ensaio, isso aconteceu no P5 e foi corrigido; a revisão
+  de 09/10 achou outras e as cobriu). O alarme de nomes desconhecidos e a conferência
+  humana reduzem o risco, mas não o eliminam, e o P1 a P3 não têm conferência. Dois
+  casos conhecidos ficam de fora: a comparação pela posição (`ordinal()`) e o código
+  que nada chama, que conta como se fosse chamado.
 - **Há um leitor humano só.** A releitura mede a estabilidade dele, não a concordância
   entre pessoas, que é o que o documento do orientador de 12/09 pedia.
 - **Os instrumentos foram desenhados com a ajuda de um modelo de IA** (o Claude, da

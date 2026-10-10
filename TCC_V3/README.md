@@ -177,6 +177,7 @@ docker image inspect --format '{{.Id}}' experimento-harness:v3
 | ler às cegas | `evaluation/tools/sample.mjs`: sorteia os 20 pacotes do Lucas e, depois, a releitura | a congelar com a régua |
 | conferir | `evaluation/tools/compare.mjs`: a leitura do Lucas × o Semgrep, e a regra de saída | a congelar com a régua |
 | resumir | `evaluation/tools/nota.mjs`: a nota de 0 a 100 de cada execução | a congelar com a régua |
+| decidir | `evaluation/tools/hipoteses.mjs`: os pares, o teto e o veredito de cada hipótese pelas regras do §4.1 do `OBJETIVO`; a prova é o `hipoteses-teste.mjs` (17 de 17) | a congelar com o `OBJETIVO` |
 | conferir | `infra/scripts/verify.mjs`: as fontes do lote batem entre si (o desenho em `experiment/desenho-v4.json`); a prova de que acusa é o `verify-teste.mjs` | a congelar com o `OBJETIVO` |
 
 O `blind-read.sh` (a leitura do Claude isolada num container) não é mais preciso: desde 09/10 o Claude não lê os pacotes.
