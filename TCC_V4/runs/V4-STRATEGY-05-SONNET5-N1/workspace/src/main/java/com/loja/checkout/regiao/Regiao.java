@@ -1,0 +1,30 @@
+package com.loja.checkout.regiao;
+
+import java.math.BigDecimal;
+
+public enum Regiao {
+    SUDESTE(new BigDecimal("0.01")),
+    SUL(new BigDecimal("0.01")),
+    CENTRO_OESTE(new BigDecimal("0.015")),
+    NORTE(new BigDecimal("0.025")),
+    NORDESTE(new BigDecimal("0.02"));
+
+    private final BigDecimal percentualSeguro;
+
+    Regiao(BigDecimal percentualSeguro) {
+        this.percentualSeguro = percentualSeguro;
+    }
+
+    public BigDecimal percentualSeguro() {
+        return percentualSeguro;
+    }
+
+    public static Regiao from(String codigo) {
+        for (Regiao regiao : values()) {
+            if (regiao.name().equals(codigo)) {
+                return regiao;
+            }
+        }
+        return null;
+    }
+}
