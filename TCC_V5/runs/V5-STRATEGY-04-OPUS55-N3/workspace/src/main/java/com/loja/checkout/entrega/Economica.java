@@ -1,0 +1,25 @@
+package com.loja.checkout.entrega;
+
+import com.loja.checkout.Carrinho;
+import com.loja.checkout.Dinheiro;
+import java.math.BigDecimal;
+import org.springframework.stereotype.Component;
+
+@Component
+class Economica implements ModalidadeEntrega {
+
+    @Override
+    public String codigo() {
+        return "ECONOMICA";
+    }
+
+    @Override
+    public BigDecimal frete(Carrinho carrinho) {
+        return Dinheiro.centavos(new BigDecimal("12.00").add(new BigDecimal("2.00").multiply(carrinho.pesoKg())));
+    }
+
+    @Override
+    public int prazoDias() {
+        return 7;
+    }
+}

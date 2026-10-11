@@ -1,0 +1,24 @@
+package com.loja.checkout.domain.pagamento;
+
+import java.math.BigDecimal;
+
+class Boleto implements FormaPagamento {
+    private static final BigDecimal TARIFA = new BigDecimal("3.49");
+    private static final BigDecimal LIMITE = new BigDecimal("1000.00");
+
+    @Override
+    public boolean parcelasValidas(int parcelas) {
+        return parcelas == 1;
+    }
+
+    @Override
+    public boolean disponivel(BigDecimal totalPedido) {
+        return totalPedido.compareTo(LIMITE) <= 0;
+    }
+
+    @Override
+    public ResultadoPagamento calcular(BigDecimal totalPedido, int parcelas) {
+        BigDecimal totalFinal = totalPedido.add(TARIFA);
+        return new ResultadoPagamento(totalFinal, TARIFA, 1, totalFinal);
+    }
+}

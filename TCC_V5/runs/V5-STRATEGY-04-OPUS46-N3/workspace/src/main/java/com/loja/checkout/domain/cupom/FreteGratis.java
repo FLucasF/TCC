@@ -1,0 +1,27 @@
+package com.loja.checkout.domain.cupom;
+
+import com.loja.checkout.dto.ItemRequest;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
+@Component
+public class FreteGratis implements Cupom {
+
+    @Override
+    public String codigo() {
+        return "FRETEGRATIS";
+    }
+
+    @Override
+    public boolean aplicavel(List<ItemRequest> itens, BigDecimal subtotal) {
+        return true;
+    }
+
+    @Override
+    public BigDecimal calcularDesconto(List<ItemRequest> itens, BigDecimal subtotal, BigDecimal frete) {
+        return frete.setScale(2, RoundingMode.HALF_EVEN);
+    }
+}

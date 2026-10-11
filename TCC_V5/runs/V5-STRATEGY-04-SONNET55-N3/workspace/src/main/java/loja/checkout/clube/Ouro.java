@@ -1,0 +1,33 @@
+package loja.checkout.clube;
+
+import java.math.BigDecimal;
+
+import org.springframework.stereotype.Component;
+
+import loja.checkout.Dinheiro;
+
+@Component
+class Ouro implements NivelClube {
+
+    private static final BigDecimal LIMITE_BRINDE = Dinheiro.valor("500.00");
+
+    @Override
+    public String codigo() {
+        return "OURO";
+    }
+
+    @Override
+    public BigDecimal credito(BigDecimal subtotalProdutos) {
+        return Dinheiro.percentual(subtotalProdutos, "0.05");
+    }
+
+    @Override
+    public BigDecimal frete(BigDecimal freteModalidade) {
+        return Dinheiro.ZERO;
+    }
+
+    @Override
+    public boolean brinde(BigDecimal subtotalProdutos) {
+        return subtotalProdutos.compareTo(LIMITE_BRINDE) > 0;
+    }
+}
