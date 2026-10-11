@@ -1,0 +1,6 @@
+package com.loja.checkout.dominio;
+
+import java.math.BigDecimal;
+
+public record ResultadoPagamento(BigDecimal totalFinal, BigDecimal valorParcela, BigDecimal ajuste) {
+}

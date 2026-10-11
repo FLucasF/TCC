@@ -1,0 +1,18 @@
+package com.loja.checkout.dominio;
+
+import java.math.BigDecimal;
+
+/** O resumo da compra, exatamente como o site mostra. */
+public record Resumo(
+        BigDecimal subtotalProdutos,
+        BigDecimal descontoCupom,
+        BigDecimal frete,
+        int prazoEntregaDias,
+        BigDecimal seguro,
+        BigDecimal ajustePagamento,
+        BigDecimal totalFinal,
+        int parcelas,
+        BigDecimal valorParcela,
+        BigDecimal creditoProximaCompra,
+        boolean brinde) {
+}
