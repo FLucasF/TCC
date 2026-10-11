@@ -423,6 +423,19 @@ que vão para o V5 e o `.dockerignore`, para o `TCC_V5` construir a imagem sozin
 "RASCUNHO" a "CONGELADO em 10/10/2026". *Depois:* o `TCC_V5` é a cópia exata desses
 arquivos, e o V5 roda lá.
 
+**10/10, depois do congelamento: o consumo de CPU e de memória passa a ser anotado, como
+medida descritiva.** *Decisão do Lucas*, com o primeiro quarteto do V5 já rodando ("anote
+também o consumo de memória e processador"). *O quê:* o `infra/scripts/monitor-recursos.sh`
+(no `TCC_V3`, fora do congelado) lê, a cada 15 s, o `docker stats` de cada container do
+experimento (o do agente e o do build final, pelo `run_id`) e a CPU e a RAM disponível da
+máquina, e grava em `TCC_V5/runs/recursos/` (`containers.csv` e `maquina.csv`). *Por que
+não muda o pré-registro:* nenhuma hipótese usa essa medida, nenhum script congelado a lê,
+e ela não toca no que roda; entra no texto só como descrição (quanto cada nível e cada
+modelo pesam na máquina) e como contexto do tempo de relógio. *Limites:* começou no meio
+do primeiro quarteto (`V5-STRATEGY-01-SONNET46`), que fica com a medida parcial; a máquina
+é a do Lucas, usada para outras coisas durante as rodadas (um jogo, o navegador), e o
+`maquina.csv` existe justamente para separar essa carga da dos agentes.
+
 ## 3. Níveis de harness
 
 **26/09: uma pasta por versão de harness, escolhida por `HARNESS`.** *Por quê:*
