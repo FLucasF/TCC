@@ -1,0 +1,24 @@
+package com.loja.checkout.controller;
+
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.loja.checkout.dto.PedidoRequest;
+import com.loja.checkout.dto.ResumoResponse;
+import com.loja.checkout.service.ResumoService;
+
+@RestController
+public class ResumoController {
+
+    private final ResumoService resumoService;
+
+    public ResumoController(ResumoService resumoService) {
+        this.resumoService = resumoService;
+    }
+
+    @PostMapping("/checkout/resumo")
+    public ResumoResponse calcularResumo(@RequestBody PedidoRequest pedido) {
+        return resumoService.calcular(pedido);
+    }
+}

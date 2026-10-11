@@ -1,0 +1,25 @@
+package loja.checkout.entrega;
+
+import java.math.BigDecimal;
+import loja.checkout.dominio.Carrinho;
+import loja.checkout.dominio.Dinheiro;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RetiradaLoja implements Entrega {
+
+    @Override
+    public String codigo() {
+        return "RETIRADA_LOJA";
+    }
+
+    @Override
+    public BigDecimal frete(Carrinho carrinho) {
+        return Dinheiro.ZERO;
+    }
+
+    @Override
+    public int prazoDias() {
+        return 1;
+    }
+}

@@ -1,0 +1,27 @@
+package com.loja.checkout.dominio;
+
+import java.math.BigDecimal;
+
+/**
+ * Região do cliente. A conta do seguro é a mesma em todas — a porcentagem sobre o valor
+ * dos produtos —, por isso aqui só muda a taxa.
+ */
+public enum Regiao {
+
+    SUDESTE("0.01"),
+    SUL("0.01"),
+    CENTRO_OESTE("0.015"),
+    NORTE("0.025"),
+    NORDESTE("0.02");
+
+    private final BigDecimal taxaSeguro;
+
+    Regiao(String taxaSeguro) {
+        this.taxaSeguro = new BigDecimal(taxaSeguro);
+    }
+
+    /** Seguro contra extravio e roubo, sobre o valor dos produtos. */
+    public BigDecimal seguro(BigDecimal subtotalProdutos) {
+        return Dinheiro.percentual(subtotalProdutos, taxaSeguro);
+    }
+}

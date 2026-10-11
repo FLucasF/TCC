@@ -1,0 +1,29 @@
+package loja.checkout.clube;
+
+import java.math.BigDecimal;
+import loja.checkout.dominio.Dinheiro;
+import org.springframework.stereotype.Component;
+
+@Component
+public class Prata implements NivelClube {
+
+    @Override
+    public String codigo() {
+        return "PRATA";
+    }
+
+    @Override
+    public BigDecimal frete(BigDecimal freteDaEntrega) {
+        return freteDaEntrega;
+    }
+
+    @Override
+    public BigDecimal credito(BigDecimal subtotalProdutos) {
+        return Dinheiro.percentual(subtotalProdutos, "0.02");
+    }
+
+    @Override
+    public boolean brinde(BigDecimal subtotalProdutos) {
+        return false;
+    }
+}

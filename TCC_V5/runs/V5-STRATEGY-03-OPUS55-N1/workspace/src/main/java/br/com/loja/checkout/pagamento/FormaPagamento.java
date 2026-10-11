@@ -1,0 +1,13 @@
+package br.com.loja.checkout.pagamento;
+
+import br.com.loja.checkout.dominio.Codificado;
+import java.math.BigDecimal;
+
+public interface FormaPagamento extends Codificado {
+
+    boolean permiteParcelas(int parcelas);
+
+    boolean atende(BigDecimal totalPedido);
+
+    Pagamento aplicar(BigDecimal totalPedido, int parcelas);
+}
