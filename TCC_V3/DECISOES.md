@@ -436,6 +436,110 @@ do primeiro quarteto (`V5-STRATEGY-01-SONNET46`), que fica com a medida parcial;
 é a do Lucas, usada para outras coisas durante as rodadas (um jogo, o navegador), e o
 `maquina.csv` existe justamente para separar essa carga da dos agentes.
 
+**10 a 12/10: as rodadas do V5, completas.** Os 55 quartetos rodaram de 10/10 (tarde) a
+12/10 (madrugada), na ordem de `ordem-v5.csv`, com commit e push a cada rodada de 11.
+**Nenhum quarteto foi cortado** pela cota: a regra da janela por modelo (1,5 × o maior gasto
+medido + 5 pontos) funcionou. O maior gasto medido subiu em três modelos durante as rodadas
+(Sonnet 4.6 para 20%, Opus 4.8 para 15%, Opus 4.7 para 14%), e a necessidade de cada um foi
+recalculada pela mesma regra (o número, não a regra, que segue a congelada). Uma vez a regra
+mandou esperar com 33% livres contra 34% pedidos (Sonnet 4.6); o Lucas propôs rodar e, se a
+janela chegasse a 95% no meio, descartar o quarteto; *descartado*, porque cortar por regra
+descarta justamente os quartetos que gastam mais (um agente em loop, um build repetido) e
+enviesa os dados para os casos baratos, além de gastar a semanal, que era o limite apertado.
+Em duas execuções (`V5-STRATEGY-01-HAIKU45-N3` e `V5-STRATEGY-05-HAIKU45-N3`) o agente rodou
+`git init`; o `.git` foi movido para `git-do-agente/` antes do commit. As 220 terminaram
+com o modelo pedido e o harness certo; a semanal fechou em 84%.
+
+**12/10: os passos 2 e 3, e a leitura do Lucas.** A suíte mediu as 220; as métricas (CK e
+SonarQube), as 220, sem célula vazia; o `verify.mjs`, "tudo coerente" antes e depois do
+Semgrep. O Semgrep leu código em todos os 220 pacotes, com 0 respostas `indeterminado`; 3
+pacotes tiveram aviso de trecho não lido inteiro (`PartialParsing`), nenhum deles na amostra.
+A amostra dos 44 e a planilha em branco foram commitadas antes da leitura. O Lucas leu os 44
+no mesmo dia; na conferência do formato, um valor digitado errado (`num-dados`, na `P5_forma`
+de um pacote) foi corrigido por ele para `enum-dados` **antes** do commit da planilha e antes
+de qualquer comparação. A conferência deu **174 de 176** respostas iguais (P4 localização 44,
+P4 seleção 44, P5 forma 42, P5 proporção 44 de 44): as 4 perguntas valem para os 220. A lista
+das 2 discordâncias, pacote a pacote, fica fechada para o Lucas até a releitura. A nota e as
+hipóteses rodaram sem falta de dado (32 vereditos, nenhuma pergunta reprovada).
+
+**12/10: o Lucas começa a estudar os instrumentos entre a leitura e a releitura.** Depois de
+commitar a leitura, para explicar o experimento ao orientador e montar a próxima versão, o
+Lucas começou a estudar a estrutura do Semgrep (os arquivos, o fluxo, os tipos de regra).
+*Por que fica registrado:* a releitura (11 pacotes, 1 a 2 semanas depois) mede se ele lê do
+mesmo jeito, e conhecer como o Semgrep decide os casos de borda pode mudar a leitura dele. Se
+o estudo chegar às decisões de borda do `classificar.mjs` antes da releitura, isso entra nas
+limitações junto com o resultado dela.
+
+**12/10: as lições do V5 para a próxima versão.** O Lucas trata o V5 como o primeiro ciclo
+completo: depois de mostrar ao orientador, deve vir uma versão maior. O V5 continua sendo um
+estudo completo e válido para o que testou (o Strategy, este harness, estes modelos); a
+próxima versão o estende. O que ele ensinou:
+
+- **O teto.** Cinco dos 11 modelos acertavam o P4 sem harness, e no N2 só o Haiku 4.5 ainda
+  errava: as hipóteses dos degraus de cima (skills, processo) quase não tiveram espaço para
+  aparecer. Uma tarefa mais difícil (em que os modelos fortes também errem) ou mais modelos
+  fora do teto deixariam o efeito aparecer. A tentativa de 09/10 (o enunciado mais difícil,
+  `TESTE-DIFICIL-01`) não tirou os fortes do teto: o caminho talvez seja outro tipo de
+  dificuldade, não mais regras.
+- **O freio no `CLAUDE.md`.** A última orientação do N1 manda não criar estrutura para
+  variação que o enunciado não descreve. A ausência de exagero pode vir desse freio: testar um
+  harness de padrões **sem** ele separaria o efeito do freio do efeito do resto.
+- **Os componentes isolados.** A escada acumula (N2 = N1 + skill; N3 = N2 + processo).
+  Testar a skill sozinha e o processo sozinho diria o efeito de cada um sem o `CLAUDE.md`.
+- **Um leitor humano só.** Um segundo leitor daria a concordância entre pessoas, que o
+  documento do orientador de 12/09 pedia; a releitura só mede a estabilidade de um.
+- **O P1 a P3 sem conferência humana.** Entram só como secundários; uma leitura maior, ou uma
+  amostra por ponto, os traria para as hipóteses.
+- **Fora do recorte:** a arquitetura (camadas, dependências; o ArchUnit mediria regras de
+  dependência em Java) e a manutenção (acrescentar um caso novo num código existente).
+- **Só a família Claude.** Outros modelos e outros agentes diriam se o efeito é do harness ou
+  do par Claude + Claude Code.
+- **Cinco réplicas.** Nos modelos fora do teto, onde o efeito aparece, mais réplicas dariam
+  mais força; nos que estão no teto, menos bastariam.
+- **O código cresceu.** Com o harness, a complexidade caiu, mas as linhas, as classes e a
+  duplicação subiram: vale uma hipótese própria sobre essa troca, e uma medida de duplicação
+  que separe repetição estrutural (classes parecidas) de cópia de lógica.
+- **Operação.** A cota da assinatura (janela de 5 h e semanal) dita o ritmo: o V5 levou ~30 h
+  de relógio, com os quartetos rodando só ~12 h desse tempo (o resto foi espera pela janela);
+  um lote maior precisa de plano de cota antes. O ensaio
+  geral da análise (com o V4) pegou um defeito real no Semgrep: rodar a análise inteira num
+  lote de ensaio antes de congelar deve virar passo fixo. E o pré-registro de 09/10 mostrou
+  que a revisão do `OBJETIVO` precisa conferir o desenho com o autor em voz alta (quantos
+  modelos, em qual análise), não só o texto.
+
+### 12/10: a régua congelada do V5 ainda diz "20" e "18 de 20"
+
+Achado no estudo do Semgrep, depois da leitura. A §0 da `evaluation/regua.md` congelada no V5
+manteve o texto do V4: o Lucas lê "**20**, um por modelo × nível" e a pergunta vira descritiva
+"se os dois concordarem em menos de 18 de 20". No V5 são 44 pacotes e o limite é 40 de 44. O
+que vale é o pré-registro, e ele foi seguido: o `OBJETIVO` diz "90%: 40 de 44 (no V4, 18 de
+20)", o `compare.mjs` usa o limite 0,9 ("40 de 44 no V5") e a conferência aplicou 40. Só o
+texto da régua ficou velho, e ele não decide nada da análise. O arquivo congelado não muda; o
+registro fica aqui.
+
+**Lição para a próxima versão:** a revisão do congelamento deve procurar, em todos os
+arquivos congelados, os números da versão anterior (quantos pacotes, quantos modelos, os
+limites), e não só nos arquivos que foram reescritos.
+
+### 12/10: sem releitura no V5 (desvio do pré-registro)
+
+**Decisão do Lucas.** A releitura de 11 dos 44 pacotes, prevista no `OBJETIVO` §4.10 para
+19 a 26/10, **não será feita**. O V5 fecha como primeiro ciclo; a próxima etapa é uma
+pesquisa nova e mais ampla, com desenho próprio.
+
+**Consequência.** A estabilidade do leitor (ele responderia igual semanas depois?) não é
+medida, e a coluna `achei_que_sabia_nivel` só vale para a leitura única. Isso entra nas
+limitações, ao lado de "um leitor só". Nada mais muda: a conferência (174 de 176, as 4
+perguntas valem) e os vereditos são os já obtidos.
+
+**O que se abre.** Sem releitura, acaba o motivo da cegueira depois da leitura: o Lucas pode
+abrir o mapa, o detalhe por pacote da conferência, o CSV do Semgrep e o código do
+`classificar.mjs`, e revisar todos os scripts.
+
+**Para a pesquisa nova:** quem estudou as decisões de borda do classificador fica menos
+independente como conferente do Semgrep. Se o Lucas for de novo o leitor, o desenho deve
+prever isso (um segundo leitor, ou as regras revisadas antes da leitura).
+
 ## 3. Níveis de harness
 
 **26/09: uma pasta por versão de harness, escolhida por `HARNESS`.** *Por quê:*
