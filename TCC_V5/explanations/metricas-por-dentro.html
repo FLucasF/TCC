@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Métricas por dentro</title>
+<style>
+:root {
+  --bg: #f6f5f1; --bg2: #ffffff; --bg3: #efede6; --fg: #1d1f24; --muted: #646a73; --line: #dcd9cf;
+  --accent: #2f5bd3; --accent-fg: #ffffff;
+  --ok: #1d8a4e; --ok-bg: #d8f1e2; --bad: #c0392b; --bad-bg: #fbe0dc;
+  --cand: #2f5bd3; --cand-bg: #dde6fb; --reg-bg: #ece3fb; --reg: #7b4bd1;
+  --cur-bg: #fff3c4; --cur: #c99a00; --hit-bg: #ffe08a;
+  --code-bg: #fbfaf7; --kw: #8a3ab9; --str: #1f7a3d; --com: #8a8f98; --num: #b5531a; --key: #2f5bd3;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.04);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171b; --bg2: #1d2026; --bg3: #262a31; --fg: #e6e8eb; --muted: #9aa1ab; --line: #343943;
+    --accent: #7ea2ff; --accent-fg: #0f1115;
+    --ok: #5fd08f; --ok-bg: #173a27; --bad: #ff8a7a; --bad-bg: #44211d;
+    --cand: #8fb0ff; --cand-bg: #1f2c4d; --reg-bg: #2e2445; --reg: #b597ff;
+    --cur-bg: #3a3215; --cur: #f0c94a; --hit-bg: #6b5410;
+    --code-bg: #181b20; --kw: #d19bf5; --str: #7fd49a; --com: #7d848f; --num: #f2a26b; --key: #8fb0ff;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171b; --bg2: #1d2026; --bg3: #262a31; --fg: #e6e8eb; --muted: #9aa1ab; --line: #343943;
+  --accent: #7ea2ff; --accent-fg: #0f1115;
+  --ok: #5fd08f; --ok-bg: #173a27; --bad: #ff8a7a; --bad-bg: #44211d;
+  --cand: #8fb0ff; --cand-bg: #1f2c4d; --reg-bg: #2e2445; --reg: #b597ff;
+  --cur-bg: #3a3215; --cur: #f0c94a; --hit-bg: #6b5410;
+  --code-bg: #181b20; --kw: #d19bf5; --str: #7fd49a; --com: #7d848f; --num: #f2a26b; --key: #8fb0ff;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+code, .mono { font-family: "Cascadia Code", "JetBrains Mono", Consolas, ui-monospace, monospace; font-size: .9em; }
+p code, li code, td code, .txt code { background: var(--bg3); padding: .05em .3em; border-radius: 4px; }
+a { color: var(--accent); }
+header.topo { padding: 18px 16px 6px; max-width: 1500px; margin: 0 auto; }
+header.topo h1 { font-size: 22px; margin: 0 0 2px; letter-spacing: -.01em; }
+header.topo p { margin: 0; color: var(--muted); font-size: 14px; }
+nav.abas { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+nav.abas .faixa { display: flex; gap: 4px; overflow-x: auto; padding: 8px 16px; max-width: 1500px; margin: 0 auto; scrollbar-width: thin; }
+nav.abas button { flex: none; border: 1px solid var(--line); background: var(--bg2); color: var(--fg); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
+nav.abas button:hover { border-color: var(--accent); }
+nav.abas button.ativa { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+main { max-width: 1500px; margin: 0 auto; padding: 14px 16px 60px; }
+section.aba { display: none; }
+section.aba.ativa { display: block; }
+h2 { font-size: 19px; margin: 6px 0 8px; }
+h3 { font-size: 15.5px; margin: 14px 0 6px; }
+.lead { color: var(--muted); margin: 0 0 12px; max-width: 900px; }
+.painel { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); min-width: 0; }
+.grade2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.grade-lab { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 1000px) { .grade2, .grade-lab { grid-template-columns: minmax(0, 1fr); } }
+.pilha > * + * { margin-top: 12px; }
+.rotulo { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rotulo .dir { margin-left: auto; text-transform: none; letter-spacing: 0; }
+
+/* controles do passo a passo */
+.controles { position: sticky; top: 49px; z-index: 10; display: flex; align-items: center; gap: 6px; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.controles button { border: 1px solid var(--line); background: var(--bg3); color: var(--fg); border-radius: 8px; min-width: 36px; height: 34px; font: inherit; cursor: pointer; }
+.controles button:hover:not(:disabled) { border-color: var(--accent); }
+.controles button:disabled { opacity: .4; cursor: default; }
+.controles button.prox { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); padding: 0 14px; font-weight: 600; }
+.controles .info { flex: 1; min-width: 0; }
+.controles .info .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.controles .info .n { font-size: 12px; color: var(--muted); }
+.controles .barra { height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.controles .barra i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+.controles .dica { font-size: 12px; color: var(--muted); white-space: nowrap; }
+@media (max-width: 700px) { .controles .dica { display: none; } }
+
+/* codigo */
+.codigo { position: relative; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; font-family: "Cascadia Code", "JetBrains Mono", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.55; overflow: auto; max-height: 62vh; }
+.codigo.baixo { max-height: 40vh; }
+.codigo .cab { position: sticky; top: 0; z-index: 2; background: var(--bg3); border-bottom: 1px solid var(--line); padding: 4px 10px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.codigo .cab b { color: var(--fg); font-weight: 600; }
+.codigo .corpo { min-width: max-content; padding: 4px 0; }
+.ln { display: flex; position: relative; padding-right: 12px; }
+.ln .num { flex: none; width: 3.4em; text-align: right; padding-right: .9em; color: var(--muted); user-select: none; opacity: .7; }
+.ln .src { white-space: pre; flex: none; }
+.ln .nota { flex: none; margin-left: 14px; font-family: system-ui, sans-serif; font-size: 11.5px; padding: 0 7px; border-radius: 999px; align-self: center; white-space: nowrap; }
+.ln .nota.ok { background: var(--ok-bg); color: var(--ok); }
+.ln .nota.fora { background: var(--bad-bg); color: var(--bad); }
+.ln .nota.cand { background: var(--cand-bg); color: var(--cand); }
+.ln .nota.reg { background: var(--reg-bg); color: var(--reg); }
+.ln.atual { background: var(--cur-bg); box-shadow: inset 3px 0 0 var(--cur); }
+.ln.regiao { background: var(--reg-bg); box-shadow: inset 3px 0 0 var(--reg); }
+.ln.erro { background: var(--bad-bg); box-shadow: inset 3px 0 0 var(--bad); }
+.ln.apagada .src { opacity: .45; }
+.ln.feita .num { color: var(--ok); opacity: 1; }
+.s-kw { color: var(--kw); } .s-str { color: var(--str); } .s-com { color: var(--com); font-style: italic; } .s-num { color: var(--num); } .s-key { color: var(--key); }
+.m-cand { background: var(--cand-bg); outline: 1px solid var(--cand); border-radius: 2px; }
+.m-ok { background: var(--ok-bg); outline: 1px solid var(--ok); border-radius: 2px; }
+.m-fora { background: var(--bad-bg); text-decoration: line-through; text-decoration-color: var(--bad); border-radius: 2px; }
+.m-hit { background: var(--hit-bg); border-radius: 2px; }
+.m-hitsel { background: var(--hit-bg); outline: 2px solid var(--cur); border-radius: 2px; }
+.m-erro { text-decoration: underline wavy var(--bad); }
+
+/* explicacao */
+.passo-t { font-size: 17px; font-weight: 650; margin: 0 0 6px; }
+.txt p { margin: 0 0 9px; }
+.txt ul, .txt ol { margin: 0 0 9px; padding-left: 20px; }
+.txt li { margin: 2px 0; }
+.caixa { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: var(--bg); margin-top: 10px; }
+.caixa.aconteceu { border-left: 4px solid var(--cur); }
+.caixa.aconteceu .rotulo { color: var(--cur); }
+.caixa.aviso { border-left: 4px solid var(--bad); }
+.caixa.certo { border-left: 4px solid var(--ok); }
+table.t { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.t th, table.t td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+table.t th { color: var(--muted); font-weight: 600; font-size: 12px; }
+table.t td.mono, table.t td code { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12px; word-break: break-all; }
+.sim { color: var(--ok); font-weight: 700; } .nao { color: var(--bad); font-weight: 700; }
+.tabela-rolagem { max-height: 340px; overflow: auto; }
+.estado td:first-child { white-space: nowrap; color: var(--muted); }
+.pill { display: inline-block; font-size: 11.5px; padding: 0 7px; border-radius: 999px; background: var(--bg3); color: var(--muted); border: 1px solid var(--line); }
+.pill.java { color: var(--kw); } .pill.texto { color: var(--str); }
+input[type=text], textarea, select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; width: 100%; }
+textarea { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.5; min-height: 180px; resize: vertical; }
+button.b { border: 1px solid var(--line); background: var(--bg3); color: var(--fg); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+button.b:hover { border-color: var(--accent); }
+button.b.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.linha-botoes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.quiz { border: 1px dashed var(--accent); border-radius: 10px; padding: 9px 11px; margin-top: 10px; background: var(--bg); }
+.quiz .q { font-weight: 600; margin-bottom: 6px; }
+.quiz .r { margin-top: 8px; display: none; }
+.quiz.respondida .r { display: block; }
+.quiz button.certa { background: var(--ok-bg); border-color: var(--ok); }
+.quiz button.errada { background: var(--bad-bg); border-color: var(--bad); }
+.lista-regras { display: flex; flex-direction: column; gap: 3px; max-height: 75vh; overflow: auto; }
+.lista-regras .grupo { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 2px; }
+.lista-regras button { text-align: left; border: 1px solid transparent; background: none; color: var(--fg); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; }
+.lista-regras button:hover { background: var(--bg3); }
+.lista-regras button.ativa { background: var(--cand-bg); border-color: var(--cand); }
+@media (max-width: 1000px) { .lista-regras { flex-direction: row; flex-wrap: wrap; max-height: none; } .lista-regras .grupo { width: 100%; } }
+.arvore { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; }
+.arvore div { white-space: pre; padding: 0 6px; border-radius: 4px; }
+.arvore .foco { background: var(--cur-bg); box-shadow: inset 3px 0 0 var(--cur); }
+.arvore .ign { color: var(--muted); text-decoration: line-through; }
+.arvore .cop { color: var(--ok); font-weight: 600; }
+.arvore .fora { color: var(--bad); }
+.arvore .proj { background: var(--ok-bg); }
+.tag { display: inline-block; font-family: system-ui, sans-serif; font-size: 11px; padding: 0 6px; border-radius: 999px; margin-left: 6px; background: var(--bg3); color: var(--muted); }
+.tag.ok { background: var(--ok-bg); color: var(--ok); } .tag.fora { background: var(--bad-bg); color: var(--bad); } .tag.cand { background: var(--cand-bg); color: var(--cand); } .tag.reg { background: var(--reg-bg); color: var(--reg); }
+.fita { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-height: 300px; overflow: auto; }
+.fita .codigo-k { color: var(--fg); } .fita .texto-k { color: var(--str); background: rgba(31,122,61,.08); }
+.fita .com-k { color: var(--bad); text-decoration: line-through; background: var(--bad-bg); }
+.fita .atual-k { outline: 2px solid var(--cur); border-radius: 3px; }
+.fita .depois { opacity: .45; }
+.mapa { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.no { border: 1px solid var(--line); background: var(--bg2); border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left; font: inherit; color: var(--fg); box-shadow: var(--shadow); }
+.no:hover { border-color: var(--accent); }
+.no b { display: block; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; }
+.no span { font-size: 13px; color: var(--muted); }
+.no.etapa1 { border-top: 4px solid var(--cand); } .no.etapa2 { border-top: 4px solid var(--reg); } .no.prep { border-top: 4px solid var(--cur); }
+.seta { text-align: center; color: var(--muted); font-size: 13px; margin: 8px 0; }
+.trilha { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.trilha .x { background: var(--bg3); border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; }
+.ped { font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; word-break: break-all; }
+tr.cab-ramo td { color: var(--muted); font-style: italic; font-size: 12px; background: var(--bg3); }
+tr.nao-part td { opacity: .5; }
+.cadeado { font-size: 42px; line-height: 1; }
+details.r { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--bg2); margin: 8px 0; }
+details.r summary { cursor: pointer; font-weight: 600; }
+details.r[open] summary { margin-bottom: 6px; }
+.verif { font-size: 13px; }
+.verif li { margin: 3px 0; }
+.mini { font-size: 12.5px; color: var(--muted); }
+kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--bg2); }
+.tema { position: absolute; top: 16px; right: 16px; }
+header.topo { position: relative; }
+
+</style>
+</head>
+<body>
+<header class="topo">
+  <h1>Métricas por dentro</h1>
+  <p>SonarQube e CK no experimento: o que cada número mede, conferido em exemplos inventados.</p>
+  <button class="b tema" type="button">tema</button>
+</header>
+<nav class="abas" aria-label="abas"><div class="faixa"></div></nav>
+<main></main>
+<script>
+window.DADOS = {"fontes":{"metrics":"#!/usr/bin/env bash\n# Metricas automaticas do codigo de cada execucao de um lote: CK e SonarQube.\n#\n# Uso (Git Bash):\n#   evaluation/tools/metrics.sh <prefixo>        (ex.: TESTE-STRATEGY-01)\n#\n# Mede o codigo de producao (src/main/java), ja compilado pelo build da bancada\n# (target/classes, que o SonarQube precisa para analisar Java). Nao julga nada:\n# so extrai numeros, e por isso roda direto em runs/, sem pacote anonimizado.\n# Uma ferramenta nao sabe qual e o braco; a cegueira protege o julgamento humano.\n#\n# Pre-requisitos:\n#   - Docker aberto, com o servidor tcc-sonarqube no ar (ver evaluation/tools/README.md)\n#   - .env.sonar na raiz, com SONAR_TOKEN=... (fora do git; nunca e impresso)\n#\n# Saida: evaluation/metrics/<prefixo>/<run_id>/ (ck/ e sonar/) e, no fim,\n# evaluation/metrics/<prefixo>/metricas.csv, uma linha por execucao.\n# Recusa rodar se a pasta de saida ja existe, ou se alguma execucao ja foi\n# analisada no SonarQube: uma analise nunca e refeita por cima de outra.\n#\n# COMO LER. Duas ferramentas, as duas so contam, sem julgar:\n#   - o CK (um .jar) le o codigo-fonte e mede cada classe: acoplamento (CBO),\n#     complexidade somada dos metodos (WMC), coesao (LCOM), heranca (DIT)...\n#   - o SonarQube (um servidor no Docker) recebe o codigo e as classes compiladas por\n#     um \"scanner\" e devolve linhas de codigo, complexidade ciclomatica e COGNITIVA (a\n#     hipotese da qualidade), duplicacao e code smells.\n# Tres partes: (1) preflight: confere que as versoes sao as travadas (o hash do .jar\n# do CK, a imagem do SonarQube e do scanner) e que nenhuma execucao foi analisada\n# antes; (2) por execucao: acha o projeto, roda o CK, roda o scanner e espera o\n# servidor devolver as medidas; (3) no fim, o aggregate-metrics.mjs junta tudo no CSV.\n# O SonarQube fica DESLIGADO durante as execucoes do V4 e ligado so para esta etapa.\n\nset -uo pipefail\nmorrer() { printf '\\033[31mERRO: %s\\033[0m\\n' \"$*\" >&2; exit 1; }\n\n[ $# -eq 1 ] || morrer \"uso: $0 <prefixo>\"\nPREFIXO=\"$1\"\ncase \"$PREFIXO\" in \"\"|*[!A-Za-z0-9-]*) morrer \"prefixo invalido: '$PREFIXO'\" ;; esac\n\nRAIZ=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")/../..\" && pwd -P)\"\nOUT=\"$RAIZ/evaluation/metrics/$PREFIXO\"\nENV_SONAR=\"$RAIZ/.env.sonar\"\n\n# As versoes travadas. Mudar qualquer uma destas e um instrumento novo.\nCK_JAR=\"$RAIZ/evaluation/tools/ck/ck-0.7.1-8a1ef916-jar-with-dependencies.jar\"\nCK_SHA256=\"f3c0e5bc159189ebd213badf693ab792a31cbea749eb9f97b9185938c54a7baf\"\nSONAR_IMAGE_ID=\"sha256:c0f1160bccfa435db4168c2d7df69af3c3ea7bfeb87395613014048fb33a68c1\"\nSCANNER=\"sonarsource/sonar-scanner-cli@sha256:a3f4215076706c95a17a68c19322ee916e40a3acd081a8c1a1e839e0194afa57\"\nSONAR_URL=\"http://localhost:9000\"\nREDE=\"tcc-sonar-net\"\nMETRICAS=\"ncloc,classes,functions,complexity,cognitive_complexity,duplicated_lines_density,duplicated_blocks,code_smells,sqale_index\"\n\n# ------------------------------------------------------------------ preflight\n[ -f \"$CK_JAR\" ] || morrer \"falta o CK em $CK_JAR\"\n[ \"$(sha256sum \"$CK_JAR\" | cut -d' ' -f1)\" = \"$CK_SHA256\" ] || morrer \"o .jar do CK nao e o travado (sha256 diferente)\"\n[ -f \"$ENV_SONAR\" ] && grep -q '^SONAR_TOKEN=.\\+' \"$ENV_SONAR\" || morrer \"falta $ENV_SONAR com SONAR_TOKEN=...\"\n[ \"$(docker inspect --format '{{.Image}}' tcc-sonarqube 2>/dev/null)\" = \"$SONAR_IMAGE_ID\" ] \\\n    || morrer \"o container tcc-sonarqube nao existe ou nao usa a imagem travada\"\n[ \"$(docker inspect --format '{{.State.Running}}' tcc-sonarqube)\" = \"true\" ] || morrer \"tcc-sonarqube esta parado (docker start tcc-sonarqube)\"\ncurl -s \"$SONAR_URL/api/system/status\" | grep -q '\"status\":\"UP\"' || morrer \"o SonarQube nao esta pronto em $SONAR_URL\"\ndocker image inspect \"$SCANNER\" >/dev/null 2>&1 || morrer \"falta a imagem travada do scanner\"\ndocker network inspect \"$REDE\" >/dev/null 2>&1 || docker network create \"$REDE\" >/dev/null\ndocker network inspect \"$REDE\" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -qw tcc-sonarqube \\\n    || docker network connect \"$REDE\" tcc-sonarqube\n\nRUNS=\"$(cd \"$RAIZ/runs\" && ls -d \"$PREFIXO\"-* 2>/dev/null | LC_ALL=C sort)\"\n[ -n \"$RUNS\" ] || morrer \"nenhuma execucao runs/$PREFIXO-*\"\n[ -e \"$OUT\" ] && morrer \"$OUT ja existe: apague a pasta para refazer\"\n\n# O token so vive nesta variavel; nunca e impresso.\nTOKEN=\"$(sed -n 's/^SONAR_TOKEN=//p' \"$ENV_SONAR\" | tr -d '\\r\\n ')\"\nfor run in $RUNS; do\n    code=\"$(curl -s -o /dev/null -w '%{http_code}' -u \"$TOKEN:\" \"$SONAR_URL/api/components/show?component=$run\")\"\n    [ \"$code\" = \"404\" ] || morrer \"$run ja foi analisada no SonarQube (HTTP $code): nao se refaz por cima\"\ndone\n\nmkdir -p \"$OUT\"\nexport MSYS_NO_PATHCONV=1\nprintf '\\033[36m=== metricas %s: %s execucoes ===\\033[0m\\n' \"$PREFIXO\" \"$(echo \"$RUNS\" | wc -l)\"\n\n# ------------------------------------------------------------------ por execucao\nfor run in $RUNS; do\n    dir=\"$OUT/$run\"; mkdir -p \"$dir/ck\" \"$dir/sonar\"\n    # O pom mais raso, como no build da bancada: o agente escolhe onde poe o projeto.\n    pom=\"$(find \"$RAIZ/runs/$run/workspace\" -name pom.xml -not -path '*/target/*' -printf '%d %p\\n' 2>/dev/null | sort -n | head -1 | cut -d' ' -f2-)\"\n    if [ -z \"$pom\" ]; then echo \"sem_pom\" > \"$dir/status\"; echo \"  $run: sem pom\"; continue; fi\n    proj=\"$(dirname \"$pom\")\"\n    if [ ! -d \"$proj/src/main/java\" ]; then echo \"sem_src_main_java\" > \"$dir/status\"; echo \"  $run: sem src/main/java\"; continue; fi\n\n    java -jar \"$(cygpath -w \"$CK_JAR\")\" \"$(cygpath -w \"$proj/src/main/java\")\" false 0 false \"$(cygpath -w \"$dir/ck\")/\" \\\n        > \"$dir/ck/ck.log\" 2>&1 || { echo \"ck_falhou\" > \"$dir/status\"; echo \"  $run: CK falhou\"; continue; }\n\n    if [ ! -d \"$proj/target/classes\" ]; then echo \"sem_classes\" > \"$dir/status\"; echo \"  $run: CK ok, sem classes compiladas para o SonarQube\"; continue; fi\n    docker run --rm --network \"$REDE\" --env-file \"$(cygpath -w \"$ENV_SONAR\")\" -e SONAR_HOST_URL=http://tcc-sonarqube:9000 \\\n        --mount \"type=bind,source=$(cygpath -w \"$proj\"),target=/usr/src,readonly\" \\\n        -v tcc-sonar-scannercache:/opt/sonar-scanner/.sonar/cache \\\n        \"$SCANNER\" \\\n        -Dsonar.projectKey=\"$run\" -Dsonar.sources=src/main/java -Dsonar.java.binaries=target/classes \\\n        -Dsonar.java.source=21 -Dsonar.scm.disabled=true -Dsonar.working.directory=/tmp/scannerwork \\\n        > \"$dir/sonar/scanner.log\" 2>&1 || { echo \"sonar_falhou\" > \"$dir/status\"; echo \"  $run: SonarQube falhou\"; continue; }\n\n    # O servidor processa o relatorio depois do scanner sair: espera as medidas.\n    ok=\"\"\n    for i in $(seq 1 40); do\n        curl -s -u \"$TOKEN:\" \"$SONAR_URL/api/measures/component?component=$run&metricKeys=$METRICAS\" > \"$dir/sonar/measures.json\"\n        grep -q '\"measures\":\\[{' \"$dir/sonar/measures.json\" && { ok=1; break; }\n        sleep 3\n    done\n    [ -n \"$ok\" ] || { echo \"sonar_sem_medidas\" > \"$dir/status\"; echo \"  $run: SonarQube nao devolveu medidas\"; continue; }\n    echo \"ok\" > \"$dir/status\"; echo \"  $run: ok\"\ndone\n\nnode \"$(cygpath -w \"$RAIZ/evaluation/tools/aggregate-metrics.mjs\")\" \"$PREFIXO\"\n","aggregate":"// Junta as metricas de um lote (CK e SonarQube) num CSV, uma linha por execucao.\n//\n// Uso:\n//   node evaluation/tools/aggregate-metrics.mjs <prefixo>\n//\n// Le evaluation/metrics/<prefixo>/<run_id>/ (o que o metrics.sh gravou) e o\n// meta.json de cada execucao, so para identificar modelo, braco e replica.\n// Grava evaluation/metrics/<prefixo>/metricas.csv. So junta numeros: nenhuma\n// leitura nem nota sai daqui.\n//\n// COMO LER. Para cada execucao: as colunas sonar_* vem do measures.json (o que o\n// servidor do SonarQube devolveu); as colunas ck_* vem do class.csv do CK (uma linha\n// por classe), resumidas em contagens, medias e maximos. A coluna \"condition\" diz\n// CONTROL ou HARNESS, e a \"nivel\" diz N0 a N3 (tirada do fim do run_id).\n\nimport { readdirSync, readFileSync, existsSync, writeFileSync } from \"node:fs\";\nimport { join, dirname } from \"node:path\";\nimport { fileURLToPath } from \"node:url\";\n\nconst RAIZ = join(dirname(fileURLToPath(import.meta.url)), \"..\", \"..\");\nconst prefixo = process.argv[2];\nif (!prefixo) { console.error(\"uso: node evaluation/tools/aggregate-metrics.mjs <prefixo>\"); process.exit(1); }\nconst OUT = join(RAIZ, \"evaluation\", \"metrics\", prefixo);\nif (!existsSync(OUT)) { console.error(`nao existe ${OUT}: rode antes o metrics.sh`); process.exit(1); }\n\n// CSV do CK: os campos nao trazem virgula, mas o caminho do arquivo pode trazer\n// aspas no Windows; este leitor respeita aspas.\nfunction lerCsv(texto) {\n  const linhas = texto.replace(/\\r/g, \"\").split(\"\\n\").filter(Boolean);\n  const campos = (l) => { const r = []; let c = \"\", q = false;\n    for (const ch of l) { if (ch === '\"') q = !q; else if (ch === \",\" && !q) { r.push(c); c = \"\"; } else c += ch; }\n    r.push(c); return r; };\n  const cab = campos(linhas[0]);\n  return linhas.slice(1).map((l) => Object.fromEntries(campos(l).map((v, i) => [cab[i], v])));\n}\nconst num = (v) => (v === undefined || v === \"\" || isNaN(Number(v)) ? null : Number(v));\nconst media = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null);\nconst fmt = (v) => (v === null || v === undefined ? \"\" : Number.isInteger(v) ? String(v) : v.toFixed(3));\n\nconst SONAR = [\"ncloc\", \"classes\", \"functions\", \"complexity\", \"cognitive_complexity\",\n  \"duplicated_lines_density\", \"duplicated_blocks\", \"code_smells\", \"sqale_index\"];\nconst TIPOS = [\"class\", \"interface\", \"enum\", \"record\"];\n\nconst linhas = [];\nfor (const run of readdirSync(OUT, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort()) {\n  const dir = join(OUT, run);\n  const meta = JSON.parse(readFileSync(join(RAIZ, \"runs\", run, \"meta.json\"), \"utf8\"));\n  const status = existsSync(join(dir, \"status\")) ? readFileSync(join(dir, \"status\"), \"utf8\").trim() : \"incompleto\";\n  // O nivel (N0 a N3) e o fim do run_id do V4 (V4-STRATEGY-01-HAIKU45-N2); vazio nos\n  // lotes da bancada, que tinham so CONTROL e HARNESS (coluna nivel desde 09/10).\n  const nivel = run.match(/-(N\\d)$/)?.[1] ?? \"\";\n  const l = { run_id: run, model: meta.model_requested, condition: meta.condition, nivel, replicate: meta.replicate ?? \"\", status };\n\n  const sonarArq = join(dir, \"sonar\", \"measures.json\");\n  const medidas = existsSync(sonarArq) ? JSON.parse(readFileSync(sonarArq, \"utf8\")).component?.measures ?? [] : [];\n  for (const k of SONAR) l[`sonar_${k}`] = num(medidas.find((m) => m.metric === k)?.value);\n\n  // O CK conta como \"anonymous\" o corpo de cada constante de enum com\n  // comportamento proprio (e as classes anonimas). Contagens e medias usam so os\n  // tipos com nome, o mesmo criterio do sonar_classes; as anonimas vao numa\n  // coluna propria, porque medem um desenho (o enum com corpo por constante).\n  // A soma de WMC usa tudo: a logica dentro das constantes tambem e codigo.\n  const ckArq = join(dir, \"ck\", \"class.csv\");\n  const todos = existsSync(ckArq) ? lerCsv(readFileSync(ckArq, \"utf8\")) : [];\n  const cls = todos.filter((c) => TIPOS.includes(c.type));\n  l.ck_tipos = todos.length ? cls.length : null;\n  for (const t of TIPOS) l[`ck_${t}`] = todos.length ? cls.filter((c) => c.type === t).length : null;\n  l.ck_anonymous = todos.length ? todos.filter((c) => c.type === \"anonymous\").length : null;\n  const col = (k, lista = cls) => lista.map((c) => num(c[k])).filter((v) => v !== null);\n  l.ck_cbo_media = media(col(\"cbo\")); l.ck_cbo_max = col(\"cbo\").length ? Math.max(...col(\"cbo\")) : null;\n  l.ck_wmc_soma = col(\"wmc\", todos).length ? col(\"wmc\", todos).reduce((s, x) => s + x, 0) : null;\n  l.ck_wmc_max = col(\"wmc\").length ? Math.max(...col(\"wmc\")) : null;\n  l.ck_lcom_media = media(col(\"lcom\")); l.ck_rfc_media = media(col(\"rfc\"));\n  l.ck_dit_max = col(\"dit\").length ? Math.max(...col(\"dit\")) : null;\n  linhas.push(l);\n}\n\nconst colunas = Object.keys(linhas[0] ?? {});\nconst celula = (v) => (v === null || v === undefined ? \"\" : typeof v === \"number\" ? fmt(v) : String(v));\nconst csv = [colunas.join(\",\"), ...linhas.map((l) => colunas.map((c) => celula(l[c])).join(\",\"))].join(\"\\n\") + \"\\n\";\nwriteFileSync(join(OUT, \"metricas.csv\"), csv);\nconsole.log(`${linhas.length} execucoes -> evaluation/metrics/${prefixo}/metricas.csv (${colunas.length} colunas)`);\nfor (const l of linhas) console.log(`  ${l.run_id.padEnd(34)} ${l.status}`);\n"},"ex":{"A-remendo":{"arquivos":{"FreteService.java":"package com.loja.frete;\n\nimport java.math.BigDecimal;\n\npublic class FreteService {\n\n    public BigDecimal frete(String nivel, BigDecimal pesoKg, String regiao) {\n        BigDecimal base = new BigDecimal(\"12\").add(pesoKg.multiply(new BigDecimal(\"2\")));\n        if (nivel.equals(\"OURO\")) {\n            return BigDecimal.ZERO;\n        } else if (nivel.equals(\"PRATA\")) {\n            if (regiao.equals(\"NORTE\") || regiao.equals(\"NORDESTE\")) {\n                return base.multiply(new BigDecimal(\"0.8\"));\n            }\n            return base.multiply(new BigDecimal(\"0.5\"));\n        } else {\n            return base;\n        }\n    }\n\n    public int prazo(String nivel, int distanciaKm) {\n        int dias = 0;\n        for (int km = 0; km < distanciaKm; km += 500) {\n            if (nivel.equals(\"BRONZE\")) {\n                dias += 2;\n            } else {\n                dias += 1;\n            }\n        }\n        return nivel.equals(\"OURO\") ? Math.max(1, dias - 1) : dias;\n    }\n}\n","ResumoService.java":"package com.loja.frete;\n\npublic class ResumoService {\n\n    private final FreteService frete = new FreteService();\n\n    public String resumo(String nivel, String cliente, int distanciaKm) {\n        StringBuilder sb = new StringBuilder();\n        sb.append(\"Cliente: \").append(cliente).append('\\n');\n        if (nivel.equals(\"OURO\")) {\n            sb.append(\"Frete: gratis\").append('\\n');\n        } else {\n            sb.append(\"Frete: calculado\").append('\\n');\n        }\n        sb.append(\"Prazo: \").append(frete.prazo(nivel, distanciaKm)).append(\" dias\").append('\\n');\n        sb.append(\"Atendimento: \").append(nivel.equals(\"OURO\") ? \"prioritario\" : \"comum\");\n        return sb.toString();\n    }\n}\n"},"sonar":{"projeto":{"complexity":12,"code_smells":0,"duplicated_lines_density":0,"duplicated_lines":0,"functions":3,"cognitive_complexity":14,"duplicated_blocks":0,"classes":2,"ncloc":44,"sqale_index":0},"porArquivo":{"FreteService.java":{"complexity":9,"code_smells":0,"duplicated_lines":0,"functions":2,"cognitive_complexity":11,"duplicated_blocks":0,"ncloc":28,"sqale_index":0},"ResumoService.java":{"complexity":3,"code_smells":0,"duplicated_lines":0,"functions":1,"cognitive_complexity":3,"duplicated_blocks":0,"ncloc":16,"sqale_index":0}},"issues":[]},"ck":[{"classe":"ResumoService","tipo":"class","cbo":1,"cboModified":1,"fanin":0,"fanout":1,"wmc":3,"dit":1,"noc":0,"rfc":6,"lcom":0,"lcomN":"0.0","metodos":1,"campos":1,"loc":16},{"classe":"FreteService","tipo":"class","cbo":0,"cboModified":1,"fanin":1,"fanout":0,"wmc":9,"dit":1,"noc":0,"rfc":4,"lcom":1,"lcomN":"0.0","metodos":2,"campos":0,"loc":29}],"metodos":[{"classe":"ResumoService","metodo":"resumo","linha":7,"wmc":3,"rfc":6,"cbo":1},{"classe":"FreteService","metodo":"prazo","linha":21,"wmc":4,"rfc":2,"cbo":0},{"classe":"FreteService","metodo":"frete","linha":7,"wmc":5,"rfc":3,"cbo":0}]},"B-strategy":{"arquivos":{"Bronze.java":"package com.loja.frete;\n\nimport java.math.BigDecimal;\n\npublic class Bronze implements Nivel {\n\n    @Override\n    public BigDecimal frete(BigDecimal base, String regiao) {\n        return base;\n    }\n\n    @Override\n    public int diasPorTrecho() {\n        return 2;\n    }\n\n    @Override\n    public int ajustaPrazo(int dias) {\n        return dias;\n    }\n\n    @Override\n    public String descricaoFrete() {\n        return \"calculado\";\n    }\n\n    @Override\n    public String atendimento() {\n        return \"comum\";\n    }\n}\n","FreteService.java":"package com.loja.frete;\n\nimport java.math.BigDecimal;\n\npublic class FreteService {\n\n    public BigDecimal frete(String codigo, BigDecimal pesoKg, String regiao) {\n        BigDecimal base = new BigDecimal(\"12\").add(pesoKg.multiply(new BigDecimal(\"2\")));\n        return Niveis.de(codigo).frete(base, regiao);\n    }\n\n    public int prazo(String codigo, int distanciaKm) {\n        Nivel nivel = Niveis.de(codigo);\n        int dias = 0;\n        for (int km = 0; km < distanciaKm; km += 500) {\n            dias += nivel.diasPorTrecho();\n        }\n        return nivel.ajustaPrazo(dias);\n    }\n}\n","Niveis.java":"package com.loja.frete;\n\nimport java.util.Map;\n\npublic final class Niveis {\n\n    private static final Map<String, Nivel> TODOS = Map.of(\n            \"BRONZE\", new Bronze(),\n            \"PRATA\", new Prata(),\n            \"OURO\", new Ouro());\n\n    private Niveis() {\n    }\n\n    public static Nivel de(String codigo) {\n        Nivel nivel = TODOS.get(codigo);\n        if (nivel == null) {\n            throw new IllegalArgumentException(\"NIVEL_INVALIDO\");\n        }\n        return nivel;\n    }\n}\n","Nivel.java":"package com.loja.frete;\n\nimport java.math.BigDecimal;\n\npublic interface Nivel {\n\n    BigDecimal frete(BigDecimal base, String regiao);\n\n    int diasPorTrecho();\n\n    int ajustaPrazo(int dias);\n\n    String descricaoFrete();\n\n    String atendimento();\n}\n","Ouro.java":"package com.loja.frete;\n\nimport java.math.BigDecimal;\n\npublic class Ouro implements Nivel {\n\n    @Override\n    public BigDecimal frete(BigDecimal base, String regiao) {\n        return BigDecimal.ZERO;\n    }\n\n    @Override\n    public int diasPorTrecho() {\n        return 1;\n    }\n\n    @Override\n    public int ajustaPrazo(int dias) {\n        return Math.max(1, dias - 1);\n    }\n\n    @Override\n    public String descricaoFrete() {\n        return \"gratis\";\n    }\n\n    @Override\n    public String atendimento() {\n        return \"prioritario\";\n    }\n}\n","Prata.java":"package com.loja.frete;\n\nimport java.math.BigDecimal;\n\npublic class Prata implements Nivel {\n\n    @Override\n    public BigDecimal frete(BigDecimal base, String regiao) {\n        if (regiao.equals(\"NORTE\") || regiao.equals(\"NORDESTE\")) {\n            return base.multiply(new BigDecimal(\"0.8\"));\n        }\n        return base.multiply(new BigDecimal(\"0.5\"));\n    }\n\n    @Override\n    public int diasPorTrecho() {\n        return 1;\n    }\n\n    @Override\n    public int ajustaPrazo(int dias) {\n        return dias;\n    }\n\n    @Override\n    public String descricaoFrete() {\n        return \"calculado\";\n    }\n\n    @Override\n    public String atendimento() {\n        return \"comum\";\n    }\n}\n","ResumoService.java":"package com.loja.frete;\n\npublic class ResumoService {\n\n    private final FreteService frete = new FreteService();\n\n    public String resumo(String codigo, String cliente, int distanciaKm) {\n        Nivel nivel = Niveis.de(codigo);\n        StringBuilder sb = new StringBuilder();\n        sb.append(\"Cliente: \").append(cliente).append('\\n');\n        sb.append(\"Frete: \").append(nivel.descricaoFrete()).append('\\n');\n        sb.append(\"Prazo: \").append(frete.prazo(codigo, distanciaKm)).append(\" dias\").append('\\n');\n        sb.append(\"Atendimento: \").append(nivel.atendimento());\n        return sb.toString();\n    }\n}\n"},"sonar":{"projeto":{"complexity":24,"code_smells":0,"duplicated_lines_density":20.3,"duplicated_lines":36,"functions":25,"cognitive_complexity":4,"duplicated_blocks":2,"classes":7,"ncloc":130,"sqale_index":0},"porArquivo":{"Bronze.java":{"complexity":5,"code_smells":0,"duplicated_lines":18,"functions":5,"cognitive_complexity":0,"duplicated_blocks":1,"ncloc":24,"sqale_index":0},"FreteService.java":{"complexity":3,"code_smells":0,"duplicated_lines":0,"functions":2,"cognitive_complexity":1,"duplicated_blocks":0,"ncloc":16,"sqale_index":0},"Niveis.java":{"complexity":3,"code_smells":0,"duplicated_lines":0,"functions":2,"cognitive_complexity":1,"duplicated_blocks":0,"ncloc":17,"sqale_index":0},"Nivel.java":{"complexity":0,"code_smells":0,"duplicated_lines":0,"functions":5,"cognitive_complexity":0,"duplicated_blocks":0,"ncloc":9,"sqale_index":0},"Ouro.java":{"complexity":5,"code_smells":0,"duplicated_lines":0,"functions":5,"cognitive_complexity":0,"duplicated_blocks":0,"ncloc":24,"sqale_index":0},"Prata.java":{"complexity":7,"code_smells":0,"duplicated_lines":18,"functions":5,"cognitive_complexity":2,"duplicated_blocks":1,"ncloc":27,"sqale_index":0},"ResumoService.java":{"complexity":1,"code_smells":0,"duplicated_lines":0,"functions":1,"cognitive_complexity":0,"duplicated_blocks":0,"ncloc":13,"sqale_index":0}},"issues":[]},"ck":[{"classe":"Ouro","tipo":"class","cbo":1,"cboModified":2,"fanin":1,"fanout":1,"wmc":5,"dit":1,"noc":0,"rfc":1,"lcom":10,"lcomN":"0.0","metodos":5,"campos":0,"loc":17},{"classe":"Bronze","tipo":"class","cbo":1,"cboModified":2,"fanin":1,"fanout":1,"wmc":5,"dit":1,"noc":0,"rfc":0,"lcom":10,"lcomN":"0.0","metodos":5,"campos":0,"loc":17},{"classe":"ResumoService","tipo":"class","cbo":3,"cboModified":3,"fanin":0,"fanout":3,"wmc":1,"dit":1,"noc":0,"rfc":8,"lcom":0,"lcomN":"0.0","metodos":1,"campos":1,"loc":12},{"classe":"FreteService","tipo":"class","cbo":2,"cboModified":3,"fanin":1,"fanout":2,"wmc":3,"dit":1,"noc":0,"rfc":6,"lcom":1,"lcomN":"0.0","metodos":2,"campos":0,"loc":14},{"classe":"Prata","tipo":"class","cbo":1,"cboModified":2,"fanin":1,"fanout":1,"wmc":7,"dit":1,"noc":0,"rfc":2,"lcom":10,"lcomN":"0.0","metodos":5,"campos":0,"loc":20},{"classe":"Niveis","tipo":"class","cbo":4,"cboModified":6,"fanin":2,"fanout":4,"wmc":3,"dit":1,"noc":0,"rfc":2,"lcom":1,"lcomN":"0.5","metodos":2,"campos":1,"loc":12},{"classe":"Nivel","tipo":"interface","cbo":0,"cboModified":6,"fanin":6,"fanout":0,"wmc":5,"dit":1,"noc":0,"rfc":0,"lcom":10,"lcomN":"0.0","metodos":5,"campos":0,"loc":7}],"metodos":[{"classe":"Ouro","metodo":"descricaoFrete","linha":23,"wmc":1,"rfc":0,"cbo":0},{"classe":"Ouro","metodo":"diasPorTrecho","linha":13,"wmc":1,"rfc":0,"cbo":0},{"classe":"Ouro","metodo":"frete","linha":8,"wmc":1,"rfc":0,"cbo":0},{"classe":"Ouro","metodo":"atendimento","linha":28,"wmc":1,"rfc":0,"cbo":0},{"classe":"Ouro","metodo":"ajustaPrazo","linha":18,"wmc":1,"rfc":1,"cbo":0},{"classe":"Bronze","metodo":"descricaoFrete","linha":23,"wmc":1,"rfc":0,"cbo":0},{"classe":"Bronze","metodo":"diasPorTrecho","linha":13,"wmc":1,"rfc":0,"cbo":0},{"classe":"Bronze","metodo":"frete","linha":8,"wmc":1,"rfc":0,"cbo":0},{"classe":"Bronze","metodo":"atendimento","linha":28,"wmc":1,"rfc":0,"cbo":0},{"classe":"Bronze","metodo":"ajustaPrazo","linha":18,"wmc":1,"rfc":0,"cbo":0},{"classe":"ResumoService","metodo":"resumo","linha":7,"wmc":1,"rfc":8,"cbo":3},{"classe":"FreteService","metodo":"frete","linha":7,"wmc":1,"rfc":4,"cbo":2},{"classe":"FreteService","metodo":"prazo","linha":12,"wmc":2,"rfc":3,"cbo":2},{"classe":"Prata","metodo":"frete","linha":8,"wmc":3,"rfc":2,"cbo":0},{"classe":"Prata","metodo":"atendimento","linha":31,"wmc":1,"rfc":0,"cbo":0},{"classe":"Prata","metodo":"ajustaPrazo","linha":21,"wmc":1,"rfc":0,"cbo":0},{"classe":"Prata","metodo":"diasPorTrecho","linha":16,"wmc":1,"rfc":0,"cbo":0},{"classe":"Prata","metodo":"descricaoFrete","linha":26,"wmc":1,"rfc":0,"cbo":0},{"classe":"Niveis","metodo":"Niveis","linha":12,"wmc":1,"rfc":0,"cbo":0},{"classe":"Niveis","metodo":"de","linha":15,"wmc":2,"rfc":1,"cbo":1},{"classe":"Nivel","metodo":"frete","linha":7,"wmc":1,"rfc":0,"cbo":0},{"classe":"Nivel","metodo":"diasPorTrecho","linha":9,"wmc":1,"rfc":0,"cbo":0},{"classe":"Nivel","metodo":"ajustaPrazo","linha":11,"wmc":1,"rfc":0,"cbo":0},{"classe":"Nivel","metodo":"atendimento","linha":15,"wmc":1,"rfc":0,"cbo":0},{"classe":"Nivel","metodo":"descricaoFrete","linha":13,"wmc":1,"rfc":0,"cbo":0}]},"C-copia":{"arquivos":{"Etiqueta.java":"package com.loja.frete;\n\npublic class Etiqueta {\n\n    public String montar(String cliente, String cidade, String uf, int volumes, int pesoKg) {\n        StringBuilder sb = new StringBuilder();\n        sb.append(\"Destinatario: \").append(cliente).append('\\n');\n        sb.append(\"Cidade: \").append(cidade).append('\\n');\n        sb.append(\"UF: \").append(uf).append('\\n');\n        sb.append(\"Volumes: \").append(volumes).append('\\n');\n        sb.append(\"Peso: \").append(pesoKg).append(\" kg\").append('\\n');\n        int pesoPorVolume = volumes == 0 ? 0 : pesoKg / volumes;\n        sb.append(\"Peso por volume: \").append(pesoPorVolume).append(\" kg\").append('\\n');\n        String faixa = pesoKg > 30 ? \"pesada\" : \"leve\";\n        sb.append(\"Faixa: \").append(faixa).append('\\n');\n        sb.append(\"Remetente: Loja\").append('\\n');\n        sb.append(\"Origem: Sao Paulo\").append('\\n');\n        return sb.toString();\n    }\n}\n","Recibo.java":"package com.loja.frete;\n\npublic class Recibo {\n\n    public String gerar(String cliente, String cidade, String uf, int volumes, int pesoKg) {\n        StringBuilder sb = new StringBuilder();\n        sb.append(\"Destinatario: \").append(cliente).append('\\n');\n        sb.append(\"Cidade: \").append(cidade).append('\\n');\n        sb.append(\"UF: \").append(uf).append('\\n');\n        sb.append(\"Volumes: \").append(volumes).append('\\n');\n        sb.append(\"Peso: \").append(pesoKg).append(\" kg\").append('\\n');\n        int pesoPorVolume = volumes == 0 ? 0 : pesoKg / volumes;\n        sb.append(\"Peso por volume: \").append(pesoPorVolume).append(\" kg\").append('\\n');\n        String faixa = pesoKg > 30 ? \"pesada\" : \"leve\";\n        sb.append(\"Faixa: \").append(faixa).append('\\n');\n        sb.append(\"Remetente: Loja\").append('\\n');\n        sb.append(\"Origem: Sao Paulo\").append('\\n');\n        sb.append(\"Recibo emitido\").append('\\n');\n        return sb.toString();\n    }\n}\n"},"sonar":{"projeto":{"complexity":6,"code_smells":0,"duplicated_lines_density":62.8,"duplicated_lines":27,"functions":2,"cognitive_complexity":4,"duplicated_blocks":2,"classes":2,"ncloc":37,"sqale_index":0},"porArquivo":{"Etiqueta.java":{"complexity":3,"code_smells":0,"duplicated_lines":13,"functions":1,"cognitive_complexity":2,"duplicated_blocks":1,"ncloc":18,"sqale_index":0},"Recibo.java":{"complexity":3,"code_smells":0,"duplicated_lines":14,"functions":1,"cognitive_complexity":2,"duplicated_blocks":1,"ncloc":19,"sqale_index":0}},"issues":[]},"ck":[{"classe":"Etiqueta","tipo":"class","cbo":0,"cboModified":0,"fanin":0,"fanout":0,"wmc":3,"dit":1,"noc":0,"rfc":4,"lcom":0,"lcomN":"0.0","metodos":1,"campos":0,"loc":17},{"classe":"Recibo","tipo":"class","cbo":0,"cboModified":0,"fanin":0,"fanout":0,"wmc":3,"dit":1,"noc":0,"rfc":4,"lcom":0,"lcomN":"0.0","metodos":1,"campos":0,"loc":18}],"metodos":[{"classe":"Etiqueta","metodo":"montar","linha":5,"wmc":3,"rfc":4,"cbo":0},{"classe":"Recibo","metodo":"gerar","linha":5,"wmc":3,"rfc":4,"cbo":0}]},"D-smells":{"arquivos":{"CupomService.java":"package com.loja.frete;\n\nimport java.math.BigDecimal;\nimport java.util.List;\n\npublic class CupomService {\n\n    private int contador;\n\n    public BigDecimal aplicar(String cupom, BigDecimal subtotal) {\n        // TODO: validar se o cupom expirou\n        System.out.println(\"aplicando cupom \" + cupom);\n        if (cupom.equals(\"FRETEGRATIS\")) {\n            return subtotal;\n        }\n        if (cupom.equals(\"BEMVINDO10\")) {\n            return subtotal.multiply(new BigDecimal(\"0.90\"));\n        }\n        if (cupom.equals(\"MENOS50\")) {\n            return subtotal.subtract(new BigDecimal(\"50\"));\n        }\n        return subtotal;\n    }\n\n    public String descricao(String cupom) {\n        if (cupom.equals(\"FRETEGRATIS\")) {\n            return \"frete gratis\";\n        }\n        if (cupom.equals(\"BEMVINDO10\")) {\n            return \"10% na primeira compra\";\n        }\n        if (cupom.equals(\"FRETEGRATIS\")) {\n            return \"nunca chega aqui\";\n        }\n        return \"cupom desconhecido\";\n    }\n}\n"},"sonar":{"projeto":{"complexity":8,"code_smells":5,"duplicated_lines_density":0,"duplicated_lines":0,"functions":2,"cognitive_complexity":6,"duplicated_blocks":0,"classes":1,"ncloc":31,"sqale_index":24},"porArquivo":{"CupomService.java":{"complexity":8,"code_smells":5,"duplicated_lines":0,"functions":2,"cognitive_complexity":6,"duplicated_blocks":0,"ncloc":31,"sqale_index":24}},"issues":[{"regra":"java:S1128","nome":"Unnecessary imports should be removed","arquivo":"CupomService.java","linha":4,"tipo":"CODE_SMELL","severidade":"MINOR","esforco":"1min","msg":"Remove this unused import 'java.util.List'."},{"regra":"java:S1068","nome":"Unused \"private\" fields should be removed","arquivo":"CupomService.java","linha":8,"tipo":"CODE_SMELL","severidade":"MAJOR","esforco":"5min","msg":"Remove this unused \"contador\" private field."},{"regra":"java:S1135","nome":"Track uses of \"TODO\" tags","arquivo":"CupomService.java","linha":11,"tipo":"CODE_SMELL","severidade":"INFO","esforco":"0min","msg":"Complete the task associated to this TODO comment."},{"regra":"java:S106","nome":"Standard outputs should not be used directly to log anything","arquivo":"CupomService.java","linha":12,"tipo":"CODE_SMELL","severidade":"MAJOR","esforco":"10min","msg":"Replace this use of System.out by a logger."},{"regra":"java:S1192","nome":"String literals should not be duplicated","arquivo":"CupomService.java","linha":13,"tipo":"CODE_SMELL","severidade":"CRITICAL","esforco":"8min","msg":"Define a constant instead of duplicating this literal \"FRETEGRATIS\" 3 times."}]},"ck":[{"classe":"CupomService","tipo":"class","cbo":0,"cboModified":0,"fanin":0,"fanout":0,"wmc":8,"dit":1,"noc":0,"rfc":4,"lcom":1,"lcomN":"1.0","metodos":2,"campos":1,"loc":28}],"metodos":[{"classe":"CupomService","metodo":"aplicar","linha":10,"wmc":4,"rfc":4,"cbo":0},{"classe":"CupomService","metodo":"descricao","linha":25,"wmc":4,"rfc":1,"cbo":0}]}},"v5":{"cognitiva":[33.7,22.9,23.5,22.5],"linhas":[518.5,584.4,613.6,570.7],"classes":[22.2,28.1,30.2,27.7],"duplicacao":[1.2,2.5,2.5,2.1]}};
+</script>
+<script>
+// ---- base.js ----
+// base.js: o que todas as abas usam (copiado do estudo do Semgrep).
+"use strict";
+
+const DADOS = window.DADOS;
+
+// ---------- DOM ----------
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k === "html") e.innerHTML = v;
+    else if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat(Infinity)) if (k !== null && k !== undefined && k !== false) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+const H = (html) => { const d = el("div", { class: "txt", html }); return d; };
+
+// ---------- memoria (so conveniencia: a pagina funciona sem ela) ----------
+const CHAVE = "estudo-metricas-v1";
+let MEM = {};
+try { MEM = JSON.parse(localStorage.getItem(CHAVE) || "{}") || {}; } catch (e) { MEM = {}; }
+function lembra(k, v) { MEM[k] = v; try { localStorage.setItem(CHAVE, JSON.stringify(MEM)); } catch (e) { /* sem memoria */ } }
+
+// ---------- cores do codigo ----------
+const KW = {
+  java: new Set("abstract boolean break case catch char class default do double else enum extends final for if implements import instanceof int interface long new null package private protected public record return static super switch this throw throws try var void when while true false yield Override".split(" ")),
+  js: new Set("const let var function return if else for of in new import export from throw while do break continue typeof true false null undefined class extends default".split(" ")),
+  bash: new Set("if then else elif fi for in do done while case esac function return exit set trap local echo printf".split(" ")),
+};
+function tokens(lang, linha, st) {
+  const t = [], n = linha.length;
+  let i = 0;
+  const push = (a, b, c) => { if (b > a) t.push([a, b, c]); };
+  if (lang === "yaml") {
+    const com = linha.match(/^\s*#.*$/);
+    if (com) { push(0, n, "s-com"); return t; }
+    const k = linha.match(/^(\s*-?\s*)([\w-]+)(:)/);
+    if (k) push(k[1].length, k[1].length + k[2].length, "s-key");
+    const re = /'(?:[^']|'')*'|"(?:[^"\\]|\\.)*"/g;
+    let m;
+    while ((m = re.exec(linha))) push(m.index, m.index + m[0].length, "s-str");
+    return t;
+  }
+  if (lang === "bash") {
+    while (i < n) {
+      const c = linha[i];
+      if (c === "#" && (i === 0 || /\s/.test(linha[i - 1])) && !(i === 0 && linha.startsWith("#!"))) { push(i, n, "s-com"); break; }
+      if (c === '"' || c === "'") { let j = i + 1; while (j < n && linha[j] !== c) j += linha[j] === "\\" && c === '"' ? 2 : 1; push(i, j + 1, "s-str"); i = j + 1; continue; }
+      if (c === "$") { const m = linha.slice(i).match(/^\$(\{[^}]*\}|\w+|#|@|\?)/); if (m) { push(i, i + m[0].length, "s-key"); i += m[0].length; continue; } }
+      if (/[A-Za-z_]/.test(c)) { let j = i; while (j < n && /[\w-]/.test(linha[j])) j++; if (KW.bash.has(linha.slice(i, j))) push(i, j, "s-kw"); i = j; continue; }
+      i++;
+    }
+    return t;
+  }
+  const kw = KW[lang] || KW.java;
+  while (i < n) {
+    if (st.bloco) { const f = linha.indexOf("*/", i); const ate = f < 0 ? n : f + 2; push(i, ate, "s-com"); if (f >= 0) st.bloco = false; i = ate; continue; }
+    if (st.texto) { const f = linha.indexOf('"""', i); const ate = f < 0 ? n : f + 3; push(i, ate, "s-str"); if (f >= 0) st.texto = false; i = ate; continue; }
+    const c = linha[i], d = linha[i + 1];
+    if (c === "/" && d === "/") { push(i, n, "s-com"); break; }
+    if (c === "/" && d === "*") { st.bloco = true; continue; }
+    if (c === '"' && linha.startsWith('"""', i)) { st.texto = true; push(i, i + 3, "s-str"); i += 3; continue; }
+    if (c === '"' || c === "'" || (c === "`" && lang === "js")) { let j = i + 1; while (j < n && linha[j] !== c) j += linha[j] === "\\" ? 2 : 1; push(i, Math.min(j + 1, n), "s-str"); i = j + 1; continue; }
+    if (/[A-Za-z_$]/.test(c)) { let j = i; while (j < n && /[\w$]/.test(linha[j])) j++; if (kw.has(linha.slice(i, j))) push(i, j, "s-kw"); i = j; continue; }
+    if (/\d/.test(c)) { let j = i; while (j < n && /[\d._]/.test(linha[j])) j++; push(i, j, "s-num"); i = j; continue; }
+    i++;
+  }
+  return t;
+}
+
+// ---------- o visor de codigo ----------
+// atual: [[a,b], ...] faixas de linhas (1 = primeira); marcas: [{l1,c1,l2,c2,cls}] (colunas do Semgrep: 1 = primeira, c2 exclusiva)
+// linhas: {n: "regiao erro ..."}; notas: {n: {txt, cls}}
+function codigo(o) {
+  const texto = o.texto.replace(/\n$/, "");
+  const ls = texto.split("\n");
+  const ini = o.inicio || 1;
+  const caixa = el("div", { class: "codigo" + (o.baixo ? " baixo" : "") });
+  if (o.titulo) caixa.append(el("div", { class: "cab", html: o.titulo }));
+  const corpo = el("div", { class: "corpo" });
+  const st = {};
+  const atual = new Set();
+  for (const [a, b] of o.atual || []) for (let k = a; k <= b; k++) atual.add(k);
+  let foco = null;
+  ls.forEach((linha, idx) => {
+    const n = idx + ini;
+    const syn = new Array(linha.length).fill(""), mk = new Array(linha.length).fill("");
+    for (const [a, b, c] of tokens(o.lang || "java", linha, st)) for (let k = a; k < b; k++) syn[k] = c;
+    for (const m of o.marcas || []) {
+      if (n < m.l1 || n > m.l2) continue;
+      const a = n === m.l1 ? m.c1 - 1 : 0, b = n === m.l2 ? m.c2 - 1 : linha.length;
+      for (let k = Math.max(0, a); k < Math.min(linha.length, b); k++) mk[k] = m.cls;
+    }
+    const src = el("span", { class: "src" });
+    if (!linha.length) src.append("​");
+    let k = 0;
+    while (k < linha.length) {
+      let j = k + 1;
+      while (j < linha.length && syn[j] === syn[k] && mk[j] === mk[k]) j++;
+      const cls = [syn[k], mk[k]].filter(Boolean).join(" ");
+      src.append(cls ? el("span", { class: cls }, linha.slice(k, j)) : linha.slice(k, j));
+      k = j;
+    }
+    const classes = ["ln"];
+    if (atual.has(n)) classes.push("atual");
+    if (o.linhas && o.linhas[n]) classes.push(o.linhas[n]);
+    const div = el("div", { class: classes.join(" "), "data-n": n }, el("span", { class: "num" }, n), src);
+    const nota = o.notas && o.notas[n];
+    if (nota) div.append(el("span", { class: "nota " + (nota.cls || ""), html: nota.txt }));
+    if (foco === null && (atual.has(n) || (o.foco && o.foco === n))) foco = div;
+    corpo.append(div);
+  });
+  if (foco === null && (o.marcas || []).length) {
+    const prim = Math.min(...o.marcas.map((m) => m.l1));
+    foco = corpo.querySelector(`[data-n="${prim}"]`);
+  }
+  caixa.append(corpo);
+  // depois que a caixa entra na pagina: rola ate a linha atual (a 1/3 da altura)
+  if (foco) setTimeout(() => {
+    const alvo = foco.offsetTop - caixa.clientHeight / 3;
+    caixa.scrollTop = Math.max(0, alvo);
+  }, 0);
+  return caixa;
+}
+
+// ---------- o passo a passo ----------
+const STEPPERS = {};
+let ABA_ATUAL = null;
+function stepper(host, { chave, aba, passos, desenha }) {
+  host.replaceChildren();
+  const bAnt = el("button", { title: "passo anterior (←)", "aria-label": "anterior" }, "◀");
+  const bIni = el("button", { title: "primeiro passo", "aria-label": "primeiro" }, "⏮");
+  const bFim = el("button", { title: "último passo", "aria-label": "último" }, "⏭");
+  const bProx = el("button", { class: "prox", title: "próximo passo (→)" }, "próximo ▶");
+  const t = el("div", { class: "t" }), n = el("div", { class: "n" }), barra = el("i");
+  const ctrl = el("div", { class: "controles" }, bIni, bAnt,
+    el("div", { class: "info" }, t, n, el("div", { class: "barra" }, barra)),
+    el("span", { class: "dica" }, el("kbd", null, "←"), " ", el("kbd", null, "→")), bProx, bFim);
+  const corpo = el("div");
+  host.append(ctrl, corpo);
+  let i = Math.min(Math.max(0, MEM[chave] ?? 0), passos.length - 1);
+  const api = {
+    ir(k) {
+      i = Math.max(0, Math.min(passos.length - 1, k));
+      lembra(chave, i);
+      t.textContent = passos[i].t || "";
+      n.textContent = `passo ${i + 1} de ${passos.length}`;
+      barra.style.width = ((i + 1) / passos.length * 100) + "%";
+      bAnt.disabled = bIni.disabled = i === 0;
+      bProx.disabled = bFim.disabled = i === passos.length - 1;
+      corpo.replaceChildren();
+      desenha(passos[i], i, corpo);
+    },
+    prox() { if (i < passos.length - 1) this.ir(i + 1); },
+    ant() { if (i > 0) this.ir(i - 1); },
+    get i() { return i; },
+  };
+  bAnt.onclick = () => api.ant(); bProx.onclick = () => api.prox();
+  bIni.onclick = () => api.ir(0); bFim.onclick = () => api.ir(passos.length - 1);
+  STEPPERS[aba] = api;
+  api.ir(i);
+  return api;
+}
+document.addEventListener("keydown", (e) => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.altKey || e.ctrlKey || e.metaKey) return;
+  const s = STEPPERS[ABA_ATUAL];
+  if (!s) return;
+  if (e.key === "ArrowRight") { s.prox(); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { s.ant(); e.preventDefault(); }
+});
+
+// ---------- quiz ("antes de seguir") ----------
+function quiz(q) {
+  const box = el("div", { class: "quiz" }, el("div", { class: "q", html: "❓ " + q.p }));
+  const linha = el("div", { class: "linha-botoes" });
+  const r = el("div", { class: "r txt", html: q.exp });
+  q.op.forEach((o, k) => linha.append(el("button", {
+    class: "b", html: o,
+    onclick: () => {
+      box.classList.add("respondida");
+      [...linha.children].forEach((b, j) => { b.classList.remove("certa", "errada"); if (j === q.certa) b.classList.add("certa"); else if (j === k) b.classList.add("errada"); });
+    },
+  })));
+  box.append(linha, r);
+  return box;
+}
+
+// ---------- testador de metavariable-regex ----------
+// linhas: [{onde, v, real}] (real: o que o Semgrep fez, quando se sabe)
+function testador({ regex, rotulo, linhas = [], sugestoes = [], explica }) {
+  const box = el("div", { class: "caixa" });
+  box.append(el("div", { class: "rotulo" }, "testador do metavariable-regex ", el("span", { class: "pill" }, "roda aqui, ao vivo")));
+  if (explica) box.append(H(explica));
+  box.append(el("div", { class: "ped", style: "margin:4px 0 8px" }, el("code", null, regex)));
+  const tab = el("table", { class: "t" });
+  const temReal = linhas.some((l) => l.real !== undefined);
+  tab.append(el("tr", null, el("th", null, "onde"), el("th", null, rotulo || "valor"), el("th", null, "passa?"), temReal ? el("th", null, "Semgrep real") : null));
+  for (const l of linhas) {
+    const m = casaMetavar(regex, l.v);
+    tab.append(el("tr", null, el("td", { class: "mono" }, l.onde || ""), el("td", { class: "mono" }, l.v),
+      el("td", { class: m !== null ? "sim" : "nao" }, m !== null ? "sim" : "não"),
+      temReal ? el("td", { class: l.real ? "sim" : "nao" }, l.real === undefined ? "" : l.real ? "ficou" : "caiu") : null));
+  }
+  box.append(el("div", { class: "tabela-rolagem" }, tab));
+  const res = el("span", { class: "mini" });
+  const inp = el("input", { type: "text", placeholder: "digite um valor para testar", oninput: () => {
+    if (!inp.value) { res.textContent = ""; return; }
+    const m = casaMetavar(regex, inp.value);
+    res.innerHTML = m !== null ? `<span class="sim">passa</span> (casou: <code>${esc(m)}</code>)` : `<span class="nao">não passa</span>`;
+  } });
+  box.append(el("div", { style: "margin-top:8px" }, inp), el("div", { style: "margin-top:4px" }, res));
+  if (sugestoes.length) {
+    const lb = el("div", { class: "linha-botoes" }, el("span", { class: "mini" }, "experimente: "));
+    for (const s of sugestoes) lb.append(el("button", { class: "b", onclick: () => { inp.value = s; inp.dispatchEvent(new Event("input")); } }, s));
+    box.append(lb);
+  }
+  return box;
+}
+
+// ---------- tabela simples ----------
+function tabela(cab, linhas, opts = {}) {
+  const t = el("table", { class: "t" + (opts.estado ? " estado" : "") });
+  if (cab) t.append(el("tr", null, cab.map((c) => el("th", { html: c }))));
+  for (const l of linhas) t.append(el("tr", { class: l.cls || null }, (l.cels || l).map((c) => el("td", typeof c === "object" && c !== null && !(c instanceof Node) ? c : { html: String(c) }))));
+  return opts.rolagem === false ? t : el("div", { class: "tabela-rolagem" }, t);
+}
+
+
+// ---- abas.js ----
+// abas.js: o conteudo da pagina das metricas (SonarQube e CK).
+"use strict";
+
+const EX = DADOS.ex;                      // os 4 projetos inventados, com o que o CK e o Sonar reais devolveram
+const NOME_EX = { "A-remendo": "A · o remendo (if por nível)", "B-strategy": "B · o Strategy", "C-copia": "C · copiar e colar", "D-smells": "D · code smells" };
+const V5 = DADOS.v5;                      // as medias do V5, de analysis/resultados-V5-STRATEGY.md
+
+// ---------- ajudantes ----------
+const arq = (p, f) => EX[p].arquivos[f];
+// a linha (1 = primeira) de um arquivo que contem um texto, a partir de uma linha
+function ln(texto, sub, desde = 1) {
+  const ls = texto.split("\n");
+  for (let k = desde - 1; k < ls.length; k++) if (ls[k].includes(sub)) return k + 1;
+  throw new Error("nao achei: " + sub);
+}
+// marca um pedaco (token) de uma linha
+function tok(texto, linha, pedaco, cls, ocorrencia = 1) {
+  const l = texto.split("\n")[linha - 1];
+  let i = -1;
+  for (let k = 0; k < ocorrencia; k++) i = l.indexOf(pedaco, i + 1);
+  if (i < 0) throw new Error(`"${pedaco}" nao esta na linha ${linha}`);
+  return { l1: linha, c1: i + 1, l2: linha, c2: i + 1 + pedaco.length, cls };
+}
+function explicacao(p, extra = []) {
+  const box = el("div", { class: "painel pilha" });
+  box.append(el("div", { class: "passo-t" }, p.t));
+  if (p.txt) box.append(H(p.txt));
+  if (p.aconteceu) box.append(el("div", { class: "caixa aconteceu" }, el("div", { class: "rotulo" }, "▶ o que aconteceu"), H(p.aconteceu)));
+  for (const x of extra) if (x) box.append(x);
+  if (p.quiz) box.append(quiz(p.quiz));
+  return box;
+}
+const duasColunas = (corpo, esq, dir) => corpo.append(el("div", { class: "grade2" }, el("div", { class: "pilha" }, esq), dir));
+const sim = (ok) => ok ? '<span class="sim">✓ bate</span>' : '<span class="nao">✗ não bate</span>';
+const fmt = (v) => (v === null || v === undefined ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(2).replace(".", ","));
+
+// =====================================================================
+// 0. O mapa
+// =====================================================================
+function abaMapa(sec) {
+  const vai = (aba) => () => mostraAba(aba);
+  const no = (cls, nome, txt, aba) => el("button", { class: "no " + cls, onclick: aba ? vai(aba) : null }, el("b", null, nome), el("span", null, txt));
+  sec.append(
+    el("h2", null, "O mapa"),
+    el("p", { class: "lead", html: "As duas ferramentas de métrica do experimento. As duas estão <b>no padrão</b>: ninguém escreveu regra nem métrica para o TCC. O que o TCC tem delas é só o jeito de rodar (<code>metrics.sh</code>), as versões travadas e o resumo num CSV (<code>aggregate-metrics.mjs</code>)." }),
+    el("div", { class: "painel" },
+      el("div", { class: "rotulo" }, "o caminho dos números"),
+      el("div", { class: "mapa" },
+        no("prep", "o código do agente", "src/main/java, e as classes compiladas pelo build (target/classes)", "exemplos"),
+        no("etapa1", "CK (um .jar)", "lê o código-fonte e mede cada classe: CBO, WMC, LCOM, RFC, DIT...", "ck"),
+        no("etapa1", "SonarQube (servidor no Docker)", "recebe o código pelo scanner e devolve linhas, complexidades, duplicação, smells", "cognitiva"),
+        no("etapa2", "metrics.sh → aggregate-metrics.mjs", "roda os dois em cada execução e junta num CSV, uma linha por execução", "scripts"),
+        no("etapa2", "hipoteses.mjs", "usa 6 colunas do CSV nas hipóteses", null)),
+    ),
+    el("div", { class: "grade2", style: "margin-top:12px" },
+      el("div", { class: "painel" },
+        el("h3", { style: "margin-top:0" }, "O que entra nas hipóteses do V5"),
+        tabela(["coluna do CSV", "ferramenta", "hipótese", "veredito"], [
+          ["<code>sonar_cognitive_complexity</code>", "SonarQube", "★ Qualidade: menos complexidade", "<b>apoiada</b>"],
+          ["<code>sonar_code_smells</code>", "SonarQube", "Qualidade: menos code smells", "inconclusiva"],
+          ["<code>sonar_duplicated_lines_density</code>", "SonarQube", "Desenho: não repete o comum", "contrariada"],
+          ["<code>sonar_classes</code>", "SonarQube", "Exagero: mais arquivos", "inconclusiva"],
+          ["<code>ck_cbo_media</code>", "CK", "Exagero: estrutura especulativa (CBO)", "contrariada"],
+          ["<code>ck_lcom_media</code>", "CK", "Exagero: estrutura especulativa (LCOM)", "contrariada"],
+        ], { rolagem: false }),
+        H("<p class=\"mini\">Fonte: <code>evaluation/tools/hipoteses.mjs</code> (linhas 130 a 133 e 151 a 164) e <code>analysis/resultados-V5-STRATEGY.md</code>. Todas comparam N1 com N0. As outras colunas do CSV ficam como descrição.</p>")),
+      el("div", { class: "painel" },
+        el("h3", { style: "margin-top:0" }, "As versões travadas"),
+        tabela(["peça", "versão"], [
+          ["SonarQube", "Community <code>26.9.0.129388</code>, imagem pelo hash"],
+          ["scanner", "<code>sonar-scanner-cli 12.2.0.4256_8.1.0</code>, pelo hash"],
+          ["regras do Sonar", "perfil <b>\"Sonar way\"</b> para Java, o padrão da versão: 599 regras, exportado em <code>sonar/perfil-java-sonar-way.xml</code>"],
+          ["CK", "compilado do commit <code>8a1ef916</code> do repositório do autor (a versão publicada, de 2022, ignora <code>record</code>)"],
+        ], { rolagem: false }),
+        H("<p class=\"mini\">Fonte: <code>evaluation/tools/README.md</code>. O <code>metrics.sh</code> se recusa a rodar se o hash do <code>.jar</code> ou a imagem forem outros.</p>")),
+    ),
+    el("div", { class: "painel", style: "margin-top:12px" },
+      el("h3", { style: "margin-top:0" }, "De onde vêm os números desta página"),
+      H(`<ul>
+        <li>Quatro projetos <b>inventados</b>, pequenos, do mesmo domínio do checkout (aba 1). O A e o B fazem <b>a mesma coisa</b>, escrita de dois jeitos.</li>
+        <li>Rodei neles o <b>CK e o SonarQube reais</b>, com as versões travadas do V5 e os mesmos parâmetros do <code>metrics.sh</code>, em 12/10. Todo número de ferramenta que aparece aqui é o que elas devolveram.</li>
+        <li>As contas "à mão" dos passos (somar +1 a cada <code>if</code>) são minhas, para explicar. Em cada uma, a página mostra se o total bate com o da ferramenta. Bateram todas.</li>
+        <li>Navegação: <kbd>←</kbd> <kbd>→</kbd> nos passos, como na página do Semgrep.</li>
+      </ul>`)),
+  );
+}
+
+// =====================================================================
+// 1. Os exemplos
+// =====================================================================
+function abaExemplos(sec) {
+  const SOBRE = {
+    "A-remendo": "O frete e o prazo por nível do clube, com <code>if</code> perguntando o nível (<code>nivel.equals(\"OURO\")</code>) dentro do serviço. É o \"remendo\" da régua.",
+    "B-strategy": "<b>A mesma regra</b> do A, como Strategy: uma interface <code>Nivel</code>, uma classe por nível (<code>Bronze</code>, <code>Prata</code>, <code>Ouro</code>), um mapa que acha o nível pelo código (<code>Niveis</code>), e o serviço só delega.",
+    "C-copia": "Duas classes com o mesmo trecho copiado e colado: a lição de duplicação.",
+    "D-smells": "Uma classe com defeitos clássicos (import sem uso, campo sem uso, <code>System.out</code>, texto repetido, um TODO): a lição de code smells.",
+  };
+  sec.append(el("h2", null, "Os exemplos"), el("p", { class: "lead", html: "O código que as duas ferramentas mediram. Escolha o projeto e o arquivo." }));
+  const barra = el("div", { class: "linha-botoes" }), barraArq = el("div", { class: "linha-botoes" }), corpo = el("div");
+  sec.append(barra, barraArq, corpo);
+  const mostra = (p, f) => {
+    lembra("exProj", p); lembra("exArq", f);
+    barra.replaceChildren(...Object.keys(EX).map((k) => el("button", { class: "b" + (k === p ? " on" : ""), onclick: () => mostra(k, Object.keys(EX[k].arquivos)[0]) }, NOME_EX[k])));
+    barraArq.replaceChildren(el("span", { class: "mini" }, "arquivo: "), ...Object.keys(EX[p].arquivos).map((k) => el("button", { class: "b" + (k === f ? " on" : ""), onclick: () => mostra(p, k) }, k)));
+    const s = EX[p].sonar.projeto, a = EX[p].sonar.porArquivo[f], c = EX[p].ck.find((x) => x.classe + ".java" === f);
+    corpo.replaceChildren(el("div", { class: "grade2" },
+      codigo({ texto: arq(p, f), lang: "java", titulo: `<b>${esc(f)}</b> · projeto ${esc(p)}` }),
+      el("div", { class: "painel pilha" },
+        H(`<p>${SOBRE[p]}</p>`),
+        el("div", { class: "rotulo" }, "SonarQube, este arquivo"),
+        tabela(null, [["linhas de código (ncloc)", a.ncloc], ["funções", a.functions], ["complexidade ciclomática", a.complexity], ["complexidade cognitiva", a.cognitive_complexity], ["linhas duplicadas", a.duplicated_lines], ["code smells", a.code_smells]], { estado: true, rolagem: false }),
+        c ? el("div", { class: "rotulo" }, "CK, esta classe") : null,
+        c ? tabela(null, [["CBO", c.cbo], ["WMC", c.wmc], ["DIT", c.dit], ["RFC", c.rfc], ["LCOM", c.lcom], ["métodos / campos", `${c.metodos} / ${c.campos}`]], { estado: true, rolagem: false }) : null,
+        el("div", { class: "rotulo" }, "SonarQube, o projeto inteiro"),
+        tabela(null, [["linhas de código", s.ncloc], ["classes", s.classes], ["complexidade cognitiva", s.cognitive_complexity], ["duplicação", fmt(s.duplicated_lines_density) + "%"], ["code smells", s.code_smells], ["dívida técnica", s.sqale_index + " min"]], { estado: true, rolagem: false }))));
+  };
+  const p0 = EX[MEM.exProj] ? MEM.exProj : "A-remendo";
+  mostra(p0, EX[p0].arquivos[MEM.exArq] ? MEM.exArq : Object.keys(EX[p0].arquivos)[0]);
+}
+
+// =====================================================================
+// 2 e 3. As duas complexidades (passo a passo, somando)
+// =====================================================================
+// itens: {l, tok, oc, mais, por}; mostra a conta acumulada e, no fim, compara com a ferramenta
+function passosContagem(texto, itens, unidade) {
+  let soma = 0;
+  return itens.map((it) => { soma += it.mais; return { ...it, soma, unidade }; });
+}
+function desenhaContagem(texto, titulo, passos, extraFim) {
+  return (p, i, corpo) => {
+    const feitos = passos.slice(0, i + 1).filter((x) => x.l);
+    const mk = feitos.filter((x) => x.tok).map((x) => tok(texto, x.l, x.tok, x === p ? "m-hitsel" : (x.mais ? "m-ok" : "m-fora"), x.oc || 1));
+    const notas = {};
+    for (const x of feitos.filter((y) => !y.semNota)) notas[x.l] = { txt: (notas[x.l] ? notas[x.l].txt + " " : "") + (x.mais > 0 ? "+" + x.mais : "+0"), cls: x.mais ? "ok" : "fora" };
+    const ledger = tabela(["linha", "o quê", "soma", "total"], feitos.map((x) => ({ cls: x === p ? null : null, cels: [x.l, x.por, x.mais > 0 ? "+" + x.mais : "0", `<b>${x.soma}</b>`] })));
+    duasColunas(corpo,
+      codigo({ texto, lang: "java", titulo, atual: p.l ? [[p.l, p.l]] : [], marcas: mk, notas }),
+      explicacao({ t: p.t, txt: p.txt, quiz: p.quiz }, [
+        el("div", { class: "caixa aconteceu" }, el("div", { class: "rotulo" }, "▶ a conta até aqui"), H(`<p style="font-size:22px;margin:0"><b>${p.soma}</b> <span class="mini">${p.unidade}</span></p>`)),
+        el("div", { class: "caixa" }, el("div", { class: "rotulo" }, "cada soma"), ledger),
+        p.fim ? extraFim() : null,
+      ]));
+  };
+}
+
+function abaCiclomatica(sec) {
+  const F = arq("A-remendo", "FreteService.java");
+  const L = (s, d) => ln(F, s, d);
+  const lElse1 = L("} else {", L("if (regiao.equals")), lElse2 = L("} else {", L('if (nivel.equals("BRONZE"))'));
+  sec.append(el("h2", null, "Complexidade ciclomática"),
+    el("p", { class: "lead", html: "Quantos <b>caminhos</b> diferentes o código pode seguir. No SonarQube é a medida <code>complexity</code>; no CK, a soma dela pelos métodos da classe é o <b>WMC</b>. Aqui, contada à mão no <code>FreteService</code> do projeto A, e comparada com as duas ferramentas." }));
+  const host = el("div"); sec.append(host);
+  const passos = passosContagem(F, [
+    { t: "A regra", txt: "<p>Começa em <b>1 por método</b> (o caminho reto) e soma <b>+1 a cada ponto de decisão</b>: <code>if</code>, <code>for</code>, <code>while</code>, <code>case</code>, ternário (<code>? :</code>) e cada <code>&amp;&amp;</code> ou <code>||</code>. O <code>else</code> não soma: ele é o outro lado de um <code>if</code> que já foi contado.</p><p>Aninhar não muda nada aqui: um <code>if</code> dentro de outro vale +1, igual ao de fora. (É essa a diferença para a cognitiva, na próxima aba.)</p>", mais: 0, por: "" },
+    { t: "O método frete", l: L("public BigDecimal frete("), tok: "frete", mais: 1, por: "método", txt: "<p>Todo método começa com 1: existe pelo menos um caminho.</p>" },
+    { t: "if", l: L('if (nivel.equals("OURO"))'), tok: "if", mais: 1, por: "<code>if</code>", txt: "<p>Uma decisão: o código pode entrar ou não. +1.</p>" },
+    { t: "else if", l: L("else if"), tok: "if", mais: 1, por: "<code>else if</code>", txt: "<p>O <code>else if</code> é outro <code>if</code>: mais uma decisão. +1.</p>" },
+    { t: "o if de dentro", l: L("if (regiao.equals"), tok: "if", mais: 1, por: "<code>if</code> aninhado", txt: "<p>Um <code>if</code> dentro do <code>else if</code>. Para a ciclomática, aninhado ou não, é +1.</p>" },
+    { t: "||", l: L("if (regiao.equals"), tok: "||", mais: 1, por: "<code>||</code>", txt: "<p>O <code>||</code> cria um caminho a mais: a condição pode ser verdadeira pelo lado esquerdo <b>ou</b> pelo direito. +1.</p>" },
+    { t: "else", l: lElse1, tok: "else", mais: 0, por: "<code>else</code>", txt: "<p>O <code>else</code> não soma: ele é só o \"senão\" de uma decisão já contada.</p>" },
+    { t: "Fim do frete: 5", l: L("public BigDecimal frete("), tok: "frete", mais: 0, por: "fim do método", semNota: true, txt: "<p>O método <code>frete</code> tem complexidade <b>5</b>.</p>", aconteceu: true },
+    { t: "O método prazo", l: L("public int prazo("), tok: "prazo", mais: 1, por: "método", txt: "<p>Outro método, outro 1.</p>" },
+    { t: "for", l: L("for (int km"), tok: "for", mais: 1, por: "<code>for</code>", txt: "<p>Um laço é uma decisão (\"de novo ou para?\"). +1.</p>" },
+    { t: "if dentro do for", l: L('if (nivel.equals("BRONZE"))'), tok: "if", mais: 1, por: "<code>if</code>", txt: "<p>+1, mesmo estando dentro do <code>for</code>.</p>" },
+    { t: "else", l: lElse2, tok: "else", mais: 0, por: "<code>else</code>", txt: "<p>0, de novo.</p>" },
+    { t: "ternário", l: L('return nivel.equals("OURO") ?'), tok: "?", mais: 1, por: "ternário <code>? :</code>", txt: "<p>O ternário é um <code>if</code> numa linha só. +1.</p>" },
+    { t: "Resultado: 9", l: null, mais: 0, por: "", fim: true, txt: "<p>Total do arquivo: 5 + 4 = <b>9</b>. Agora, o que as ferramentas reais disseram:</p>" },
+  ], "pontos de complexidade ciclomática");
+  passos[7].txt += `<p>O CK, que mede por método, deu ${EX["A-remendo"].metodos.find((m) => m.classe === "FreteService" && m.metodo === "frete").wmc} para o <code>frete</code>. ${sim(EX["A-remendo"].metodos.find((m) => m.classe === "FreteService" && m.metodo === "frete").wmc === 5)}</p>`;
+  const fim = () => {
+    const s = EX["A-remendo"].sonar.porArquivo["FreteService.java"].complexity, c = EX["A-remendo"].ck.find((x) => x.classe === "FreteService").wmc;
+    const sB = EX["B-strategy"].sonar.projeto.complexity, sA = EX["A-remendo"].sonar.projeto.complexity;
+    const ni = EX["B-strategy"];
+    return el("div", { class: "pilha" },
+      el("div", { class: "caixa certo", html: `<p>SonarQube, <code>complexity</code> do arquivo: <b>${s}</b> ${sim(s === 9)}<br>CK, <code>wmc</code> da classe: <b>${c}</b> ${sim(c === 9)}</p>` }),
+      el("div", { class: "caixa", html: `<p><b>Um detalhe que separa as duas.</b> Na interface <code>Nivel</code> (projeto B), os 5 métodos não têm corpo. O SonarQube dá <b>${ni.sonar.porArquivo["Nivel.java"].complexity}</b> (método sem corpo não tem caminho), o CK dá WMC <b>${ni.ck.find((x) => x.classe === "Nivel").wmc}</b> (conta 1 por método, mesmo sem corpo).</p><p><b>E o Strategy?</b> A ciclomática do projeto inteiro <b>dobra</b>: ${sA} no A, ${sB} no B. Cada método pequeno das classes de nível soma 1, mesmo sem decisão nenhuma. Por isso ela é ruim para comparar desenhos com muitas classes pequenas. A hipótese do TCC usa a <b>cognitiva</b>, que não conta método.</p>` }));
+  };
+  stepper(host, { chave: "ciclo", aba: "ciclomatica", passos, desenha: desenhaContagem(F, "<b>FreteService.java</b> · projeto A", passos, fim) });
+}
+
+function abaCognitiva(sec) {
+  const F = arq("A-remendo", "FreteService.java");
+  const L = (s, d) => ln(F, s, d);
+  const lElse1 = L("} else {", L("if (regiao.equals")), lElse2 = L("} else {", L('if (nivel.equals("BRONZE"))'));
+  sec.append(el("h2", null, "Complexidade cognitiva ★"),
+    el("p", { class: "lead", html: "A medida da hipótese principal de qualidade do TCC. Em vez de contar caminhos, ela tenta medir <b>o esforço para ler</b>: estruturas que quebram o fluxo custam, e custam <b>mais quando estão aninhadas</b>. Criada pela SonarSource; a medida <code>cognitive_complexity</code> do SonarQube." }));
+  const host = el("div"); sec.append(host);
+  const passos = passosContagem(F, [
+    { t: "A regra", mais: 0, por: "", txt: "<ul><li><b>+1</b> para cada estrutura que quebra o fluxo: <code>if</code>, <code>else if</code>, <code>else</code>, <code>switch</code>, <code>for</code>, <code>while</code>, <code>catch</code>, ternário, e cada <b>sequência</b> de <code>&amp;&amp;</code> ou <code>||</code>.</li><li><b>+ o nível de aninhamento</b> para as que estão dentro de outra (<code>if</code>, laços, <code>switch</code>, ternário, <code>catch</code>). O <code>else</code> e o <code>else if</code> não pagam aninhamento.</li><li><b>Método não conta.</b> Um método reto vale 0.</li></ul><p>Compare com a aba anterior: lá, aninhar não custava nada, e cada método valia 1.</p>" },
+    { t: "O método frete", l: L("public BigDecimal frete("), tok: "frete", mais: 0, por: "método (não conta)", txt: "<p>Método não soma: 0.</p>" },
+    { t: "if, no nível 0", l: L('if (nivel.equals("OURO"))'), tok: "if", mais: 1, por: "<code>if</code>", txt: "<p>Um <code>if</code> direto no método, sem nada em volta. +1.</p>" },
+    { t: "else if", l: L("else if"), tok: "else if", mais: 1, por: "<code>else if</code>", txt: "<p>+1 (sem aninhamento: <code>else if</code> não paga).</p>" },
+    { t: "if aninhado: +1 +1", l: L("if (regiao.equals"), tok: "if", mais: 2, por: "<code>if</code> no nível 1", txt: "<p>Este <code>if</code> está <b>dentro</b> do <code>else if</code>: nível de aninhamento 1. Paga 1 (a estrutura) + 1 (o aninhamento) = <b>+2</b>. É aqui que a cognitiva pune o código \"em escada\".</p>" },
+    { t: "a sequência ||", l: L("if (regiao.equals"), tok: "||", mais: 1, por: "sequência de <code>||</code>", txt: "<p>Uma sequência de <code>||</code>: +1. (Três condições ligadas só por <code>||</code> ainda seriam +1; misturar <code>&amp;&amp;</code> e <code>||</code> soma por troca.)</p>" },
+    { t: "else", l: lElse1, tok: "else", mais: 1, por: "<code>else</code>", txt: "<p>Aqui o <code>else</code> <b>soma</b> +1 (na ciclomática, não somava): quem lê precisa guardar mais um ramo na cabeça.</p>" },
+    { t: "Fim do frete: 6", l: L("public BigDecimal frete("), tok: "frete", mais: 0, por: "fim do método", semNota: true, txt: "<p>O <code>frete</code> vale <b>6</b> de cognitiva (contra 5 de ciclomática).</p>" },
+    { t: "O método prazo", l: L("public int prazo("), tok: "prazo", mais: 0, por: "método (não conta)", txt: "<p>0.</p>" },
+    { t: "for", l: L("for (int km"), tok: "for", mais: 1, por: "<code>for</code>", txt: "<p>+1.</p>" },
+    { t: "if dentro do for: +1 +1", l: L('if (nivel.equals("BRONZE"))'), tok: "if", mais: 2, por: "<code>if</code> no nível 1", txt: "<p>Dentro do <code>for</code>: nível 1. <b>+2</b>.</p>", quiz: { p: "E se houvesse <b>mais um</b> <code>if</code> dentro deste, quanto ele somaria?", op: ["+1", "+2", "+3"], certa: 2, exp: "+3: 1 pela estrutura e 2 pelo aninhamento (ele estaria dentro do <code>if</code>, que está dentro do <code>for</code>). Cada nível a mais encarece." } },
+    { t: "else", l: lElse2, tok: "else", mais: 1, por: "<code>else</code>", txt: "<p>+1.</p>" },
+    { t: "ternário", l: L('return nivel.equals("OURO") ?'), tok: "?", mais: 1, por: "ternário", txt: "<p>+1 (no nível 0: está direto no método).</p>" },
+    { t: "Resultado: 11", l: null, mais: 0, por: "", fim: true, txt: "<p>Total do arquivo: 6 + 5 = <b>11</b>. O que o SonarQube real disse, e o que acontece no projeto B:</p>" },
+  ], "pontos de complexidade cognitiva");
+  const fim = () => {
+    const A = EX["A-remendo"].sonar, B = EX["B-strategy"].sonar;
+    const linhasArq = (P) => Object.entries(EX[P].sonar.porArquivo).map(([f, m]) => [f, m.cognitive_complexity]);
+    return el("div", { class: "pilha" },
+      el("div", { class: "caixa certo", html: `<p>SonarQube, <code>cognitive_complexity</code> do arquivo: <b>${A.porArquivo["FreteService.java"].cognitive_complexity}</b> ${sim(A.porArquivo["FreteService.java"].cognitive_complexity === 11)}</p>` }),
+      el("div", { class: "caixa" }, el("div", { class: "rotulo" }, "A × B: a mesma regra de frete"),
+        el("div", { class: "grade2" },
+          el("div", null, el("b", null, "A · remendo"), tabela(["arquivo", "cognitiva"], linhasArq("A-remendo").concat([["<b>projeto</b>", `<b>${A.projeto.cognitive_complexity}</b>`]]), { rolagem: false })),
+          el("div", null, el("b", null, "B · Strategy"), tabela(["arquivo", "cognitiva"], linhasArq("B-strategy").concat([["<b>projeto</b>", `<b>${B.projeto.cognitive_complexity}</b>`]]), { rolagem: false }))),
+        H(`<p>De <b>${A.projeto.cognitive_complexity}</b> para <b>${B.projeto.cognitive_complexity}</b>. A pergunta "qual é o nível?" sumiu dos serviços: virou uma busca no mapa (<code>Niveis.de</code>). O único <code>if</code> de regra que sobrou é o da região, que mudou para dentro da <code>Prata</code>.</p>
+        <p>No V5, a média foi de <b>${fmt(V5.cognitiva[0])}</b> (N0) para <b>${fmt(V5.cognitiva[1])}</b> (N1), e a hipótese ★ foi <b>apoiada</b>. É esta mesma mecânica, em código de verdade.</p>`)));
+  };
+  stepper(host, { chave: "cogn", aba: "cognitiva", passos, desenha: desenhaContagem(F, "<b>FreteService.java</b> · projeto A", passos, fim) });
+}
+
+// =====================================================================
+// 4. Duplicacao
+// =====================================================================
+function iguais(a, b) {
+  // as linhas de a que aparecem iguais (sem espaco) em b, na ordem: comparacao desta pagina, nao do Sonar
+  const nb = new Set(b.split("\n").map((l) => l.trim()).filter((l) => l.length > 2));
+  return a.split("\n").map((l, i) => (nb.has(l.trim()) && l.trim().length > 2 ? i + 1 : null)).filter(Boolean);
+}
+function abaDuplicacao(sec) {
+  sec.append(el("h2", null, "Duplicação"),
+    el("p", { class: "lead", html: "O SonarQube procura <b>trechos de código que se repetem</b> e mede a porcentagem de linhas que estão em algum trecho repetido (<code>duplicated_lines_density</code>). É a hipótese \"não repete o comum\" do TCC." }));
+  const host = el("div"); sec.append(host);
+  const C = EX["C-copia"], B = EX["B-strategy"];
+  const par = (P, f1, f2, titulo) => {
+    const a = arq(P, f1), b = arq(P, f2);
+    const la = Object.fromEntries(iguais(a, b).map((l) => [l, "regiao"])), lb = Object.fromEntries(iguais(b, a).map((l) => [l, "regiao"]));
+    return el("div", { class: "grade2" },
+      codigo({ texto: a, lang: "java", titulo: `<b>${f1}</b> · ${titulo}`, linhas: la, baixo: true }),
+      codigo({ texto: b, lang: "java", titulo: `<b>${f2}</b> · ${titulo}`, linhas: lb, baixo: true }));
+  };
+  const passos = [
+    { t: "Copiar e colar (projeto C)", vista: () => par("C-copia", "Etiqueta.java", "Recibo.java", "projeto C"),
+      txt: `<p>Duas classes montando quase o mesmo texto. Em roxo, as linhas que aparecem iguais nos dois arquivos (essa marcação é uma comparação <b>desta página</b>, linha a linha).</p><p>O que o SonarQube real mediu:</p>`,
+      extra: () => tabela(["arquivo", "linhas duplicadas", "blocos"], Object.entries(C.sonar.porArquivo).map(([f, m]) => [f, m.duplicated_lines, m.duplicated_blocks]).concat([["<b>projeto</b>", `<b>${C.sonar.projeto.duplicated_lines}</b>`, `<b>${C.sonar.projeto.duplicated_blocks}</b>`], ["<b>densidade</b>", `<b>${fmt(C.sonar.projeto.duplicated_lines_density)}%</b>`, ""]]), { rolagem: false }) },
+    { t: "Como o número sai", vista: () => par("C-copia", "Etiqueta.java", "Recibo.java", "projeto C"),
+      txt: `<p><b>Densidade = linhas que estão em algum bloco repetido ÷ linhas do projeto.</b> No C, ${C.sonar.projeto.duplicated_lines} linhas duplicadas: ${fmt(C.sonar.projeto.duplicated_lines_density)}%.</p><p>O SonarQube não compara linha por linha como a marcação roxa: ele quebra o código em pedaços (palavras, símbolos) e procura <b>sequências longas</b> que se repetem. Por isso os blocos dele não batem exatamente com as linhas roxas: uma assinatura de método diferente ou uma linha a mais no fim podem mudar onde o bloco começa e acaba. Trecho repetido curto não conta: tem de ser uma sequência comprida.</p>` },
+    { t: "O Strategy também \"repete\" (projeto B)", vista: () => par("B-strategy", "Bronze.java", "Prata.java", "projeto B"),
+      txt: `<p>Agora a surpresa. No projeto B, ninguém copiou nada de propósito, mas o SonarQube mediu <b>${fmt(B.sonar.projeto.duplicated_lines_density)}%</b> de duplicação: ${B.sonar.porArquivo["Bronze.java"].duplicated_lines} linhas na <code>Bronze</code> e ${B.sonar.porArquivo["Prata.java"].duplicated_lines} na <code>Prata</code>, a <code>Ouro</code> com ${B.sonar.porArquivo["Ouro.java"].duplicated_lines}.</p><p>As classes de uma Strategy têm <b>a mesma forma</b>: os mesmos métodos, na mesma ordem, quase com o mesmo corpo. A <code>Bronze</code> e a <code>Prata</code> diferem só no <code>frete</code> e no número de dias. Repare: o bloco de 18 linhas só cabe se incluir a linha <code>return 2;</code> / <code>return 1;</code> (as linhas iguais em texto, depois dela, são só 17). A comparação do SonarQube olha a <b>forma</b>: um número diferente não quebra a repetição.</p>`,
+      quiz: { p: "Isso quer dizer que o Strategy do B está mal escrito?", op: ["sim, é cópia", "não necessariamente"], certa: 1, exp: "Não necessariamente. É <b>repetição estrutural</b> (classes parecidas, cada uma com o seu comportamento), não cópia de lógica. A métrica não separa uma da outra. É a lição que ficou no DECISOES para a próxima versão: uma medida de duplicação que distinga as duas." } },
+    { t: "No V5", vista: () => par("B-strategy", "Bronze.java", "Prata.java", "projeto B"),
+      txt: `<p>A duplicação média foi de <b>${fmt(V5.duplicacao[0])}%</b> (N0) para <b>${fmt(V5.duplicacao[1])}%</b> (N1). A hipótese \"não repete o comum\" esperava <b>menos</b> duplicação com o harness, e foi <b>contrariada</b>: subiu.</p><p>Os exemplos mostram uma explicação possível, que é só hipótese até alguém olhar os blocos dos pacotes reais: mais classes de nível parecidas (as classes subiram de ${fmt(V5.classes[0])} para ${fmt(V5.classes[1])} em média) dão mais \"repetição\" para o SonarQube.</p>` },
+  ];
+  stepper(host, { chave: "dup", aba: "duplicacao", passos, desenha: (p, i, corpo) => { corpo.append(p.vista(), explicacao(p, [p.extra ? p.extra() : null])); corpo.lastChild.style.marginTop = "12px"; } });
+}
+
+// =====================================================================
+// 5. Code smells
+// =====================================================================
+function abaSmells(sec) {
+  const D = EX["D-smells"], F = arq("D-smells", "CupomService.java");
+  sec.append(el("h2", null, "Code smells e dívida técnica"),
+    el("p", { class: "lead", html: "Um <b>code smell</b> é um trecho que funciona, mas sugere problema de manutenção. O SonarQube aponta cada um por uma <b>regra</b> do perfil \"Sonar way\" (599 regras para Java, no padrão), com uma severidade e um <b>esforço</b> estimado para corrigir. A soma dos esforços é a <b>dívida técnica</b> (<code>sqale_index</code>, em minutos)." }));
+  const host = el("div"); sec.append(host);
+  const SEV = { INFO: "informativa", MINOR: "menor", MAJOR: "maior", CRITICAL: "crítica", BLOCKER: "bloqueadora" };
+  const PQ = {
+    "java:S1128": "o <code>import java.util.List</code> não é usado: ruído.",
+    "java:S1068": "o campo <code>contador</code> nunca é lido nem escrito: código morto.",
+    "java:S1135": "um <code>TODO</code> é trabalho pendente esquecido no código. Severidade só informativa, esforço 0.",
+    "java:S106": "<code>System.out.println</code> no lugar de um log: em produção, some ou polui a saída, e não tem nível (erro, aviso...).",
+    "java:S1192": "o texto <code>\"FRETEGRATIS\"</code> aparece 3 vezes. Se mudar, é preciso lembrar de mudar em todos: melhor uma constante.",
+  };
+  const passos = D.sonar.issues.map((x) => ({ t: `${x.regra}: ${x.nome}`, x }));
+  passos.unshift({ t: "O que o SonarQube achou", todos: true });
+  passos.push({ t: "A conta da dívida, e o que ele não viu", fim: true });
+  const notasTodas = Object.fromEntries(D.sonar.issues.map((x) => [x.linha, { txt: x.regra.replace("java:", ""), cls: "fora" }]));
+  stepper(host, {
+    chave: "smells", aba: "smells", passos,
+    desenha: (p, i, corpo) => {
+      const linhas = {};
+      if (p.x) linhas[p.x.linha] = "erro";
+      const rep = ln(F, 'if (cupom.equals("FRETEGRATIS"))', ln(F, "public String descricao("));
+      const rep2 = ln(F, 'if (cupom.equals("FRETEGRATIS"))', rep + 1);
+      if (p.fim) { linhas[rep2] = "regiao"; }
+      const extra = [];
+      if (p.todos) extra.push(tabela(["linha", "regra", "severidade", "esforço"], D.sonar.issues.map((x) => [x.linha, `<code>${x.regra}</code> ${esc(x.nome)}`, SEV[x.severidade] || x.severidade, x.esforco])));
+      if (p.x) extra.push(el("div", { class: "caixa aconteceu" }, el("div", { class: "rotulo" }, "▶ a mensagem do SonarQube"), H(`<p><code>${esc(p.x.msg)}</code></p><p>linha ${p.x.linha} · severidade <b>${SEV[p.x.severidade]}</b> · esforço <b>${p.x.esforco}</b></p>`)), H(`<p><b>Por quê:</b> ${PQ[p.x.regra] || ""}</p>`));
+      if (p.fim) {
+        const soma = D.sonar.issues.reduce((s, x) => s + parseInt(x.esforco, 10), 0);
+        extra.push(el("div", { class: "caixa certo", html: `<p>Soma dos esforços: ${D.sonar.issues.map((x) => x.esforco).join(" + ")} = <b>${soma} min</b>. O <code>sqale_index</code> do projeto: <b>${D.sonar.projeto.sqale_index} min</b> ${sim(soma === D.sonar.projeto.sqale_index)}</p>` }),
+          H(`<p><b>O que ele não viu.</b> O <code>descricao</code> testa <code>"FRETEGRATIS"</code> duas vezes (linhas ${rep} e ${rep2}, em roxo): o segundo <code>if</code> nunca é verdadeiro. Nenhuma regra do perfil padrão acusou. (A regra de condição repetida do SonarQube olha cadeias <code>if / else if</code>; aqui são dois <code>if</code> separados.) O SonarQube aponta o que as regras dele descrevem, e só isso.</p>
+          <p><b>E os outros projetos?</b> A, B e C: <b>0</b> smells. Código pequeno e limpo quase não dispara regra. No V5, a hipótese \"menos code smells\" deu <b>inconclusiva</b>.</p>`));
+      }
+      duasColunas(corpo, codigo({ texto: F, lang: "java", titulo: "<b>CupomService.java</b> · projeto D", atual: p.x ? [[p.x.linha, p.x.linha]] : [], linhas, notas: notasTodas }), explicacao({ t: p.t, txt: p.todos ? `<p>${D.sonar.issues.length} code smells. Use <kbd>→</kbd> para ver um por um.</p>` : null }, extra));
+    },
+  });
+}
+
+// =====================================================================
+// 6. CK
+// =====================================================================
+function abaCK(sec) {
+  sec.append(el("h2", null, "CK: as métricas de cada classe"),
+    el("p", { class: "lead", html: "O CK mede <b>classe por classe</b> as métricas de orientação a objetos de Chidamber e Kemerer (daí o nome). Escolha uma classe: para cada métrica, a página refaz a conta no código e confere com o número que o CK real devolveu." }));
+  const barra = el("div", { class: "linha-botoes" }), corpo = el("div");
+  sec.append(barra, corpo);
+  const opcoes = [["B-strategy", "Niveis"], ["B-strategy", "Prata"], ["B-strategy", "Nivel"], ["B-strategy", "FreteService"], ["B-strategy", "ResumoService"], ["A-remendo", "FreteService"], ["A-remendo", "ResumoService"]];
+  const mostra = (P, cl) => {
+    lembra("ckSel", P + "/" + cl);
+    barra.replaceChildren(el("span", { class: "mini" }, "classe: "), ...opcoes.map(([p, c]) => el("button", { class: "b" + (p === P && c === cl ? " on" : ""), onclick: () => mostra(p, c) }, `${c} (${p[0]})`)));
+    const proj = EX[P], c = proj.ck.find((x) => x.classe === cl), texto = arq(P, cl + ".java");
+    const tipos = proj.ck.map((x) => x.classe);
+    const cita = (t, nome) => new RegExp(`\\b${nome}\\b`).test(t.replace(/"[^"]*"/g, '""'));
+    const usa = tipos.filter((n) => n !== cl && cita(texto, n));
+    const usadoPor = tipos.filter((n) => n !== cl && cita(arq(P, n + ".java"), cl));
+    const met = proj.metodos.filter((m) => m.classe === cl).sort((a, b) => a.linha - b.linha);
+    const chamadas = [...new Set([...texto.replace(/"[^"]*"/g, '""').matchAll(/\.(\w+)\s*\(/g)].map((m) => m[1]))];
+    const n = c.metodos, pares = n * (n - 1) / 2;
+    const cards = [
+      ["CBO · acoplamento", c.cbo, `<p>Quantos <b>outros tipos</b> a classe usa. Nesta: <code>${usa.join(", ") || "nenhum"}</code> = ${usa.length}. ${sim(usa.length === c.cbo)}</p><p class="mini">Nos exemplos, tipos do próprio Java (<code>String</code>, <code>BigDecimal</code>, <code>Map</code>, <code>Math</code>) não entram na conta do CK: o <code>FreteService</code> do A usa <code>BigDecimal</code> e tem CBO 0. O TCC usa a <b>média</b> do CBO das classes.</p>`],
+      ["fan-in · quem usa esta classe", c.fanin, `<p>O contrário do CBO: quantas classes usam <b>esta</b>. Aqui: <code>${usadoPor.join(", ") || "nenhuma"}</code> = ${usadoPor.length}. ${sim(usadoPor.length === c.fanin)}</p>`],
+      ["WMC · complexidade somada", c.wmc, `<p>A complexidade ciclomática de cada método, somada (aba 2). ${met.map((m) => `<code>${m.metodo}</code> ${m.wmc}`).join(" + ")} = ${met.reduce((s, m) => s + m.wmc, 0)}. ${sim(met.reduce((s, m) => s + m.wmc, 0) === c.wmc)}</p>`],
+      ["DIT · profundidade de herança", c.dit, `<p>Quantos níveis de <code>extends</code> até <code>Object</code>. Toda classe que não estende nada vale 1. <b>Implementar uma interface não conta</b>: a <code>Prata implements Nivel</code> continua com DIT 1.</p>`],
+      ["RFC · resposta da classe", c.rfc, `<p>Quantos <b>métodos diferentes</b> a classe chama. Achados pelo nome, no código: <code>${chamadas.join(", ") || "nenhum"}</code> = ${chamadas.length}. ${chamadas.length === c.rfc ? sim(true) : `<span class="mini">O CK deu ${c.rfc}: ele conta cada <b>versão</b> de um método separado. Aqui, o <code>append</code> é chamado com texto, com caractere (<code>'\\n'</code>) e com número: são três <code>append</code> diferentes para o Java.</span>`}</p><p class="mini">Construtores (<code>new BigDecimal(...)</code>) não entraram na conta do CK nos exemplos.</p>`],
+      ["LCOM · falta de coesão", c.lcom, `<p>Olha os <b>pares de métodos</b>: conta os que <b>não</b> usam nenhum campo em comum, menos os que usam (mínimo 0). Esta classe tem ${n} métodos e ${c.campos} campo(s)${c.campos === 0 ? `: sem campo, nenhum par compartilha nada, e todos os ${pares} pares contam. ${sim(pares === c.lcom)}` : "."}</p><p class="mini"><b>Cuidado ao ler:</b> uma classe de Strategy sem estado (<code>Bronze</code>, <code>Prata</code>, <code>Ouro</code>: 5 métodos, nenhum campo) tira LCOM <b>10</b>, o máximo para 5 métodos, embora seja coesa por desenho (tudo nela é \"o nível Prata\"). O LCOM clássico pune classe sem campo. O TCC usa a <b>média</b> do LCOM.</p>`],
+    ];
+    corpo.replaceChildren(el("div", { class: "grade2" },
+      el("div", { class: "pilha" }, codigo({ texto, lang: "java", titulo: `<b>${cl}.java</b> · projeto ${P}` }),
+        el("div", { class: "painel" }, el("div", { class: "rotulo" }, "a linha do CK para esta classe (class.csv)"), tabela(["cbo", "fan-in", "wmc", "dit", "noc", "rfc", "lcom", "métodos", "campos", "loc"], [[c.cbo, c.fanin, c.wmc, c.dit, c.noc, c.rfc, c.lcom, c.metodos, c.campos, c.loc]], { rolagem: false }))),
+      el("div", { class: "pilha" }, cards.map(([t, v, h]) => el("div", { class: "painel" }, el("div", { class: "rotulo" }, t, el("span", { class: "dir" }, el("b", { style: "font-size:18px;color:var(--fg)" }, String(v)))), H(h))))));
+  };
+  const [p0, c0] = (MEM.ckSel || "B-strategy/Niveis").split("/");
+  mostra(EX[p0] ? p0 : "B-strategy", c0 || "Niveis");
+}
+
+// =====================================================================
+// 7. A x B
+// =====================================================================
+function resumoCK(lista) {
+  // as mesmas contas do aggregate-metrics.mjs (tipos com nome; media, maximo, soma)
+  const TIPOS = ["class", "interface", "enum", "record"];
+  const cls = lista.filter((c) => TIPOS.includes(c.tipo));
+  const media = (k) => cls.reduce((s, c) => s + c[k], 0) / cls.length;
+  const max = (k) => Math.max(...cls.map((c) => c[k]));
+  return { tipos: cls.length, cbo_media: media("cbo"), cbo_max: max("cbo"), wmc_soma: lista.reduce((s, c) => s + c.wmc, 0), wmc_max: max("wmc"), lcom_media: media("lcom"), rfc_media: media("rfc"), dit_max: max("dit") };
+}
+function abaAxB(sec) {
+  const A = EX["A-remendo"], B = EX["B-strategy"], ra = resumoCK(A.ck), rb = resumoCK(B.ck);
+  const seta = (a, b, melhor) => a === b ? "=" : (b < a) === (melhor === "menos") ? '<span class="sim">' + (b < a ? "▼" : "▲") + "</span>" : '<span class="nao">' + (b < a ? "▼" : "▲") + "</span>";
+  const linhas = [
+    ["linhas de código", "sonar", A.sonar.projeto.ncloc, B.sonar.projeto.ncloc, "menos"],
+    ["classes", "sonar", A.sonar.projeto.classes, B.sonar.projeto.classes, null],
+    ["complexidade ciclomática", "sonar", A.sonar.projeto.complexity, B.sonar.projeto.complexity, "menos"],
+    ["★ complexidade cognitiva", "sonar", A.sonar.projeto.cognitive_complexity, B.sonar.projeto.cognitive_complexity, "menos"],
+    ["duplicação (%)", "sonar", A.sonar.projeto.duplicated_lines_density, B.sonar.projeto.duplicated_lines_density, "menos"],
+    ["code smells", "sonar", A.sonar.projeto.code_smells, B.sonar.projeto.code_smells, "menos"],
+    ["CBO médio", "CK", ra.cbo_media, rb.cbo_media, "menos"],
+    ["CBO máximo", "CK", ra.cbo_max, rb.cbo_max, "menos"],
+    ["WMC somado", "CK", ra.wmc_soma, rb.wmc_soma, "menos"],
+    ["WMC máximo (a classe mais complexa)", "CK", ra.wmc_max, rb.wmc_max, "menos"],
+    ["LCOM médio", "CK", ra.lcom_media, rb.lcom_media, "menos"],
+    ["RFC médio", "CK", ra.rfc_media, rb.rfc_media, "menos"],
+  ];
+  sec.append(el("h2", null, "A × B: o mesmo frete, dois desenhos"),
+    el("p", { class: "lead", html: "Todas as medidas lado a lado. As do CK estão resumidas com as <b>mesmas contas</b> do <code>aggregate-metrics.mjs</code> (média e máximo sobre as classes com nome, WMC somado). Verde: melhorou; vermelho: piorou (no sentido em que menos é melhor)." }),
+    el("div", { class: "grade2" },
+      el("div", { class: "painel" }, tabela(["medida", "ferramenta", "A · remendo", "B · Strategy", ""], linhas.map(([n, f, a, b, m]) => [n, f, fmt(a), fmt(b), m ? seta(a, b, m) : ""]), { rolagem: false })),
+      el("div", { class: "painel" }, H(`<h3 style="margin-top:0">A troca</h3>
+        <p>O Strategy <b>concentra</b> a complexidade: a <b>cognitiva</b> cai (${A.sonar.projeto.cognitive_complexity} → ${B.sonar.projeto.cognitive_complexity}) e a classe mais complexa fica mais simples (WMC máximo ${ra.wmc_max} → ${rb.wmc_max}). Em troca, há <b>mais código</b> (${A.sonar.projeto.ncloc} → ${B.sonar.projeto.ncloc} linhas), <b>mais classes</b> (${A.sonar.projeto.classes} → ${B.sonar.projeto.classes}), <b>mais acoplamento</b> médio (a interface e o mapa ligam todo mundo), a <b>duplicação estrutural</b> das classes parecidas e o <b>LCOM</b> alto das classes sem estado.</p>
+        <p>Nenhuma métrica sozinha diz "melhor desenho". Cada uma mede uma coisa, e o Strategy troca umas pelas outras.</p>
+        <h3>E no V5?</h3>`),
+        tabela(["média por execução", "N0", "N1", "N2", "N3"], [
+          ["★ complexidade cognitiva", ...V5.cognitiva.map(fmt)],
+          ["linhas de código", ...V5.linhas.map(fmt)],
+          ["classes", ...V5.classes.map(fmt)],
+          ["duplicação (%)", ...V5.duplicacao.map(fmt)],
+        ], { rolagem: false }),
+        H(`<p>A mesma direção dos exemplos: com o harness, a cognitiva caiu, e linhas, classes e duplicação subiram. <span class="mini">Fonte: <code>analysis/resultados-V5-STRATEGY.md</code>.</span></p>`))));
+}
+
+// =====================================================================
+// 8. Os scripts do TCC: metrics.sh e aggregate-metrics.mjs
+// =====================================================================
+function abaScripts(sec) {
+  sec.append(el("h2", null, "O que é do TCC: metrics.sh e aggregate-metrics.mjs"),
+    el("p", { class: "lead", html: "Os dois únicos arquivos escritos para o TCC em volta das ferramentas. Nenhum muda o que elas medem: um <b>roda</b>, o outro <b>junta</b>." }));
+  const barra = el("div", { class: "linha-botoes" }), host = el("div");
+  sec.append(barra, host);
+  const MS = [
+    [[1, 31], "O cabeçalho", "<p>Uso: <code>metrics.sh &lt;prefixo&gt;</code> (o lote, como <code>V5-STRATEGY</code>). Mede o código de produção já compilado pelo build. <b>Não julga nada</b>, só extrai números: por isso roda direto nas execuções, sem a cópia cega (\"uma ferramenta não sabe qual é o braço\"). Recusa refazer uma análise por cima de outra.</p>"],
+    [[33, 38], "Travas e o nome do lote", "<p><code>set -uo pipefail</code> e <code>morrer</code>, como no <code>detect.sh</code>. O prefixo só pode ter letras, números e hífen (o <code>case</code> recusa o resto): ele vira nome de pasta e chave no SonarQube.</p>"],
+    [[40, 42], "Os caminhos", "<p>A raiz do projeto, a pasta de saída (<code>evaluation/metrics/&lt;prefixo&gt;</code>) e o <code>.env.sonar</code>, o arquivo com o token de acesso ao servidor (fora do git).</p>"],
+    [[44, 51], "As versões travadas", "<p>O <code>.jar</code> do CK e o hash dele, a imagem do SonarQube, a do scanner (pelo hash), o endereço do servidor e a rede Docker. E a lista <code>METRICAS</code>: as 9 medidas que serão pedidas ao SonarQube.</p>"],
+    [[53, 55], "Preflight: o CK é o travado?", "<p>O <code>.jar</code> existe e o sha256 dele é o anotado. Se alguém trocar o <code>.jar</code>, para aqui.</p>"],
+    [[56, 61], "Preflight: o SonarQube é o travado e está de pé?", "<p>O token existe no <code>.env.sonar</code>; o container <code>tcc-sonarqube</code> usa a imagem travada e está rodando; o servidor responde <code>UP</code>; a imagem do scanner está presente.</p>"],
+    [[62, 64], "A rede", "<p>O scanner roda num container e precisa falar com o servidor, que é outro container: os dois entram na mesma rede Docker (<code>tcc-sonar-net</code>).</p>"],
+    [[66, 68], "As execuções do lote", "<p>Lista as pastas <code>runs/&lt;prefixo&gt;-*</code>. Se a pasta de saída já existe, para: nada é refeito por cima.</p>"],
+    [[70, 75], "O token, e nunca refazer", "<p>O token é lido para uma variável e <b>nunca é impresso</b>. Para cada execução, pergunta ao servidor se ela já existe lá (HTTP 404 = não existe). Se existir, para: uma análise nunca é refeita por cima de outra.</p>"],
+    [[77, 79], "Começa", "<p>Cria a pasta de saída e avisa quantas execuções vai medir.</p>"],
+    [[82, 88], "Por execução: achar o projeto", "<p>O <code>pom.xml</code> mais raso, a mesma regra do build e do Semgrep. Sem <code>pom</code> ou sem <code>src/main/java</code>, anota o motivo no <code>status</code> e passa para a próxima.</p>"],
+    [[90, 91], "Roda o CK", "<p><code>java -jar ck.jar &lt;src/main/java&gt; false 0 false &lt;saída&gt;</code>. Os três do meio dizem ao CK: não usar os <code>.jar</code> do projeto (<code>false</code>), deixar ele decidir quantos arquivos lê de cada vez (<code>0</code>), e não gerar as tabelas por variável e por campo (<code>false</code>). Ele escreve o <code>class.csv</code> (uma linha por classe) e o <code>method.csv</code>.</p>"],
+    [[93, 100], "Roda o scanner do SonarQube", "<p>Precisa das classes compiladas (<code>target/classes</code>): a análise de Java do SonarQube usa os <code>.class</code>. O scanner roda num container, com o código montado <b>só para leitura</b>. Os parâmetros: a chave (o nome da execução), onde está o código, onde estão os compilados, Java 21, e sem olhar o git. Nenhum mexe no perfil de regras: vale o padrão.</p>"],
+    [[102, 110], "Espera as medidas", "<p>O scanner manda o relatório e sai; o servidor processa depois. O script pergunta a cada 3 segundos, até 40 vezes, se as medidas já estão lá, e grava o <code>measures.json</code>.</p>"],
+    [[113, 113], "Junta tudo", "<p>Chama o <code>aggregate-metrics.mjs</code> (o outro botão, acima).</p>"],
+  ];
+  const AG = [
+    [[1, 14], "O cabeçalho", "<p>Junta o que o <code>metrics.sh</code> gravou num CSV, uma linha por execução. \"Só junta números: nenhuma leitura nem nota sai daqui.\"</p>"],
+    [[25, 37], "Ler o CSV do CK, e ajudantes", "<p>Um leitor de CSV que respeita aspas (no Windows, o caminho do arquivo pode vir entre aspas), e três ajudantes: número, média, formato.</p>"],
+    [[39, 42], "As colunas do SonarQube, e os tipos", "<p>As 9 medidas do SonarQube viram colunas <code>sonar_*</code>. <code>TIPOS</code>: os tipos <b>com nome</b> (classe, interface, enum, record).</p>"],
+    [[44, 51], "Por execução: quem é", "<p>Lê o <code>meta.json</code> da execução só para identificar: modelo, braço, réplica, e o nível (N0 a N3), tirado do fim do nome.</p>"],
+    [[53, 55], "As medidas do SonarQube", "<p>Copia cada medida do <code>measures.json</code> para a coluna <code>sonar_*</code>, sem conta nenhuma.</p>"],
+    [[57, 75], "O resumo do CK", "<p>O CK dá uma linha por classe; o CSV precisa de um número por execução. Aqui estão as únicas escolhas do TCC:</p><ul><li>contagens por tipo (<code>ck_class</code>, <code>ck_interface</code>...);</li><li>as classes <b>anônimas</b> (o corpo de cada constante de enum com comportamento próprio) ficam numa coluna à parte e fora das médias, mas entram na soma do WMC (a lógica delas também é código);</li><li><b>média</b> de CBO, LCOM e RFC; <b>máximo</b> de CBO, WMC e DIT; <b>soma</b> de WMC.</li></ul><p>A aba \"A × B\" faz exatamente estas contas nos exemplos.</p>"],
+    [[78, 83], "Grava o CSV", "<p>Escreve o <code>metricas.csv</code>, que o <code>hipoteses.mjs</code> lê.</p>"],
+  ];
+  const roda = (qual) => {
+    lembra("scriptSel", qual);
+    barra.replaceChildren(...[["metrics", "metrics.sh"], ["aggregate", "aggregate-metrics.mjs"]].map(([k, n]) => el("button", { class: "b" + (k === qual ? " on" : ""), onclick: () => roda(k) }, n)));
+    const lista = qual === "metrics" ? MS : AG, fonte = qual === "metrics" ? DADOS.fontes.metrics : DADOS.fontes.aggregate;
+    stepper(host, {
+      chave: "script:" + qual, aba: "scripts", passos: lista.map(([l, t, txt]) => ({ l, t, txt })),
+      desenha: (p, i, corpo) => duasColunas(corpo, codigo({ texto: fonte, lang: qual === "metrics" ? "bash" : "js", titulo: `<b>${qual === "metrics" ? "metrics.sh" : "aggregate-metrics.mjs"}</b> · TCC_V5/evaluation/tools`, atual: [p.l] }), explicacao(p)),
+    });
+  };
+  roda(MEM.scriptSel === "aggregate" ? "aggregate" : "metrics");
+}
+
+// =====================================================================
+// 9. Cuidados e autoavaliacao
+// =====================================================================
+function abaAuto(sec) {
+  const Q = [
+    ["O SonarQube e o CK precisaram de validação como o Semgrep? Por quê?", "Não da mesma forma. As regras e as métricas são as <b>padrão</b> das ferramentas (o perfil \"Sonar way\", as métricas de Chidamber e Kemerer), usadas na indústria e na pesquisa; qualquer um reproduz com as mesmas versões. O que o TCC garante é que as versões são as travadas (hash) e que os scripts só rodam e juntam. O Semgrep é diferente porque as regras são <b>nossas</b>."],
+    ["Qual a diferença entre a complexidade ciclomática e a cognitiva?", "A ciclomática conta <b>caminhos</b>: +1 por método e por decisão, sem ligar para aninhamento. A cognitiva tenta medir <b>esforço de leitura</b>: método não conta, o <code>else</code> conta, e cada nível de aninhamento encarece. Num desenho com muitos métodos pequenos (Strategy), a ciclomática sobe e a cognitiva cai."],
+    ["Por que a hipótese principal de qualidade usa a cognitiva?", "Porque ela mede o que o padrão promete melhorar: tirar a decisão \"qual nível?\" do meio do código e evitar <code>if</code> em escada. A ciclomática puniria o Strategy só por ter mais métodos (no exemplo, dobrou)."],
+    ["O B (Strategy) teve 20% de duplicação. Isso prova que ele é pior?", "Não. É <b>repetição estrutural</b>: classes com a mesma forma, cada uma com o seu comportamento. A medida de duplicação do SonarQube não separa isso de cópia de lógica. Por isso a hipótese \"não repete o comum\" contrariada no V5 pede cuidado na interpretação."],
+    ["Por que o LCOM de uma classe de nível (Bronze) é 10, e o que isso diz?", "Ela tem 5 métodos e nenhum campo: os 10 pares de métodos não compartilham campo, e todos contam. O LCOM clássico pune classe sem estado, mesmo coesa por desenho. Não quer dizer que a classe é ruim."],
+    ["O que o CBO conta, e o que fica de fora?", "Os outros tipos do <b>projeto</b> que a classe usa. Nos exemplos, os tipos do Java (<code>String</code>, <code>BigDecimal</code>, <code>Map</code>) não entraram. Um Strategy aumenta o CBO médio: a interface e o mapa ligam várias classes."],
+    ["O que é a dívida técnica do SonarQube?", "A soma dos esforços estimados para corrigir cada code smell, em minutos (<code>sqale_index</code>). No exemplo D: 1 + 5 + 0 + 10 + 8 = 24 min. É uma estimativa do fabricante, não uma medida de tempo real."],
+    ["O que o TCC escolheu, nas métricas?", "Quais medidas pedir (9 do SonarQube, as do CK), as versões travadas, e o <b>resumo</b> por execução no <code>aggregate-metrics.mjs</code>: média ou máximo ou soma, só sobre as classes com nome. E quais colunas entram em quais hipóteses (<code>hipoteses.mjs</code>)."],
+  ];
+  sec.append(el("h2", null, "Cuidados de leitura e autoavaliação"),
+    el("div", { class: "painel", style: "max-width:900px;margin-bottom:12px" }, H(`<h3 style="margin-top:0">O que as métricas não dizem</h3><ul>
+      <li><b>Nenhuma diz "bom desenho".</b> Cada uma mede uma coisa; um padrão troca umas pelas outras (aba A × B).</li>
+      <li><b>Média esconde forma.</b> O TCC compara médias por execução; uma execução com uma classe enorme e várias pequenas pode ter a mesma média de outra bem distribuída. O WMC máximo ajuda a ver isso.</li>
+      <li><b>Pequeno quase não pontua.</b> Code smells e duplicação dependem de tamanho: código curto e limpo tende a zero.</li>
+      <li><b>As ferramentas não sabem o enunciado.</b> Uma classe que ninguém usa é medida igual a uma usada.</li>
+    </ul>`)),
+    el("p", { class: "lead" }, "Responda de cabeça antes de abrir."),
+    el("div", { style: "max-width:900px" }, Q.map(([q, r], k) => el("details", { class: "r" }, el("summary", { html: `${k + 1}. ${q}` }), H(`<p>${r}</p>`)))));
+}
+
+// ---- main.js ----
+// main.js: as abas e o tema.
+"use strict";
+
+const ABAS = [
+  { id: "mapa", nome: "0 · O mapa", init: abaMapa },
+  { id: "exemplos", nome: "1 · Os exemplos", init: abaExemplos },
+  { id: "ciclomatica", nome: "2 · Ciclomática", init: abaCiclomatica },
+  { id: "cognitiva", nome: "3 · Cognitiva ★", init: abaCognitiva },
+  { id: "duplicacao", nome: "4 · Duplicação", init: abaDuplicacao },
+  { id: "smells", nome: "5 · Code smells", init: abaSmells },
+  { id: "ck", nome: "6 · CK", init: abaCK },
+  { id: "axb", nome: "7 · A × B", init: abaAxB },
+  { id: "scripts", nome: "8 · Os scripts do TCC", init: abaScripts },
+  { id: "auto", nome: "9 · Cuidados e autoavaliação", init: abaAuto },
+];
+const SECOES = {}, BOTOES = {}, PRONTAS = new Set();
+
+function mostraAba(id) {
+  if (!SECOES[id]) id = "mapa";
+  ABA_ATUAL = id;
+  lembra("aba", id);
+  for (const a of ABAS) { SECOES[a.id].classList.toggle("ativa", a.id === id); BOTOES[a.id].classList.toggle("ativa", a.id === id); }
+  if (!PRONTAS.has(id)) {
+    PRONTAS.add(id);
+    try { ABAS.find((a) => a.id === id).init(SECOES[id]); }
+    catch (e) { SECOES[id].append(el("div", { class: "caixa aviso" }, "Erro ao montar esta aba: " + e.message)); console.error(e); }
+  }
+  BOTOES[id].scrollIntoView({ block: "nearest", inline: "nearest" });
+  window.scrollTo({ top: 0 });
+}
+
+(function inicia() {
+  const faixa = document.querySelector("nav.abas .faixa");
+  const main = document.querySelector("main");
+  for (const a of ABAS) {
+    BOTOES[a.id] = el("button", { onclick: () => mostraAba(a.id) }, a.nome);
+    faixa.append(BOTOES[a.id]);
+    SECOES[a.id] = el("section", { class: "aba", id: "aba-" + a.id });
+    main.append(SECOES[a.id]);
+  }
+  const temas = ["auto", "light", "dark"], nomes = { auto: "tema: automático", light: "tema: claro", dark: "tema: escuro" };
+  let tema = temas.includes(MEM.tema) ? MEM.tema : "auto";
+  const bt = document.querySelector("button.tema");
+  const pinta = () => { if (tema === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", tema); bt.textContent = nomes[tema]; };
+  bt.onclick = () => { tema = temas[(temas.indexOf(tema) + 1) % temas.length]; lembra("tema", tema); pinta(); };
+  pinta();
+  mostraAba(MEM.aba || "mapa");
+})();
+
+</script>
+</body>
+</html>

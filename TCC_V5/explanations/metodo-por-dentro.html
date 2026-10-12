@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O método por dentro</title>
+<style>
+:root {
+  --bg: #f6f5f1; --bg2: #ffffff; --bg3: #efede6; --fg: #1d1f24; --muted: #646a73; --line: #dcd9cf;
+  --accent: #2f5bd3; --accent-fg: #ffffff;
+  --ok: #1d8a4e; --ok-bg: #d8f1e2; --bad: #c0392b; --bad-bg: #fbe0dc;
+  --cand: #2f5bd3; --cand-bg: #dde6fb; --reg-bg: #ece3fb; --reg: #7b4bd1;
+  --cur-bg: #fff3c4; --cur: #c99a00; --hit-bg: #ffe08a;
+  --code-bg: #fbfaf7; --kw: #8a3ab9; --str: #1f7a3d; --com: #8a8f98; --num: #b5531a; --key: #2f5bd3;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.04);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171b; --bg2: #1d2026; --bg3: #262a31; --fg: #e6e8eb; --muted: #9aa1ab; --line: #343943;
+    --accent: #7ea2ff; --accent-fg: #0f1115;
+    --ok: #5fd08f; --ok-bg: #173a27; --bad: #ff8a7a; --bad-bg: #44211d;
+    --cand: #8fb0ff; --cand-bg: #1f2c4d; --reg-bg: #2e2445; --reg: #b597ff;
+    --cur-bg: #3a3215; --cur: #f0c94a; --hit-bg: #6b5410;
+    --code-bg: #181b20; --kw: #d19bf5; --str: #7fd49a; --com: #7d848f; --num: #f2a26b; --key: #8fb0ff;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171b; --bg2: #1d2026; --bg3: #262a31; --fg: #e6e8eb; --muted: #9aa1ab; --line: #343943;
+  --accent: #7ea2ff; --accent-fg: #0f1115;
+  --ok: #5fd08f; --ok-bg: #173a27; --bad: #ff8a7a; --bad-bg: #44211d;
+  --cand: #8fb0ff; --cand-bg: #1f2c4d; --reg-bg: #2e2445; --reg: #b597ff;
+  --cur-bg: #3a3215; --cur: #f0c94a; --hit-bg: #6b5410;
+  --code-bg: #181b20; --kw: #d19bf5; --str: #7fd49a; --com: #7d848f; --num: #f2a26b; --key: #8fb0ff;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+code, .mono { font-family: "Cascadia Code", "JetBrains Mono", Consolas, ui-monospace, monospace; font-size: .9em; }
+p code, li code, td code, .txt code { background: var(--bg3); padding: .05em .3em; border-radius: 4px; }
+a { color: var(--accent); }
+header.topo { padding: 18px 16px 6px; max-width: 1500px; margin: 0 auto; }
+header.topo h1 { font-size: 22px; margin: 0 0 2px; letter-spacing: -.01em; }
+header.topo p { margin: 0; color: var(--muted); font-size: 14px; }
+nav.abas { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+nav.abas .faixa { display: flex; gap: 4px; overflow-x: auto; padding: 8px 16px; max-width: 1500px; margin: 0 auto; scrollbar-width: thin; }
+nav.abas button { flex: none; border: 1px solid var(--line); background: var(--bg2); color: var(--fg); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
+nav.abas button:hover { border-color: var(--accent); }
+nav.abas button.ativa { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+main { max-width: 1500px; margin: 0 auto; padding: 14px 16px 60px; }
+section.aba { display: none; }
+section.aba.ativa { display: block; }
+h2 { font-size: 19px; margin: 6px 0 8px; }
+h3 { font-size: 15.5px; margin: 14px 0 6px; }
+.lead { color: var(--muted); margin: 0 0 12px; max-width: 900px; }
+.painel { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); min-width: 0; }
+.grade2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.grade-lab { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 1000px) { .grade2, .grade-lab { grid-template-columns: minmax(0, 1fr); } }
+.pilha > * + * { margin-top: 12px; }
+.rotulo { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rotulo .dir { margin-left: auto; text-transform: none; letter-spacing: 0; }
+
+/* controles do passo a passo */
+.controles { position: sticky; top: 49px; z-index: 10; display: flex; align-items: center; gap: 6px; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.controles button { border: 1px solid var(--line); background: var(--bg3); color: var(--fg); border-radius: 8px; min-width: 36px; height: 34px; font: inherit; cursor: pointer; }
+.controles button:hover:not(:disabled) { border-color: var(--accent); }
+.controles button:disabled { opacity: .4; cursor: default; }
+.controles button.prox { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); padding: 0 14px; font-weight: 600; }
+.controles .info { flex: 1; min-width: 0; }
+.controles .info .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.controles .info .n { font-size: 12px; color: var(--muted); }
+.controles .barra { height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.controles .barra i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+.controles .dica { font-size: 12px; color: var(--muted); white-space: nowrap; }
+@media (max-width: 700px) { .controles .dica { display: none; } }
+
+/* codigo */
+.codigo { position: relative; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; font-family: "Cascadia Code", "JetBrains Mono", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.55; overflow: auto; max-height: 62vh; }
+.codigo.baixo { max-height: 40vh; }
+.codigo .cab { position: sticky; top: 0; z-index: 2; background: var(--bg3); border-bottom: 1px solid var(--line); padding: 4px 10px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.codigo .cab b { color: var(--fg); font-weight: 600; }
+.codigo .corpo { min-width: max-content; padding: 4px 0; }
+.ln { display: flex; position: relative; padding-right: 12px; }
+.ln .num { flex: none; width: 3.4em; text-align: right; padding-right: .9em; color: var(--muted); user-select: none; opacity: .7; }
+.ln .src { white-space: pre; flex: none; }
+.ln .nota { flex: none; margin-left: 14px; font-family: system-ui, sans-serif; font-size: 11.5px; padding: 0 7px; border-radius: 999px; align-self: center; white-space: nowrap; }
+.ln .nota.ok { background: var(--ok-bg); color: var(--ok); }
+.ln .nota.fora { background: var(--bad-bg); color: var(--bad); }
+.ln .nota.cand { background: var(--cand-bg); color: var(--cand); }
+.ln .nota.reg { background: var(--reg-bg); color: var(--reg); }
+.ln.atual { background: var(--cur-bg); box-shadow: inset 3px 0 0 var(--cur); }
+.ln.regiao { background: var(--reg-bg); box-shadow: inset 3px 0 0 var(--reg); }
+.ln.erro { background: var(--bad-bg); box-shadow: inset 3px 0 0 var(--bad); }
+.ln.apagada .src { opacity: .45; }
+.ln.feita .num { color: var(--ok); opacity: 1; }
+.s-kw { color: var(--kw); } .s-str { color: var(--str); } .s-com { color: var(--com); font-style: italic; } .s-num { color: var(--num); } .s-key { color: var(--key); }
+.m-cand { background: var(--cand-bg); outline: 1px solid var(--cand); border-radius: 2px; }
+.m-ok { background: var(--ok-bg); outline: 1px solid var(--ok); border-radius: 2px; }
+.m-fora { background: var(--bad-bg); text-decoration: line-through; text-decoration-color: var(--bad); border-radius: 2px; }
+.m-hit { background: var(--hit-bg); border-radius: 2px; }
+.m-hitsel { background: var(--hit-bg); outline: 2px solid var(--cur); border-radius: 2px; }
+.m-erro { text-decoration: underline wavy var(--bad); }
+
+/* explicacao */
+.passo-t { font-size: 17px; font-weight: 650; margin: 0 0 6px; }
+.txt p { margin: 0 0 9px; }
+.txt ul, .txt ol { margin: 0 0 9px; padding-left: 20px; }
+.txt li { margin: 2px 0; }
+.caixa { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: var(--bg); margin-top: 10px; }
+.caixa.aconteceu { border-left: 4px solid var(--cur); }
+.caixa.aconteceu .rotulo { color: var(--cur); }
+.caixa.aviso { border-left: 4px solid var(--bad); }
+.caixa.certo { border-left: 4px solid var(--ok); }
+table.t { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.t th, table.t td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+table.t th { color: var(--muted); font-weight: 600; font-size: 12px; }
+table.t td.mono, table.t td code { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12px; word-break: break-all; }
+.sim { color: var(--ok); font-weight: 700; } .nao { color: var(--bad); font-weight: 700; }
+.tabela-rolagem { max-height: 340px; overflow: auto; }
+.estado td:first-child { white-space: nowrap; color: var(--muted); }
+.pill { display: inline-block; font-size: 11.5px; padding: 0 7px; border-radius: 999px; background: var(--bg3); color: var(--muted); border: 1px solid var(--line); }
+.pill.java { color: var(--kw); } .pill.texto { color: var(--str); }
+input[type=text], textarea, select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; width: 100%; }
+textarea { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.5; min-height: 180px; resize: vertical; }
+button.b { border: 1px solid var(--line); background: var(--bg3); color: var(--fg); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+button.b:hover { border-color: var(--accent); }
+button.b.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.linha-botoes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.quiz { border: 1px dashed var(--accent); border-radius: 10px; padding: 9px 11px; margin-top: 10px; background: var(--bg); }
+.quiz .q { font-weight: 600; margin-bottom: 6px; }
+.quiz .r { margin-top: 8px; display: none; }
+.quiz.respondida .r { display: block; }
+.quiz button.certa { background: var(--ok-bg); border-color: var(--ok); }
+.quiz button.errada { background: var(--bad-bg); border-color: var(--bad); }
+.lista-regras { display: flex; flex-direction: column; gap: 3px; max-height: 75vh; overflow: auto; }
+.lista-regras .grupo { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 2px; }
+.lista-regras button { text-align: left; border: 1px solid transparent; background: none; color: var(--fg); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; }
+.lista-regras button:hover { background: var(--bg3); }
+.lista-regras button.ativa { background: var(--cand-bg); border-color: var(--cand); }
+@media (max-width: 1000px) { .lista-regras { flex-direction: row; flex-wrap: wrap; max-height: none; } .lista-regras .grupo { width: 100%; } }
+.arvore { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; }
+.arvore div { white-space: pre; padding: 0 6px; border-radius: 4px; }
+.arvore .foco { background: var(--cur-bg); box-shadow: inset 3px 0 0 var(--cur); }
+.arvore .ign { color: var(--muted); text-decoration: line-through; }
+.arvore .cop { color: var(--ok); font-weight: 600; }
+.arvore .fora { color: var(--bad); }
+.arvore .proj { background: var(--ok-bg); }
+.tag { display: inline-block; font-family: system-ui, sans-serif; font-size: 11px; padding: 0 6px; border-radius: 999px; margin-left: 6px; background: var(--bg3); color: var(--muted); }
+.tag.ok { background: var(--ok-bg); color: var(--ok); } .tag.fora { background: var(--bad-bg); color: var(--bad); } .tag.cand { background: var(--cand-bg); color: var(--cand); } .tag.reg { background: var(--reg-bg); color: var(--reg); }
+.fita { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-height: 300px; overflow: auto; }
+.fita .codigo-k { color: var(--fg); } .fita .texto-k { color: var(--str); background: rgba(31,122,61,.08); }
+.fita .com-k { color: var(--bad); text-decoration: line-through; background: var(--bad-bg); }
+.fita .atual-k { outline: 2px solid var(--cur); border-radius: 3px; }
+.fita .depois { opacity: .45; }
+.mapa { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.no { border: 1px solid var(--line); background: var(--bg2); border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left; font: inherit; color: var(--fg); box-shadow: var(--shadow); }
+.no:hover { border-color: var(--accent); }
+.no b { display: block; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; }
+.no span { font-size: 13px; color: var(--muted); }
+.no.etapa1 { border-top: 4px solid var(--cand); } .no.etapa2 { border-top: 4px solid var(--reg); } .no.prep { border-top: 4px solid var(--cur); }
+.seta { text-align: center; color: var(--muted); font-size: 13px; margin: 8px 0; }
+.trilha { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.trilha .x { background: var(--bg3); border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; }
+.ped { font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; word-break: break-all; }
+tr.cab-ramo td { color: var(--muted); font-style: italic; font-size: 12px; background: var(--bg3); }
+tr.nao-part td { opacity: .5; }
+.cadeado { font-size: 42px; line-height: 1; }
+details.r { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--bg2); margin: 8px 0; }
+details.r summary { cursor: pointer; font-weight: 600; }
+details.r[open] summary { margin-bottom: 6px; }
+.verif { font-size: 13px; }
+.verif li { margin: 3px 0; }
+.mini { font-size: 12.5px; color: var(--muted); }
+kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--bg2); }
+.tema { position: absolute; top: 16px; right: 16px; }
+header.topo { position: relative; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.form-grid label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+table.t input[type=text], table.t input[type=number] { padding: 3px 5px; font-size: 12.5px; }
+input[type=number] { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; width: 100%; }
+input[type=range] { width: 100%; }
+.big { font-size: 26px; font-weight: 700; }
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.lane { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--bg); font-size: 12.5px; }
+.lane b { display: block; }
+.lane .barra2 { height: 8px; border-radius: 4px; background: var(--bg3); margin-top: 6px; overflow: hidden; }
+.lane .barra2 i { display: block; height: 100%; background: var(--accent); transition: width .4s; }
+.chip { display: inline-block; font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; padding: 1px 7px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--line); margin: 2px; }
+.chip.on { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.chip.off { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+.tl { display: flex; flex-direction: column; gap: 0; }
+.tl-item { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; cursor: pointer; }
+.tl-item .bola { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; background: var(--bg3); border: 2px solid var(--line); margin: 6px auto 0; }
+.tl-item.feito .bola { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.tl-item.pendente .bola { background: var(--cur-bg); border-color: var(--cur); color: var(--cur); }
+.tl-item .fio { grid-column: 1; width: 2px; background: var(--line); margin: 0 auto; min-height: 12px; }
+.tl-item .cx { padding: 6px 10px; border-radius: 10px; border: 1px solid transparent; }
+.tl-item:hover .cx { background: var(--bg3); }
+.tl-item.sel .cx { background: var(--cand-bg); border-color: var(--cand); }
+.tl-item .cx b { display: block; }
+.tl-item .cx span { font-size: 13px; color: var(--muted); }
+.filtros { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.hcard { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg2); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }
+.hcard .nm { font-weight: 650; }
+.hcard .meta { display: flex; flex-wrap: wrap; gap: 4px; }
+.v-apoiada { color: var(--ok); font-weight: 700; } .v-contrariada { color: var(--bad); font-weight: 700; } .v-inconclusiva { color: var(--cur); font-weight: 700; } .v-descritiva { color: var(--muted); font-weight: 700; }
+.histo { display: flex; align-items: flex-end; gap: 1px; height: 160px; border-bottom: 1px solid var(--line); }
+.histo i { flex: 1; background: var(--cand); opacity: .55; min-height: 1px; }
+.histo i.fora { background: var(--bad); opacity: .85; }
+.tl-item.naofeito .bola { background: var(--bg3); border-color: var(--muted); color: var(--muted); text-decoration: line-through; }
+
+</style>
+</head>
+<body>
+<header class="topo">
+  <h1>O método por dentro</h1>
+  <p>A parte da pesquisa: a pergunta, a sequência de verificação, as hipóteses e as regras que decidem cada uma.</p>
+  <button class="b tema" type="button">tema</button>
+</header>
+<nav class="abas" aria-label="abas"><div class="faixa"></div></nav>
+<main></main>
+<script>
+window.DADOS = {"hipotesesSrc":"// As tabelas e o veredito de cada hipotese do OBJETIVO (secao 4), pelas regras de\n// leitura do secao 4.1, escritas aqui ANTES dos dados (09/10). Com o script congelado,\n// a analise do V4 e so rodar: nenhuma escolha (qual par conta, o que e \"melhor\", quem\n// esta no teto) fica para depois de ver os resultados.\n//\n// Uso (da raiz do TCC):\n//   node evaluation/tools/hipoteses.mjs <desenho.json> --semgrep S.csv [--mapa M.csv]\n//        --aceitacao A.csv --metricas X.csv --resultados R.csv\n//        [--conferencia C.md] [--exploratorio] [--json saida.json] [--raiz DIR]\n//   (o relatorio em markdown sai no stdout)\n//\n// COMO LER. Quatro partes:\n//   1. junta, por execucao, o que cada instrumento mediu: o Semgrep (pelo codigo cego e\n//      o mapa), a suite, as metricas, o custo e o meta.json (se usou a skill, o revisor);\n//   2. MEDIDAS: transforma isso nos numeros que as hipoteses comparam (o P4 certo ou\n//      nao, os pontos da suite, a complexidade cognitiva, os tokens...);\n//   3. HIPOTESES: a lista, cada uma com a medida, os dois niveis comparados (N1 x N0,\n//      N2 x N1 ou N3 x N2), o tipo de regra e o que e \"melhor\";\n//   4. as REGRAS do secao 4.1, uma funcao por tipo, e o relatorio.\n//\n// Um PAR e o mesmo modelo e a mesma replica em dois niveis vizinhos (55 por comparacao no V5: 11 modelos x 5 replicas).\n// Tres escolhas que o OBJETIVO nao fazia, decididas aqui antes dos dados (DECISOES.md):\n//   - um par com \"indeterminado\" (ou sem medida) sai da conta como \"sem dado\", e e contado;\n//   - o saldo maximo da nao-inferioridade e 13% dos pares, arredondado (7 em 55, 3 em 25, 2 em 15,\n//     a mesma proporcao que o OBJETIVO usa para justificar o 3);\n//   - na hipotese do modelo, se dois modelos empatam como o mais fraco, ela e apoiada se\n//     o maior saldo, sem empate, for de um deles.\n// Com --conferencia (a saida do compare.mjs), as hipoteses que dependem de uma pergunta\n// reprovada (abaixo de 90%: 40 de 44 no V5) viram \"descritiva\". Com --exploratorio, nenhuma\n// hipotese tem veredito: o lote so descreve.\n\nimport { readFileSync, writeFileSync, existsSync } from \"node:fs\";\nimport { join, resolve } from \"node:path\";\n\n// ------------------------------------------------------------------ argumentos e leitura\nconst args = process.argv.slice(2);\nconst COM_VALOR = [\"--semgrep\", \"--mapa\", \"--aceitacao\", \"--metricas\", \"--resultados\", \"--conferencia\", \"--json\", \"--raiz\"];\nconst opt = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : null; };\nconst [arqDesenho] = args.filter((a, i, l) => !a.startsWith(\"--\") && !COM_VALOR.includes(l[i - 1]));\nconst morrer = (m) => { console.error(`ERRO: ${m}`); process.exit(2); };\nif (!arqDesenho) morrer(\"uso: hipoteses.mjs <desenho.json> --semgrep S.csv [--mapa M.csv] --aceitacao A.csv --metricas X.csv --resultados R.csv\");\nfor (const o of [\"semgrep\", \"aceitacao\", \"metricas\", \"resultados\"]) if (!opt(o)) morrer(`falta --${o}`);\nconst RAIZ = resolve(opt(\"raiz\") ?? \".\");\nconst EXPLORATORIO = args.includes(\"--exploratorio\");\n\n// CSV com aspas (nunca split(\",\")).\nfunction lerCsv(arq) {\n  const t = readFileSync(arq, \"utf8\").replace(/^﻿/, \"\");\n  const linhas = []; let campo = \"\", linha = [], aspas = false;\n  for (let i = 0; i < t.length; i++) {\n    const c = t[i];\n    if (aspas) { if (c === '\"' && t[i + 1] === '\"') { campo += '\"'; i++; } else if (c === '\"') aspas = false; else campo += c; }\n    else if (c === '\"') aspas = true;\n    else if (c === \",\") { linha.push(campo); campo = \"\"; }\n    else if (c === \"\\n\" || c === \"\\r\") { if (c === \"\\r\" && t[i + 1] === \"\\n\") i++; linha.push(campo); campo = \"\"; if (linha.some((v) => v !== \"\")) linhas.push(linha); linha = []; }\n    else campo += c;\n  }\n  linha.push(campo); if (linha.some((v) => v !== \"\")) linhas.push(linha);\n  const uteis = linhas.filter((l) => !l[0].startsWith(\"#\"));\n  const [cab, ...corpo] = uteis;\n  return corpo.map((l) => Object.fromEntries(cab.map((n, i) => [n, (l[i] ?? \"\").trim()])));\n}\nconst porChave = (linhas, chave) => new Map(linhas.map((l) => [l[chave], l]));\n\nconst D = JSON.parse(readFileSync(resolve(RAIZ, arqDesenho), \"utf8\"));\nif (!D.modelos) morrer(\"o desenho nao tem modelos\");\nconst NIVEIS = Object.keys(D.niveis);\nconst MODELOS = Object.keys(D.modelos);\nconst rep = (r) => String(r).padStart(2, \"0\");\nconst runId = (r, m, n) => `${D.prefixo}-${rep(r)}-${m}-${n}`;\n\nconst semgrep = lerCsv(resolve(RAIZ, opt(\"semgrep\")));\nconst mapa = opt(\"mapa\") ? porChave(lerCsv(resolve(RAIZ, opt(\"mapa\"))), \"run_id\") : new Map();\nconst semPorPacote = porChave(semgrep, \"pacote\");\nconst aceitacao = porChave(lerCsv(resolve(RAIZ, opt(\"aceitacao\"))), \"run_id\");\nconst metricas = porChave(lerCsv(resolve(RAIZ, opt(\"metricas\"))), \"run_id\");\nconst resultados = porChave(lerCsv(resolve(RAIZ, opt(\"resultados\"))), \"run_id\");\n\n// As perguntas que a conferencia reprovou (linhas \"| P4_localizacao | 16 de 20 | vira **descritiva** |\").\nconst reprovadas = new Set();\nif (opt(\"conferencia\")) for (const l of readFileSync(resolve(RAIZ, opt(\"conferencia\")), \"utf8\").split(/\\r?\\n/)) {\n  const m = l.match(/^\\|\\s*(P\\d_\\w+)\\s*\\|.*descritiva/); if (m) reprovadas.add(m[1]);\n}\n\n// ------------------------------------------------------------------ 2. medidas\n// Os 9 casos de borda da suite (secao 4.4): fronteiras, precedencia entre erros e a colisao.\nconst BORDA = [\n  \"OURO + FRETEGRATIS + cartao 10x\",\n  \"precedencia: nivel antes de regiao\", \"precedencia: regiao antes de modalidade\",\n  \"precedencia: cupom antes de pagamento\", \"precedencia: pedido invalido primeiro\",\n  \"fronteira: motoboy com 5 kg exatos\", \"fronteira: OURO com produtos em 500,00 exatos\",\n  \"fronteira: MENOS50 com produtos em 300,00 exatos\", \"fronteira: boleto com 1000,00 exatos\",\n];\nconst TRAVA = new Set([\"no_pom\", \"build_failed\", \"app_did_not_start\"]);\nconst num = (v) => (v === undefined || v === null || v === \"\" || isNaN(Number(v)) ? null : Number(v));\nconst acerto = (s, p) => {\n  const loc = s?.[`${p}_localizacao`], sel = s?.[`${p}_selecao`];\n  if (!loc || !sel || loc === \"indeterminado\" || sel === \"indeterminado\") return null;\n  return loc === \"isolado\" && (sel === \"consulta\" || sel === \"condicional-unica\") ? 1 : 0;\n};\n\nconst execucoes = new Map(); // run_id -> { modelo, replica, nivel, m: {medidas} }\nconst faltas = [];\nfor (let r = 1; r <= D.replicas; r++) for (const mo of MODELOS) for (const n of NIVEIS) {\n  const id = runId(r, mo, n);\n  const s = semPorPacote.get(mapa.get(id)?.blind_code ?? id);\n  const a = aceitacao.get(id), x = metricas.get(id), q = resultados.get(id);\n  if (!s || !a || !x || !q) faltas.push(`${id}: ${[!s && \"Semgrep\", !a && \"suite\", !x && \"metricas\", !q && \"resultados\"].filter(Boolean).join(\", \")}`);\n  const travado = TRAVA.has(a?.status);\n  const pontos = (k) => (a ? (travado ? 0 : num(a[k])) : null);\n  let borda = null;\n  const accTxt = join(RAIZ, \"runs\", id, \"acceptance.txt\");\n  if (a && travado) borda = 0;\n  else if (existsSync(accTxt)) {\n    const falhas = readFileSync(accTxt, \"utf8\").split(/\\r?\\n/).filter((l) => /^\\s*FALHA /.test(l)).map((l) => l.replace(/^\\s*FALHA /, \"\"));\n    borda = BORDA.filter((c) => !falhas.some((f) => f.startsWith(c + \":\") || f.startsWith(c + \" \"))).length;\n  }\n  let meta = null;\n  const arqMeta = join(RAIZ, \"runs\", id, \"meta.json\");\n  if (existsSync(arqMeta)) meta = JSON.parse(readFileSync(arqMeta, \"utf8\"));\n  const p13 = [\"P1\", \"P2\", \"P3\"].map((p) => acerto(s, p));\n  execucoes.set(id, {\n    modelo: mo, replica: r, nivel: n, perfil: s ? [\"P1\", \"P2\", \"P3\", \"P4\"].flatMap((p) => [s[`${p}_localizacao`], s[`${p}_selecao`]]).concat(s.P5_proporcao).join(\"|\") : null,\n    m: {\n      p4_acerto: acerto(s, \"P4\"),\n      p1p3_acertos: p13.some((v) => v === null) ? null : p13.reduce((x, y) => x + y, 0),\n      p5_exagero: !s?.P5_proporcao || s.P5_proporcao === \"indeterminado\" ? null : s.P5_proporcao === \"estrutura\" ? 1 : 0,\n      pontos: pontos(\"pontos\"), contas: pontos(\"contas\"), recusas: pontos(\"recusas\"),\n      build_ok: a ? (travado ? 0 : 1) : null,\n      borda,\n      cognitiva: num(x?.sonar_cognitive_complexity), smells: num(x?.sonar_code_smells),\n      duplicacao: num(x?.sonar_duplicated_lines_density),\n      classes: num(x?.sonar_classes), cbo: num(x?.ck_cbo_media), lcom: num(x?.ck_lcom_media),\n      tokens: num(q?.input_total), tempo: num(q?.duration_api_ms), turnos: num(q?.turns),\n      usou_skill: meta ? ((meta.outcome?.tool_calls_by_name?.Skill ?? 0) > 0 ? 1 : 0) : null,\n      usou_revisor: meta ? ((meta.outcome?.subagents_spawned ?? 0) > 0 ? 1 : 0) : null,\n    },\n  });\n}\n\n// ------------------------------------------------------------------ 3. hipoteses\n// tipo: direcional | nao-inferioridade | sem-direcao-continua | sem-direcao-binaria\n// melhor: \"mais\" ou \"menos\" (o que conta como melhor no nivel de cima)\n// teto: o valor que, no nivel de baixo nas 5 replicas, deixa o modelo sem espaco para\n// melhorar (so nas direcionais de medida limitada; null nas continuas)\n// depende: as perguntas da conferencia de que o veredito depende\nconst H = [\n  { nome: \"Desenho: isola cada caso no P4\", principal: true, medida: \"p4_acerto\", par: [\"N0\", \"N1\"], tipo: \"direcional\", melhor: \"mais\", teto: 1, depende: [\"P4_localizacao\", \"P4_selecao\"] },\n  { nome: \"Exagero: aplica onde nao pede\", principal: true, medida: \"p5_exagero\", par: [\"N0\", \"N1\"], tipo: \"sem-direcao-binaria\", depende: [\"P5_proporcao\"] },\n  { nome: \"Correcao: suite inteira\", principal: true, medida: \"pontos\", par: [\"N0\", \"N1\"], tipo: \"nao-inferioridade\", melhor: \"mais\" },\n  { nome: \"Qualidade: menos complexidade\", principal: true, medida: \"cognitiva\", par: [\"N0\", \"N1\"], tipo: \"direcional\", melhor: \"menos\", teto: null },\n  { nome: \"Modelo: efeito maior no mais fraco\", principal: true, tipo: \"modelo\", depende: [\"P4_localizacao\", \"P4_selecao\"] },\n\n  { nome: \"Desenho: isola cada caso no P1 a P3\", medida: \"p1p3_acertos\", par: [\"N0\", \"N1\"], tipo: \"direcional\", melhor: \"mais\", teto: 3 },\n  { nome: \"Desenho: nao repete o comum\", medida: \"duplicacao\", par: [\"N0\", \"N1\"], tipo: \"direcional\", melhor: \"menos\", teto: null },\n  { nome: \"Desenho: replicas mais parecidas\", tipo: \"descritiva-replicas\", par: [\"N0\", \"N1\"] },\n  { nome: \"Exagero: mais arquivos\", medida: \"classes\", par: [\"N0\", \"N1\"], tipo: \"direcional\", melhor: \"mais\", teto: null },\n  { nome: \"Exagero: estrutura especulativa (CBO)\", medida: \"cbo\", par: [\"N0\", \"N1\"], tipo: \"sem-direcao-continua\" },\n  { nome: \"Exagero: estrutura especulativa (LCOM)\", medida: \"lcom\", par: [\"N0\", \"N1\"], tipo: \"sem-direcao-continua\" },\n  { nome: \"Correcao: contas\", medida: \"contas\", par: [\"N0\", \"N1\"], tipo: \"nao-inferioridade\", melhor: \"mais\" },\n  { nome: \"Correcao: recusas\", medida: \"recusas\", par: [\"N0\", \"N1\"], tipo: \"nao-inferioridade\", melhor: \"mais\" },\n  { nome: \"Correcao: nao quebra o build\", medida: \"build_ok\", par: [\"N0\", \"N1\"], tipo: \"nao-inferioridade\", melhor: \"mais\" },\n  { nome: \"Correcao: casos de borda\", medida: \"borda\", par: [\"N0\", \"N1\"], tipo: \"nao-inferioridade\", melhor: \"mais\" },\n  { nome: \"Qualidade: menos code smells\", medida: \"smells\", par: [\"N0\", \"N1\"], tipo: \"direcional\", melhor: \"menos\", teto: null },\n  { nome: \"Custo: tokens de entrada\", medida: \"tokens\", par: [\"N0\", \"N1\"], tipo: \"sem-direcao-continua\" },\n  { nome: \"Custo: tempo de API\", medida: \"tempo\", par: [\"N0\", \"N1\"], tipo: \"sem-direcao-continua\" },\n  { nome: \"Custo: processo de trabalho (turnos)\", medida: \"turnos\", par: [\"N0\", \"N1\"], tipo: \"sem-direcao-continua\" },\n  { nome: \"Custo: sinal muda por modelo\", medida: \"tokens\", par: [\"N0\", \"N1\"], tipo: \"descritiva-sinal\" },\n  { nome: \"Modelo: no teto, nao piora (desenho)\", medida: \"p4_acerto\", par: [\"N0\", \"N1\"], tipo: \"nao-inferioridade\", melhor: \"mais\", soNoTeto: { medida: \"p4_acerto\", teto: 1 }, depende: [\"P4_localizacao\", \"P4_selecao\"] },\n  { nome: \"Modelo: no teto, nao piora (correcao)\", medida: \"pontos\", par: [\"N0\", \"N1\"], tipo: \"nao-inferioridade\", melhor: \"mais\", soNoTeto: { medida: \"p4_acerto\", teto: 1 } },\n  { nome: \"Skills: mais efeito no desenho\", medida: \"p4_acerto\", par: [\"N1\", \"N2\"], tipo: \"direcional\", melhor: \"mais\", teto: 1, depende: [\"P4_localizacao\", \"P4_selecao\"] },\n  { nome: \"Skills: mais custo (tokens)\", medida: \"tokens\", par: [\"N1\", \"N2\"], tipo: \"direcional\", melhor: \"mais\", teto: null },\n  { nome: \"Skills: mudam o exagero\", medida: \"p5_exagero\", par: [\"N1\", \"N2\"], tipo: \"sem-direcao-binaria\", depende: [\"P5_proporcao\"] },\n  { nome: \"Skills: so valem se carregadas\", medida: \"usou_skill\", nivel: \"N2\", tipo: \"descritiva-uso\" },\n  { nome: \"Processo: corrige mais\", medida: \"pontos\", par: [\"N2\", \"N3\"], tipo: \"direcional\", melhor: \"mais\", teto: 21 },\n  { nome: \"Processo: mais efeito no desenho\", medida: \"p4_acerto\", par: [\"N2\", \"N3\"], tipo: \"direcional\", melhor: \"mais\", teto: 1, depende: [\"P4_localizacao\", \"P4_selecao\"] },\n  { nome: \"Processo: menos exagero\", medida: \"p5_exagero\", par: [\"N2\", \"N3\"], tipo: \"direcional\", melhor: \"menos\", teto: 0, depende: [\"P5_proporcao\"] },\n  { nome: \"Processo: mais custo (tokens)\", medida: \"tokens\", par: [\"N2\", \"N3\"], tipo: \"direcional\", melhor: \"mais\", teto: null },\n  { nome: \"Processo: mais custo (tempo)\", medida: \"tempo\", par: [\"N2\", \"N3\"], tipo: \"direcional\", melhor: \"mais\", teto: null },\n  { nome: \"Processo: so vale se usado\", medida: \"usou_revisor\", nivel: \"N3\", tipo: \"descritiva-uso\" },\n];\n\n// ------------------------------------------------------------------ 4. as regras do secao 4.1\nconst C = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };\nconst caudaDupla = (n, k) => { let s = 0; for (let i = k; i <= n; i++) s += C(n, i); return Math.min(1, 2 * s / 2 ** n); };\n// Menor k (do lado maior) com a chance por sorte, nos dois lados, ate o limite.\nconst minimoSinal = (n, limite) => { for (let k = Math.floor(n / 2) + 1; k <= n; k++) if (caudaDupla(n, k) <= limite) return k; return Infinity; };\nconst limiteSaldo = (n) => Math.round(0.13 * n);\n\nconst valor = (r, mo, n, medida) => execucoes.get(runId(r, mo, n))?.m[medida] ?? null;\n// Os pares de uma comparacao, por modelo: \"melhor\", \"pior\", \"igual\" ou \"sem dado\".\nfunction pares(h, modelos = MODELOS) {\n  const [baixo, cima] = h.par;\n  const porModelo = {};\n  for (const mo of modelos) {\n    const l = (porModelo[mo] = { melhor: 0, pior: 0, igual: 0, semDado: 0, sobe: 0, desce: 0 });\n    for (let r = 1; r <= D.replicas; r++) {\n      const b = valor(r, mo, baixo, h.medida), c = valor(r, mo, cima, h.medida);\n      if (b === null || c === null) { l.semDado++; continue; }\n      if (c === b) { l.igual++; continue; }\n      c > b ? l.sobe++ : l.desce++;\n      const melhorou = h.melhor === \"menos\" ? c < b : c > b;\n      melhorou ? l.melhor++ : l.pior++;\n    }\n  }\n  return porModelo;\n}\nconst soma = (pm, k) => Object.values(pm).reduce((s, l) => s + l[k], 0);\n// No teto: o nivel de baixo ja tem o melhor valor possivel nas 5 replicas.\nconst noTeto = (mo, nivel, medida, teto) => teto !== null && teto !== undefined &&\n  Array.from({ length: D.replicas }, (_, i) => valor(i + 1, mo, nivel, medida)).every((v) => v === teto);\n\nfunction veredito(h) {\n  if (h.tipo === \"direcional\") {\n    const pm = pares(h);\n    const fora = MODELOS.filter((mo) => !noTeto(mo, h.par[0], h.medida, h.teto));\n    let v;\n    if (!(soma(pm, \"melhor\") + soma(pm, \"pior\") + soma(pm, \"igual\"))) v = \"sem dado\";\n    else if (!fora.length) v = \"sem espaco para efeito (todos no teto)\";\n    else {\n      const apoiam = fora.filter((mo) => pm[mo].melhor > pm[mo].pior).length;\n      const contrariam = fora.filter((mo) => pm[mo].pior > pm[mo].melhor).length;\n      const algumPiora = MODELOS.some((mo) => pm[mo].pior > pm[mo].melhor);\n      v = apoiam > fora.length / 2 && !algumPiora ? \"apoiada\" : contrariam > fora.length / 2 ? \"contrariada\" : \"inconclusiva\";\n    }\n    return { v, pm, fora, regra: `maioria dos ${fora.length} modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores` };\n  }\n  if (h.tipo === \"nao-inferioridade\") {\n    const mods = h.soNoTeto ? MODELOS.filter((mo) => noTeto(mo, h.par[0], h.soNoTeto.medida, h.soNoTeto.teto)) : MODELOS;\n    if (!mods.length) return { v: \"sem modelo no teto\", pm: {}, regra: \"\" };\n    const pm = pares(h, mods);\n    const n = soma(pm, \"melhor\") + soma(pm, \"pior\") + soma(pm, \"igual\");\n    if (!n) return { v: \"sem dado\", pm, regra: \"nenhum par com as duas medidas\" };\n    const saldo = soma(pm, \"pior\") - soma(pm, \"melhor\");\n    const lim = limiteSaldo(n);\n    return { v: saldo <= lim ? \"apoiada\" : \"contrariada\", pm, regra: `saldo (piores - melhores) = ${saldo}, limite ${lim} (13% de ${n} pares)` };\n  }\n  if (h.tipo === \"sem-direcao-continua\") {\n    const pm = pares(h);\n    const n = soma(pm, \"melhor\") + soma(pm, \"pior\") + soma(pm, \"igual\");\n    if (!n) return { v: \"sem dado\", pm, regra: \"nenhum par com as duas medidas\" };\n    const maior = Math.max(soma(pm, \"sobe\"), soma(pm, \"desce\"));\n    const k = minimoSinal(n, 0.05);\n    const v = maior >= k ? \"apoiada (altera)\" : maior <= Math.floor(0.6 * n) ? \"contrariada\" : \"inconclusiva\";\n    return { v, pm, regra: `lado maior ${maior} de ${n} pares; apoiada com ${k} ou mais, contrariada com ${Math.floor(0.6 * n)} ou menos` };\n  }\n  if (h.tipo === \"sem-direcao-binaria\") {\n    const pm = pares(h);\n    if (!(soma(pm, \"melhor\") + soma(pm, \"pior\") + soma(pm, \"igual\"))) return { v: \"sem dado\", pm, regra: \"nenhum par com as duas medidas\" };\n    const sobe = soma(pm, \"sobe\"), desce = soma(pm, \"desce\"), d = sobe + desce;\n    const maior = Math.max(sobe, desce), menor = Math.min(sobe, desce);\n    const k = minimoSinal(d, 0.063);\n    const v = d >= 5 && maior >= k ? \"apoiada (altera)\" : d <= 2 || menor >= d / 3 ? \"contrariada\" : \"inconclusiva\";\n    return { v, pm, regra: `${d} par(es) nao empatado(s) (${sobe} sobem, ${desce} descem); com ${d}, o lado maior precisa de ${isFinite(k) ? k : \"-\"}` };\n  }\n  if (h.tipo === \"modelo\") {\n    const base = H[0];\n    const pm = pares(base);\n    const mediaN0 = Object.fromEntries(MODELOS.map((mo) => {\n      const vs = Array.from({ length: D.replicas }, (_, i) => valor(i + 1, mo, \"N0\", base.medida)).filter((v) => v !== null);\n      return [mo, vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : null];\n    }));\n    const menor = Math.min(...Object.values(mediaN0).filter((v) => v !== null));\n    const fracos = MODELOS.filter((mo) => mediaN0[mo] === menor);\n    const saldo = Object.fromEntries(MODELOS.map((mo) => [mo, pm[mo].melhor - pm[mo].pior]));\n    const max = Math.max(...Object.values(saldo));\n    const noMax = MODELOS.filter((mo) => saldo[mo] === max);\n    const v = noMax.length > 1 ? \"inconclusiva (empate no maior saldo)\" : fracos.includes(noMax[0]) ? \"apoiada\" : \"contrariada\";\n    return { v, pm, regra: `mais fraco(s) no N0: ${fracos.join(\", \")} (acerto medio ${menor.toFixed(2)}); maior saldo: ${noMax.join(\", \")} (${max})`, extra: { mediaN0, saldo } };\n  }\n  return null;\n}\n\n// ------------------------------------------------------------------ o relatorio\nconst out = [];\nconst linhaTabela = (mo, l, teto) => `| ${mo}${teto ? \" (teto)\" : \"\"} | ${l.melhor} | ${l.igual} | ${l.pior} | ${l.semDado} | ${(l.melhor - l.pior) >= 0 ? \"+\" : \"\"}${l.melhor - l.pior} |`;\nout.push(`# Hipoteses: ${D.prefixo}${EXPLORATORIO ? \" (EXPLORATORIO: sem veredito)\" : \"\"}`);\nout.push(`\\nGerado por evaluation/tools/hipoteses.mjs. Regras: OBJETIVO, secao 4.1. ${D.replicas} replicas x ${MODELOS.length} modelos x ${NIVEIS.length} niveis.`);\nif (faltas.length) out.push(`\\n**Execucoes com medida faltando (${faltas.length}):** ${faltas.slice(0, 10).join(\"; \")}${faltas.length > 10 ? \"...\" : \"\"}`);\nif (reprovadas.size) out.push(`\\n**A conferencia reprovou:** ${[...reprovadas].join(\", \")}. As hipoteses que dependem delas sao descritivas.`);\n\nconst resumo = [];\nfor (const h of H) {\n  out.push(`\\n## ${h.principal ? \"★ \" : \"\"}${h.nome}`);\n  if (h.tipo === \"descritiva-replicas\") {\n    out.push(\"\\nSem regra de pares no OBJETIVO: descritiva. Perfis diferentes do Semgrep (P1 a P5) entre as replicas de cada modelo; menos perfis = mais parecidas.\\n\");\n    out.push(`| modelo | ${h.par[0]} | ${h.par[1]} |`); out.push(\"|---|---|---|\");\n    for (const mo of MODELOS) {\n      const perfis = (n) => new Set(Array.from({ length: D.replicas }, (_, i) => execucoes.get(runId(i + 1, mo, n))?.perfil).filter(Boolean)).size;\n      out.push(`| ${mo} | ${perfis(h.par[0])} | ${perfis(h.par[1])} |`);\n    }\n    resumo.push({ nome: h.nome, veredito: \"descritiva\" }); continue;\n  }\n  if (h.tipo === \"descritiva-sinal\") {\n    const pm = pares(h);\n    out.push(\"\\nSem regra de pares no OBJETIVO: descritiva. A direcao dos tokens (N1 x N0) em cada modelo:\\n\");\n    out.push(\"| modelo | sobem | descem | iguais |\"); out.push(\"|---|---|---|---|\");\n    for (const mo of MODELOS) out.push(`| ${mo} | ${pm[mo].sobe} | ${pm[mo].desce} | ${pm[mo].igual} |`);\n    resumo.push({ nome: h.nome, veredito: \"descritiva\" }); continue;\n  }\n  if (h.tipo === \"descritiva-uso\") {\n    out.push(`\\nSem regra de pares no OBJETIVO: descritiva. Execucoes do ${h.nivel} que usaram (${h.medida === \"usou_skill\" ? \"chamaram a skill\" : \"chamaram o revisor\"}):\\n`);\n    out.push(\"| modelo | usaram | de |\"); out.push(\"|---|---|---|\");\n    for (const mo of MODELOS) {\n      const vs = Array.from({ length: D.replicas }, (_, i) => valor(i + 1, mo, h.nivel, h.medida)).filter((v) => v !== null);\n      out.push(`| ${mo} | ${vs.filter((v) => v === 1).length} | ${vs.length} |`);\n    }\n    resumo.push({ nome: h.nome, veredito: \"descritiva\" }); continue;\n  }\n  const r = veredito(h);\n  const descr = (h.depende ?? []).some((p) => reprovadas.has(p));\n  const v = EXPLORATORIO ? \"exploratorio (sem veredito)\" : descr ? `descritiva (a conferencia reprovou ${h.depende.filter((p) => reprovadas.has(p)).join(\", \")})` : r.v;\n  out.push(`\\n${h.tipo === \"modelo\" ? \"Pares do desenho no P4 (N1 x N0)\" : `Medida: ${h.medida}, ${h.par[1]} x ${h.par[0]}`}; regra: ${h.tipo}${h.melhor ? `, melhor = ${h.melhor}` : \"\"}.\\n`);\n  out.push(\"| modelo | melhores | iguais | piores | sem dado | saldo |\"); out.push(\"|---|---|---|---|---|---|\");\n  for (const [mo, l] of Object.entries(r.pm)) out.push(linhaTabela(mo, l, h.tipo === \"direcional\" && !r.fora?.includes(mo)));\n  const tot = { melhor: soma(r.pm, \"melhor\"), igual: soma(r.pm, \"igual\"), pior: soma(r.pm, \"pior\"), semDado: soma(r.pm, \"semDado\") };\n  out.push(linhaTabela(\"**todos**\", tot));\n  const n = tot.melhor + tot.igual + tot.pior;\n  out.push(`\\n${r.regra}. Tamanho do efeito (saldo / pares): ${n ? ((tot.melhor - tot.pior) / n).toFixed(2) : \"-\"}.`);\n  out.push(`\\n**Veredito: ${v}.**`);\n  resumo.push({ nome: h.nome, principal: !!h.principal, veredito: v });\n}\n\n// O teste de Page, so como informacao (secao 4.1): a medida sobe de N0 a N3?\nfunction page(medida, melhor) {\n  const blocos = [];\n  for (let r = 1; r <= D.replicas; r++) for (const mo of MODELOS) {\n    const vs = NIVEIS.map((n) => valor(r, mo, n, medida));\n    if (vs.every((v) => v !== null)) blocos.push(vs.map((v) => (melhor === \"menos\" ? -v : v)));\n  }\n  const k = NIVEIS.length, nb = blocos.length;\n  if (nb < 2) return null;\n  let L = 0;\n  for (const b of blocos) {\n    const ordem = b.map((v, i) => ({ v, i })).sort((x, y) => x.v - y.v);\n    const rank = new Array(k);\n    for (let i = 0; i < k;) { let j = i; while (j + 1 < k && ordem[j + 1].v === ordem[i].v) j++; for (let t = i; t <= j; t++) rank[ordem[t].i] = (i + j) / 2 + 1; i = j + 1; }\n    rank.forEach((rk, j) => { L += (j + 1) * rk; });\n  }\n  const mu = nb * k * (k + 1) ** 2 / 4, va = nb * k ** 2 * (k + 1) * (k ** 2 - 1) / 144;\n  const z = (L - mu) / Math.sqrt(va);\n  const phi = (x) => 0.5 * (1 + Math.sign(x) * Math.sqrt(1 - Math.exp(-2 * x * x / Math.PI)));\n  return { nb, L, z, p: 1 - phi(z) };\n}\nout.push(\"\\n## Tendencia de N0 a N3 (teste de Page, so informacao)\\n\");\nout.push(\"| medida | quartetos | z | p (unilateral) |\"); out.push(\"|---|---|---|---|\");\nfor (const [medida, melhor] of [[\"p4_acerto\", \"mais\"], [\"pontos\", \"mais\"], [\"cognitiva\", \"menos\"], [\"tokens\", \"mais\"]]) {\n  const p = page(medida, melhor);\n  out.push(p ? `| ${medida} (${melhor === \"menos\" ? \"cair\" : \"subir\"}) | ${p.nb} | ${p.z.toFixed(2)} | ${p.p.toFixed(3)} |` : `| ${medida} | - | - | - |`);\n}\n\nout.push(\"\\n## Resumo\\n\");\nout.push(\"| hipotese | veredito |\"); out.push(\"|---|---|\");\nfor (const r of resumo) out.push(`| ${r.principal ? \"★ \" : \"\"}${r.nome} | ${r.veredito} |`);\nconsole.log(out.join(\"\\n\"));\nif (opt(\"json\")) writeFileSync(resolve(RAIZ, opt(\"json\")), JSON.stringify({ lote: D.prefixo, faltas, reprovadas: [...reprovadas], resumo }, null, 2));\n","hipoteses":[{"nome":"★ Desenho: isola cada caso no P4","principal":true,"tipo":"direcional","par":["N0","N1"],"depende":["P4_localizacao","P4_selecao"],"veredito":"apoiada","efeito":0.25,"regra":"maioria dos 6 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"★ Exagero: aplica onde nao pede","principal":true,"tipo":"sem-direcao-binaria","par":["N0","N1"],"depende":["P5_proporcao"],"veredito":"contrariada","efeito":0.02,"regra":"1 par(es) nao empatado(s) (1 sobem, 0 descem); com 1, o lado maior precisa de -"},{"nome":"★ Correcao: suite inteira","principal":true,"tipo":"nao-inferioridade","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.05,"regra":"saldo (piores - melhores) = -3, limite 7 (13% de 55 pares)"},{"nome":"★ Qualidade: menos complexidade","principal":true,"tipo":"direcional","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.82,"regra":"maioria dos 11 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"★ Modelo: efeito maior no mais fraco","principal":true,"tipo":"modelo","par":null,"depende":["P4_localizacao","P4_selecao"],"veredito":"apoiada","efeito":0.25,"regra":"mais fraco(s) no N0: HAIKU45, OPUS47 (acerto medio 0.00); maior saldo: OPUS47 (5)"},{"nome":"Desenho: isola cada caso no P1 a P3","principal":false,"tipo":"direcional","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.44,"regra":"maioria dos 8 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Desenho: nao repete o comum","principal":false,"tipo":"direcional","par":["N0","N1"],"depende":null,"veredito":"contrariada","efeito":-0.24,"regra":"maioria dos 11 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Desenho: replicas mais parecidas","principal":false,"tipo":"descritiva-replicas","par":["N0","N1"],"depende":null,"veredito":"descritiva","efeito":null,"regra":""},{"nome":"Exagero: mais arquivos","principal":false,"tipo":"direcional","par":["N0","N1"],"depende":null,"veredito":"inconclusiva","efeito":0.31,"regra":"maioria dos 11 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Exagero: estrutura especulativa (CBO)","principal":false,"tipo":"sem-direcao-continua","par":["N0","N1"],"depende":null,"veredito":"contrariada","efeito":0.2,"regra":"lado maior 33 de 55 pares; apoiada com 36 ou mais, contrariada com 33 ou menos"},{"nome":"Exagero: estrutura especulativa (LCOM)","principal":false,"tipo":"sem-direcao-continua","par":["N0","N1"],"depende":null,"veredito":"contrariada","efeito":-0.09,"regra":"lado maior 30 de 55 pares; apoiada com 36 ou mais, contrariada com 33 ou menos"},{"nome":"Correcao: contas","principal":false,"tipo":"nao-inferioridade","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.07,"regra":"saldo (piores - melhores) = -4, limite 7 (13% de 55 pares)"},{"nome":"Correcao: recusas","principal":false,"tipo":"nao-inferioridade","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.04,"regra":"saldo (piores - melhores) = -2, limite 7 (13% de 55 pares)"},{"nome":"Correcao: nao quebra o build","principal":false,"tipo":"nao-inferioridade","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.02,"regra":"saldo (piores - melhores) = -1, limite 7 (13% de 55 pares)"},{"nome":"Correcao: casos de borda","principal":false,"tipo":"nao-inferioridade","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.02,"regra":"saldo (piores - melhores) = -1, limite 7 (13% de 55 pares)"},{"nome":"Qualidade: menos code smells","principal":false,"tipo":"direcional","par":["N0","N1"],"depende":null,"veredito":"inconclusiva","efeito":0.04,"regra":"maioria dos 11 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Custo: tokens de entrada","principal":false,"tipo":"sem-direcao-continua","par":["N0","N1"],"depende":null,"veredito":"inconclusiva","efeito":0.24,"regra":"lado maior 34 de 55 pares; apoiada com 36 ou mais, contrariada com 33 ou menos"},{"nome":"Custo: tempo de API","principal":false,"tipo":"sem-direcao-continua","par":["N0","N1"],"depende":null,"veredito":"contrariada","efeito":0.09,"regra":"lado maior 30 de 55 pares; apoiada com 36 ou mais, contrariada com 33 ou menos"},{"nome":"Custo: processo de trabalho (turnos)","principal":false,"tipo":"sem-direcao-continua","par":["N0","N1"],"depende":null,"veredito":"contrariada","efeito":0.18,"regra":"lado maior 31 de 55 pares; apoiada com 36 ou mais, contrariada com 33 ou menos"},{"nome":"Custo: sinal muda por modelo","principal":false,"tipo":"descritiva-sinal","par":["N0","N1"],"depende":null,"veredito":"descritiva","efeito":null,"regra":""},{"nome":"Modelo: no teto, nao piora (desenho)","principal":false,"tipo":"nao-inferioridade","par":["N0","N1"],"depende":["P4_localizacao","P4_selecao"],"veredito":"apoiada","efeito":0,"regra":"saldo (piores - melhores) = 0, limite 3 (13% de 25 pares)"},{"nome":"Modelo: no teto, nao piora (correcao)","principal":false,"tipo":"nao-inferioridade","par":["N0","N1"],"depende":null,"veredito":"apoiada","efeito":0.04,"regra":"saldo (piores - melhores) = -1, limite 3 (13% de 25 pares)"},{"nome":"Skills: mais efeito no desenho","principal":false,"tipo":"direcional","par":["N1","N2"],"depende":["P4_localizacao","P4_selecao"],"veredito":"inconclusiva","efeito":0,"regra":"maioria dos 1 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Skills: mais custo (tokens)","principal":false,"tipo":"direcional","par":["N1","N2"],"depende":null,"veredito":"contrariada","efeito":-0.24,"regra":"maioria dos 11 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Skills: mudam o exagero","principal":false,"tipo":"sem-direcao-binaria","par":["N1","N2"],"depende":["P5_proporcao"],"veredito":"contrariada","efeito":0.04,"regra":"2 par(es) nao empatado(s) (2 sobem, 0 descem); com 2, o lado maior precisa de -"},{"nome":"Skills: so valem se carregadas","principal":false,"tipo":"descritiva-uso","par":null,"depende":null,"veredito":"descritiva","efeito":null,"regra":""},{"nome":"Processo: corrige mais","principal":false,"tipo":"direcional","par":["N2","N3"],"depende":null,"veredito":"inconclusiva","efeito":0.09,"regra":"maioria dos 5 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Processo: mais efeito no desenho","principal":false,"tipo":"direcional","par":["N2","N3"],"depende":["P4_localizacao","P4_selecao"],"veredito":"apoiada","efeito":0.05,"regra":"maioria dos 1 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Processo: menos exagero","principal":false,"tipo":"direcional","par":["N2","N3"],"depende":["P5_proporcao"],"veredito":"apoiada","efeito":0.05,"regra":"maioria dos 2 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Processo: mais custo (tokens)","principal":false,"tipo":"direcional","par":["N2","N3"],"depende":null,"veredito":"inconclusiva","efeito":0.49,"regra":"maioria dos 11 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Processo: mais custo (tempo)","principal":false,"tipo":"direcional","par":["N2","N3"],"depende":null,"veredito":"inconclusiva","efeito":0.89,"regra":"maioria dos 11 modelo(s) fora do teto com mais pares melhores que piores, e nenhum modelo com mais piores"},{"nome":"Processo: so vale se usado","principal":false,"tipo":"descritiva-uso","par":null,"depende":null,"veredito":"descritiva","efeito":null,"regra":""}]};
+</script>
+<script>
+// ---- base.js ----
+// base.js: o que todas as abas usam (o mesmo das outras paginas).
+"use strict";
+
+const DADOS = window.DADOS;
+
+// ---------- DOM ----------
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k === "html") e.innerHTML = v;
+    else if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat(Infinity)) if (k !== null && k !== undefined && k !== false) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+const H = (html) => { const d = el("div", { class: "txt", html }); return d; };
+
+// ---------- memoria (so conveniencia: a pagina funciona sem ela) ----------
+const CHAVE = "estudo-metodo-v1";
+let MEM = {};
+try { MEM = JSON.parse(localStorage.getItem(CHAVE) || "{}") || {}; } catch (e) { MEM = {}; }
+function lembra(k, v) { MEM[k] = v; try { localStorage.setItem(CHAVE, JSON.stringify(MEM)); } catch (e) { /* sem memoria */ } }
+
+// ---------- cores do codigo ----------
+const KW = {
+  java: new Set("abstract boolean break case catch char class default do double else enum extends final for if implements import instanceof int interface long new null package private protected public record return static super switch this throw throws try var void when while true false yield Override".split(" ")),
+  js: new Set("const let var function return if else for of in new import export from throw while do break continue typeof true false null undefined class extends default".split(" ")),
+  bash: new Set("if then else elif fi for in do done while case esac function return exit set trap local echo printf".split(" ")),
+};
+function tokens(lang, linha, st) {
+  const t = [], n = linha.length;
+  let i = 0;
+  const push = (a, b, c) => { if (b > a) t.push([a, b, c]); };
+  if (lang === "yaml") {
+    const com = linha.match(/^\s*#.*$/);
+    if (com) { push(0, n, "s-com"); return t; }
+    const k = linha.match(/^(\s*-?\s*)([\w-]+)(:)/);
+    if (k) push(k[1].length, k[1].length + k[2].length, "s-key");
+    const re = /'(?:[^']|'')*'|"(?:[^"\\]|\\.)*"/g;
+    let m;
+    while ((m = re.exec(linha))) push(m.index, m.index + m[0].length, "s-str");
+    return t;
+  }
+  if (lang === "bash") {
+    while (i < n) {
+      const c = linha[i];
+      if (c === "#" && (i === 0 || /\s/.test(linha[i - 1])) && !(i === 0 && linha.startsWith("#!"))) { push(i, n, "s-com"); break; }
+      if (c === '"' || c === "'") { let j = i + 1; while (j < n && linha[j] !== c) j += linha[j] === "\\" && c === '"' ? 2 : 1; push(i, j + 1, "s-str"); i = j + 1; continue; }
+      if (c === "$") { const m = linha.slice(i).match(/^\$(\{[^}]*\}|\w+|#|@|\?)/); if (m) { push(i, i + m[0].length, "s-key"); i += m[0].length; continue; } }
+      if (/[A-Za-z_]/.test(c)) { let j = i; while (j < n && /[\w-]/.test(linha[j])) j++; if (KW.bash.has(linha.slice(i, j))) push(i, j, "s-kw"); i = j; continue; }
+      i++;
+    }
+    return t;
+  }
+  const kw = KW[lang] || KW.java;
+  while (i < n) {
+    if (st.bloco) { const f = linha.indexOf("*/", i); const ate = f < 0 ? n : f + 2; push(i, ate, "s-com"); if (f >= 0) st.bloco = false; i = ate; continue; }
+    if (st.texto) { const f = linha.indexOf('"""', i); const ate = f < 0 ? n : f + 3; push(i, ate, "s-str"); if (f >= 0) st.texto = false; i = ate; continue; }
+    const c = linha[i], d = linha[i + 1];
+    if (c === "/" && d === "/") { push(i, n, "s-com"); break; }
+    if (c === "/" && d === "*") { st.bloco = true; continue; }
+    if (c === '"' && linha.startsWith('"""', i)) { st.texto = true; push(i, i + 3, "s-str"); i += 3; continue; }
+    if (c === '"' || c === "'" || (c === "`" && lang === "js")) { let j = i + 1; while (j < n && linha[j] !== c) j += linha[j] === "\\" ? 2 : 1; push(i, Math.min(j + 1, n), "s-str"); i = j + 1; continue; }
+    if (/[A-Za-z_$]/.test(c)) { let j = i; while (j < n && /[\w$]/.test(linha[j])) j++; if (kw.has(linha.slice(i, j))) push(i, j, "s-kw"); i = j; continue; }
+    if (/\d/.test(c)) { let j = i; while (j < n && /[\d._]/.test(linha[j])) j++; push(i, j, "s-num"); i = j; continue; }
+    i++;
+  }
+  return t;
+}
+
+// ---------- o visor de codigo ----------
+// atual: [[a,b], ...] faixas de linhas (1 = primeira); marcas: [{l1,c1,l2,c2,cls}] (colunas do Semgrep: 1 = primeira, c2 exclusiva)
+// linhas: {n: "regiao erro ..."}; notas: {n: {txt, cls}}
+function codigo(o) {
+  const texto = o.texto.replace(/\n$/, "");
+  const ls = texto.split("\n");
+  const ini = o.inicio || 1;
+  const caixa = el("div", { class: "codigo" + (o.baixo ? " baixo" : "") });
+  if (o.titulo) caixa.append(el("div", { class: "cab", html: o.titulo }));
+  const corpo = el("div", { class: "corpo" });
+  const st = {};
+  const atual = new Set();
+  for (const [a, b] of o.atual || []) for (let k = a; k <= b; k++) atual.add(k);
+  let foco = null;
+  ls.forEach((linha, idx) => {
+    const n = idx + ini;
+    const syn = new Array(linha.length).fill(""), mk = new Array(linha.length).fill("");
+    for (const [a, b, c] of tokens(o.lang || "java", linha, st)) for (let k = a; k < b; k++) syn[k] = c;
+    for (const m of o.marcas || []) {
+      if (n < m.l1 || n > m.l2) continue;
+      const a = n === m.l1 ? m.c1 - 1 : 0, b = n === m.l2 ? m.c2 - 1 : linha.length;
+      for (let k = Math.max(0, a); k < Math.min(linha.length, b); k++) mk[k] = m.cls;
+    }
+    const src = el("span", { class: "src" });
+    if (!linha.length) src.append("​");
+    let k = 0;
+    while (k < linha.length) {
+      let j = k + 1;
+      while (j < linha.length && syn[j] === syn[k] && mk[j] === mk[k]) j++;
+      const cls = [syn[k], mk[k]].filter(Boolean).join(" ");
+      src.append(cls ? el("span", { class: cls }, linha.slice(k, j)) : linha.slice(k, j));
+      k = j;
+    }
+    const classes = ["ln"];
+    if (atual.has(n)) classes.push("atual");
+    if (o.linhas && o.linhas[n]) classes.push(o.linhas[n]);
+    const div = el("div", { class: classes.join(" "), "data-n": n }, el("span", { class: "num" }, n), src);
+    const nota = o.notas && o.notas[n];
+    if (nota) div.append(el("span", { class: "nota " + (nota.cls || ""), html: nota.txt }));
+    if (foco === null && (atual.has(n) || (o.foco && o.foco === n))) foco = div;
+    corpo.append(div);
+  });
+  if (foco === null && (o.marcas || []).length) {
+    const prim = Math.min(...o.marcas.map((m) => m.l1));
+    foco = corpo.querySelector(`[data-n="${prim}"]`);
+  }
+  caixa.append(corpo);
+  // depois que a caixa entra na pagina: rola ate a linha atual (a 1/3 da altura)
+  if (foco) setTimeout(() => {
+    const alvo = foco.offsetTop - caixa.clientHeight / 3;
+    caixa.scrollTop = Math.max(0, alvo);
+  }, 0);
+  return caixa;
+}
+
+// ---------- o passo a passo ----------
+const STEPPERS = {};
+let ABA_ATUAL = null;
+function stepper(host, { chave, aba, passos, desenha }) {
+  host.replaceChildren();
+  const bAnt = el("button", { title: "passo anterior (←)", "aria-label": "anterior" }, "◀");
+  const bIni = el("button", { title: "primeiro passo", "aria-label": "primeiro" }, "⏮");
+  const bFim = el("button", { title: "último passo", "aria-label": "último" }, "⏭");
+  const bProx = el("button", { class: "prox", title: "próximo passo (→)" }, "próximo ▶");
+  const t = el("div", { class: "t" }), n = el("div", { class: "n" }), barra = el("i");
+  const ctrl = el("div", { class: "controles" }, bIni, bAnt,
+    el("div", { class: "info" }, t, n, el("div", { class: "barra" }, barra)),
+    el("span", { class: "dica" }, el("kbd", null, "←"), " ", el("kbd", null, "→")), bProx, bFim);
+  const corpo = el("div");
+  host.append(ctrl, corpo);
+  let i = Math.min(Math.max(0, MEM[chave] ?? 0), passos.length - 1);
+  const api = {
+    ir(k) {
+      i = Math.max(0, Math.min(passos.length - 1, k));
+      lembra(chave, i);
+      t.textContent = passos[i].t || "";
+      n.textContent = `passo ${i + 1} de ${passos.length}`;
+      barra.style.width = ((i + 1) / passos.length * 100) + "%";
+      bAnt.disabled = bIni.disabled = i === 0;
+      bProx.disabled = bFim.disabled = i === passos.length - 1;
+      corpo.replaceChildren();
+      desenha(passos[i], i, corpo);
+    },
+    prox() { if (i < passos.length - 1) this.ir(i + 1); },
+    ant() { if (i > 0) this.ir(i - 1); },
+    get i() { return i; },
+  };
+  bAnt.onclick = () => api.ant(); bProx.onclick = () => api.prox();
+  bIni.onclick = () => api.ir(0); bFim.onclick = () => api.ir(passos.length - 1);
+  STEPPERS[aba] = api;
+  api.ir(i);
+  return api;
+}
+document.addEventListener("keydown", (e) => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.altKey || e.ctrlKey || e.metaKey) return;
+  const s = STEPPERS[ABA_ATUAL];
+  if (!s) return;
+  if (e.key === "ArrowRight") { s.prox(); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { s.ant(); e.preventDefault(); }
+});
+
+// ---------- quiz ("antes de seguir") ----------
+function quiz(q) {
+  const box = el("div", { class: "quiz" }, el("div", { class: "q", html: "❓ " + q.p }));
+  const linha = el("div", { class: "linha-botoes" });
+  const r = el("div", { class: "r txt", html: q.exp });
+  q.op.forEach((o, k) => linha.append(el("button", {
+    class: "b", html: o,
+    onclick: () => {
+      box.classList.add("respondida");
+      [...linha.children].forEach((b, j) => { b.classList.remove("certa", "errada"); if (j === q.certa) b.classList.add("certa"); else if (j === k) b.classList.add("errada"); });
+    },
+  })));
+  box.append(linha, r);
+  return box;
+}
+
+// ---------- testador de metavariable-regex ----------
+// linhas: [{onde, v, real}] (real: o que o Semgrep fez, quando se sabe)
+function testador({ regex, rotulo, linhas = [], sugestoes = [], explica }) {
+  const box = el("div", { class: "caixa" });
+  box.append(el("div", { class: "rotulo" }, "testador do metavariable-regex ", el("span", { class: "pill" }, "roda aqui, ao vivo")));
+  if (explica) box.append(H(explica));
+  box.append(el("div", { class: "ped", style: "margin:4px 0 8px" }, el("code", null, regex)));
+  const tab = el("table", { class: "t" });
+  const temReal = linhas.some((l) => l.real !== undefined);
+  tab.append(el("tr", null, el("th", null, "onde"), el("th", null, rotulo || "valor"), el("th", null, "passa?"), temReal ? el("th", null, "Semgrep real") : null));
+  for (const l of linhas) {
+    const m = casaMetavar(regex, l.v);
+    tab.append(el("tr", null, el("td", { class: "mono" }, l.onde || ""), el("td", { class: "mono" }, l.v),
+      el("td", { class: m !== null ? "sim" : "nao" }, m !== null ? "sim" : "não"),
+      temReal ? el("td", { class: l.real ? "sim" : "nao" }, l.real === undefined ? "" : l.real ? "ficou" : "caiu") : null));
+  }
+  box.append(el("div", { class: "tabela-rolagem" }, tab));
+  const res = el("span", { class: "mini" });
+  const inp = el("input", { type: "text", placeholder: "digite um valor para testar", oninput: () => {
+    if (!inp.value) { res.textContent = ""; return; }
+    const m = casaMetavar(regex, inp.value);
+    res.innerHTML = m !== null ? `<span class="sim">passa</span> (casou: <code>${esc(m)}</code>)` : `<span class="nao">não passa</span>`;
+  } });
+  box.append(el("div", { style: "margin-top:8px" }, inp), el("div", { style: "margin-top:4px" }, res));
+  if (sugestoes.length) {
+    const lb = el("div", { class: "linha-botoes" }, el("span", { class: "mini" }, "experimente: "));
+    for (const s of sugestoes) lb.append(el("button", { class: "b", onclick: () => { inp.value = s; inp.dispatchEvent(new Event("input")); } }, s));
+    box.append(lb);
+  }
+  return box;
+}
+
+// ---------- tabela simples ----------
+function tabela(cab, linhas, opts = {}) {
+  const t = el("table", { class: "t" + (opts.estado ? " estado" : "") });
+  if (cab) t.append(el("tr", null, cab.map((c) => el("th", { html: c }))));
+  for (const l of linhas) t.append(el("tr", { class: l.cls || null }, (l.cels || l).map((c) => el("td", typeof c === "object" && c !== null && !(c instanceof Node) ? c : { html: String(c) }))));
+  return opts.rolagem === false ? t : el("div", { class: "tabela-rolagem" }, t);
+}
+
+
+// ---- abas.js ----
+// abas.js: o metodo do V5 (a pesquisa): a pergunta, a sequencia de verificacao, as
+// hipoteses, as regras de leitura, as ameacas e as defesas.
+"use strict";
+
+// as funcoes de limite, tiradas do texto original do hipoteses.mjs
+const R = (() => {
+  const src = DADOS.hipotesesSrc;
+  const ini = src.indexOf("const C = (n, k)"), fim = src.indexOf("\n", src.indexOf("const limiteSaldo"));
+  return new Function(src.slice(ini, fim) + "\nreturn { C, caudaDupla, minimoSinal, limiteSaldo };")();
+})();
+const acento = (s) => s.replace(/\bnao\b/g, "não").replace("Correcao", "Correção").replace("correcao", "correção").replace(/\bsuite\b/, "suíte").replace("replicas", "réplicas").replace(/\bso\b/g, "só");
+const HIP = DADOS.hipoteses;
+const pct = (x) => (x * 100).toFixed(1).replace(".", ",") + "%";
+function explicacao(p, extra = []) {
+  const box = el("div", { class: "painel pilha" });
+  if (p.t) box.append(el("div", { class: "passo-t" }, p.t));
+  if (p.txt) box.append(H_(p.txt));
+  for (const x of extra) if (x) box.append(x);
+  if (p.quiz) box.append(quiz(p.quiz));
+  return box;
+}
+const H_ = (html) => el("div", { class: "txt", html });
+
+// =====================================================================
+// 0. A pergunta e o desenho
+// =====================================================================
+function abaPergunta(sec) {
+  sec.append(el("h2", null, "A pergunta e o desenho"),
+    el("div", { class: "painel", style: "max-width:1000px" }, H_(`<p style="font-size:17px"><b>Um harness</b> (o conjunto de orientações que acompanha o agente: <code>CLAUDE.md</code>, skills e o que mais vier) <b>influencia, para o bem ou para o mal, a forma como um agente de código aplica padrões de projeto ao construir um sistema do zero?</b> Essa influência muda conforme o modelo e o que compõe o harness?</p><p class="mini">OBJETIVO §1. A célula \"Construir software × Design de baixo nível\" da orientação de 12/09. Um padrão no V5: o Strategy.</p>`)),
+    el("div", { class: "grade2", style: "margin-top:12px" },
+      el("div", { class: "painel" }, el("h3", { style: "margin-top:0" }, "O que varia, e o que fica fixo"),
+        tabela(null, [
+          ["<b>varia</b>", "só o <b>nível</b> do harness: N0 (nada), N1 (<code>CLAUDE.md</code> com 4 regras), N2 (+ a skill <code>gof-patterns</code>), N3 (+ um desenho curto e um revisor)"],
+          ["fixo", "o enunciado (um só, igual em todos os níveis, sem palavra de arquitetura)"],
+          ["fixo", "a imagem e o Claude Code (2.1.288), o effort, o harness de cada nível (pelo hash)"],
+          ["bloco", "o <b>modelo</b>: 11, de Haiku 4.5 a Opus 5.5, todos na análise principal"],
+          ["unidade", "o <b>par</b>: dois níveis vizinhos do mesmo modelo, que rodaram no mesmo instante"],
+        ], { rolagem: false, estado: true })),
+      el("div", { class: "painel" }, el("h3", { style: "margin-top:0" }, "O tamanho"),
+        H_(`<p class="big">4 × 11 × 5 = 220</p><p>4 níveis × 11 modelos × 5 réplicas. Os 4 níveis de um modelo rodam juntos: um <b>quarteto</b> (55 ao todo). Cada comparação entre níveis vizinhos (N1 × N0, N2 × N1, N3 × N2) tem <b>55 pares</b>.</p>`))),
+    el("div", { class: "painel", style: "margin-top:12px" }, el("h3", { style: "margin-top:0" }, "Os quatro eixos (todos medidos sem IA, nas 220)"),
+      tabela(["eixo", "a pergunta", "instrumento"], [
+        ["<b>desenho</b>", "aplicou o padrão onde o enunciado pede, e não onde seria exagero?", "Semgrep (regras próprias), <b>conferido</b> pela sua leitura às cegas de 44"],
+        ["<b>correção</b>", "o código calcula e recusa o que o enunciado pede?", "a suíte de aceitação: 12 contas e 9 recusas"],
+        ["<b>qualidade</b>", "ficou mais simples ou mais complicado?", "SonarQube e CK"],
+        ["<b>custo</b>", "quanto gastou, e como trabalhou?", "o <code>meta.json</code>: tokens, tempo, turnos"],
+      ], { rolagem: false }),
+      H_(`<p><b>Os pontos do enunciado.</b> Quatro <b>positivos</b>, onde o padrão resolve uma variação: P1 entrega, P2 cupom, P3 pagamento e <b>P4 clube</b> (o foco). E um <b>controle negativo</b>, o P5 (seguro por região), onde só a porcentagem muda e aplicar o padrão é o erro. Assim a influência <b>negativa</b> (o exagero) também aparece.</p>`)));
+}
+
+// =====================================================================
+// 1. A sequencia de verificacao
+// =====================================================================
+const SEQ = [
+  { q: "até 09/10", t: "Validar os instrumentos na bancada", st: "feito", contra: "um instrumento que mede errado", txt: "<ul><li><b>A suíte</b>: 17 mutantes reprovados, o enunciado contra a calculadora (73 de 73), implementações independentes que chegam aos mesmos números, e a sua revisão das leituras do enunciado (07/10).</li><li><b>O Semgrep</b>: 4 corpora com a resposta escrita antes (80 de 80; <b>44 de 44 no de controle</b>; 10 de 10; 12 de 12) e a regressão nos 64 pacotes reais da bancada.</li><li><b>SonarQube e CK</b>: travados por hash.</li><li><b>A régua</b>: revisada por você e calibrada em 2 pacotes (8 de 8 com o Semgrep).</li></ul>", onde: "OBJETIVO §5; evaluation/acceptance-prototype/README.md; evaluation/tools/semgrep/corpus/" },
+  { q: "09/10", t: "O mapa no N0", st: "feito", contra: "uma escada sem modelos fora do teto (sem espaço para efeito)", txt: "<p>Uma execução por modelo, sem harness, mostrou que há modelos no teto e fora dele. É o que a escada precisa. No V5, o mapa <b>não escolhe nada</b>: todos os modelos entram, e quem está no teto sai das próprias execuções do V5.</p>", onde: "OBJETIVO §2; DECISOES §2" },
+  { q: "10/10", t: "O ensaio geral, com o V4 descartado", st: "feito", contra: "um defeito no caminho da análise que só aparece com dado de verdade", txt: "<p>Todos os passos rodaram nos 100 pacotes do V4, com a leitura humana <b>simulada</b> (não vale como conferência). Achou um defeito real: um projeto numa subpasta não era lido pelo Semgrep. Três correções entraram antes do congelamento: o <code>pom.xml</code> mais raso, a trava do <code>verify</code> para pacote sem código, e o <code>indeterminado</code> deixando a execução sem nota.</p><p><b>Quem viu o quê:</b> o Claude viu os resultados do V4; você, só os operacionais (a concordância, os defeitos), sem a direção de nenhum efeito. Nenhum dado do V4 entra no V5.</p>", onde: "OBJETIVO §2; TCC_V4/analysis/ensaio/LEIA-ME.md; commit 6c371f4" },
+  { q: "10/10", t: "O pré-registro e o congelamento", st: "feito", contra: "escolher a hipótese, a regra ou o limite depois de ver os dados", txt: "<p>O <code>OBJETIVO.md</code> (a pergunta, as hipóteses, as regras do §4.1 com os limites para 55 pares), a régua e os scripts foram <b>congelados antes da primeira execução</b>: 122 arquivos com hash em <code>CONGELADO-V5.sha256</code>, no commit <code>54e13fc</code>. Daqui em diante, mudança vira <b>emenda datada</b>, e as conclusões dizem o que foi lido antes e depois dela.</p><p>O <code>hipoteses.mjs</code> também foi congelado: \"nenhuma escolha (qual par conta, o que é melhor, quem está no teto) fica para depois\".</p>", onde: "OBJETIVO (topo); CONGELADO-V5.sha256; README" },
+  { q: "10/10", t: "A ordem sorteada e os quartetos simultâneos", st: "feito", contra: "horário, fila e carga do servidor misturados com o efeito do harness", txt: "<p>Os 4 níveis de um modelo rodam <b>no mesmo instante</b>: o que muda dentro de um par é só o harness. A ordem dos quartetos foi sorteada (semente 20261020), uma réplica de cada modelo por rodada, para um corte no meio deixar réplicas inteiras.</p>", onde: "experiment/ordem-v5.csv; infra/scripts/run-levels.sh" },
+  { q: "10 a 12/10", t: "As 220 execuções, conferidas rodada a rodada", st: "feito", contra: "execução fora do desenho, cortada pela cota, ou contaminada pelo ambiente", txt: "<ul><li>Container descartável; <code>~/.claude</code> vazio e nenhum <code>CLAUDE.md</code> fora do workspace (as linhas <code>[pre]</code>); nenhuma ferramenta restringida.</li><li>O build roda em <b>outro</b> container, sem token.</li><li>A regra da janela (começar só com folga) evitou cortes: <b>nenhum quarteto cortado</b>.</li><li>O <code>verify.mjs</code> [4] [6] [2] depois de cada rodada: réplicas, modelo, harness, imagem, effort, simultaneidade, cota, enunciado, CSV.</li></ul>", onde: "runs/; infra/scripts/verify.mjs" },
+  { q: "12/10", t: "Medir, sem IA e antes da leitura", st: "feito", contra: "a medida mudar depois de saber o resultado", txt: "<p>A suíte (que nunca mede duas vezes, e grava o hash da suíte e do enunciado), as métricas (versões travadas) e o Semgrep (regras geradas, cópia limpa) rodaram nos 220 <b>antes</b> da sua leitura, e foram commitados.</p>", onde: "commit 01ee214; analysis/" },
+  { q: "12/10", t: "Cegar: os pacotes e a amostra", st: "feito", contra: "o avaliador saber o nível e ler o que espera", txt: "<p>Os pacotes ganham códigos sorteados (semente 20261021); somem o <code>CLAUDE.md</code>, o <code>.claude/</code>, o <code>meta.json</code>, a transcrição, os comentários e os <code>.md</code>; as datas ficam iguais. O <b>mapa</b> código → execução fica fora do git até a leitura ser commitada. A amostra: 1 pacote por modelo × nível, 44 (semente 20261022), só os códigos, em ordem alfabética.</p>", onde: "evaluation/tools/anonymize.mjs; sample.mjs" },
+  { q: "12/10", t: "A sua leitura, commitada antes da comparação", st: "feito", contra: "ajustar a leitura humana ao que o Semgrep disse", txt: "<p>Você leu os 44 às cegas, com a régua, sem ver o Semgrep. A planilha foi <b>commitada antes</b> de qualquer comparação (commit <code>7d4f18a</code>).</p>", onde: "evaluation/reading/leitura-lucas.csv" },
+  { q: "12/10", t: "A conferência do Semgrep", st: "feito", contra: "o Semgrep errar nos pacotes reais, com formas que ninguém previu", txt: "<p>O <code>compare.mjs</code> cruza as duas leituras. Uma pergunta <b>vale para os 220</b> se concordarem em pelo menos <b>40 de 44</b> (90%); senão, as hipóteses dela viram descritivas. Vazio ou <code>indeterminado</code> conta como discordância, e <b>a conta oficial é a primeira</b>: corrigir uma regra depois não a refaz.</p><p>No V5: <b>174 de 176</b>, as 4 perguntas valem.</p>", onde: "analysis/conferencia-V5-STRATEGY.md (o resumo)" },
+  { q: "12/10", t: "O verify da leitura", st: "feito", contra: "o mapa, a amostra, as planilhas e o Semgrep não baterem entre si", txt: "<p>A checagem [1] do <code>verify.mjs</code>, com o mapa, a amostra e o CSV do Semgrep: o mapa liga cada execução a um código, um para um; a amostra tem um por grupo; as planilhas têm os códigos certos e valores da régua; o Semgrep tem todos os pacotes, e nenhum sem código lido.</p>", onde: "infra/scripts/verify.mjs" },
+  { q: "12/10", t: "As hipóteses", st: "feito", contra: "decidir caso a caso o que conta", txt: "<p>O <code>hipoteses.mjs</code> congelado junta tudo por execução, forma os pares e aplica a regra de cada tipo. Saem as tabelas de pares (publicadas inteiras), o tamanho do efeito e o veredito de cada hipótese, e o teste de Page só como informação.</p>", onde: "analysis/hipoteses-V5-STRATEGY.md" },
+  { q: "prevista para 19 a 26/10", t: "A releitura", st: "naofeito", contra: "um leitor instável (e o cegamento vazar)", txt: "<p>O pré-registro previa que você relesse <b>11 dos 44</b> (25%), uma ou duas semanas depois, sorteados no dia, sem ver as respostas antigas, para medir se responderia igual.</p><p><b>Não será feita</b> (decisão de 12/10): o V5 fecha como primeiro ciclo, e uma pesquisa nova e mais ampla vem a seguir. É um <b>desvio declarado</b> do pré-registro: a estabilidade do leitor não foi medida, e isso entra nas limitações, ao lado de \"um leitor só\". Os vereditos não mudam.</p><p>Com isso acabou a cegueira depois da leitura: o mapa, a conferência por pacote, o CSV do Semgrep e o <code>classificar.mjs</code> podem ser abertos.</p>", onde: "TCC_V3/DECISOES.md (12/10: sem releitura no V5)" },
+  { q: "depois", t: "A escrita", st: "pendente", contra: "dizer mais do que os dados permitem", txt: "<p>O §6 do <code>OBJETIVO</code> (o que o trabalho não afirma) vira a seção de limitações. As secundárias são publicadas, mas não sustentam conclusão sozinhas. Qualquer análise extra (uma regra corrigida, uma hipótese lida à mão) sai marcada como tal.</p>", onde: "OBJETIVO §6" },
+];
+function abaSequencia(sec) {
+  sec.append(el("h2", null, "A sequência de verificação"),
+    el("p", { class: "lead", html: "Cada passo existe para fechar uma porta: a coluna \"protege contra\" diz qual. Verde: feito no V5. Amarelo: falta. Cinza: não feito, por decisão. Clique num passo." }));
+  const lista = el("div", { class: "tl painel" }), det = el("div");
+  const mostra = (k) => {
+    lembra("seq", k);
+    [...lista.children].forEach((c, j) => c.classList.toggle("sel", j === k));
+    const s = SEQ[k];
+    det.replaceChildren(explicacao({ t: `${k + 1}. ${s.t}`, txt: `<p class="mini">${s.q} · ${s.st === "feito" ? '<span class="sim">feito</span>' : s.st === "pendente" ? '<span style="color:var(--cur);font-weight:700">pendente</span>' : '<span style="color:var(--muted);font-weight:700">não feito, por decisão</span>'}</p>` + s.txt }, [
+      el("div", { class: "caixa aconteceu" }, el("div", { class: "rotulo" }, "protege contra"), H_(`<p>${s.contra}</p>`)),
+      el("div", { class: "caixa" }, el("div", { class: "rotulo" }, "onde está a prova"), H_(`<p><code>${esc(s.onde)}</code></p>`)),
+    ]));
+  };
+  SEQ.forEach((s, k) => lista.append(el("div", { class: "tl-item " + s.st, onclick: () => mostra(k) }, el("div", { class: "bola" }, String(k + 1)), el("div", { class: "cx" }, el("b", null, s.t), el("span", null, `${s.q} · protege contra ${s.contra}`)))));
+  sec.append(el("div", { class: "grade2" }, lista, det));
+  mostra(Number.isInteger(MEM.seq) ? MEM.seq : 0);
+}
+
+// =====================================================================
+// 2. As hipoteses
+// =====================================================================
+const AFIRMA = {
+  "Desenho: isola cada caso no P4": ["com o harness, mais pacotes com acerto no P4 (o clube)", "Semgrep, conferido"],
+  "Exagero: aplica onde nao pede": ["o harness altera a taxa de exagero no P5", "Semgrep, conferido"],
+  "Correcao: suite inteira": ["com o harness, o código não faz menos pontos na suíte", "a suíte"],
+  "Qualidade: menos complexidade": ["com o harness, a complexidade cognitiva cai", "SonarQube"],
+  "Modelo: efeito maior no mais fraco": ["o efeito no desenho é maior no modelo que menos acerta o P4 sem harness", "Semgrep, conferido"],
+  "Desenho: isola cada caso no P1 a P3": ["o mesmo do P4, na entrega, no cupom e no pagamento", "Semgrep, sem conferência humana"],
+  "Desenho: nao repete o comum": ["com o harness, menos repetição do que é comum aos casos", "SonarQube (duplicação)"],
+  "Desenho: replicas mais parecidas": ["as 5 réplicas dão respostas mais parecidas no N1", "Semgrep"],
+  "Exagero: mais arquivos": ["com o harness, mais tipos para o mesmo enunciado", "SonarQube (classes)"],
+  "Exagero: estrutura especulativa (CBO)": ["o harness altera o acoplamento médio", "CK"],
+  "Exagero: estrutura especulativa (LCOM)": ["o harness altera a coesão média", "CK"],
+  "Correcao: contas": ["não faz menos pontos nos 12 casos de conta", "a suíte"],
+  "Correcao: recusas": ["não faz menos pontos nos 9 casos de recusa", "a suíte"],
+  "Correcao: nao quebra o build": ["não tem mais builds quebrados nem serviços que não sobem", "a suíte"],
+  "Correcao: casos de borda": ["nas fronteiras, na precedência e na colisão OURO + FRETEGRATIS, não erra mais", "a suíte"],
+  "Qualidade: menos code smells": ["com o harness, menos code smells", "SonarQube"],
+  "Custo: tokens de entrada": ["o harness altera o consumo de entrada", "meta.json"],
+  "Custo: tempo de API": ["o harness altera o tempo de API", "meta.json"],
+  "Custo: processo de trabalho (turnos)": ["o harness altera o processo de trabalho (turnos)", "meta.json"],
+  "Custo: sinal muda por modelo": ["a direção do efeito no custo muda conforme o modelo", "meta.json"],
+  "Modelo: no teto, nao piora (desenho)": ["nos modelos que já acertam tudo sem harness, ele não piora o desenho", "Semgrep, conferido"],
+  "Modelo: no teto, nao piora (correcao)": ["nos modelos no teto, o harness não piora a correção", "a suíte"],
+  "Skills: mais efeito no desenho": ["acrescentar a skill aumenta o efeito no desenho", "Semgrep, conferido"],
+  "Skills: mais custo (tokens)": ["acrescentar a skill aumenta o custo", "meta.json"],
+  "Skills: mudam o exagero": ["mais componentes alteram o exagero", "Semgrep, conferido"],
+  "Skills: so valem se carregadas": ["o efeito depende de a skill ser carregada", "meta.json"],
+  "Processo: corrige mais": ["o N3 passa em mais casos da suíte que o N2", "a suíte"],
+  "Processo: mais efeito no desenho": ["o efeito no desenho do N3 é maior que o do N2", "Semgrep, conferido"],
+  "Processo: menos exagero": ["o N3 exagera menos que o N2 (o revisor aponta complexidade)", "Semgrep, conferido"],
+  "Processo: mais custo (tokens)": ["o N3 gasta mais tokens que o N2", "meta.json"],
+  "Processo: mais custo (tempo)": ["o N3 gasta mais tempo que o N2", "meta.json"],
+  "Processo: so vale se usado": ["execuções do N3 sem o revisor se comportam como o N2", "meta.json"],
+};
+const TIPO = { "direcional": "direcional: melhora?", "nao-inferioridade": "não-inferioridade: não piora?", "sem-direcao-continua": "sem direção: altera? (contínua)", "sem-direcao-binaria": "sem direção: altera? (sim/não)", "modelo": "compara modelos", "descritiva-replicas": "descritiva", "descritiva-sinal": "descritiva", "descritiva-uso": "descritiva" };
+function abaHipoteses(sec) {
+  sec.append(el("h2", null, "Quais hipóteses servem para o quê"),
+    el("p", { class: "lead", html: "As 32 hipóteses do V5. <b>★ principais</b>: as 5 que respondem à pergunta. As <b>secundárias</b> são medidas e publicadas, mas não sustentam conclusão sozinhas: com muitas hipóteses, alguma \"dá certo\" por acaso. Use os filtros." }));
+  const f = { ped: "todas", eixo: "todos", v: "todos" };
+  const barra = el("div", { class: "pilha" }), cards = el("div", { class: "cards" });
+  const eixos = ["todos", ...new Set(HIP.map((h) => h.nome.replace("★ ", "").split(":")[0]))];
+  const vs = ["todos", "apoiada", "contrariada", "inconclusiva", "descritiva"];
+  const grupo = (rot, chave, ops, nomes) => el("div", { class: "filtros" }, el("span", { class: "mini" }, rot), ...ops.map((o) => el("button", { class: "b" + (f[chave] === o ? " on" : ""), onclick: () => { f[chave] = o; desenha(); } }, nomes ? nomes[o] || o : acento(o))));
+  function desenha() {
+    barra.replaceChildren(grupo("peso:", "ped", ["todas", "principais", "secundárias"]), grupo("eixo:", "eixo", eixos), grupo("veredito:", "v", vs));
+    const lista = HIP.filter((h) => (f.ped === "todas" || (f.ped === "principais") === h.principal) && (f.eixo === "todos" || h.nome.replace("★ ", "").startsWith(f.eixo + ":")) && (f.v === "todos" || h.veredito.startsWith(f.v)));
+    cards.replaceChildren(...lista.map((h) => {
+      const base = h.nome.replace("★ ", ""), [afirma, instr] = AFIRMA[base] || ["", ""];
+      const cls = "v-" + h.veredito.split(" ")[0];
+      return el("div", { class: "hcard" },
+        el("div", { class: "nm" }, (h.principal ? "★ " : "") + acento(base)),
+        H_(`<p style="margin:0">${afirma}</p>`),
+        el("div", { class: "meta" }, el("span", { class: "pill" }, h.par ? h.par.join(" → ") : "N2/N3"), el("span", { class: "pill" }, TIPO[h.tipo] || h.tipo), el("span", { class: "pill" }, instr), h.depende ? el("span", { class: "pill", title: "se a conferência reprovasse esta pergunta, a hipótese viraria descritiva" }, "depende da conferência") : null),
+        H_(`<p style="margin:0">V5: <span class="${cls}">${h.veredito}</span>${h.efeito !== null && h.efeito !== undefined ? ` · efeito ${String(h.efeito).replace(".", ",")}` : ""}</p>${h.regra ? `<p class="mini" style="margin:0">${esc(h.regra)}</p>` : ""}`));
+    }));
+    if (!lista.length) cards.append(H_("<p>Nenhuma com esses filtros.</p>"));
+  }
+  sec.append(barra, cards,
+    el("div", { class: "painel", style: "margin-top:12px" }, H_(`<h3 style="margin-top:0">Como ler</h3><ul>
+      <li><b>A comparação</b>: as principais e as de desenho, exagero, correção, qualidade, custo e modelo comparam <b>N1 com N0</b> (o <code>CLAUDE.md</code> contra nada, o contraste mais limpo). As de skills comparam N2 × N1; as de processo, N3 × N2.</li>
+      <li><b>O efeito</b> é o saldo de pares (melhores − piores) dividido pelo número de pares, de −1 a +1 (a versão pareada do <i>Cliff's delta</i>): abaixo de 0,15, desprezível; perto de 0,33, médio; acima de 0,47, grande. Não muda o veredito.</li>
+      <li><b>Inconclusiva é resultado</b>, não falha.</li>
+      <li class="mini">Fonte: OBJETIVO §4 e a saída do <code>hipoteses.mjs</code> (<code>analysis/hipoteses-V5-STRATEGY.md</code>).</li></ul>`)));
+  desenha();
+}
+
+// =====================================================================
+// 3. As regras de leitura, e por que
+// =====================================================================
+function abaRegras(sec) {
+  sec.append(el("h2", null, "As regras de leitura, e por quê"),
+    el("p", { class: "lead", html: "OBJETIVO §4.1. As regras foram escritas <b>antes</b> dos dados, e o <code>hipoteses.mjs</code> as aplica. Aqui, o porquê de cada número, com as funções de limite tiradas do próprio script." }));
+  sec.append(el("div", { class: "painel pilha", style: "margin-bottom:12px" }, H_(`<h3 style="margin-top:0">Por que pares, e não um teste estatístico por modelo</h3>
+    <p>Com 5 réplicas, cada modelo tem 5 pares por comparação. Mesmo com os 5 na mesma direção, a chance disso por pura sorte é de <b>${pct(R.caudaDupla(5, 5))}</b>: nunca passaria dos 5% convencionais. E somar os 55 pares num teste só misturaria modelos que se comportam diferente. Por isso a leitura é <b>por pares, descritiva, e decidida antes</b>.</p>`)));
+
+  // a moeda
+  const nIn = el("input", { type: "number", value: 55, min: 5, max: 200, style: "max-width:100px" });
+  const out = el("div", { class: "pilha" });
+  const joga = () => {
+    const n = Math.max(5, Math.min(200, Number(nIn.value) || 55));
+    const k = R.minimoSinal(n, 0.05), baixo = Math.floor(0.6 * n);
+    const vezes = 4000, cont = new Array(n + 1).fill(0);
+    let acima = 0;
+    for (let v = 0; v < vezes; v++) { let c = 0; for (let i = 0; i < n; i++) if (Math.random() < 0.5) c++; const maior = Math.max(c, n - c); cont[maior]++; if (maior >= k) acima++; }
+    const ini = Math.ceil(n / 2), max = Math.max(...cont);
+    out.replaceChildren(
+      el("div", { class: "histo" }, cont.slice(ini).map((x, j) => el("i", { class: ini + j >= k ? "fora" : null, style: `height:${(x / max) * 100}%`, title: `lado maior = ${ini + j}: ${x} vezes` }))),
+      H_(`<p class="mini">Cada barra: em quantas das ${vezes} jogadas o lado maior teve aquele número de pares (de ${ini} a ${n}). Em vermelho, a partir de <b>${k}</b>.</p>
+        <p>Com ${n} pares, se o harness não fizesse nada, o lado maior chegou a ${k} ou mais em <b>${pct(acima / vezes)}</b> das jogadas. A conta exata (a função <code>caudaDupla</code> do script): <b>${pct(R.caudaDupla(n, k))}</b>. Por isso: <b>apoiada com ${k} ou mais</b>; <b>contrariada com ${baixo} ou menos</b> (até 60% de um lado: os pares se dividem); entre os dois, inconclusiva.</p>
+        ${n === 55 ? '<p class="mini">É a tabela do OBJETIVO: 36 ou mais, 3,0%; 35 ou mais, 5,8%. (No V4, com 25 pares, o limite era 18.)</p>' : ""}`));
+  };
+  nIn.oninput = joga;
+  sec.append(el("div", { class: "painel pilha", style: "margin-bottom:12px" }, el("h3", { style: "margin-top:0" }, "A moeda: de onde vem o 36 de 55"),
+    H_("<p>Se o harness não mudasse nada, cada par subiria ou desceria por sorte, como cara ou coroa. A página joga 55 moedas 4000 vezes e conta quantas vezes um dos lados chega ao limite.</p>"),
+    el("div", { class: "linha-botoes" }, el("label", { class: "mini" }, "pares: ", nIn), el("button", { class: "b on", onclick: joga }, "jogar de novo")), out));
+  joga();
+
+  sec.append(el("div", { class: "grade2" },
+    el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">O saldo de 13% (não-inferioridade)</h3><p>Mesmo sem efeito nenhum, o modelo não acerta sempre igual, e alguns pares saem diferentes por acaso, para os dois lados. O <b>saldo</b> (piores − melhores) desconta os melhores. A mesma proporção que justificava 2 em 15 pares dá <b>${R.limiteSaldo(55)} em 55</b>. Acima disso, o harness atrapalha mais do que ajuda.</p>`)),
+    el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">O teto</h3><p>Um modelo que já acerta tudo sem harness, nas 5 réplicas, <b>não tem como melhorar</b>: só empatar ou piorar. Contá-lo tornaria impossível apoiar uma hipótese direcional sempre que vários modelos estivessem no teto. Por isso ele <b>sai da contagem</b> e é lido por \"no teto, não piora\". Se todos estiverem no teto: \"sem espaço para efeito\".</p>`)),
+    el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">Direcional: voto por modelo</h3><p>Apoiada quando a <b>maioria dos modelos fora do teto</b> tem mais pares melhores que piores, <b>e nenhum modelo</b> (nem os do teto) tem mais piores. Contrariada quando a maioria fora do teto tem mais piores.</p>`)),
+    el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">Sim/não (o exagero)</h3><p>Quando a medida é \"exagerou ou não\", quase todo par empata (nenhum dos dois exagerou). Contam só os pares em que os níveis diferem, com a mesma conta da moeda e limite de 6,3% (o exagero é raro). Com 1 ou 2 pares diferentes: contrariada.</p>`))),
+    el("div", { class: "painel", style: "margin-top:12px" }, H_(`<h3 style="margin-top:0">E dois números só como informação</h3><ul><li><b>O tamanho do efeito</b> (saldo ÷ pares), publicado ao lado de cada hipótese.</li><li><b>O teste de Page</b>: a medida sobe de N0 a N3? Cada quarteto é um bloco. Publicado com o p, <b>não decide nenhuma hipótese</b>.</li></ul>`)),
+    quiz({ p: "A conferência deu <b>39 de 44</b> na <code>P4_localizacao</code>. O que acontece com a hipótese do desenho?", op: ["nada, 39 é quase 40", "vira descritiva, lida só nos 44 conferidos", "o Semgrep é corrigido e a conta refeita"], certa: 1, exp: "Abaixo de 40, a pergunta vira descritiva: as hipóteses que dependem dela são lidas só nos 44 pacotes conferidos, e a discordância entra nas limitações. Corrigir a regra para refazer a conta oficial não é permitido; uma regra corrigida só pode aparecer como análise extra, marcada." }));
+}
+
+// =====================================================================
+// 4. Ameacas e defesas
+// =====================================================================
+const AMEACAS = [
+  ["quem avalia saber o nível, e ler o que espera", "cópia cega (sem CLAUDE.md, .claude, comentários, .md; datas iguais), códigos sorteados, mapa fora do git até a leitura ser commitada", "o próprio código pode entregar o nível; a coluna achei_que_sabia_nivel mede isso"],
+  ["um avaliador de IA da mesma família dos agentes", "nenhum modelo avalia: o Semgrep e as métricas são regras fixas, e quem confere é você", "os instrumentos foram desenhados com ajuda do Claude (declarado no §6)"],
+  ["decidir a hipótese, a regra ou o limite depois de ver os dados", "pré-registro congelado com hash antes da primeira execução; regras escritas no script; emenda datada", "o V4 rodou antes (declarado); a cognitiva como principal veio do ensaio do V3 (declarado)"],
+  ["horário, fila e carga do servidor", "os 4 níveis de um modelo rodam no mesmo instante, e a comparação é dentro do quarteto", "entre quartetos, não controlado, mas a análise não compara entre quartetos"],
+  ["a ordem das execuções", "ordem sorteada com semente, uma réplica de cada modelo por rodada", "—"],
+  ["o ambiente contaminado (configuração do autor, rede, permissões)", "container descartável; ~/.claude vazio e nenhum CLAUDE.md fora (as linhas [pre]); build em outro container, sem token", "o Claude Code tem as próprias orientações, iguais para todos (o efeito medido é o do harness somado a elas)"],
+  ["a suíte medir errado", "17 mutantes, o enunciado contra a calculadora (73 de 73), implementações independentes, revisão das leituras", "um erro que fosse o mesmo na calculadora e em todas as implementações"],
+  ["o Semgrep medir errado", "corpora (o de controle, com forma nova: 44 de 44), conferência humana (40 de 44 por pergunta), alarme de nomes", "forma que ninguém previu; ordinal(); código que ninguém chama; P1 a P3 sem conferência; o nível em minúsculas"],
+  ["um leitor instável", "o pré-registro previa a releitura de 11, sorteada no dia, semanas depois; ela não foi feita (decisão de 12/10, o V5 fechou como primeiro ciclo)", "a estabilidade do leitor não foi medida, e há um leitor só (não se mede a concordância entre pessoas)"],
+  ["muitas hipóteses (alguma dá certo por acaso)", "5 principais (★); as secundárias não sustentam conclusão sozinhas", "—"],
+  ["poucas réplicas para estatística por modelo", "leitura por pares, descritiva, decidida antes; o teste de sinal só sobre os 55", "o efeito num modelo só (5 pares) não é prova"],
+  ["modelos que já acertam tudo (teto)", "saem da contagem nas direcionais; \"no teto, não piora\"", "neles, o estudo só diz se o harness atrapalha"],
+  ["medir de novo até dar o resultado esperado", "nada é refeito por cima (execução, medição, ordem, mapa, saída); quarteto interrompido refeito inteiro", "—"],
+  ["o cache da API mexer no custo", "o custo é todo secundário; os tokens são registrados separados", "o custo não sustenta conclusão"],
+  ["generalizar demais", "o §6 diz o que o trabalho não afirma", "um enunciado, Java/Spring, do zero; só modelos Claude; o harness dentro do Claude Code 2.1.288"],
+];
+function abaAmeacas(sec) {
+  sec.append(el("h2", null, "Ameaças e defesas"),
+    el("p", { class: "lead", html: "O que poderia fazer o resultado parecer o que não é, o que o desenho faz contra, e o que <b>sobra</b> (o que vai para as limitações). Clique numa ameaça." }));
+  const lista = el("div", { class: "painel lista-regras" }), det = el("div");
+  const mostra = (k) => {
+    [...lista.children].forEach((c, j) => c.classList.toggle("ativa", j === k));
+    const [a, d, r] = AMEACAS[k];
+    det.replaceChildren(el("div", { class: "painel pilha" }, el("div", { class: "passo-t" }, a),
+      el("div", { class: "caixa certo" }, el("div", { class: "rotulo" }, "a defesa"), H_(`<p>${d}</p>`)),
+      el("div", { class: "caixa aviso" }, el("div", { class: "rotulo" }, "o que sobra"), H_(`<p>${r}</p>`))));
+  };
+  AMEACAS.forEach(([a], k) => lista.append(el("button", { onclick: () => mostra(k) }, a)));
+  sec.append(el("div", { class: "grade-lab", style: "grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)" }, lista, det));
+  mostra(0);
+}
+
+// =====================================================================
+// 5. O que se conclui, e o que nao
+// =====================================================================
+function abaConclui(sec) {
+  const P = HIP.filter((h) => h.principal);
+  sec.append(el("h2", null, "O que o V5 permite concluir, e o que não"),
+    el("p", { class: "lead", html: "Só as 5 principais sustentam conclusão. Abaixo, o veredito, a regra aplicada (a frase que o <code>hipoteses.mjs</code> escreveu) e o tamanho do efeito." }),
+    el("div", { class: "cards" }, P.map((h) => el("div", { class: "hcard" }, el("div", { class: "nm" }, acento(h.nome)), H_(`<p style="margin:0" class="v-${h.veredito.split(" ")[0]}">${h.veredito}</p><p class="mini" style="margin:0">${esc(h.regra || "")}</p><p class="mini" style="margin:0">efeito: ${h.efeito !== null ? String(h.efeito).replace(".", ",") : "—"}</p>`)))),
+    el("div", { class: "painel", style: "margin-top:12px" }, H_(`<h3 style="margin-top:0">Lendo junto</h3><ul>
+      <li><b>Desenho</b>: o <code>CLAUDE.md</code> (N1) melhora o acerto no P4 nos modelos que tinham espaço (fora do teto), sem nenhum modelo piorar.</li>
+      <li><b>Exagero</b>: não apareceu. Quase nenhum par diferiu no P5. O <code>CLAUDE.md</code> tem uma regra contra estrutura para variação imaginada, que pode explicar isso (está nas lições).</li>
+      <li><b>Correção</b>: o harness não piorou a suíte (o saldo ficou a favor do harness).</li>
+      <li><b>Qualidade</b>: a complexidade cognitiva caiu na grande maioria dos pares (efeito 0,82, grande).</li>
+      <li><b>Modelo</b>: apoiada pela regra de empate decidida antes (dois modelos empataram como os mais fracos no N0, e o maior saldo, sem empate, é de um deles). Vale ler com essa ressalva.</li></ul>`)),
+    el("div", { class: "painel", style: "margin-top:12px" }, H_(`<h3 style="margin-top:0">O que o trabalho não afirma (OBJETIVO §6, resumido)</h3><ul>
+      <li>não generaliza para qualquer enunciado: um serviço pequeno, do zero, em Java/Spring;</li>
+      <li>não compara padrões nem versões de harness estatisticamente (entre lotes não há pares);</li>
+      <li>o Semgrep pode errar em silêncio (formas imprevistas; o P1 a P3 sem conferência);</li>
+      <li>há um leitor humano só, e a releitura prevista não foi feita (a estabilidade dele não foi medida);</li>
+      <li>os instrumentos foram desenhados com ajuda de um modelo de IA da mesma família;</li>
+      <li>o ensaio influenciou escolhas, e o V4 rodou antes (os dois declarados);</li>
+      <li>o N3 gasta muito mais: uma melhora nele pode ser o processo ou só mais computação;</li>
+      <li>nos modelos no teto, o estudo só diz se o harness atrapalha;</li>
+      <li>a skill do N2 traz exemplos próximos do domínio (o de Strategy é pagamento);</li>
+      <li>mede o harness somado às orientações do próprio Claude Code 2.1.288;</li>
+      <li>só modelos Claude; a manutenção ficou de fora.</li></ul>`)));
+}
+
+// =====================================================================
+// 6. Pendencias do metodo
+// =====================================================================
+function abaPendencias(sec) {
+  sec.append(el("h2", null, "O que ainda falta, no método"),
+    el("div", { class: "pilha", style: "max-width:1000px" },
+      el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">1. A releitura: decidido que não será feita</h3><p>Prevista no pré-registro (§4.10), ela não acontece: o V5 fecha como primeiro ciclo (decisão de 12/10, no <code>DECISOES.md</code>). Na escrita, entra como <b>desvio declarado</b> e como limitação: a estabilidade do leitor não foi medida. Não há mais nada a fazer aqui, além de citá-la.</p>`)),
+      el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">2. Uma hipótese pré-registrada que o script não roda</h3><p>O §4.6 do <code>OBJETIVO</code> lista <b>\"Modelo: quem melhora não é quem exagera\"</b> (secundária, sem direção): a influência negativa (o exagero) aparece em modelos diferentes dos que têm a positiva. Ela <b>não está</b> na lista do <code>hipoteses.mjs</code>, e não tem veredito no V5.</p><p>Como é secundária e o exagero quase não apareceu, o peso é pequeno, mas o pré-registro pede que ela seja tratada. Caminhos: declará-la como <b>não testada</b> (com o motivo), ou lê-la à mão a partir das tabelas de pares, <b>marcada como análise extra</b>. Qualquer um dos dois é uma decisão a registrar.</p>`)),
+      el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">3. O texto antigo na régua congelada</h3><p>A §0 da <code>regua.md</code> do V5 ainda diz \"20\" e \"18 de 20\" (números do V4). O que valeu foi o pré-registro (40 de 44), aplicado pelo <code>compare.mjs</code>. Já registrado no <code>DECISOES.md</code>.</p>`)),
+      el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">4. O commit da análise</h3><p>A conferência, o mapa, as notas, as hipóteses, o resumo dos resultados e as páginas de explicação ainda não estão no git.</p>`))));
+}
+
+// =====================================================================
+// 7. Autoavaliacao
+// =====================================================================
+function abaAuto(sec) {
+  const Q = [
+    ["Qual a unidade de análise, e por quê?", "O <b>par</b>: dois níveis vizinhos do mesmo modelo que rodaram no mesmo instante. Assim, horário, fila e carga são iguais nos dois, e o que muda é só o harness."],
+    ["Por que pré-registrar e congelar com hash?", "Para provar que as hipóteses, as regras e os limites foram escolhidos <b>antes</b> de ver os dados. Mudança depois vira emenda datada."],
+    ["Por que o Semgrep precisa de conferência humana, se passou nos corpora?", "Os corpora são formas que nós imaginamos (e só o de controle é forma nova). A conferência testa nos pacotes reais, com o que os agentes escreveram. Se uma pergunta não chegar a 40 de 44, as hipóteses dela viram descritivas."],
+    ["Por que 36 de 55 para dizer que o harness \"altera\"?", "Sem efeito, cada par é cara ou coroa. A chance de 36 ou mais caírem do mesmo lado por sorte é de 3,0%; com 35, já é 5,8%. 36 é o menor número abaixo de 5%."],
+    ["Por que os modelos no teto saem da contagem nas direcionais?", "Eles não têm como melhorar. Contá-los impediria apoiar a hipótese sempre que vários estivessem no teto, mesmo com efeito claro nos outros. Eles são lidos por \"no teto, não piora\"."],
+    ["O que diferencia uma hipótese principal de uma secundária?", "As principais respondem à pergunta e sustentam conclusão. As secundárias são publicadas, mas não sustentam conclusão sozinhas: com 32 hipóteses, alguma daria certo por acaso."],
+    ["\"Inconclusiva\" é um problema?", "Não: é um resultado. A regra decide antes o que conta como apoio e como contrariedade; o que fica no meio é registrado como tal, com a tabela de pares inteira."],
+    ["O que a releitura mediria, e o que se perde sem ela?", "Mediria se você responde igual semanas depois (a estabilidade do leitor). Sem ela, isso fica sem medida, e entra nas limitações como desvio declarado do pré-registro. A conferência continua valendo: ela mede se o Semgrep concorda com a sua leitura, não se a sua leitura é estável."],
+    ["O que fazer com uma hipótese pré-registrada que não foi rodada?", "Não esconder: declarar como não testada, com o motivo, ou analisá-la depois, marcada como análise extra. Os dois caminhos ficam registrados."],
+  ];
+  sec.append(el("h2", null, "Autoavaliação"), el("p", { class: "lead" }, "Para explicar o método ao orientador. Responda de cabeça antes de abrir."),
+    el("div", { style: "max-width:900px" }, Q.map(([q, r], k) => el("details", { class: "r" }, el("summary", { html: `${k + 1}. ${q}` }), H_(`<p>${r}</p>`)))));
+}
+
+// ---- abas-acerto.js ----
+// abas-acerto.js: o que conta como acerto (o gabarito e a regua).
+"use strict";
+
+// trechos INVENTADOS; a resposta e a da regua (evaluation/regua.md), com a linha que decide
+const EXERCICIOS = [
+  { t: "Um mapa e uma classe por nível", cod: `Map<String, Nivel> NIVEIS = Map.of(
+    "BRONZE", new Bronze(), "PRATA", new Prata(), "OURO", new Ouro());
+
+BigDecimal frete(String codigo, BigDecimal base) {
+    return NIVEIS.get(codigo).frete(base);   // cada nivel faz a sua conta
+}`, perguntas: [
+    ["P4_localizacao", "isolado", "Todo o código específico de cada nível está na classe dele. O nome no <code>Map.of</code> é só chave de registro, e isso não conta (régua §2.1)."],
+    ["P4_selecao", "consulta", "O nível é achado <b>sem nomear</b>: um <code>Map.get</code> (régua §2.2)."]] },
+  { t: "Estrutura, mas o Ouro escapa num if", cod: `BigDecimal frete(String codigo, BigDecimal base) {
+    Nivel nivel = NIVEIS.get(codigo);
+    if (nivel instanceof Ouro) return BigDecimal.ZERO;   // fora da classe Ouro
+    return nivel.frete(base);
+}`, perguntas: [
+    ["P4_localizacao", "espalhado", "O Ouro tem código específico <b>também</b> fora da classe dele (régua §2.1)."],
+    ["P4_selecao", "condicional-no-calculo", "O nível foi achado por consulta, mas a conta do Ouro é feita por um <code>if</code> que o nomeia: \"o <code>if</code> passou por cima da estrutura\" (régua §2.2)."]] },
+  { t: "Uma fábrica num lugar só", cod: `Nivel criar(String codigo) {
+    return switch (codigo) {
+        case "BRONZE" -> new Bronze();
+        case "PRATA" -> new Prata();
+        default -> new Ouro();
+    };
+}
+// depois: criar(codigo).frete(base)`, perguntas: [
+    ["P4_localizacao", "isolado", "O <code>switch</code> só escolhe o objeto; a conta de cada nível continua na classe dele."],
+    ["P4_selecao", "condicional-unica", "Um <code>switch</code> que nomeia os níveis <b>num lugar só</b> e <b>devolve um objeto</b> para outro calcular (régua §2.2)."]] },
+  { t: "Um enum que é só rótulo", cod: `enum Nivel { BRONZE, PRATA, OURO }
+
+BigDecimal frete(Nivel nivel, BigDecimal base) {
+    switch (nivel) {
+        case OURO: return BigDecimal.ZERO;
+        case PRATA: return base.multiply(new BigDecimal("0.5"));
+        default: return base;
+    }
+}`, perguntas: [
+    ["P4_localizacao", "espalhado", "Os níveis <b>não têm unidade própria</b> (constantes sem corpo, comparadas num método de todos): qualquer código específico está fora da casa deles (régua §2.1)."],
+    ["P4_selecao", "condicional-no-calculo", "\"Um <code>enum</code> que é só rótulo, com a conta num <code>switch</code> que nomeia os níveis\" (régua §2.2)."]] },
+  { t: "Uma lista de válidos antes do mapa", cod: `if (!Set.of("BRONZE", "PRATA", "OURO").contains(codigo))
+    throw new IllegalArgumentException("NIVEL_CLUBE_INVALIDO");
+return NIVEIS.get(codigo).frete(base);`, perguntas: [
+    ["P4_localizacao", "isolado", "Um bloco que cita <b>todos</b> os níveis só para conferir se o código existe é uma <b>lista de válidos</b>, e não conta (régua §2.1)."],
+    ["P4_selecao", "consulta", "Achado pelo mapa. E um <code>if</code> que só recusa o pedido não muda a seleção (régua §2.2)."]] },
+  { t: "Um if que nomeia o Ouro só para recusar", cod: `if ("OURO".equals(codigo) && subtotal.signum() < 0)
+    throw new IllegalArgumentException("PEDIDO_INVALIDO");
+return NIVEIS.get(codigo).frete(base);`, perguntas: [
+    ["P4_localizacao", "espalhado", "\"<b>Inclusive</b> um <code>if</code> que o nomeia numa validação\": é código só do Ouro, fora da casa dele (régua §2.1)."],
+    ["P4_selecao", "consulta", "Para a seleção, um <code>if</code> que só recusa (valida, mas não calcula) não muda nada: o nível continua achado pelo mapa (régua §2.2)."]] },
+  { t: "P5: um enum que só carrega números", cod: `enum Regiao {
+    SUDESTE(new BigDecimal("0.010")), SUL(new BigDecimal("0.010")),
+    NORTE(new BigDecimal("0.025"));
+    final BigDecimal taxa;
+    Regiao(BigDecimal t) { taxa = t; }
+    BigDecimal seguro(BigDecimal v) { return v.multiply(taxa); }
+}`, perguntas: [
+    ["P5_forma", "enum-dados", "Constantes que só carregam valores, e um método só para todas (régua §3.1)."],
+    ["P5_proporcao", "dados", "A variação como dado: a resposta tem o tamanho do problema (régua §3.2)."]] },
+  { t: "P5: uma região com corpo próprio", cod: `enum Regiao {
+    SUL(new BigDecimal("0.010")),
+    NORTE(new BigDecimal("0.025")) {
+        BigDecimal seguro(BigDecimal v) { return super.seguro(v); }
+    };
+    ...
+}`, perguntas: [
+    ["P5_forma", "enum-abstrato", "Alguma constante tem corpo próprio (<code>NORTE { ... }</code>) (régua §3.1)."],
+    ["P5_proporcao", "estrutura", "Uma constante de enum <b>com corpo</b> é estrutura, mesmo que faça a mesma conta (régua §3.2): o <b>exagero</b>."]] },
+  { t: "P5: objetos, mas da mesma classe", cod: `List<Taxa> TAXAS = List.of(
+    new Taxa("SUL", new BigDecimal("0.010")),
+    new Taxa("NORTE", new BigDecimal("0.025")));`, perguntas: [
+    ["P5_forma", "outro", "Não é enum, nem mapa, nem switch, nem uma classe por região: uma lista (régua §3.2: \"a <code>forma</code> é <code>mapa</code> se estiver num mapa, ou <code>outro</code>\")."],
+    ["P5_proporcao", "dados", "\"Objeto não é sempre estrutura\": objetos <b>da mesma classe</b>, só com os números, são uma tabela (régua §3.2)."]] },
+  { t: "P5: uma função por região", cod: `Map<String, Function<BigDecimal, BigDecimal>> SEGURO = Map.of(
+    "SUL", v -> v.multiply(new BigDecimal("0.010")),
+    "NORTE", v -> v.multiply(new BigDecimal("0.025")));`, perguntas: [
+    ["P5_forma", "mapa", "Um <code>Map</code> da região para alguma coisa (régua §3.1)."],
+    ["P5_proporcao", "estrutura", "Cada região com <b>função própria</b>, mesmo que todas façam a mesma conta (régua §3.2)."]] },
+  { t: "P5: um switch que só devolve o número", cod: `BigDecimal taxa(Regiao r) {
+    return switch (r) {
+        case NORTE -> new BigDecimal("0.025");
+        case NORDESTE -> new BigDecimal("0.020");
+        default -> new BigDecimal("0.010");
+    };
+}`, perguntas: [
+    ["P5_forma", "switch", "Um <code>switch</code> sobre a região (régua §3.1)."],
+    ["P5_proporcao", "condicional", "Um <code>switch</code> que só <b>devolve o número</b> de cada região: proporcional (régua §3.2)."]] },
+];
+const VALORES = {
+  P4_localizacao: ["isolado", "espalhado"], P4_selecao: ["consulta", "condicional-unica", "condicional-no-calculo"],
+  P5_forma: ["enum-dados", "enum-abstrato", "classes", "mapa", "switch", "outro"], P5_proporcao: ["dados", "condicional", "estrutura"],
+};
+
+function abaAcerto(sec) {
+  sec.append(el("h2", null, "O que conta como acerto: o gabarito e a régua"),
+    el("p", { class: "lead", html: "\"Acerto\" aparece em três níveis, e cada um tem a sua regra. Esta aba é o <b>primeiro</b>: como se lê um pacote. Fontes: <code>evaluation/strategy/gabarito.md</code> e <code>evaluation/regua.md</code> (versão 5, congelada em 10/10)." }),
+    el("div", { class: "painel" }, tabela(["nível", "a pergunta", "a regra", "onde"], [
+      ["<b>1 · o pacote</b>", "o código isolou o Ouro? o Norte virou estrutura?", "a régua (4 perguntas, valores fechados) e a ficha", "esta aba"],
+      ["2 · a execução", "quantos pontos ela faz?", "a nota (suíte + desenho)", "página dos scripts, aba 7"],
+      ["3 · a hipótese", "o harness melhorou, nos 55 pares?", "as regras do §4.1", "abas 3 e 4 desta página"],
+    ], { rolagem: false })));
+
+  sec.append(el("div", { class: "grade2", style: "margin-top:12px" },
+    el("div", { class: "painel" }, el("h3", { style: "margin-top:0" }, "O gabarito: os pontos e os casos"),
+      tabela(["ponto", "tipo", "casos"], [
+        ["P1 entrega", "positivo", "<code>ECONOMICA</code>, <code>EXPRESSA</code>, <code>RETIRADA_LOJA</code>, <code>MOTOBOY</code>"],
+        ["P2 cupom", "positivo", "<code>BEMVINDO10</code>, <code>MENOS50</code>, <code>FRETEGRATIS</code>, <code>LEVE3PAGUE2</code>"],
+        ["P3 pagamento", "positivo", "<code>PIX</code>, <code>CARTAO</code>, <code>BOLETO</code>"],
+        ["<b>P4 clube</b>", "positivo, <b>o foco</b>", "<code>BRONZE</code>, <code>PRATA</code>, <code>OURO</code>"],
+        ["<b>P5 seguro</b>", "<b>controle negativo</b>", "<code>SUDESTE</code>, <code>SUL</code>, <code>CENTRO_OESTE</code>, <code>NORTE</code>, <code>NORDESTE</code>"],
+      ], { rolagem: false }),
+      H_(`<p class="mini">Só o Semgrep lê o P1 a P3 (secundários). O P4 e o P5, o Semgrep e você.</p>`)),
+    el("div", { class: "painel" }, H_(`<h3 style="margin-top:0">Por que esses dois</h3>
+      <p><b>O P4 é o foco</b> porque o <code>OURO</code> mexe em três partes do resumo (o crédito, o frete e o brinde), e o frete é calculado em outro lugar. Quem escreve o clube olhando só o Bronze e a Prata tende a resolver o Ouro com um <code>if (nivel == OURO)</code> no frete: o desenho espalhado que o harness quer evitar.</p>
+      <p><b>O P5 é o controle negativo</b> porque o enunciado diz que \"é só a porcentagem que muda\". A resposta proporcional é a variação como dado; uma classe ou um corpo por região é o <b>exagero</b>.</p>
+      <p class="mini"><b>Não são pontos de variação:</b> a ordem dos erros (uma sequência fixa), a moeda (\"só reais\") e a troca de produto (\"não entra no cálculo\").</p>`))));
+
+  sec.append(el("div", { class: "painel pilha", style: "margin-top:12px" }, H_(`<h3 style="margin-top:0">A régua: 4 perguntas, valores fechados</h3>
+    <p>A régua lê <b>desenho</b>, não correção: um erro de conta não muda nenhuma resposta (a correção é da suíte). Duas ideias sustentam tudo:</p>
+    <ul><li><b>Nomear um caso</b> é escrever qual ele é (<code>"OURO"</code>, <code>OURO</code>, <code>NivelOuro</code>, <code>case OURO -&gt;</code>). O teste: <i>se eu criar um caso parecido, esta linha precisa mudar?</i> <code>nivel.freteGratis()</code> não nomeia: o nível novo responde sozinho.</li>
+    <li><b>Na dúvida entre dois valores, não escolha o mais provável:</b> escreva <code>indeterminado</code> (na conferência, conta como discordância).</li></ul>`),
+    el("div", { class: "grade2" },
+      tabela(["P4 · pergunta", "valor", "quando"], [
+        ["<code>localizacao</code>: o que é de um nível aparece fora dele?", "<code>isolado</code>", "todo o código específico de cada nível está numa unidade só dele"],
+        ["", "<code>espalhado</code>", "algum nível tem código específico <b>também</b> em outra unidade, inclusive um <code>if</code> que o nomeia numa validação"],
+        ["<code>selecao</code>: o caminho do texto até a conta nomeia níveis?", "<code>consulta</code>", "achado sem nomear: <code>Map</code>, <code>valueOf</code>, beans injetados, laço genérico"],
+        ["", "<code>condicional-unica</code>", "um <code>switch</code>/<code>if</code> num lugar só que <b>devolve um objeto</b> (fábrica)"],
+        ["", "<code>condicional-no-calculo</code>", "um <code>switch</code>/<code>if</code> que nomeia e <b>faz a conta</b> ali"],
+      ], { rolagem: false }),
+      tabela(["P5 · pergunta", "valor", "quando"], [
+        ["<code>forma</code>: que formato?", "<code>enum-dados</code> · <code>enum-abstrato</code> · <code>classes</code> · <code>mapa</code> · <code>switch</code> · <code>outro</code>", "o que se vê"],
+        ["<code>proporcao</code>: tem o tamanho do problema?", "<code>dados</code>", "a variação como dado: enum de números, mapa de números, tabela, configuração"],
+        ["", "<code>condicional</code>", "um <code>switch</code>/<code>if</code> que só devolve o número"],
+        ["", "<code>estrutura</code>", "classe, corpo ou função própria por região (o exagero)"],
+      ], { rolagem: false })),
+    el("div", { class: "rotulo" }, "a ficha (aplicada depois, por conta)"),
+    tabela(["ponto", "acerto", "erro", "exagero"], [
+      ["positivo (P1 a P4)", "<code>isolado</code> <b>e</b> <code>consulta</code> ou <code>condicional-unica</code>", "<code>espalhado</code>, ou <code>condicional-no-calculo</code>", "—"],
+      ["controle negativo (P5)", "<code>dados</code> ou <code>condicional</code>", "—", "<code>estrutura</code>"],
+    ], { rolagem: false }),
+    H_(`<p class="mini">A ficha alimenta a hipótese do desenho (acerto no P4) e a do exagero (<code>estrutura</code> no P5). A nota dá 10 por ponto com as duas certas, 5 com uma, 0 com nenhuma.</p>`)));
+
+  // o exercicio
+  const box = el("div", { class: "painel pilha", style: "margin-top:12px" });
+  const corpo = el("div");
+  let k = Math.min(MEM.exercicio || 0, EXERCICIOS.length - 1);
+  const nav = el("div", { class: "linha-botoes" });
+  const desenha = () => {
+    lembra("exercicio", k);
+    nav.replaceChildren(...EXERCICIOS.map((e, j) => el("button", { class: "b" + (j === k ? " on" : ""), onclick: () => { k = j; desenha(); } }, `${j + 1}`)));
+    const e = EXERCICIOS[k];
+    corpo.replaceChildren(el("div", { class: "grade2" },
+      codigo({ texto: e.cod, lang: "java", titulo: `<b>${k + 1}. ${e.t}</b> · código inventado` }),
+      el("div", { class: "pilha" }, e.perguntas.map(([p, certo, porque]) => {
+        const q = el("div", { class: "quiz" }, el("div", { class: "q" }, el("code", null, p)));
+        const lb = el("div", { class: "linha-botoes" }), r = el("div", { class: "r txt", html: `<p><b>${certo}</b>. ${porque}</p>` });
+        VALORES[p].forEach((v) => lb.append(el("button", { class: "b", onclick: () => { q.classList.add("respondida"); [...lb.children].forEach((b) => { b.classList.remove("certa", "errada"); if (b.textContent === certo) b.classList.add("certa"); else if (b.textContent === v) b.classList.add("errada"); }); } }, v)));
+        q.append(lb, r);
+        return q;
+      }))));
+  };
+  box.append(el("h3", { style: "margin-top:0" }, "Classifique você"), H_("<p>Trechos inventados, cada um mostrando uma regra da régua. Escolha o valor; a resposta cita a seção da régua que decide.</p>"), nav, corpo);
+  sec.append(box);
+  desenha();
+}
+
+// ---- main.js ----
+// main.js: as abas e o tema.
+"use strict";
+
+const ABAS = [
+  { id: "pergunta", nome: "0 · A pergunta e o desenho", init: abaPergunta },
+  { id: "sequencia", nome: "1 · A sequência de verificação", init: abaSequencia },
+  { id: "acerto", nome: "2 · O que conta como acerto", init: abaAcerto },
+  { id: "hipoteses", nome: "3 · As hipóteses", init: abaHipoteses },
+  { id: "regras", nome: "4 · As regras de leitura", init: abaRegras },
+  { id: "ameacas", nome: "5 · Ameaças e defesas", init: abaAmeacas },
+  { id: "conclui", nome: "6 · O que se conclui", init: abaConclui },
+  { id: "pendencias", nome: "7 · O que falta", init: abaPendencias },
+  { id: "auto", nome: "8 · Autoavaliação", init: abaAuto },
+];
+const SECOES = {}, BOTOES = {}, PRONTAS = new Set();
+
+function mostraAba(id) {
+  if (!SECOES[id]) id = "pergunta";
+  ABA_ATUAL = id;
+  lembra("aba", id);
+  for (const a of ABAS) { SECOES[a.id].classList.toggle("ativa", a.id === id); BOTOES[a.id].classList.toggle("ativa", a.id === id); }
+  if (!PRONTAS.has(id)) {
+    PRONTAS.add(id);
+    try { ABAS.find((a) => a.id === id).init(SECOES[id]); }
+    catch (e) { SECOES[id].append(el("div", { class: "caixa aviso" }, "Erro ao montar esta aba: " + e.message)); console.error(e); }
+  }
+  BOTOES[id].scrollIntoView({ block: "nearest", inline: "nearest" });
+  window.scrollTo({ top: 0 });
+}
+
+(function inicia() {
+  const faixa = document.querySelector("nav.abas .faixa");
+  const main = document.querySelector("main");
+  for (const a of ABAS) {
+    BOTOES[a.id] = el("button", { onclick: () => mostraAba(a.id) }, a.nome);
+    faixa.append(BOTOES[a.id]);
+    SECOES[a.id] = el("section", { class: "aba", id: "aba-" + a.id });
+    main.append(SECOES[a.id]);
+  }
+  const temas = ["auto", "light", "dark"], nomes = { auto: "tema: automático", light: "tema: claro", dark: "tema: escuro" };
+  let tema = temas.includes(MEM.tema) ? MEM.tema : "auto";
+  const bt = document.querySelector("button.tema");
+  const pinta = () => { if (tema === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", tema); bt.textContent = nomes[tema]; };
+  bt.onclick = () => { tema = temas[(temas.indexOf(tema) + 1) % temas.length]; lembra("tema", tema); pinta(); };
+  pinta();
+  mostraAba(MEM.aba || "pergunta");
+})();
+
+</script>
+</body>
+</html>
