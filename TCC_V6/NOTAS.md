@@ -413,3 +413,19 @@ razão de o gabarito novo usar decimal exato.
 
 **Próximo: item 2, a suíte completa** — já montada como o módulo "corrigir" consolidado (ver a conversa sobre
 juntar os scripts por responsabilidade).
+
+## Item 2 concluído: a suíte completa (14/10/2026)
+
+A suíte (`evaluation/reference/suite/`, rodada pelo `run-suite.sh`) sobe o serviço do agente com um Postgres
+descartável e uma TransLog falsa, e faz as mesmas chamadas no serviço e no `Store`, comparando passo a passo.
+Cinco grupos: catálogo, resumo (os exemplos, as fronteiras e 400 sorteados), ciclo do pedido (11 cenários),
+persistência (reinicia o serviço) e concorrência (4 corridas).
+
+- **Contra o Opus com a API em inglês (OPUS55-N0-03):** 463 de 463. 1.325 s, 39 turnos, US$ 3,20, build verde
+  com 39 testes próprios. A correção continua saturada no topo, como no Akita.
+- **A suíte pega erro?** 12 erros plantados, um de cada vez, no serviço do Opus (`plant-mutants.py`):
+  **12 de 12 pegos.** Prazo de 48 h, aviso repetido, estoque "basta um item", cancelamento sem devolver estoque
+  ou crédito, entregar sem enviar, aviso de envio faltando, WELCOME10 com pedido cancelado, estoque que volta ao
+  inicial ao reiniciar, pedidos perdidos ao reiniciar, leitura do estoque sem `FOR UPDATE` e pagamento sem
+  travar o pedido. Os dois de concorrência apareceram como 500 nas corridas. Resultado em
+  `runs/pilots/OPUS55-N0-03/suite-mutants.txt`.
