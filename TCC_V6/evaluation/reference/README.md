@@ -13,7 +13,8 @@ ferramentas estão em inglês (o padrão novo); só o texto que vai para o promp
 | `Store` | **o gabarito do estado**: o ciclo do pedido, o estoque, o saldo e os avisos. Cada método é uma rota da API |
 | `PromptExamples` | gera os 10 exemplos do prompt a partir do gabarito, e confere o prompt (`--check`) |
 | `suite/` | **a suíte completa** (`Suite` é a entrada): sobe o serviço do agente e uma TransLog falsa, e faz as mesmas chamadas no serviço e no `Store`, comparando passo a passo (`Lockstep`). Grupos: catálogo, resumo (os exemplos + fronteiras + sorteados, `SummaryCases`), ciclo do pedido (`LifecycleScenarios`), persistência (reinicia o serviço) e concorrência (`ConcurrencyChecks`) |
-| `run-suite.sh` | acha o jar do agente, sobe um Postgres descartável e roda a `Suite` |
+| `run_suite.py` | acha o jar do agente, sobe um Postgres descartável e roda a `Suite` |
+| `plant_mutants.py` | valida a própria suíte: planta 12 erros conhecidos no serviço do OPUS55-N0-03, um de cada vez, e confere que a suíte pega cada um |
 | `V5Differential` + `differential.mjs` | compara o gabarito com o do V5 na parte em que as regras são iguais |
 | `CalculatorTest` | 54 testes das regras novas e das fronteiras exatas |
 | `StoreTest` | 36 testes do ciclo do pedido, contados como pequenas histórias |
@@ -39,10 +40,11 @@ mvn test                                                                        
 mvn -q compile && java -cp target/classes reference.V5Differential 20000 20261014 | node differential.mjs
 java -cp target/classes reference.PromptExamples > exemplos.md                    # gera a seção de exemplos
 java -cp target/classes reference.PromptExamples --check ../../experiment/prompt/prompt.md  # confere o prompt
-./run-suite.sh ../../runs/pilots/<RUN>/workspace ../../runs/pilots/<RUN>/suite   # a suíte contra um serviço
+python run_suite.py ../../runs/pilots/<RUN>/workspace ../../runs/pilots/<RUN>/suite  # a suíte contra um serviço
+python plant_mutants.py ../../runs/pilots/OPUS55-N0-03                       # os erros plantados
 ```
 
-O `infra/scripts/pilot.sh` roda o `--check` antes de cada execução e se recusa a rodar
+O `infra/scripts/pilot.py` roda o `--check` antes de cada execução e se recusa a rodar
 se os exemplos não conferirem.
 
 Os resultados da suíte contra os pilotos ficam na pasta de cada piloto (`runs/pilots/<RUN>/`); os de

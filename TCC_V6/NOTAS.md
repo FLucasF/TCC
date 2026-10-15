@@ -7,7 +7,7 @@
 > abaixo usa os nomes daquela época: `prompt-v2-rascunho.md` é hoje `experiment/prompt/prompt.md`;
 > as versões `prompt-v2-rascunho.antes-*.md` estão em `experiment/prompt/history/prompt.antes-*.md`;
 > `piloto/<id>/` é `runs/pilots/<id>/`; `reference/` é `evaluation/reference/`; e o `piloto.sh` virou
-> `infra/scripts/pilot.sh`.
+> `infra/scripts/pilot.sh` e depois `infra/scripts/pilot.py` (as ferramentas do V6 passaram para Python).
 
 ## Os padrões medidos
 
@@ -416,16 +416,32 @@ juntar os scripts por responsabilidade).
 
 ## Item 2 concluído: a suíte completa (14/10/2026)
 
-A suíte (`evaluation/reference/suite/`, rodada pelo `run-suite.sh`) sobe o serviço do agente com um Postgres
+A suíte (`evaluation/reference/suite/`, rodada pelo `run-suite.sh`, hoje `run_suite.py`) sobe o serviço do agente com um Postgres
 descartável e uma TransLog falsa, e faz as mesmas chamadas no serviço e no `Store`, comparando passo a passo.
 Cinco grupos: catálogo, resumo (os exemplos, as fronteiras e 400 sorteados), ciclo do pedido (11 cenários),
 persistência (reinicia o serviço) e concorrência (4 corridas).
 
 - **Contra o Opus com a API em inglês (OPUS55-N0-03):** 463 de 463. 1.325 s, 39 turnos, US$ 3,20, build verde
   com 39 testes próprios. A correção continua saturada no topo, como no Akita.
-- **A suíte pega erro?** 12 erros plantados, um de cada vez, no serviço do Opus (`plant-mutants.py`):
+- **A suíte pega erro?** 12 erros plantados, um de cada vez, no serviço do Opus (`plant-mutants.py`, hoje `plant_mutants.py`):
   **12 de 12 pegos.** Prazo de 48 h, aviso repetido, estoque "basta um item", cancelamento sem devolver estoque
   ou crédito, entregar sem enviar, aviso de envio faltando, WELCOME10 com pedido cancelado, estoque que volta ao
   inicial ao reiniciar, pedidos perdidos ao reiniciar, leitura do estoque sem `FOR UPDATE` e pagamento sem
   travar o pedido. Os dois de concorrência apareceram como 500 nas corridas. Resultado em
   `runs/pilots/OPUS55-N0-03/suite-mutants.txt`.
+
+## Item 3: a régua do Semgrep do V6 (14/10/2026)
+
+Em `evaluation/semgrep/` ([README](evaluation/semgrep/README.md)). Decisões do Lucas:
+- **Factory descritiva**, sem hipótese: nos 8 pilotos, o Spring cria todas as estratégias (`container`).
+- **Adapter medido pelo vazamento** do vocabulário da TransLog (`"STD"`/`"EXP"`, `price_cents`,
+  `eta_hours`, `ZIP_NOT_SERVED`), e não pelo "HTTP isolado", que todos fazem.
+- **Ferramentas em Python** (o V6 inteiro, menos o `differential.mjs`), com mypy estrito e ruff.
+- **A regra cruzada pode morar na casa do par** (STORE_PICKUP dentro do cupom FreeShipping, COURIER
+  dentro do Gold), e **converter a unidade da transportadora fora do adaptador é vazamento**.
+
+Validação: o P1 a P5 dão 2.200 de 2.200 respostas iguais ao detector do V5, nos 220 pacotes do V5.
+
+Nos pilotos, o State separa os três modelos (Opus `isolated` nos 3; Sonnet e Haiku `scattered`), o
+Adapter separa nos pilotos com a TransLog estrangeira (Haiku e Sonnet vazam os códigos; o Opus-03
+vaza só a unidade, as horas) e o Strategy separa o Haiku dos outros dois.

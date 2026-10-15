@@ -18,17 +18,46 @@ execução que vale).
 |---|---|
 | `experiment/prompt/` | o enunciado (`prompt.md`) e, em `history/`, as versões anteriores |
 | `evaluation/reference/` | o gabarito (a calculadora do resumo e o `Store`, o modelo do estado), os testes dele e a suíte completa que compara o serviço do agente com o gabarito ([README](evaluation/reference/README.md)) |
-| `infra/scripts/` | o `pilot.sh`, que roda um piloto sem harness com a imagem do V5 |
+| `evaluation/semgrep/` | a régua do Semgrep: Strategy (P1 a P4), o controle negativo da região (P5), Adapter (P6), State (P7) e Factory (descritiva) ([README](evaluation/semgrep/README.md)) |
+| `infra/scripts/` | o `pilot.py`, que roda um piloto sem harness com a imagem do V5 |
 | `runs/pilots/` | os pilotos: uma pasta por execução, com a transcrição, o build e os resultados da suíte |
 
 Os harnesses (N1 a N3) ainda não estão aqui: o Lucas vai redesenhá-los.
 
-## Comandos (Git Bash, a partir desta pasta)
+## As ferramentas
+
+As ferramentas do V6 são em **Python** (só a biblioteca padrão) e em Java (o gabarito e a suíte).
+A exceção é o `differential.mjs`, que precisa importar o gabarito do V5, escrito em JavaScript.
+O código e as mensagens estão em inglês; os READMEs e o enunciado, em português.
+
+Duas checagens valem para todo o Python (configuradas no `pyproject.toml`):
 
 ```bash
-infra/scripts/pilot.sh OPUS55-N0-04 claude-opus-5-5 medium
-evaluation/reference/run-suite.sh runs/pilots/OPUS55-N0-04/workspace runs/pilots/OPUS55-N0-04/suite
+python -m mypy
 ```
 
-Fora do git: o `target/` de cada build e o `classpath.txt` da suíte. O token da assinatura
-é o mesmo do V5 (`../TCC_V5/.env`), que o `pilot.sh` lê sem imprimir.
+```bash
+python -m ruff check evaluation infra
+```
+
+O mypy roda no modo estrito. O ruff inclui a regra que barra `open()` sem `encoding="utf-8"` (no
+Windows, o padrão seria o cp1252). Os dois são ferramentas de desenvolvimento, instaladas com `pip`.
+
+## Comandos (a partir desta pasta)
+
+```bash
+python infra/scripts/pilot.py OPUS55-N0-04 claude-opus-5-5 medium --dry-run
+```
+
+```bash
+python evaluation/reference/run_suite.py runs/pilots/OPUS55-N0-04/workspace runs/pilots/OPUS55-N0-04/suite
+```
+
+```bash
+python evaluation/semgrep/detect.py runs/pilots analysis/semgrep-pilots.csv
+```
+
+O `--dry-run` faz todas as conferências e mostra os comandos do Docker sem rodar o agente; sem ele,
+o piloto roda de verdade. Fora do git: o `target/` de cada build e o `classpath.txt` da suíte. O
+token da assinatura é o mesmo do V5 (`../TCC_V5/.env`), que o Docker lê pelo `--env-file`; o
+`pilot.py` só confere se ele existe, sem imprimir o valor.
