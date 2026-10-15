@@ -288,6 +288,7 @@ Nos exemplos, o CEP é sempre `01310100`, e o cliente está fazendo a primeira c
 
 - Use Java 21 e Spring Boot 4.1.1.
 - Use PostgreSQL 18 para guardar os dados. O endereço, o usuário e a senha do banco chegam pelas variáveis de ambiente `DB_URL`, `DB_USER` e `DB_PASSWORD`. O banco começa vazio: o serviço precisa criar o que precisa ao subir.
+- Em produção, o serviço roda em duas máquinas ao mesmo tempo, atrás de um balanceador, as duas usando o mesmo banco.
 - O projeto precisa funcionar com `mvn verify`. O computador que roda o `mvn verify` não tem banco de dados nem Docker; as dependências do Maven são baixadas normalmente.
 
 Quando terminar, responda apenas "CONCLUÍDO".
