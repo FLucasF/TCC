@@ -39,7 +39,7 @@ das sementes. Se a base for ruim em tudo, todo modelo refatora tudo, e o exagero
 
 **Por que Javalin e não Spring Boot.** O Spring entrega pronto parte do que se quer medir: os eventos
 (`ApplicationEventPublisher` + `@EventListener`) são um Observer de graça, o contêiner é uma Factory
-de graça, e o AOP faz o papel do Decorator. Os pilotos do V6 já mostraram o efeito: o Factory virou
+de graça, e o AOP faz o papel do Decorator. Os pilotos do construction-v6 já mostraram o efeito: o Factory virou
 medida só descritiva, porque o contêiner criava todas as estratégias em todos os pilotos. Com o Javalin,
 quem cria, avisa e embrulha os objetos é o código do agente, e é isso que a régua e o avaliador leem.
 
@@ -107,7 +107,7 @@ funcionalidade real (a recepção confere o que foi mandado) e é por ela que a 
   arredondamento, o reembolso, as situações da reserva, os relatórios e a API por HTTP. Ficam visíveis
   para o agente, como num projeto de verdade.
 - **Suíte oculta (nossa):** a regressão (o comportamento da base continua igual depois da mudança) e
-  os testes de aceitação de cada cenário. Ela sobe o serviço e chama a API, como a suíte do V6.
+  os testes de aceitação de cada cenário. Ela sobe o serviço e chama a API, como a suíte do construction-v6.
 - **Relógio:** a base não depende de "hoje": todas as datas vêm nas chamadas. Se um cenário precisar
   de "hoje", o relógio entra pelo cenário.
 
@@ -138,9 +138,9 @@ o domínio também foi sugerido por ele.
 4. **O número de execuções.** São 10 cenários (5 que pedem o pattern + 5 controles negativos; os
    negativos ficam, decisão do Lucas em 15/10, porque são eles que medem o exagero), cada um saindo da
    base limpa. **Decidido (Lucas, 15/10): de início, 1 execução por modelo** (uma réplica). Com os 11
-   modelos do V5, isso dá 110 execuções por nível de harness: 440 com os 4 níveis, 110 só com o N0. Ainda em
+   modelos do construction-v5, isso dá 110 execuções por nível de harness: 440 com os 4 níveis, 110 só com o N0. Ainda em
    aberto: se os 4 níveis continuam nesta fase. Limitação a declarar: com uma réplica, a variação entre
-   execuções do mesmo modelo não aparece (nos pilotos do V6, o State do Sonnet 5.5 acertou em 1 de 3 e caiu em 2),
+   execuções do mesmo modelo não aparece (nos pilotos do construction-v6, o State do Sonnet 5.5 acertou em 1 de 3 e caiu em 2),
    então o resultado é exploratório por modelo, e as conclusões mais firmes ficam no agregado (por
    cenário, por pattern, por família de modelo).
 

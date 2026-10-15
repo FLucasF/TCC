@@ -1,0 +1,13 @@
+O comercial fechou três planos de tarifa novos, e eles começam a valer agora. Hoje a gente só tem o normal, que no sistema é o STANDARD, e o não reembolsável, o NON_REFUNDABLE, que dá 15% de desconto.
+
+O primeiro é o convênio com empresas, que no sistema vai se chamar CORPORATE. Algumas empresas combinaram um desconto nas diárias com a gente: a Tecnosul tem 12%, a Agrovale tem 18% e a Farmavida tem 25%. O hóspede do convênio informa o código da empresa quando faz a reserva, e o código é o nome dela em maiúsculas: TECNOSUL, AGROVALE ou FARMAVIDA. Se ele não informar o código, ou informar um que não é de nenhuma dessas, a reserva não pode ser feita. Se cancelar antes de chegar, recebe de volta tudo o que pagou, igual ao plano normal.
+
+O segundo é o pacote de fim de semana, o WEEKEND_PACKAGE. É entrada na sexta e saída no domingo logo depois, exatamente duas noites, por um preço fechado que vale o ano inteiro, seja temporada ou não: R$ 520,00 no standard, R$ 820,00 no deluxe e R$ 1.200,00 na suíte. Em qualquer outra data o pacote não pode ser reservado. Como o preço é fechado, as diárias e o total da reserva são o próprio preço do pacote, sem desconto. Quem cancela o pacote recebe de volta metade do que pagou.
+
+O terceiro é a estadia longa, o LONG_STAY, para quem fica 7 noites ou mais. Ganha 10% de desconto sobre as diárias, e a alta temporada continua valendo nas noites de temporada. Com menos de 7 noites não dá para usar esse plano. Se cancelar, recebe tudo de volta.
+
+O desconto e a devolução são arredondados para centavos, do mesmo jeito que já é hoje. O financeiro conferiu umas contas para eu te passar. No convênio da Tecnosul, um deluxe de 10/03/2027 a 12/03/2027 dá R$ 779,80 de diárias, R$ 93,58 de desconto e R$ 686,22 de total. O pacote no deluxe, de sexta 12/03/2027 a domingo 14/03/2027, sai R$ 820,00, e se a pessoa pagar e depois cancelar, volta R$ 410,00. E a estadia longa num standard de 01/03/2027 a 08/03/2027 dá R$ 1.749,30 de diárias, R$ 174,93 de desconto e R$ 1.574,37 de total.
+
+Uma coisa que é bom você saber: o comercial vive inventando plano. Só este ano foram esses três, e eles já estão falando de um para a melhor idade e de outro para quem reserva com 60 dias de antecedência. Cada plano chega com o seu jeito de calcular o preço, com as suas regras de quem pode usar e com a sua regra de devolução quando a pessoa cancela.
+
+Ah, e o pessoal do site pediu para eu avisar duas coisas. O código da empresa vai chegar num campo novo da criação da reserva, o `companyCode`; ele só serve para o convênio, e nos outros planos, se vier, pode ignorar. E quando a reserva não puder ser feita por causa das regras do plano, eles querem a resposta 400 com o código INVALID_REQUEST, igual aos outros erros de dados.

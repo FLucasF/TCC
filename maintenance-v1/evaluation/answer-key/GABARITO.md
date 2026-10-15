@@ -188,5 +188,6 @@ E duas condições que valem para qualquer classe:
 - a validação do **poder de discriminação** de cada cenário: uma solução de referência com o pattern
   (classe "acerto") e uma solução ingênua (classe "omissão", ou "exagero" nos negativos), as duas passando
   na suíte, e o avaliador separando as duas;
-- a suíte de aceitação de cada cenário e a de regressão da base;
+- a aceitação dos cenários 02 a 10 (a regressão e a aceitação do 01 já existem, em `evaluation/suite/`, e as
+  soluções do 01 já passaram no `check_solutions.py`);
 - o prompt do avaliador (o agente que classifica), que vai receber o pedido, a base, o diff e este quadro.

@@ -1,8 +1,9 @@
-# TCC_V7: a manutenção com patterns (em construção)
+# maintenance-v1: a manutenção com patterns (em construção)
 
-Uma pesquisa separada do V6. O V6 mede a **construção** de um serviço do zero (o checkout da loja).
-O V7 mede a **manutenção**: o agente recebe um serviço que já existe e funciona, escrito sem nenhum
-pattern, e um pedido de mudança. A pergunta é o que ele faz com o pattern:
+Uma pesquisa separada das de construção (as pastas `construction-v2` a `construction-v6`, que pediam ao
+agente um serviço do zero; a última, a `construction-v6`, é o checkout da loja). Esta mede a
+**manutenção**: o agente recebe um serviço que já existe e funciona, escrito sem nenhum pattern, e um
+pedido de mudança. A pergunta é o que ele faz com o pattern:
 
 - **aplica, e aplica certo**, quando a mudança precisa dele;
 - **não aplica** (mais um `if`, mais uma cópia) quando a mudança precisava;
@@ -33,4 +34,5 @@ pattern, e é o pedido de mudança que passa a justificá-lo. Os detalhes estão
 | [`experiment/base/ROTEIRO-DA-BASE.md`](experiment/base/ROTEIRO-DA-BASE.md) | o roteiro da base: as sementes de cada pattern, os pontos dos controles negativos, o que a base não pode ter, as decisões em aberto |
 | [`experiment/base/hotel/`](experiment/base/hotel/) | a base: o sistema de reservas da Pousada Maré Alta (`mvn verify`; `java -jar target/hotel.jar`) |
 | [`experiment/scenarios/`](experiment/scenarios/) | os 10 pedidos de mudança, na voz do dono da pousada, e a moldura comum (`frame.md`): o agente recebe a moldura com **um** pedido no lugar de `{{PEDIDO}}`. Os ímpares pedem o pattern; os pares são os controles negativos |
+| [`evaluation/`](evaluation/README.md) | a suíte (a regressão e a aceitação de cada cenário, pela API), as soluções de referência de cada cenário (com o pattern e ingênua, como patches sobre a base) e a checagem de que as duas passam e a base falha |
 | [`evaluation/answer-key/GABARITO.md`](evaluation/answer-key/GABARITO.md) | o gabarito: a regra que separa os dois tipos de cenário, a classificação, e, para cada cenário, o acerto, as alternativas aceitas, a omissão, o malfeito, o exagero e o que a suíte confere |
