@@ -5,11 +5,13 @@ Everything the suite needs to know about the agent is its workspace.
 Usage (from TCC_V6):  python evaluation/reference/run_suite.py <agent-workspace> <output-folder>
 For example:          python evaluation/reference/run_suite.py runs/pilots/OPUS55-N0-03/workspace suite-out
 
-Output: <output-folder>/suite-report.txt (what is printed), suite-result.json (every check), and service.log and
+Output: <output-folder>/suite-report.txt (what is printed), suite-result.json (every check), database-schema.json
+(the schema the service created, for the database measure), and service.log and
 service-b.log (the output of each machine, before and after the restart). The service runs on two machines with the
 same database, as the prompt says; --machines 1 exists only to validate the suite.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -66,6 +68,36 @@ def remove_database() -> None:
     subprocess.run(["docker", "rm", "-f", DATABASE_CONTAINER], capture_output=True, check=False)
 
 
+# The schema the agent's service created, read from PostgreSQL's catalog (the system schemas left out). Each query
+# returns one JSON array, so the output does not depend on psql's text formatting.
+APPLICATION_SCHEMAS = "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname NOT LIKE 'pg_toast%'"
+SCHEMA_QUERIES = {
+    "tables": f"""SELECT coalesce(json_agg(c.relname ORDER BY c.relname), '[]') FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('r', 'p') AND {APPLICATION_SCHEMAS}""",
+    "constraints": f"""SELECT coalesce(json_agg(json_build_object('table', c.conrelid::regclass::text,
+        'name', c.conname, 'type', c.contype, 'definition', pg_get_constraintdef(c.oid))
+        ORDER BY c.conrelid::regclass::text, c.conname),
+        '[]') FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE {APPLICATION_SCHEMAS}""",
+    "uniqueIndexes": f"""SELECT coalesce(json_agg(json_build_object('table', t.relname, 'name', i.relname,
+        'definition', pg_get_indexdef(i.oid)) ORDER BY t.relname, i.relname), '[]') FROM pg_index x
+        JOIN pg_class i ON i.oid = x.indexrelid JOIN pg_class t ON t.oid = x.indrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace WHERE x.indisunique AND {APPLICATION_SCHEMAS}""",
+}
+
+
+def save_database_schema(output_folder: Path) -> None:
+    """Saves the agent's schema (tables, constraints, unique indexes) as database-schema.json, for the database
+    measure (evaluation/measures/database.py). Read after the suite, before the database is removed."""
+    schema: dict[str, object] = {}
+    for name, query in SCHEMA_QUERIES.items():
+        answer = subprocess.run(["docker", "exec", DATABASE_CONTAINER, "psql", "-U", DATABASE_USER, "-d", DATABASE_NAME,
+                                 "-At", "-c", " ".join(query.split())],
+                                capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
+        schema[name] = json.loads(answer.stdout) if answer.returncode == 0 and answer.stdout.strip() else None
+    (output_folder / "database-schema.json").write_text(json.dumps(schema, indent=2, ensure_ascii=False),
+                                                        encoding="utf-8")
+
+
 def run_suite(workspace: Path, output_folder: Path, echo: bool = True, machines: int = 2) -> int:
     """Runs the suite against the workspace's service on `machines` machines (two, as the prompt says; one only
     to validate the suite); returns the suite's exit code."""
@@ -97,6 +129,7 @@ def run_suite(workspace: Path, output_folder: Path, echo: bool = True, machines:
                         print(line, end="", flush=True)
                     except OSError:                   # the screen was closed (| head): the report goes on
                         echo = False
+        save_database_schema(output_folder)
         return suite.returncode
     finally:
         remove_database()                             # removed at the end whatever happens

@@ -19,6 +19,7 @@ execução que vale).
 | `experiment/prompt/` | o enunciado (`prompt.md`) e, em `history/`, as versões anteriores |
 | `evaluation/reference/` | o gabarito (a calculadora do resumo e o `Store`, o modelo do estado), os testes dele e a suíte completa que compara o serviço do agente com o gabarito ([README](evaluation/reference/README.md)) |
 | `evaluation/semgrep/` | a régua do Semgrep: Strategy (P1 a P4), o controle negativo da região (P5), Adapter (P6), State (P7) e Factory (descritiva) ([README](evaluation/semgrep/README.md)) |
+| `evaluation/measures/` | as medidas de testes (PIT), arquitetura (ArchUnit) e banco (as restrições do esquema) ([README](evaluation/measures/README.md)) |
 | `infra/scripts/` | o `pilot.py`, que roda um piloto sem harness com a imagem do V5 |
 | `runs/pilots/` | os pilotos: uma pasta por execução, com a transcrição, o build e os resultados da suíte |
 

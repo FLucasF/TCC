@@ -474,3 +474,20 @@ aqui" previa o PIT (a qualidade dos testes do agente), o ArchUnit (regras de arq
 consulta ao `information_schema` (as restrições que o agente criou no banco). Só foram experimentados no
 código do V5; falta fazer as ferramentas do V6, em Python, validadas nos pilotos.
 
+## As ferramentas de teste novas (14/10/2026)
+
+Em `evaluation/measures/` ([README](evaluation/measures/README.md)), em Python, todas numa cópia do
+projeto do agente, dentro da imagem travada:
+- **PIT** (testes): a nota é a taxa de mutantes mortos. Validada pelo "teste ingênuo": sem as asserções, a
+  nota caiu em todos os 7 pilotos com testes que passam (Opus-03 de 0,886 para 0,539; Sonnet-03 de 0,782
+  para 0,105).
+- **ArchUnit** (arquitetura): pacotes presos em ciclo, classes de negócio que dependem de controller, classes
+  de negócio que usam a web de entrada. As duas últimas deram 0 em todos os pilotos; uma classe plantada
+  prova que acusariam.
+- **O esquema do banco**: o `run_suite.py` o fotografa depois da suíte; a medida responde se o banco trava
+  o estoque negativo e o aviso repetido, e conta as chaves estrangeiras.
+
+Achado para discutir: o **Opus tem mais pacotes em ciclo** (3 a 6) que o Sonnet (0 a 2) e o Haiku (0),
+porque divide o código por funcionalidade e liga os pacotes por listeners nos dois sentidos. A arquitetura
+não acompanha as outras medidas, e isso é informação, não defeito da medida.
+
