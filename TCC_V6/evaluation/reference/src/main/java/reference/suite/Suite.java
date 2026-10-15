@@ -2,6 +2,7 @@ package reference.suite;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +11,8 @@ import reference.Catalog;
 import reference.Store;
 
 /**
- * The full suite against an agent's service. It starts the service, then checks, in this order:
+ * The full suite against an agent's service. It starts the service on two machines (two processes with the
+ * same database, behind a round-robin balancer, as the prompt says), then checks, in this order:
  *
  *   1. catalog      — the initial catalog is there;
  *   2. summary      — POST /checkout/summary: the prompt examples, exact boundaries and random purchases;
@@ -23,8 +25,8 @@ import reference.Store;
  *
  * Usage (the database must be running and empty; DB_URL, DB_USER and DB_PASSWORD come from this
  * process's environment and are passed on to the service):
- *   java -cp target/classes:… reference.suite.Suite --jar app.jar [--port 18080] [--translog-port 18090]
- *        [--random 400] [--seed 20261014] [--out suite-result.json] [--log service.log]
+ *   java -cp target/classes:… reference.suite.Suite --jar app.jar [--port 18080 (and 18081)] [--translog-port 18090]
+ *        [--machines 2] [--random 400] [--seed 20261014] [--out suite-result.json] [--log service.log]
  */
 public final class Suite {
 
@@ -43,23 +45,57 @@ public final class Suite {
         Map<String, String> environment = new LinkedHashMap<>();
         for (String name : List.of("DB_URL", "DB_USER", "DB_PASSWORD")) environment.put(name, System.getenv().getOrDefault(name, ""));
         environment.put("TRANSLOG_URL", "http://localhost:" + transLogPort);
-        AgentService agent = new AgentService(jar, port, environment, log);
+        // Two machines with the same database, as the prompt says, each one logging to its own file. The option
+        // --machines 1 exists only to validate the suite: a service that locks in memory passes with one machine
+        // and must fail with two.
+        int machineCount = Integer.parseInt(options.getOrDefault("machines", "2"));
+        List<AgentService> machines = new ArrayList<>();
+        for (int machine = 0; machine < machineCount; machine++) {
+            String suffix = machine == 0 ? "" : "-" + (char) ('a' + machine);       // service.log, service-b.log
+            File machineLog = new File(log.getParentFile(), log.getName().replaceFirst("(\\.[^.]*)?$", suffix + "$1"));
+            machines.add(new AgentService(jar, port + machine, environment, machineLog));
+        }
         try {
-            if (!agent.start(Duration.ofSeconds(120))) {
-                report.serviceDidNotStart("it did not answer HTTP within 120 seconds (see " + log + ")");
+            String notStarted = startOneAfterTheOther(machines);
+            if (notStarted != null) {
+                report.serviceDidNotStart(notStarted);
             } else {
-                run(agent, transLog, report, randomCount, seed);
+                run(machines, transLog, report, randomCount, seed);
             }
         } finally {
-            agent.stop();
+            for (AgentService machine : machines) machine.stop();
             transLog.stop();
         }
         report.print();
         report.write(out);
     }
 
-    static void run(AgentService agent, FakeTransLog transLog, Report report, int randomCount, long seed) throws Exception {
-        ServiceClient service = new ServiceClient(agent.baseUrl());
+    /**
+     * Starts the machines one after the other: the second only after the first answers, like a rolling deploy.
+     * Starting both at once would make them create the tables at the same time, a startup race the prompt does
+     * not ask about. Returns null when all are up, or what went wrong.
+     */
+    static String startOneAfterTheOther(List<AgentService> machines) throws Exception {
+        for (AgentService machine : machines) {
+            if (!machine.start(Duration.ofSeconds(120))) {
+                return "the machine at " + machine.baseUrl() + " did not answer HTTP within 120 seconds";
+            }
+        }
+        return null;
+    }
+
+    /** Restarts the machines one after the other (a rolling restart). */
+    static String restartOneAfterTheOther(List<AgentService> machines) throws Exception {
+        for (AgentService machine : machines) {
+            if (!machine.restart(Duration.ofSeconds(120))) {
+                return "the machine at " + machine.baseUrl() + " did not answer HTTP within 120 seconds after the restart";
+            }
+        }
+        return null;
+    }
+
+    static void run(List<AgentService> machines, FakeTransLog transLog, Report report, int randomCount, long seed) throws Exception {
+        ServiceClient service = new ServiceClient(machines.stream().map(AgentService::baseUrl).toList());
         Store model = new Store(Catalog.initial(), transLog);
         Lockstep lockstep = new Lockstep(model, service, transLog, report);
 
@@ -87,9 +123,10 @@ public final class Suite {
         // 3. the lifecycle
         new LifecycleScenarios(lockstep).runAll();
 
-        // 4. persistence: restart, then everything must be as before
-        if (!agent.restart(Duration.ofSeconds(120))) {
-            report.add("persistence", "the service comes back after a restart", List.of("it did not answer HTTP within 120 seconds after the restart"));
+        // 4. persistence: restart both machines, then everything must be as before
+        String notRestarted = restartOneAfterTheOther(machines);
+        if (notRestarted != null) {
+            report.add("persistence", "the service comes back after a restart", List.of(notRestarted));
             return;
         }
         lockstep.begin("persistence", "orders after a restart");

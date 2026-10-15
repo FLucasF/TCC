@@ -7,7 +7,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +21,11 @@ import reference.Purchase;
 /**
  * The agent's service seen through its HTTP API: one method per route of the prompt, each returning the
  * status code and the JSON body ({@link Reply}). Nothing here judges anything; {@link Lockstep} does.
+ *
+ * It is also the load balancer of the prompt ("o serviço roda em duas máquinas ao mesmo tempo, atrás de um
+ * balanceador, as duas usando o mesmo banco"): with two instances, the requests take turns between them, so an
+ * order created on one machine is paid on the other, and the requests of a race are split between both. A
+ * service that keeps state or locks in memory shows it here.
  */
 public final class ServiceClient {
 
@@ -32,11 +39,19 @@ public final class ServiceClient {
 
     static final ObjectMapper JSON = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-    private final String baseUrl;
+    private final List<String> instanceUrls;
+    private final AtomicInteger requestCount = new AtomicInteger();
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
-    public ServiceClient(String baseUrl) {
-        this.baseUrl = baseUrl;
+    /** One base URL per instance of the service; the requests take turns between them (round robin). */
+    public ServiceClient(List<String> instanceUrls) {
+        if (instanceUrls.isEmpty()) throw new IllegalArgumentException("at least one instance");
+        this.instanceUrls = List.copyOf(instanceUrls);
+    }
+
+    /** The instance that gets the next request. */
+    private String nextInstanceUrl() {
+        return instanceUrls.get(Math.floorMod(requestCount.getAndIncrement(), instanceUrls.size()));
     }
 
     // ------------------------------------------------------------------ the routes
@@ -75,13 +90,13 @@ public final class ServiceClient {
     // ------------------------------------------------------------------ plain HTTP
 
     private Reply get(String path) {
-        return send(HttpRequest.newBuilder(URI.create(baseUrl + path)).GET());
+        return send(HttpRequest.newBuilder(URI.create(nextInstanceUrl() + path)).GET());
     }
 
     private Reply post(String path, Object body) {
         try {
             String json = JSON.writeValueAsString(body);
-            return send(HttpRequest.newBuilder(URI.create(baseUrl + path))
+            return send(HttpRequest.newBuilder(URI.create(nextInstanceUrl() + path))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json)));
         } catch (Exception e) {

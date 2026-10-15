@@ -13,8 +13,8 @@ ferramentas estão em inglês (o padrão novo); só o texto que vai para o promp
 | `Store` | **o gabarito do estado**: o ciclo do pedido, o estoque, o saldo e os avisos. Cada método é uma rota da API |
 | `PromptExamples` | gera os 10 exemplos do prompt a partir do gabarito, e confere o prompt (`--check`) |
 | `suite/` | **a suíte completa** (`Suite` é a entrada): sobe o serviço do agente e uma TransLog falsa, e faz as mesmas chamadas no serviço e no `Store`, comparando passo a passo (`Lockstep`). Grupos: catálogo, resumo (os exemplos + fronteiras + sorteados, `SummaryCases`), ciclo do pedido (`LifecycleScenarios`), persistência (reinicia o serviço) e concorrência (`ConcurrencyChecks`) |
-| `run_suite.py` | acha o jar do agente, sobe um Postgres descartável e roda a `Suite` |
-| `plant_mutants.py` | valida a própria suíte: planta 12 erros conhecidos no serviço do OPUS55-N0-03, um de cada vez, e confere que a suíte pega cada um |
+| `run_suite.py` | acha o jar do agente, sobe um Postgres descartável e roda a `Suite`, com o serviço em **duas máquinas** (duas instâncias com o mesmo banco, as chamadas alternando entre elas, como diz o enunciado) |
+| `plant_mutants.py` | valida a própria suíte: planta 13 erros conhecidos no serviço do OPUS55-N0-03, um de cada vez, e confere que a suíte pega cada um (13 de 13). O `lock-in-memory` (trava só na memória) passa com `--machines 1` e é pego com 2 |
 | `V5Differential` + `differential.mjs` | compara o gabarito com o do V5 na parte em que as regras são iguais |
 | `CalculatorTest` | 54 testes das regras novas e das fronteiras exatas |
 | `StoreTest` | 36 testes do ciclo do pedido, contados como pequenas histórias |

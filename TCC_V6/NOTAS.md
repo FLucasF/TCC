@@ -445,3 +445,32 @@ Validação: o P1 a P5 dão 2.200 de 2.200 respostas iguais ao detector do V5, n
 Nos pilotos, o State separa os três modelos (Opus `isolated` nos 3; Sonnet e Haiku `scattered`), o
 Adapter separa nos pilotos com a TransLog estrangeira (Haiku e Sonnet vazam os códigos; o Opus-03
 vaza só a unidade, as horas) e o Strategy separa o Haiku dos outros dois.
+
+## Item 5: as decisões em aberto (14/10/2026)
+
+Decididas pelo Lucas, com os dados dos 8 pilotos:
+
+| decisão | escolha | por quê |
+|---|---|---|
+| pedir testes no enunciado? | **não** | sem pedir, quem escreve teste por conta própria vira medida (de 4 a 39 testes nos pilotos), e o harness tem o que acrescentar em testes |
+| "duas máquinas" | **sim** | a frase entrou na parte técnica do enunciado: *"Em produção, o serviço roda em duas máquinas ao mesmo tempo, atrás de um balanceador, as duas usando o mesmo banco."* |
+| imagem Docker | **a v5, travada** | `experimento-harness:v5`, `sha256:8e96815c…`, Claude Code 2.1.288: a mesma dos 8 pilotos; o driver do PostgreSQL vem pelo Maven, com rede; nada pré-baixado (seria visível no `~/.m2` do agente) |
+| modelos e réplicas | **os 11 do V5 × 4 níveis × 5 réplicas** | 220 execuções, como o V5: comparação direta com ele |
+
+**Nada está congelado** (pedido do Lucas: "quero testar bastante"), e nenhum modelo roda com o enunciado
+enquanto a organização não terminar.
+
+**As duas máquinas na suíte.** A suíte sobe o serviço em duas instâncias com o mesmo banco, uma depois da
+outra (como um deploy escalonado: subir as duas juntas mediria uma corrida na criação das tabelas, que o
+enunciado não pede), e o cliente da suíte faz o papel do balanceador, alternando as chamadas entre elas. O
+pedido criado numa máquina é pago na outra, e as corridas se dividem entre as duas. Prova, com um erro
+plantado no Opus-03 que tira as travas do banco e põe um `synchronized` no pagamento (`lock-in-memory`):
+**com 1 máquina a suíte não o via (MISSED); com 2, as 4 corridas falham.** O Opus-03 original continua com
+463 de 463, e os 13 erros plantados são pegos com duas máquinas. O `--machines 1` existe só para essa
+validação.
+
+**Faltando, antes do congelamento: as ferramentas de teste novas.** A tabela "O que cada dimensão nova mede
+aqui" previa o PIT (a qualidade dos testes do agente), o ArchUnit (regras de arquitetura indiscutíveis) e a
+consulta ao `information_schema` (as restrições que o agente criou no banco). Só foram experimentados no
+código do V5; falta fazer as ferramentas do V6, em Python, validadas nos pilotos.
+

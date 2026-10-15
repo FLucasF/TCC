@@ -5,8 +5,9 @@ Everything the suite needs to know about the agent is its workspace.
 Usage (from TCC_V6):  python evaluation/reference/run_suite.py <agent-workspace> <output-folder>
 For example:          python evaluation/reference/run_suite.py runs/pilots/OPUS55-N0-03/workspace suite-out
 
-Output: <output-folder>/suite-report.txt (what is printed), suite-result.json (every check) and service.log (the
-agent's service output, both runs: before and after the restart).
+Output: <output-folder>/suite-report.txt (what is printed), suite-result.json (every check), and service.log and
+service-b.log (the output of each machine, before and after the restart). The service runs on two machines with the
+same database, as the prompt says; --machines 1 exists only to validate the suite.
 """
 
 import os
@@ -65,13 +66,15 @@ def remove_database() -> None:
     subprocess.run(["docker", "rm", "-f", DATABASE_CONTAINER], capture_output=True, check=False)
 
 
-def run_suite(workspace: Path, output_folder: Path, echo: bool = True) -> int:
-    """Runs the suite against the workspace's service; returns the suite's exit code."""
+def run_suite(workspace: Path, output_folder: Path, echo: bool = True, machines: int = 2) -> int:
+    """Runs the suite against the workspace's service on `machines` machines (two, as the prompt says; one only
+    to validate the suite); returns the suite's exit code."""
     jar = find_agent_jar(workspace)
     if jar is None:
         sys.exit(f"ERROR: no jar under {workspace} (did the build run?)")
     output_folder.mkdir(parents=True, exist_ok=True)
-    (output_folder / "service.log").write_text("", encoding="utf-8")
+    for old_log in output_folder.glob("service*.log"):          # service.log, service-b.log: one per machine
+        old_log.write_text("", encoding="utf-8")
     classpath = compile_the_suite()
 
     start_clean_database()
@@ -81,7 +84,8 @@ def run_suite(workspace: Path, output_folder: Path, echo: bool = True) -> int:
         environment = {**os.environ, "DB_URL": f"jdbc:postgresql://localhost:{DATABASE_PORT}/{DATABASE_NAME}",
                        "DB_USER": DATABASE_USER, "DB_PASSWORD": DATABASE_PASSWORD}
         command = ["java", "-cp", classpath, "reference.suite.Suite", "--jar", str(jar),
-                   "--out", str(output_folder / "suite-result.json"), "--log", str(output_folder / "service.log")]
+                   "--machines", str(machines), "--out", str(output_folder / "suite-result.json"),
+                   "--log", str(output_folder / "service.log")]
         with subprocess.Popen(command, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               text=True, encoding="utf-8", errors="replace") as suite, \
                 (output_folder / "suite-report.txt").open("w", encoding="utf-8", newline="\n") as report:
@@ -89,16 +93,25 @@ def run_suite(workspace: Path, output_folder: Path, echo: bool = True) -> int:
             for line in suite.stdout:                 # like tee: on the screen and in the report
                 report.write(line)
                 if echo:
-                    print(line, end="", flush=True)
+                    try:
+                        print(line, end="", flush=True)
+                    except OSError:                   # the screen was closed (| head): the report goes on
+                        echo = False
         return suite.returncode
     finally:
         remove_database()                             # removed at the end whatever happens
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
-        sys.exit("usage: python run_suite.py <agent-workspace> <output-folder>")
-    sys.exit(run_suite(Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()))
+    arguments = sys.argv[1:]
+    machines = 2
+    if "--machines" in arguments:
+        position = arguments.index("--machines")
+        machines = int(arguments[position + 1])
+        del arguments[position:position + 2]
+    if len(arguments) != 2:
+        sys.exit("usage: python run_suite.py <agent-workspace> <output-folder> [--machines 2]")
+    sys.exit(run_suite(Path(arguments[0]).resolve(), Path(arguments[1]).resolve(), machines=machines))
 
 
 if __name__ == "__main__":
