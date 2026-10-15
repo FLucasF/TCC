@@ -128,14 +128,15 @@ o domínio também foi sugerido por ele.
 ## Decisões em aberto
 
 1. **Factory Method ou Abstract Factory** — qual dos dois é a resposta certa **do cenário** (o que o
-   agente deveria criar); a base não tem nenhum dos dois. A recomendação é o Factory Method: o pedido do
-   comprovante por tipo de hóspede justifica sem precisar dizer "família de objetos".
+   agente deveria criar); a base não tem nenhum dos dois. **Decidido (Lucas, 15/10): o Factory Method.** O
+   pedido do comprovante por tipo de hóspede justifica sem precisar dizer "família de objetos".
 2. **Armazenamento.** Adotado **em memória** para escrever a base (falta o OK do Lucas), porque os patterns medidos são de domínio, e
    um banco traz trabalho e ruído sem medir nada a mais. O custo é o realismo: "se reiniciar, perde
    tudo" precisa estar dito no texto da base. A alternativa é JDBC puro com H2 ou PostgreSQL.
 3. **O pattern diferente que também resolve** (ex.: Strategy por passo no lugar de Template Method): o
    gabarito lista antes as alternativas aceitas, e o resultado ganha a classe "alternativa equivalente".
-4. **O número de execuções.** São 10 cenários (5 que pedem o pattern + 5 negativos), cada um saindo da
+4. **O número de execuções.** São 10 cenários (5 que pedem o pattern + 5 controles negativos; os
+   negativos ficam, decisão do Lucas em 15/10, porque são eles que medem o exagero), cada um saindo da
    base limpa. **Decidido (Lucas, 15/10): de início, 1 execução por modelo** (uma réplica). Com os 11
    modelos do V5, isso dá 110 execuções por nível de harness: 440 com os 4 níveis, 110 só com o N0. Ainda em
    aberto: se os 4 níveis continuam nesta fase. Limitação a declarar: com uma réplica, a variação entre
@@ -145,11 +146,11 @@ o domínio também foi sugerido por ele.
 
 ## Próximos passos
 
-1. Fechar as decisões 1 e 2, e os níveis de harness da decisão 4.
+1. Fechar a decisão 2 e os níveis de harness da decisão 4.
 2. ~~Escrever a base, seguindo este roteiro.~~ Feita em `hotel/` (15/10).
 3. Conferir a base (a lista acima) e ler junto com o Lucas.
-4. Escrever os 10 pedidos de mudança, na voz do dono da pousada.
-5. O gabarito de cada cenário, a suíte e o avaliador.
+4. ~~Escrever os 10 pedidos de mudança, na voz do dono da pousada.~~ Feitos em `../scenarios/` (15/10), com o gabarito em `../../evaluation/answer-key/GABARITO.md`.
+5. A suíte (aceitação de cada cenário e regressão da base), o poder de discriminação e o avaliador.
 
 ## A base escrita (15/10)
 
