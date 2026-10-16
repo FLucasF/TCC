@@ -1,0 +1,62 @@
+{
+  "cenario": "01",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente usou o próprio enum RatePlan como estratégia. Cada constante tem o seu corpo e sobrescreve checkRequest (quem pode usar), discountRate/price (preço) e refund (devolução). O NON_REFUNDABLE, plano antigo, também passou para o enum. Os dois switch de comportamento da base saíram: o PriceCalculator e o ReservationService só chamam métodos do plano e não nomeiam plano nenhum. O cálculo por noite com a temporada ficou como um ajudante sem plano (PriceCalculator.stay), que recebe a taxa de desconto.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 16,
+      "o_que_mostra": "NON_REFUNDABLE, um dos planos antigos, tem corpo próprio: sobrescreve discountRate com 0.15 (linha 18) e refund com zero (linha 22)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 28,
+      "o_que_mostra": "CORPORATE sobrescreve checkRequest e discountRate. Os dois usam companyDiscount, que recusa código ausente ou fora do mapa COMPANY_DISCOUNTS (linhas 75 e 104-108)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 40,
+      "o_que_mostra": "WEEKEND_PACKAGE tem validação própria (entrada na sexta e 2 noites, linha 43), preço fechado por tipo de quarto vindo de WEEKEND_PRICES (linha 50) e devolução de metade (linha 57)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 61,
+      "o_que_mostra": "LONG_STAY exige 7 noites ou mais (linha 64) e dá 10% de desconto. O reembolso é o padrão, que devolve tudo."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 85,
+      "o_que_mostra": "Os comportamentos padrão do enum (validação vazia, desconto zero, price por stay, refund de tudo, linhas 85-98) são o que o STANDARD usa sem corpo próprio (linha 14). Não há switch (this) em lugar nenhum."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 19,
+      "o_que_mostra": "calculate só delega para request.ratePlan().price(...). O switch de desconto da base (base/src/main/java/hotel/reservations/PriceCalculator.java:26) foi removido."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 22,
+      "o_que_mostra": "stay soma as noites com a temporada e aplica uma taxa de desconto recebida. Não decide nada pelo plano."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 36,
+      "o_que_mostra": "A criação da reserva pede a validação ao plano (checkRequest), sem nenhum if sobre o plano no serviço."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 86,
+      "o_que_mostra": "O cancelamento pede a devolução ao plano. O switch de reembolso da base (base/src/main/java/hotel/reservations/ReservationService.java:86) foi removido."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "Rodei mvn -q verify numa cópia da final/ e terminou com saída 0. Foram 37 testes e nenhuma falha: ReportsTest 5, PriceCalculatorTest 11, ReservationServiceTest 16, HttpApiTest 5. Os testes novos conferem os exemplos do pedido: R$ 779,80 / 93,58 / 686,22 (Tecnosul deluxe), R$ 820,00 com devolução de R$ 410,00 (pacote deluxe) e R$ 1.749,30 / 174,93 / 1.574,37 (estadia longa). Pela leitura do código: os descontos são 12%, 18% e 25% por código em maiúsculas, e código ausente ou desconhecido dá INVALID_REQUEST (400). O pacote exige entrada na sexta e 2 noites, o que leva ao domingo seguinte, e o preço fechado ignora a temporada. A estadia longa recusa menos de 7 noites e a temporada continua valendo nela. Convênio e estadia longa devolvem tudo. O companyCode é ignorado nos outros planos. STANDARD e NON_REFUNDABLE continuam com 0% e 15% de desconto e devolução total e zero."
+  },
+  "duvidas": "O STANDARD não tem corpo próprio: o comportamento dele são os métodos padrão da base do enum, que as outras constantes sobrescrevem. Os padrões funcionam como default e não como um switch, então isso não tira o acerto. O companyDiscount fica como ajudante estático no nível do enum, mas só o CORPORATE o usa, então a regra continua dentro do plano."
+}

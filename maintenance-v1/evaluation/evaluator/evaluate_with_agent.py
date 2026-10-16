@@ -8,11 +8,19 @@ Usage (from maintenance-v1):
     python evaluation/evaluator/evaluate_with_agent.py calibrate <model> [effort] [--workers N] [--dry-run]
     python evaluation/evaluator/evaluate_with_agent.py calibrate claude-opus-5-5 high --workers 3
     python evaluation/evaluator/evaluate_with_agent.py summarize claude-opus-5-5 high   (reads the saved answers again)
+    python evaluation/evaluator/evaluate_with_agent.py evaluate-runs <scenario> <arm> <model> [effort] [--workers N]
+    python evaluation/evaluator/evaluate_with_agent.py evaluate-runs 01 N0 claude-opus-5-5 high --workers 3
 
 `calibrate` evaluates the 20 reference solutions (evaluation/solutions/), whose class is known, under codes drawn
 at random (cal-01 to cal-20). Output in each pattern's folder, in calibration/<model>-<effort>/: one folder per code
 (the evaluator's prompt, transcript and answer), key.json (code to solution, written outside the containers) and
 summary.md (expected class against the evaluator's); and the whole picture in calibration-<model>-<effort>.md here.
+
+`evaluate-runs` evaluates every run of one scenario and arm (runs/<scenario>-<label>/<arm>-*/), blind, under codes
+drawn at random (run-01, run-02...). The evaluator gets the run's prompt, the base, the run's final project (without
+target/, .git and the harness files) and its changes.patch. Output in the pattern's folder, in
+runs/<scenario>-<arm>/<model>-<effort>/: one folder per code, key.json and summary.md, which also compares the
+evaluator with our reading when runs/<scenario>-<arm>/our-reading.json exists.
 """
 
 import json
@@ -28,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 MAINTENANCE_ROOT = Path(__file__).resolve().parents[2]
+RUNS = MAINTENANCE_ROOT / "runs"
 REPOSITORY_ROOT = MAINTENANCE_ROOT.parent
 EVALUATOR = MAINTENANCE_ROOT / "evaluation" / "evaluator"
 SOLUTIONS = MAINTENANCE_ROOT / "evaluation" / "solutions"
@@ -70,6 +79,17 @@ class Case:
         return EXPECTED_CLASS_BY_KIND[self.solution.stem.split("-", 1)[1]]
 
 
+@dataclass(frozen=True)
+class RunCase:
+    code: str
+    scenario: str
+    run_folder: Path
+
+    @property
+    def pattern(self) -> str:
+        return PATTERN_BY_SCENARIO[self.scenario]
+
+
 def die(message: str) -> None:
     sys.exit(f"\033[31mERROR: {message}\033[0m")
 
@@ -86,9 +106,17 @@ def evaluator_prompt(scenario: str) -> str:
     return common + LINE_BREAK * 2 + "---" + LINE_BREAK * 2 + pattern + LINE_BREAK
 
 
-def prepare_work_folder(case: Case, work_folder: Path) -> None:
-    """pedido.md, base/, final/ (the base with the solution applied) and changes.patch."""
+def prepare_work_folder(case: Case | RunCase, work_folder: Path) -> None:
+    """pedido.md, base/, final/ (the base with the solution applied, or the run's final project) and
+    changes.patch."""
     work_folder.mkdir(parents=True)
+    if isinstance(case, RunCase):
+        shutil.copyfile(case.run_folder / "prompt.md", work_folder / "pedido.md")
+        shutil.copytree(BASE, work_folder / "base", ignore=shutil.ignore_patterns("target"))
+        shutil.copytree(case.run_folder / "workspace", work_folder / "final",
+                        ignore=shutil.ignore_patterns("target", ".git", "CLAUDE.md", ".claude"))
+        shutil.copyfile(case.run_folder / "changes.patch", work_folder / "changes.patch")
+        return
     (work_folder / "pedido.md").write_text(request_text(case.scenario), encoding="utf-8", newline=LINE_BREAK)
     shutil.copytree(BASE, work_folder / "base", ignore=shutil.ignore_patterns("target"))
     shutil.copytree(BASE, work_folder / "final", ignore=shutil.ignore_patterns("target"))
@@ -99,7 +127,7 @@ def prepare_work_folder(case: Case, work_folder: Path) -> None:
     shutil.copyfile(case.solution, work_folder / "changes.patch")
 
 
-def evaluator_docker_command(case: Case, work_folder: Path, prompt_file: Path, model: str,
+def evaluator_docker_command(case: Case | RunCase, work_folder: Path, prompt_file: Path, model: str,
                              effort: str) -> list[str]:
     return [
         "docker", "run", "--rm", "--name", f"evaluator-{case.code}",
@@ -158,8 +186,7 @@ def calibration_folder(pattern: str, model: str, effort: str) -> Path:
     return EVALUATOR / pattern / "calibration" / f"{model.removeprefix('claude-')}-{effort}"
 
 
-def evaluate(case: Case, model: str, effort: str) -> dict[str, Any]:
-    case_folder = calibration_folder(case.pattern, model, effort) / case.code
+def evaluate(case: Case | RunCase, case_folder: Path, model: str, effort: str) -> dict[str, Any]:
     case_folder.mkdir(parents=True)
     prompt_file = case_folder / "evaluator-prompt.md"
     prompt_file.write_text(evaluator_prompt(case.scenario), encoding="utf-8", newline=LINE_BREAK)
@@ -237,7 +264,9 @@ def calibrate(model: str, effort: str, workers: int, dry_run: bool) -> None:
         key = {case.code: case.solution.name for case in cases if case.pattern == pattern}
         (folder / "key.json").write_text(json.dumps(key, indent=2) + LINE_BREAK, encoding="utf-8")
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(lambda case: evaluate(case, model, effort), cases))
+        results = list(pool.map(
+            lambda case: evaluate(case, calibration_folder(case.pattern, model, effort) / case.code, model, effort),
+            cases))
     write_summaries(cases, results, model, effort)
 
 
@@ -249,6 +278,57 @@ def summarize_again(model: str, effort: str) -> None:
         given, cost = read_answer(calibration_folder(case.pattern, model, effort) / case.code)
         results.append({"code": case.code, "exit_code": None, "class": given, "cost_usd": cost})
     write_summaries(cases, results, model, effort)
+
+
+def run_cases(scenario: str, arm: str) -> list[RunCase]:
+    scenario_folders = sorted(RUNS.glob(f"{scenario}-*"))
+    if len(scenario_folders) != 1:
+        die(f"expected one folder for scenario {scenario} in {RUNS}, found {len(scenario_folders)}")
+    run_folders = sorted(folder for folder in scenario_folders[0].glob(f"{arm}-*") if (folder / "meta.json").is_file())
+    if not run_folders:
+        die(f"no finished run of scenario {scenario}, arm {arm}")
+    random.Random(f"{CODE_SEED}-{scenario}-{arm}").shuffle(run_folders)
+    return [RunCase(f"run-{index:02d}", scenario, folder) for index, folder in enumerate(run_folders, start=1)]
+
+
+def evaluate_runs(scenario: str, arm: str, model: str, effort: str, workers: int, dry_run: bool) -> None:
+    if not re.fullmatch(r"claude-[\w.-]+-[\w.-]+", model):
+        die(f"use the full model ID: '{model}'")
+    cases = run_cases(scenario, arm)
+    batch_folder = EVALUATOR / PATTERN_BY_SCENARIO[scenario] / "runs" / f"{scenario}-{arm}"
+    output_folder = batch_folder / f"{model.removeprefix('claude-')}-{effort}"
+    if dry_run:
+        with tempfile.TemporaryDirectory() as scratch:
+            for case in cases:
+                prepare_work_folder(case, Path(scratch) / case.code)
+        print(f"{len(cases)} work folders build; output would go to {output_folder.relative_to(MAINTENANCE_ROOT)}")
+        return
+    if subprocess.run(["docker", "image", "inspect", IMAGE], capture_output=True, check=False).returncode != 0:
+        die(f"image {IMAGE} not found (is Docker running?)")
+    if output_folder.exists():
+        die(f"{output_folder} already exists: evaluations are never reused")
+    output_folder.mkdir(parents=True)
+    (output_folder / "key.json").write_text(json.dumps({case.code: case.run_folder.name for case in cases},
+                                                       indent=2) + LINE_BREAK, encoding="utf-8")
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(lambda case: evaluate(case, output_folder / case.code, model, effort), cases))
+    reading_file = batch_folder / "our-reading.json"
+    reading: dict[str, str] = json.loads(reading_file.read_text(encoding="utf-8")) if reading_file.is_file() else {}
+    by_code = {result["code"]: result for result in results}
+    lines = [f"# O avaliador nas runs do cenário {scenario}, braço {arm}: {model}, effort {effort}", "",
+             "| código | run | avaliador | nossa leitura | confere |", "|---|---|---|---|---|"]
+    agreements = 0
+    for case in sorted(cases, key=lambda case: case.run_folder.name):
+        given = by_code[case.code]["class"]
+        ours = reading.get(case.run_folder.name, "")
+        agreements += bool(ours) and given == ours
+        verdict = "" if not ours else ("sim" if given == ours else "NÃO")
+        lines.append(f"| {case.code} | {case.run_folder.name} | {given} | {ours} | {verdict} |")
+    costs = [result["cost_usd"] for result in results if result["cost_usd"] is not None]
+    lines += ["", f"**{agreements} de {len(cases)}** iguais à nossa leitura. Custo: US$ {sum(costs):.2f}."]
+    text = LINE_BREAK.join(lines) + LINE_BREAK
+    (output_folder / "summary.md").write_text(text, encoding="utf-8")
+    print(text)
 
 
 def main() -> None:
@@ -263,6 +343,10 @@ def main() -> None:
         workers = int(arguments[position + 1])
         del arguments[position:position + 2]
     arguments = [argument for argument in arguments if argument != "--dry-run"]
+    if arguments[:1] == ["evaluate-runs"] and len(arguments) in (4, 5):
+        evaluate_runs(arguments[1], arguments[2], arguments[3], arguments[4] if len(arguments) == 5 else "high",
+                      workers, dry_run)
+        return
     if len(arguments) not in (2, 3) or arguments[0] != "calibrate":
         die("usage: python evaluation/evaluator/evaluate_with_agent.py calibrate <model> [effort] [--workers N]")
     calibrate(arguments[1], arguments[2] if len(arguments) == 3 else "high", workers, dry_run)

@@ -1,0 +1,72 @@
+{
+  "cenario": "01",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente aplicou o Strategy usando o próprio enum. Cada uma das cinco constantes de RatePlan, as duas antigas inclusive, tem o seu corpo, que sobrescreve o método abstrato price (onde ficam o preço e a validação do plano) e, quando preciso, o método refund. Os dois switch de comportamento da base sumiram: PriceCalculator.calculate monta o preço sem desconto e o entrega ao plano, e ReservationService.cancel pede o reembolso ao plano. Nenhum dos dois cita um plano pelo nome.",
+  "evidencias": [
+    {
+      "arquivo": "base/src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 26,
+      "o_que_mostra": "Na base, o desconto era decidido por um switch (ratePlan) com STANDARD e NON_REFUNDABLE."
+    },
+    {
+      "arquivo": "base/src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 86,
+      "o_que_mostra": "Na base, o reembolso era decidido por um switch (reservation.ratePlan()) no cancelamento."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 80,
+      "o_que_mostra": "price(...) é abstrato no enum, então cada constante é obrigada a ter o seu cálculo. O refund padrão (linha 83) devolve tudo."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 16,
+      "o_que_mostra": "O STANDARD, plano antigo, tem o seu próprio corpo e devolve o preço base."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 23,
+      "o_que_mostra": "O NON_REFUNDABLE, plano antigo, foi migrado: 15% em price e refund sobrescrito para zero (linhas 29-32)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 38,
+      "o_que_mostra": "O CORPORATE valida o código da empresa e aplica o desconto dela dentro do próprio plano, e lança INVALID_REQUEST quando o código falta ou não existe."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 48,
+      "o_que_mostra": "O WEEKEND_PACKAGE valida sexta mais 2 noites dentro do plano, tem preço fechado por tipo de quarto (linhas 52-56) e devolve metade (linha 62)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 69,
+      "o_que_mostra": "O LONG_STAY exige 7 noites dentro do plano e dá 10% sobre o subtotal com a temporada já incluída."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 31,
+      "o_que_mostra": "O cálculo monta o preço base (diárias com temporada) e delega ao plano sem perguntar qual é: ratePlan.price(...)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 87,
+      "o_que_mostra": "O cancelamento só chama reservation.ratePlan().refund(amountPaid), sem switch e sem if sobre o plano."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/CorporateAgreements.java",
+      "linha": 10,
+      "o_que_mostra": "A tabela de empresas e descontos está num mapa (dado) usado só pelo CORPORATE. Não é estrutura nova de comportamento."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "Rodei mvn -q verify numa cópia da final/ e passou: 33 testes, sem falhas nem erros, entre eles os 7 do RatePlansTest novo. Os testes conferem os exemplos do financeiro: Tecnosul deluxe 779,80 / 93,58 / 686,22, pacote deluxe 820,00 com reembolso de 410,00, estadia longa 1.749,30 / 174,93 / 1.574,37. Também conferem as recusas do convênio sem código, com código vazio ou desconhecido, do pacote fora de sexta a domingo e da estadia longa com menos de 7 noites. Lendo o código: Tecnosul 12%, Agrovale 18%, Farmavida 25%; pacote a R$ 520 / 820 / 1.200 sem temporada e sem desconto; convênio e estadia longa devolvem tudo; os planos antigos ficaram com o mesmo comportamento. O companyCode chega pela API e os outros planos o ignoram. Uma mudança pequena de ordem: o preço, e com ele a validação do plano, agora é calculado antes da checagem de quarto ocupado (ReservationService.java:42). Assim, uma reserva que viola o plano e cai num quarto ocupado recebe 400 em vez de 409. Isso não contradiz o pedido."
+  },
+  "duvidas": "Há três pontos menores, e nenhum deles muda a classe. (1) Dentro do WEEKEND_PACKAGE existe um switch sobre room.type() (RatePlan.java:52). Ele escolhe o preço por tipo de quarto dentro de um único plano, então não é um switch de comportamento sobre o plano. (2) A assinatura comum price(...) recebe companyCode, um parâmetro que só serve ao CORPORATE (RatePlan.java:80). Isso vaza um dado de um plano para a interface de todos, mas a decisão continua dentro do plano. (3) A validação ficou junto do preço, no mesmo método price, e não num método validate separado. Como continua dentro de cada plano, entendo que atende ao critério de comportamento num lugar só do plano."
+}
