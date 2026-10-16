@@ -1,0 +1,737 @@
+diff --git a/src/main/java/hotel/documents/ReservationReceipt.java b/src/main/java/hotel/documents/ReservationReceipt.java
+index baabf93..bb10069 100644
+--- a/src/main/java/hotel/documents/ReservationReceipt.java
++++ b/src/main/java/hotel/documents/ReservationReceipt.java
+@@ -14,6 +14,7 @@ public record ReservationReceipt(
+         String guestCpf,
+         int roomNumber,
+         RoomType roomType,
++        int children,
+         LocalDate checkIn,
+         LocalDate checkOut,
+         int nights,
+@@ -29,6 +30,7 @@ public record ReservationReceipt(
+                 reservation.guest().cpf(),
+                 room.number(),
+                 room.type(),
++                reservation.children(),
+                 reservation.checkIn(),
+                 reservation.checkOut(),
+                 reservation.price().nights(),
+@@ -42,6 +44,9 @@ public record ReservationReceipt(
+         text.append(title).append(" nº ").append(reservationId).append('\n');
+         text.append("Hóspede: ").append(guestName).append(" (CPF ").append(guestCpf).append(")\n");
+         text.append("Quarto: ").append(roomNumber).append(" (").append(roomType).append(")\n");
++        if (children > 0) {
++            text.append("Crianças: ").append(children).append('\n');
++        }
+         text.append("Entrada: ").append(TextFormat.date(checkIn))
+                 .append(" | Saída: ").append(TextFormat.date(checkOut))
+                 .append(" | ").append(nights).append(nights == 1 ? " diária" : " diárias").append('\n');
+diff --git a/src/main/java/hotel/reservations/NewReservation.java b/src/main/java/hotel/reservations/NewReservation.java
+index 34ba368..11a9672 100644
+--- a/src/main/java/hotel/reservations/NewReservation.java
++++ b/src/main/java/hotel/reservations/NewReservation.java
+@@ -3,5 +3,6 @@ package hotel.reservations;
+ import java.time.LocalDate;
+ 
+ public record NewReservation(
+-        int roomNumber, Guest guest, LocalDate checkIn, LocalDate checkOut, int guests, RatePlan ratePlan) {
++        int roomNumber, Guest guest, LocalDate checkIn, LocalDate checkOut, int guests, RatePlan ratePlan,
++        int children) {
+ }
+diff --git a/src/main/java/hotel/reservations/Reservation.java b/src/main/java/hotel/reservations/Reservation.java
+index a210937..98faa27 100644
+--- a/src/main/java/hotel/reservations/Reservation.java
++++ b/src/main/java/hotel/reservations/Reservation.java
+@@ -1,110 +1,117 @@
+-package hotel.reservations;
+-
+-import java.math.BigDecimal;
+-import java.time.LocalDate;
+-
+-public final class Reservation {
+-
+-    private final long id;
+-    private final int roomNumber;
+-    private final Guest guest;
+-    private final LocalDate checkIn;
+-    private final LocalDate checkOut;
+-    private final int guests;
+-    private final RatePlan ratePlan;
+-    private final Price price;
+-    private ReservationStatus status;
+-    private BigDecimal amountPaid;
+-    private BigDecimal refund;
+-
+-    Reservation(long id, NewReservation request, Price price) {
+-        this.id = id;
+-        this.roomNumber = request.roomNumber();
+-        this.guest = request.guest();
+-        this.checkIn = request.checkIn();
+-        this.checkOut = request.checkOut();
+-        this.guests = request.guests();
+-        this.ratePlan = request.ratePlan();
+-        this.price = price;
+-        this.status = ReservationStatus.PENDING;
+-        this.amountPaid = PriceCalculator.cents(BigDecimal.ZERO);
+-    }
+-
+-    public long id() {
+-        return id;
+-    }
+-
+-    public int roomNumber() {
+-        return roomNumber;
+-    }
+-
+-    public Guest guest() {
+-        return guest;
+-    }
+-
+-    public LocalDate checkIn() {
+-        return checkIn;
+-    }
+-
+-    public LocalDate checkOut() {
+-        return checkOut;
+-    }
+-
+-    public int guests() {
+-        return guests;
+-    }
+-
+-    public RatePlan ratePlan() {
+-        return ratePlan;
+-    }
+-
+-    public Price price() {
+-        return price;
+-    }
+-
+-    public ReservationStatus status() {
+-        return status;
+-    }
+-
+-    /** What the guest paid: the total, once the reservation is confirmed; zero before that. */
+-    public BigDecimal amountPaid() {
+-        return amountPaid;
+-    }
+-
+-    /** What the guest got back when the reservation was cancelled; null while it is not cancelled. */
+-    public BigDecimal refund() {
+-        return refund;
+-    }
+-
+-    /** Confirmed, checked in or checked out: the guest paid and the room is theirs. */
+-    public boolean isPaid() {
+-        return status == ReservationStatus.CONFIRMED
+-                || status == ReservationStatus.CHECKED_IN
+-                || status == ReservationStatus.CHECKED_OUT;
+-    }
+-
+-    /** The money the inn keeps from this reservation. */
+-    public BigDecimal amountKept() {
+-        return refund == null ? amountPaid : amountPaid.subtract(refund);
+-    }
+-
+-    void changeStatus(ReservationStatus newStatus) {
+-        this.status = newStatus;
+-    }
+-
+-    void confirmPayment() {
+-        this.status = ReservationStatus.CONFIRMED;
+-        this.amountPaid = price.total();
+-    }
+-
+-    void cancel(BigDecimal refundAmount) {
+-        this.status = ReservationStatus.CANCELLED;
+-        this.refund = refundAmount;
+-    }
+-
+-    boolean overlaps(int otherRoomNumber, LocalDate otherCheckIn, LocalDate otherCheckOut) {
+-        return roomNumber == otherRoomNumber
+-                && checkIn.isBefore(otherCheckOut)
+-                && otherCheckIn.isBefore(checkOut);
+-    }
+-}
++package hotel.reservations;
++
++import java.math.BigDecimal;
++import java.time.LocalDate;
++
++public final class Reservation {
++
++    private final long id;
++    private final int roomNumber;
++    private final Guest guest;
++    private final LocalDate checkIn;
++    private final LocalDate checkOut;
++    private final int guests;
++    private final int children;
++    private final RatePlan ratePlan;
++    private final Price price;
++    private ReservationStatus status;
++    private BigDecimal amountPaid;
++    private BigDecimal refund;
++
++    Reservation(long id, NewReservation request, Price price) {
++        this.id = id;
++        this.roomNumber = request.roomNumber();
++        this.guest = request.guest();
++        this.checkIn = request.checkIn();
++        this.checkOut = request.checkOut();
++        this.guests = request.guests();
++        this.children = request.children();
++        this.ratePlan = request.ratePlan();
++        this.price = price;
++        this.status = ReservationStatus.PENDING;
++        this.amountPaid = PriceCalculator.cents(BigDecimal.ZERO);
++    }
++
++    public long id() {
++        return id;
++    }
++
++    public int roomNumber() {
++        return roomNumber;
++    }
++
++    public Guest guest() {
++        return guest;
++    }
++
++    public LocalDate checkIn() {
++        return checkIn;
++    }
++
++    public LocalDate checkOut() {
++        return checkOut;
++    }
++
++    public int guests() {
++        return guests;
++    }
++
++    /** Children up to 12 years old: they do not pay, but take a place in the room. */
++    public int children() {
++        return children;
++    }
++
++    public RatePlan ratePlan() {
++        return ratePlan;
++    }
++
++    public Price price() {
++        return price;
++    }
++
++    public ReservationStatus status() {
++        return status;
++    }
++
++    /** What the guest paid: the total, once the reservation is confirmed; zero before that. */
++    public BigDecimal amountPaid() {
++        return amountPaid;
++    }
++
++    /** What the guest got back when the reservation was cancelled; null while it is not cancelled. */
++    public BigDecimal refund() {
++        return refund;
++    }
++
++    /** Confirmed, checked in or checked out: the guest paid and the room is theirs. */
++    public boolean isPaid() {
++        return status == ReservationStatus.CONFIRMED
++                || status == ReservationStatus.CHECKED_IN
++                || status == ReservationStatus.CHECKED_OUT;
++    }
++
++    /** The money the inn keeps from this reservation. */
++    public BigDecimal amountKept() {
++        return refund == null ? amountPaid : amountPaid.subtract(refund);
++    }
++
++    void changeStatus(ReservationStatus newStatus) {
++        this.status = newStatus;
++    }
++
++    void confirmPayment() {
++        this.status = ReservationStatus.CONFIRMED;
++        this.amountPaid = price.total();
++    }
++
++    void cancel(BigDecimal refundAmount) {
++        this.status = ReservationStatus.CANCELLED;
++        this.refund = refundAmount;
++    }
++
++    boolean overlaps(int otherRoomNumber, LocalDate otherCheckIn, LocalDate otherCheckOut) {
++        return roomNumber == otherRoomNumber
++                && checkIn.isBefore(otherCheckOut)
++                && otherCheckIn.isBefore(checkOut);
++    }
++}
+diff --git a/src/main/java/hotel/reservations/ReservationService.java b/src/main/java/hotel/reservations/ReservationService.java
+index 391236e..7ebe81f 100644
+--- a/src/main/java/hotel/reservations/ReservationService.java
++++ b/src/main/java/hotel/reservations/ReservationService.java
+@@ -1,139 +1,142 @@
+-package hotel.reservations;
+-
+-import hotel.documents.ReservationReceipt;
+-import hotel.messages.EmailSender;
+-import hotel.rooms.Room;
+-import hotel.rooms.Rooms;
+-import java.math.BigDecimal;
+-
+-/** The life of a reservation: created, confirmed (paid), checked in, checked out, or cancelled. */
+-public final class ReservationService {
+-
+-    static final String HOTEL_NAME = "Pousada Maré Alta";
+-
+-    private final Rooms rooms;
+-    private final ReservationStore store;
+-    private final PriceCalculator priceCalculator;
+-    private final EmailSender emailSender;
+-
+-    public ReservationService(
+-            Rooms rooms, ReservationStore store, PriceCalculator priceCalculator, EmailSender emailSender) {
+-        this.rooms = rooms;
+-        this.store = store;
+-        this.priceCalculator = priceCalculator;
+-        this.emailSender = emailSender;
+-    }
+-
+-    public synchronized Reservation create(NewReservation request) {
+-        if (!request.checkOut().isAfter(request.checkIn())) {
+-            throw new HotelException(ErrorCode.INVALID_REQUEST, "check-out must be after check-in");
+-        }
+-        if (request.guests() < 1) {
+-            throw new HotelException(ErrorCode.INVALID_REQUEST, "a reservation needs at least one guest");
+-        }
+-        Room room = rooms.find(request.roomNumber())
+-                .orElseThrow(() -> new HotelException(
+-                        ErrorCode.ROOM_NOT_FOUND, "room " + request.roomNumber() + " does not exist"));
+-        if (request.guests() > room.capacity()) {
+-            throw new HotelException(
+-                    ErrorCode.CAPACITY_EXCEEDED,
+-                    "room " + room.number() + " takes at most " + room.capacity() + " guests");
+-        }
+-        boolean roomTaken = store.all().stream()
+-                .filter(existing -> existing.status() != ReservationStatus.CANCELLED)
+-                .anyMatch(existing -> existing.overlaps(room.number(), request.checkIn(), request.checkOut()));
+-        if (roomTaken) {
+-            throw new HotelException(
+-                    ErrorCode.ROOM_UNAVAILABLE, "room " + room.number() + " is taken on some of those nights");
+-        }
+-        Price price = priceCalculator.calculate(room, request.checkIn(), request.checkOut(), request.ratePlan());
+-        Reservation reservation = new Reservation(store.nextId(), request, price);
+-        store.save(reservation);
+-        return reservation;
+-    }
+-
+-    public Reservation find(long reservationId) {
+-        return store.find(reservationId)
+-                .orElseThrow(() -> new HotelException(
+-                        ErrorCode.RESERVATION_NOT_FOUND, "reservation " + reservationId + " does not exist"));
+-    }
+-
+-    /** The guest paid: the reservation is confirmed and the guest gets the receipt by e-mail. */
+-    public synchronized Reservation confirm(long reservationId) {
+-        Reservation reservation = find(reservationId);
+-        if (reservation.status() != ReservationStatus.PENDING) {
+-            throw notAllowed(reservation, "confirm");
+-        }
+-        reservation.confirmPayment();
+-        ReservationReceipt receipt = new ReservationReceipt(reservation, roomOf(reservation));
+-        emailSender.send(
+-                reservation.guest().email(),
+-                "Reserva confirmada - " + HOTEL_NAME,
+-                confirmationEmailBody(reservation, receipt));
+-        return reservation;
+-    }
+-
+-    /**
+-     * Cancelling before the stay starts. What was paid comes back according to the rate plan (a pending
+-     * reservation was never paid, so nothing comes back).
+-     */
+-    public synchronized Reservation cancel(long reservationId) {
+-        Reservation reservation = find(reservationId);
+-        if (reservation.status() != ReservationStatus.PENDING
+-                && reservation.status() != ReservationStatus.CONFIRMED) {
+-            throw notAllowed(reservation, "cancel");
+-        }
+-        BigDecimal refund = switch (reservation.ratePlan()) {
+-            case STANDARD -> reservation.amountPaid();
+-            case NON_REFUNDABLE -> PriceCalculator.cents(BigDecimal.ZERO);
+-        };
+-        reservation.cancel(refund);
+-        return reservation;
+-    }
+-
+-    public synchronized Reservation checkIn(long reservationId) {
+-        Reservation reservation = find(reservationId);
+-        if (reservation.status() != ReservationStatus.CONFIRMED) {
+-            throw notAllowed(reservation, "check in");
+-        }
+-        reservation.changeStatus(ReservationStatus.CHECKED_IN);
+-        return reservation;
+-    }
+-
+-    /** The guest leaves: the stay is closed and the final receipt is handed over. */
+-    public synchronized ReservationReceipt checkOut(long reservationId) {
+-        Reservation reservation = find(reservationId);
+-        if (reservation.status() != ReservationStatus.CHECKED_IN) {
+-            throw notAllowed(reservation, "check out");
+-        }
+-        reservation.changeStatus(ReservationStatus.CHECKED_OUT);
+-        return new ReservationReceipt(reservation, roomOf(reservation));
+-    }
+-
+-    /** A copy of the receipt, for a guest who lost it. Only paid reservations have one. */
+-    public ReservationReceipt receiptCopy(long reservationId) {
+-        Reservation reservation = find(reservationId);
+-        if (!reservation.isPaid()) {
+-            throw notAllowed(reservation, "issue a receipt for");
+-        }
+-        return new ReservationReceipt(reservation, roomOf(reservation));
+-    }
+-
+-    private Room roomOf(Reservation reservation) {
+-        return rooms.find(reservation.roomNumber()).orElseThrow();
+-    }
+-
+-    private static String confirmationEmailBody(Reservation reservation, ReservationReceipt receipt) {
+-        return "Olá, " + reservation.guest().name() + "!\n\n"
+-                + "Sua reserva na " + HOTEL_NAME + " está confirmada. Estes são os dados dela:\n\n"
+-                + receipt.text() + "\n"
+-                + "A entrada é a partir das 14h, e a saída, até as 12h.\n"
+-                + "Até breve!\n";
+-    }
+-
+-    private static HotelException notAllowed(Reservation reservation, String operation) {
+-        return new HotelException(
+-                ErrorCode.OPERATION_NOT_ALLOWED,
+-                "cannot " + operation + " reservation " + reservation.id() + " while it is " + reservation.status());
+-    }
+-}
++package hotel.reservations;
++
++import hotel.documents.ReservationReceipt;
++import hotel.messages.EmailSender;
++import hotel.rooms.Room;
++import hotel.rooms.Rooms;
++import java.math.BigDecimal;
++
++/** The life of a reservation: created, confirmed (paid), checked in, checked out, or cancelled. */
++public final class ReservationService {
++
++    static final String HOTEL_NAME = "Pousada Maré Alta";
++
++    private final Rooms rooms;
++    private final ReservationStore store;
++    private final PriceCalculator priceCalculator;
++    private final EmailSender emailSender;
++
++    public ReservationService(
++            Rooms rooms, ReservationStore store, PriceCalculator priceCalculator, EmailSender emailSender) {
++        this.rooms = rooms;
++        this.store = store;
++        this.priceCalculator = priceCalculator;
++        this.emailSender = emailSender;
++    }
++
++    public synchronized Reservation create(NewReservation request) {
++        if (!request.checkOut().isAfter(request.checkIn())) {
++            throw new HotelException(ErrorCode.INVALID_REQUEST, "check-out must be after check-in");
++        }
++        if (request.guests() < 1) {
++            throw new HotelException(ErrorCode.INVALID_REQUEST, "a reservation needs at least one guest");
++        }
++        if (request.children() < 0) {
++            throw new HotelException(ErrorCode.INVALID_REQUEST, "the number of children cannot be negative");
++        }
++        Room room = rooms.find(request.roomNumber())
++                .orElseThrow(() -> new HotelException(
++                        ErrorCode.ROOM_NOT_FOUND, "room " + request.roomNumber() + " does not exist"));
++        if (request.guests() + request.children() > room.capacity()) {
++            throw new HotelException(
++                    ErrorCode.CAPACITY_EXCEEDED,
++                    "room " + room.number() + " takes at most " + room.capacity() + " people, children included");
++        }
++        boolean roomTaken = store.all().stream()
++                .filter(existing -> existing.status() != ReservationStatus.CANCELLED)
++                .anyMatch(existing -> existing.overlaps(room.number(), request.checkIn(), request.checkOut()));
++        if (roomTaken) {
++            throw new HotelException(
++                    ErrorCode.ROOM_UNAVAILABLE, "room " + room.number() + " is taken on some of those nights");
++        }
++        Price price = priceCalculator.calculate(room, request.checkIn(), request.checkOut(), request.ratePlan());
++        Reservation reservation = new Reservation(store.nextId(), request, price);
++        store.save(reservation);
++        return reservation;
++    }
++
++    public Reservation find(long reservationId) {
++        return store.find(reservationId)
++                .orElseThrow(() -> new HotelException(
++                        ErrorCode.RESERVATION_NOT_FOUND, "reservation " + reservationId + " does not exist"));
++    }
++
++    /** The guest paid: the reservation is confirmed and the guest gets the receipt by e-mail. */
++    public synchronized Reservation confirm(long reservationId) {
++        Reservation reservation = find(reservationId);
++        if (reservation.status() != ReservationStatus.PENDING) {
++            throw notAllowed(reservation, "confirm");
++        }
++        reservation.confirmPayment();
++        ReservationReceipt receipt = new ReservationReceipt(reservation, roomOf(reservation));
++        emailSender.send(
++                reservation.guest().email(),
++                "Reserva confirmada - " + HOTEL_NAME,
++                confirmationEmailBody(reservation, receipt));
++        return reservation;
++    }
++
++    /**
++     * Cancelling before the stay starts. What was paid comes back according to the rate plan (a pending
++     * reservation was never paid, so nothing comes back).
++     */
++    public synchronized Reservation cancel(long reservationId) {
++        Reservation reservation = find(reservationId);
++        if (reservation.status() != ReservationStatus.PENDING
++                && reservation.status() != ReservationStatus.CONFIRMED) {
++            throw notAllowed(reservation, "cancel");
++        }
++        BigDecimal refund = switch (reservation.ratePlan()) {
++            case STANDARD -> reservation.amountPaid();
++            case NON_REFUNDABLE -> PriceCalculator.cents(BigDecimal.ZERO);
++        };
++        reservation.cancel(refund);
++        return reservation;
++    }
++
++    public synchronized Reservation checkIn(long reservationId) {
++        Reservation reservation = find(reservationId);
++        if (reservation.status() != ReservationStatus.CONFIRMED) {
++            throw notAllowed(reservation, "check in");
++        }
++        reservation.changeStatus(ReservationStatus.CHECKED_IN);
++        return reservation;
++    }
++
++    /** The guest leaves: the stay is closed and the final receipt is handed over. */
++    public synchronized ReservationReceipt checkOut(long reservationId) {
++        Reservation reservation = find(reservationId);
++        if (reservation.status() != ReservationStatus.CHECKED_IN) {
++            throw notAllowed(reservation, "check out");
++        }
++        reservation.changeStatus(ReservationStatus.CHECKED_OUT);
++        return new ReservationReceipt(reservation, roomOf(reservation));
++    }
++
++    /** A copy of the receipt, for a guest who lost it. Only paid reservations have one. */
++    public ReservationReceipt receiptCopy(long reservationId) {
++        Reservation reservation = find(reservationId);
++        if (!reservation.isPaid()) {
++            throw notAllowed(reservation, "issue a receipt for");
++        }
++        return new ReservationReceipt(reservation, roomOf(reservation));
++    }
++
++    private Room roomOf(Reservation reservation) {
++        return rooms.find(reservation.roomNumber()).orElseThrow();
++    }
++
++    private static String confirmationEmailBody(Reservation reservation, ReservationReceipt receipt) {
++        return "Olá, " + reservation.guest().name() + "!\n\n"
++                + "Sua reserva na " + HOTEL_NAME + " está confirmada. Estes são os dados dela:\n\n"
++                + receipt.text() + "\n"
++                + "A entrada é a partir das 14h, e a saída, até as 12h.\n"
++                + "Até breve!\n";
++    }
++
++    private static HotelException notAllowed(Reservation reservation, String operation) {
++        return new HotelException(
++                ErrorCode.OPERATION_NOT_ALLOWED,
++                "cannot " + operation + " reservation " + reservation.id() + " while it is " + reservation.status());
++    }
++}
+diff --git a/src/main/java/hotel/web/CreateReservationRequest.java b/src/main/java/hotel/web/CreateReservationRequest.java
+index 8849daf..19642e7 100644
+--- a/src/main/java/hotel/web/CreateReservationRequest.java
++++ b/src/main/java/hotel/web/CreateReservationRequest.java
+@@ -3,7 +3,7 @@ package hotel.web;
+ import hotel.reservations.RatePlan;
+ import java.time.LocalDate;
+ 
+-/** The JSON body of POST /reservations. Every field is required. */
++/** The JSON body of POST /reservations. Every field is required, but children (zero when missing). */
+ public record CreateReservationRequest(
+         Integer roomNumber,
+         String guestName,
+@@ -12,5 +12,6 @@ public record CreateReservationRequest(
+         LocalDate checkIn,
+         LocalDate checkOut,
+         Integer guests,
++        Integer children,
+         RatePlan ratePlan) {
+ }
+diff --git a/src/main/java/hotel/web/HttpApi.java b/src/main/java/hotel/web/HttpApi.java
+index fa71646..9b7a5e3 100644
+--- a/src/main/java/hotel/web/HttpApi.java
++++ b/src/main/java/hotel/web/HttpApi.java
+@@ -126,7 +126,8 @@ public final class HttpApi {
+         }
+         Guest guest = new Guest(body.guestName(), body.guestEmail(), body.guestCpf());
+         return new NewReservation(
+-                body.roomNumber(), guest, body.checkIn(), body.checkOut(), body.guests(), body.ratePlan());
++                body.roomNumber(), guest, body.checkIn(), body.checkOut(), body.guests(), body.ratePlan(),
++                body.children() == null ? 0 : body.children());
+     }
+ 
+     private static long reservationId(Context ctx) {
+diff --git a/src/main/java/hotel/web/ReservationResponse.java b/src/main/java/hotel/web/ReservationResponse.java
+index 37d5732..a408a11 100644
+--- a/src/main/java/hotel/web/ReservationResponse.java
++++ b/src/main/java/hotel/web/ReservationResponse.java
+@@ -1,46 +1,48 @@
+-package hotel.web;
+-
+-import hotel.reservations.RatePlan;
+-import hotel.reservations.Reservation;
+-import hotel.reservations.ReservationStatus;
+-import java.math.BigDecimal;
+-import java.time.LocalDate;
+-
+-public record ReservationResponse(
+-        long id,
+-        int roomNumber,
+-        String guestName,
+-        String guestEmail,
+-        String guestCpf,
+-        LocalDate checkIn,
+-        LocalDate checkOut,
+-        int guests,
+-        RatePlan ratePlan,
+-        int nights,
+-        BigDecimal subtotal,
+-        BigDecimal discount,
+-        BigDecimal total,
+-        ReservationStatus status,
+-        BigDecimal amountPaid,
+-        BigDecimal refund) {
+-
+-    public ReservationResponse(Reservation reservation) {
+-        this(
+-                reservation.id(),
+-                reservation.roomNumber(),
+-                reservation.guest().name(),
+-                reservation.guest().email(),
+-                reservation.guest().cpf(),
+-                reservation.checkIn(),
+-                reservation.checkOut(),
+-                reservation.guests(),
+-                reservation.ratePlan(),
+-                reservation.price().nights(),
+-                reservation.price().subtotal(),
+-                reservation.price().discount(),
+-                reservation.price().total(),
+-                reservation.status(),
+-                reservation.amountPaid(),
+-                reservation.refund());
+-    }
+-}
++package hotel.web;
++
++import hotel.reservations.RatePlan;
++import hotel.reservations.Reservation;
++import hotel.reservations.ReservationStatus;
++import java.math.BigDecimal;
++import java.time.LocalDate;
++
++public record ReservationResponse(
++        long id,
++        int roomNumber,
++        String guestName,
++        String guestEmail,
++        String guestCpf,
++        LocalDate checkIn,
++        LocalDate checkOut,
++        int guests,
++        int children,
++        RatePlan ratePlan,
++        int nights,
++        BigDecimal subtotal,
++        BigDecimal discount,
++        BigDecimal total,
++        ReservationStatus status,
++        BigDecimal amountPaid,
++        BigDecimal refund) {
++
++    public ReservationResponse(Reservation reservation) {
++        this(
++                reservation.id(),
++                reservation.roomNumber(),
++                reservation.guest().name(),
++                reservation.guest().email(),
++                reservation.guest().cpf(),
++                reservation.checkIn(),
++                reservation.checkOut(),
++                reservation.guests(),
++                reservation.children(),
++                reservation.ratePlan(),
++                reservation.price().nights(),
++                reservation.price().subtotal(),
++                reservation.price().discount(),
++                reservation.price().total(),
++                reservation.status(),
++                reservation.amountPaid(),
++                reservation.refund());
++    }
++}
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index 967cabb..c44b98e 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -27,7 +27,7 @@ class ReportsTest {
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+         Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
+         return service.create(new NewReservation(
+-                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan));
++                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan, 0));
+     }
+ 
+     @BeforeEach
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..638fb95 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -24,7 +24,7 @@ class ReservationServiceTest {
+     private static NewReservation stay(int roomNumber, String checkIn, String checkOut, int guests, RatePlan plan) {
+         Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
+         return new NewReservation(
+-                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), guests, plan);
++                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), guests, plan, 0);
+     }
+ 
+     private static ErrorCode errorOf(Runnable action) {
+@@ -52,6 +52,17 @@ class ReservationServiceTest {
+                 errorOf(() -> service.create(stay(101, "2027-03-10", "2027-03-12", 3, RatePlan.STANDARD))));
+     }
+ 
++    @Test
++    void childrenDoNotPayButTakeAPlace() {
++        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++        Reservation family = service.create(new NewReservation(
++                301, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 2, RatePlan.STANDARD, 2));
++
++        assertEquals(new BigDecimal("579.90"), family.price().total());
++        assertEquals(ErrorCode.CAPACITY_EXCEEDED, errorOf(() -> service.create(new NewReservation(
++                101, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 2, RatePlan.STANDARD, 1))));
++    }
++
+     @Test
+     void aRoomCannotBeBookedTwiceForTheSameNight() {
+         service.create(stay(201, "2027-03-10", "2027-03-13", 2, RatePlan.STANDARD));

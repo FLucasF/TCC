@@ -21,7 +21,7 @@ pedido de mudança. A pergunta é o que ele faz com o pattern:
 | a base | um projeto só, escrito antes e igual para todos; cada execução sai de uma cópia limpa dela e implementa **um** cenário |
 | cenários | 10: 5 que pedem o pattern e 5 **controles negativos**, pedidos parecidos em que a resposta certa é uma mudança pequena (são eles que medem o exagero) |
 | execuções | de início, 1 por modelo em cada cenário |
-| avaliação | por agente, com a leitura do Lucas numa amostra para medir a concordância |
+| avaliação | por enquanto, o Lucas e o Claude, com o gabarito e as soluções de referência; as ferramentas vêm depois |
 | o texto dos pedidos | mais escrito e menos técnico: a voz do dono da pousada, sem nomear pattern |
 
 O princípio da base é deixar cada ponto a **um passo da regra de três**: hoje o código está certo sem
@@ -34,5 +34,5 @@ pattern, e é o pedido de mudança que passa a justificá-lo. Os detalhes estão
 | [`experiment/base/ROTEIRO-DA-BASE.md`](experiment/base/ROTEIRO-DA-BASE.md) | o roteiro da base: as sementes de cada pattern, os pontos dos controles negativos, o que a base não pode ter, as decisões em aberto |
 | [`experiment/base/hotel/`](experiment/base/hotel/) | a base: o sistema de reservas da Pousada Maré Alta (`mvn verify`; `java -jar target/hotel.jar`) |
 | [`experiment/scenarios/`](experiment/scenarios/) | os 10 pedidos de mudança, na voz do dono da pousada, e a moldura comum (`frame.md`): o agente recebe a moldura com **um** pedido no lugar de `{{PEDIDO}}`. Os ímpares pedem o pattern; os pares são os controles negativos |
-| [`evaluation/`](evaluation/README.md) | a suíte (a regressão e a aceitação de cada cenário, pela API), as soluções de referência de cada cenário (com o pattern e ingênua, como patches sobre a base) e a checagem de que as duas passam e a base falha |
-| [`evaluation/answer-key/GABARITO.md`](evaluation/answer-key/GABARITO.md) | o gabarito: a regra que separa os dois tipos de cenário, a classificação, e, para cada cenário, o acerto, as alternativas aceitas, a omissão, o malfeito, o exagero e o que a suíte confere |
+| [`evaluation/`](evaluation/README.md) | as soluções de referência de cada cenário (dos dois lados, como patches sobre a base) e os scripts que as geram |
+| [`evaluation/answer-key/GABARITO.md`](evaluation/answer-key/GABARITO.md) | o gabarito: a regra que separa os dois tipos de cenário, a classificação, e, para cada cenário, o acerto, as alternativas aceitas, a omissão, o malfeito, o exagero e o comportamento novo que cada pedido exige |

@@ -28,8 +28,8 @@ Mais duas classes, para o que não cabe no quadro:
   que o pedido não tocava. É contado à parte da classe principal.
 
 E duas condições que valem para qualquer classe:
-- **a suíte passa:** o comportamento antigo continua (a regressão) e o novo funciona (a aceitação do
-  cenário). Um pattern correto com a suíte falhando conta como **falha de correção**, registrada junto.
+- **o comportamento está certo:** o que a base já fazia continua igual, e o que o pedido pediu funciona.
+  Um pattern correto com o comportamento errado conta como **falha de correção**, registrada junto.
 - **o `mvn verify` do agente passa.**
 
 ### "Aplicou mal" (malfeito), em geral
@@ -55,12 +55,12 @@ E duas condições que valem para qualquer classe:
 - **Omissão:** os `switch` crescem para 5 casos nos dois lugares (e a validação ganha mais um bloco de `if`).
 - **Malfeito:** interface criada só para os três planos novos, com `STANDARD` e `NON_REFUNDABLE` ainda no
   `switch`; ou a validação (sexta a domingo, 7 noites, código da empresa) fora do plano, em `if` no serviço.
-- **Aceitação (suíte):** os três exemplos do texto; código de empresa ausente ou desconhecido → `400`;
+- **O comportamento novo:** os três exemplos do texto; código de empresa ausente ou desconhecido → `400`;
   pacote fora de sexta→domingo e com uma ou três noites → `400`; estadia longa com 6 noites → `400` e com 7
   aceita; pacote cancelado depois de pago devolve a metade (meio para o par); convênio e estadia longa
   cancelados depois de pagos devolvem tudo;
   `companyCode` ignorado nos outros planos; os dois planos antigos inalterados.
-- **Atenção na suíte:** só testar um erro por chamada (a ordem entre as recusas não foi dita).
+- **Atenção:** a ordem entre as recusas não foi dita; não cobrar uma ordem.
 
 ## 02 · A alta temporada mudou · Strategy, **negativo**
 
@@ -69,7 +69,7 @@ E duas condições que valem para qualquer classe:
   condições a mais no `isHighSeason`).
 - **Exagero:** uma classe ou estratégia por temporada; uma interface de "regra de temporada"; um acréscimo
   por temporada parametrizado sem que ninguém peça.
-- **Aceitação (suíte):** standard em alta temporada R$ 312,38 (299,88 × 1,25 = 312,375 → 312,38, meio
+- **O comportamento novo:** standard em alta temporada R$ 312,38 (299,88 × 1,25 = 312,375 → 312,38, meio
   para o par); deluxe 487,38; suíte 724,88; 20/03/2027 baixa, 21/03 e 28/03 alta, 29/03 baixa; idem
   08/04/2028, 09/04, 16/04, 17/04; o resto das datas inalterado; o desconto do não reembolsável sobre o novo
   valor.
@@ -86,7 +86,7 @@ E duas condições que valem para qualquer classe:
 - **Omissão:** o `confirm` e o `cancel` mandam os e-mails em sequência, um depois do outro.
 - **Malfeito:** existe a lista de ouvintes, mas o serviço ainda monta os e-mails da governança e do
   financeiro; ou só a confirmação passou a ter ouvintes, e o cancelamento manda à mão.
-- **Aceitação (suíte):** os destinatários, os assuntos exatos e o conteúdo (número do quarto, datas
+- **O comportamento novo:** os destinatários, os assuntos exatos e o conteúdo (número do quarto, datas
   `dd/MM/yyyy`, valor `R$ 1.234,56`) na confirmação; no cancelamento de reserva confirmada, a governança
   sempre e o financeiro só com reembolso maior que zero (`NON_REFUNDABLE` → sem e-mail ao financeiro);
   cancelamento de reserva pendente → nenhuma mensagem; a ordem não é conferida.
@@ -97,7 +97,7 @@ E duas condições que valem para qualquer classe:
 - **Contenção:** muda o assunto e o texto em `confirmationEmailBody` (ou onde o texto estiver).
 - **Exagero:** criar um canal de mensagem abstrato, um ouvinte de confirmação, ou um modelo de mensagem
   com várias implementações.
-- **Aceitação (suíte):** o assunto novo exato; as três linhas novas no lugar da antiga; saudação,
+- **O comportamento novo:** o assunto novo exato; as três linhas novas no lugar da antiga; saudação,
   comprovante e "Até breve!" iguais.
 
 ## 05 · Comprovante para empresa e estrangeiro · **Factory** (Factory Method), pede
@@ -112,7 +112,7 @@ E duas condições que valem para qualquer classe:
 - **Omissão:** o `if`/`switch` sobre o tipo de hóspede repetido nos três lugares.
 - **Malfeito:** a fábrica existe, mas um dos três lugares ainda cria o documento à mão; ou a fábrica
   devolve sempre o comprovante, e a escolha acontece depois, fora dela.
-- **Aceitação (suíte):** os três jeitos de identificar; nenhum, dois ou incompletos (CNPJ sem razão
+- **O comportamento novo:** os três jeitos de identificar; nenhum, dois ou incompletos (CNPJ sem razão
   social, passaporte sem país) → `400`; o título e o `text` de cada documento nos três lugares (o e-mail
   de confirmação, o check-out e a segunda via); o ISS de 5% meio para o par (779,80 → 38,99); `BRL 1,234.56`
   e datas ISO no *booking receipt*; `1 night` × `2 nights`; o hóspede com CPF exatamente como hoje.
@@ -124,7 +124,7 @@ E duas condições que valem para qualquer classe:
   no comprovante; a reserva continua criada direto.
 - **Exagero:** um *builder* ou uma fábrica para a reserva ou para o pedido de reserva; uma "política de
   preço de criança" sem preço nenhum.
-- **Aceitação (suíte):** sem `children` → 0; negativo → `400`; adultos + crianças acima da capacidade →
+- **O comportamento novo:** sem `children` → 0; negativo → `400`; adultos + crianças acima da capacidade →
   `422`; o preço não muda; "Crianças: 2" logo depois da linha do quarto; sem crianças, comprovante igual.
 
 ## 07 · Regras para as mensagens · **Decorator**, pede
@@ -140,8 +140,7 @@ E duas condições que valem para qualquer classe:
 - **Omissão:** os três `if` (o endereço, o modo de teste, a cópia) dentro do `send`.
 - **Malfeito:** os embrulhos existem, mas o envio de dentro ainda pergunta pelo modo de teste; ou a
   combinação por modo está escrita dentro de um dos embrulhos.
-- **Aceitação (suíte):** a suíte sobe o serviço duas vezes, com e sem `HOTEL_TEST_MODE=true`. Fora do
-  teste: endereço válido → original `SENT` + cópia `[Cópia] ` para o arquivo, logo depois; inválido
+- **O comportamento novo:** com e sem `HOTEL_TEST_MODE=true`. Fora do teste: endereço válido → original `SENT` + cópia `[Cópia] ` para o arquivo, logo depois; inválido
   (`ana@gmail`, `ana.gmail.com`, `@x.com`, `a@@b.com`) → só a `BLOCKED`, sem cópia. No teste: tudo para
   `testes@…`, assunto `[TESTE] `, primeira linha "Destinatário original: …", sem cópia; o inválido
   continua `BLOCKED` com o endereço original. O campo `status` em todas.
@@ -152,7 +151,7 @@ E duas condições que valem para qualquer classe:
 - **Contenção:** a assinatura acrescentada num lugar só (no `EmailSender.send`, que é por onde passa
   toda mensagem, ou no texto da confirmação, que hoje é a única mensagem).
 - **Exagero:** um embrulho (Decorator) só para a assinatura; uma assinatura por época do ano.
-- **Aceitação (suíte):** o corpo termina com a linha em branco, `--`, o nome e a linha do telefone (tolerar
+- **O comportamento novo:** o corpo termina com a linha em branco, `--`, o nome e a linha do telefone (tolerar
   uma quebra de linha no fim).
 
 ## 09 · Relatórios novos · **Template Method**, pede
@@ -168,7 +167,7 @@ E duas condições que valem para qualquer classe:
 - **Malfeito:** o esqueleto existe só para os dois novos, e os dois antigos continuam inteiros (com a linha
   de título copiada neles); ou o "esqueleto" é só um método utilitário de CSV, e cada relatório ainda
   repete a sequência dos passos.
-- **Aceitação (suíte):** a linha de título nos quatro (com o período como veio na chamada); a taxa de turismo
+- **O comportamento novo:** a linha de título nos quatro (com o período como veio na chamada); a taxa de turismo
   (R$ 4,50 × hóspedes × noites, reservas pagas com entrada no mês, a ordem do financeiro); o relatório por
   plano com as duas linhas sempre presentes e as mesmas reservas do financeiro (inclusive a cancelada não
   reembolsável); os dois antigos iguais depois do título.
@@ -178,16 +177,14 @@ E duas condições que valem para qualquer classe:
 - **A frase que tenta:** "talvez a recepção peça o telefone um dia".
 - **Contenção:** uma coluna a mais no `OccupancyReport` (e a troca da vírgula por espaço).
 - **Exagero:** um esqueleto genérico de relatórios, ou um sistema de colunas configuráveis.
-- **Aceitação (suíte):** a coluna `guest` depois de `reservation`; vírgula vira espaço; o resto igual
+- **O comportamento novo:** a coluna `guest` depois de `reservation`; vírgula vira espaço; o resto igual
   (inclusive o relatório financeiro, que não muda).
 
 ---
 
 ## O que ainda falta para este gabarito
 
-- a validação do **poder de discriminação** de cada cenário: uma solução de referência com o pattern
-  (classe "acerto") e uma solução ingênua (classe "omissão", ou "exagero" nos negativos), as duas passando
-  na suíte, e o avaliador separando as duas;
-- a aceitação dos cenários 02 a 10 (a regressão e a aceitação do 01 já existem, em `evaluation/suite/`, e as
-  soluções do 01 já passaram no `check_solutions.py`);
-- o prompt do avaliador (o agente que classifica), que vai receber o pedido, a base, o diff e este quadro.
+- a avaliação de verdade, por agente ou à mão: ela tem que pôr as duas soluções de referência de cada cenário
+  (em `evaluation/solutions/`) em classes diferentes: nos que pedem o pattern, a `pattern` em "acerto" e a
+  `naive` em "omissão"; nos controles negativos, a `contained` em "contenção" e a `overengineered` em
+  "exagero".

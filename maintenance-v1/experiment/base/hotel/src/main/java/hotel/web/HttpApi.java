@@ -82,11 +82,11 @@ public final class HttpApi {
 
         server.get("/reports/occupancy", ctx -> {
             LocalDate night = readDate(ctx);
-            ctx.contentType("text/csv").result(occupancyReport.generate(night));
+            ctx.contentType("text/csv; charset=utf-8").result(occupancyReport.generate(night));
         });
         server.get("/reports/revenue", ctx -> {
             YearMonth month = readMonth(ctx);
-            ctx.contentType("text/csv").result(revenueReport.generate(month));
+            ctx.contentType("text/csv; charset=utf-8").result(revenueReport.generate(month));
         });
     }
 

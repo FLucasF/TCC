@@ -1,0 +1,259 @@
+diff --git a/src/main/java/hotel/reservations/PriceCalculator.java b/src/main/java/hotel/reservations/PriceCalculator.java
+index bd53dba..2d89214 100644
+--- a/src/main/java/hotel/reservations/PriceCalculator.java
++++ b/src/main/java/hotel/reservations/PriceCalculator.java
+@@ -1,10 +1,12 @@
+ package hotel.reservations;
+ 
++import hotel.reservations.seasons.Season;
++import hotel.reservations.seasons.SeasonCalendar;
+ import hotel.rooms.Room;
+ import java.math.BigDecimal;
+ import java.math.RoundingMode;
+ import java.time.LocalDate;
+-import java.time.Month;
++import java.util.Optional;
+ 
+ /**
+  * The price of a stay: every night costs the room's nightly rate, plus the high-season surcharge on
+@@ -13,7 +15,7 @@ import java.time.Month;
+  */
+ public final class PriceCalculator {
+ 
+-    static final BigDecimal HIGH_SEASON_SURCHARGE = new BigDecimal("0.20");
++    private static final SeasonCalendar SEASONS = new SeasonCalendar();
+     static final BigDecimal NON_REFUNDABLE_DISCOUNT = new BigDecimal("0.15");
+ 
+     public Price calculate(Room room, LocalDate checkIn, LocalDate checkOut, RatePlan ratePlan) {
+@@ -32,19 +34,15 @@ public final class PriceCalculator {
+ 
+     BigDecimal nightPrice(Room room, LocalDate night) {
+         BigDecimal nightlyRate = room.nightlyRate();
+-        if (isHighSeason(night)) {
+-            return cents(nightlyRate.multiply(BigDecimal.ONE.add(HIGH_SEASON_SURCHARGE)));
++        Optional<Season> season = SEASONS.seasonOf(night);
++        if (season.isPresent()) {
++            return cents(nightlyRate.multiply(BigDecimal.ONE.add(season.get().surcharge())));
+         }
+         return cents(nightlyRate);
+     }
+ 
+-    /** High season: from December 15 to the end of February, and the whole of July. */
+     static boolean isHighSeason(LocalDate date) {
+-        Month month = date.getMonth();
+-        return month == Month.JANUARY
+-                || month == Month.FEBRUARY
+-                || month == Month.JULY
+-                || (month == Month.DECEMBER && date.getDayOfMonth() >= 15);
++        return SEASONS.seasonOf(date).isPresent();
+     }
+ 
+     static BigDecimal cents(BigDecimal value) {
+diff --git a/src/main/java/hotel/reservations/seasons/EasterWeek.java b/src/main/java/hotel/reservations/seasons/EasterWeek.java
+new file mode 100644
+index 0000000..224aa83
+--- /dev/null
++++ b/src/main/java/hotel/reservations/seasons/EasterWeek.java
+@@ -0,0 +1,26 @@
++package hotel.reservations.seasons;
++
++import java.math.BigDecimal;
++import java.time.LocalDate;
++
++/** From Palm Sunday to Easter Sunday, both nights included. */
++public final class EasterWeek implements Season {
++
++    private final LocalDate palmSunday;
++    private final LocalDate easterSunday;
++
++    public EasterWeek(LocalDate palmSunday, LocalDate easterSunday) {
++        this.palmSunday = palmSunday;
++        this.easterSunday = easterSunday;
++    }
++
++    @Override
++    public boolean includes(LocalDate night) {
++        return !night.isBefore(palmSunday) && !night.isAfter(easterSunday);
++    }
++
++    @Override
++    public BigDecimal surcharge() {
++        return new BigDecimal("0.25");
++    }
++}
+diff --git a/src/main/java/hotel/reservations/seasons/JulyHolidays.java b/src/main/java/hotel/reservations/seasons/JulyHolidays.java
+new file mode 100644
+index 0000000..0e7b1e5
+--- /dev/null
++++ b/src/main/java/hotel/reservations/seasons/JulyHolidays.java
+@@ -0,0 +1,19 @@
++package hotel.reservations.seasons;
++
++import java.math.BigDecimal;
++import java.time.LocalDate;
++import java.time.Month;
++
++/** The whole of July. */
++public final class JulyHolidays implements Season {
++
++    @Override
++    public boolean includes(LocalDate night) {
++        return night.getMonth() == Month.JULY;
++    }
++
++    @Override
++    public BigDecimal surcharge() {
++        return new BigDecimal("0.25");
++    }
++}
+diff --git a/src/main/java/hotel/reservations/seasons/Season.java b/src/main/java/hotel/reservations/seasons/Season.java
+new file mode 100644
+index 0000000..eda6af3
+--- /dev/null
++++ b/src/main/java/hotel/reservations/seasons/Season.java
+@@ -0,0 +1,12 @@
++package hotel.reservations.seasons;
++
++import java.math.BigDecimal;
++import java.time.LocalDate;
++
++/** A period of the year with its own surcharge on the nightly rate. */
++public interface Season {
++
++    boolean includes(LocalDate night);
++
++    BigDecimal surcharge();
++}
+diff --git a/src/main/java/hotel/reservations/seasons/SeasonCalendar.java b/src/main/java/hotel/reservations/seasons/SeasonCalendar.java
+new file mode 100644
+index 0000000..c9a321d
+--- /dev/null
++++ b/src/main/java/hotel/reservations/seasons/SeasonCalendar.java
+@@ -0,0 +1,19 @@
++package hotel.reservations.seasons;
++
++import java.time.LocalDate;
++import java.util.List;
++import java.util.Optional;
++
++/** All the seasons of the inn; a new season is one more entry here. */
++public final class SeasonCalendar {
++
++    private final List<Season> seasons = List.of(
++            new SummerSeason(),
++            new JulyHolidays(),
++            new EasterWeek(LocalDate.of(2027, 3, 21), LocalDate.of(2027, 3, 28)),
++            new EasterWeek(LocalDate.of(2028, 4, 9), LocalDate.of(2028, 4, 16)));
++
++    public Optional<Season> seasonOf(LocalDate night) {
++        return seasons.stream().filter(season -> season.includes(night)).findFirst();
++    }
++}
+diff --git a/src/main/java/hotel/reservations/seasons/SummerSeason.java b/src/main/java/hotel/reservations/seasons/SummerSeason.java
+new file mode 100644
+index 0000000..194a937
+--- /dev/null
++++ b/src/main/java/hotel/reservations/seasons/SummerSeason.java
+@@ -0,0 +1,21 @@
++package hotel.reservations.seasons;
++
++import java.math.BigDecimal;
++import java.time.LocalDate;
++import java.time.Month;
++
++/** From December 15 to the end of February. */
++public final class SummerSeason implements Season {
++
++    @Override
++    public boolean includes(LocalDate night) {
++        Month month = night.getMonth();
++        return month == Month.JANUARY || month == Month.FEBRUARY
++                || (month == Month.DECEMBER && night.getDayOfMonth() >= 15);
++    }
++
++    @Override
++    public BigDecimal surcharge() {
++        return new BigDecimal("0.25");
++    }
++}
+diff --git a/src/test/java/hotel/reservations/PriceCalculatorTest.java b/src/test/java/hotel/reservations/PriceCalculatorTest.java
+index 203bee1..708be90 100644
+--- a/src/test/java/hotel/reservations/PriceCalculatorTest.java
++++ b/src/test/java/hotel/reservations/PriceCalculatorTest.java
+@@ -32,8 +32,8 @@ class PriceCalculatorTest {
+         Price price = calculator.calculate(
+                 standardRoom, LocalDate.of(2027, 12, 14), LocalDate.of(2027, 12, 16), RatePlan.STANDARD);
+ 
+-        // December 14: 249.90; December 15: 249.90 + 20% = 299.88
+-        assertEquals(new BigDecimal("549.78"), price.total());
++        // December 14: 249.90; December 15: 249.90 + 25% = 312.38
++        assertEquals(new BigDecimal("562.28"), price.total());
+     }
+ 
+     @Test
+@@ -41,8 +41,8 @@ class PriceCalculatorTest {
+         Price price = calculator.calculate(
+                 standardRoom, LocalDate.of(2028, 2, 29), LocalDate.of(2028, 3, 2), RatePlan.STANDARD);
+ 
+-        // February 29 (leap year): 299.88; March 1: 249.90
+-        assertEquals(new BigDecimal("549.78"), price.total());
++        // February 29 (leap year): 312.38; March 1: 249.90
++        assertEquals(new BigDecimal("562.28"), price.total());
+     }
+ 
+     @Test
+@@ -53,6 +53,18 @@ class PriceCalculatorTest {
+         assertFalse(PriceCalculator.isHighSeason(LocalDate.of(2027, 8, 1)));
+     }
+ 
++    @Test
++    void easterWeekIsHighSeason() {
++        assertFalse(PriceCalculator.isHighSeason(LocalDate.of(2027, 3, 20)));
++        assertTrue(PriceCalculator.isHighSeason(LocalDate.of(2027, 3, 21)));
++        assertTrue(PriceCalculator.isHighSeason(LocalDate.of(2027, 3, 28)));
++        assertFalse(PriceCalculator.isHighSeason(LocalDate.of(2027, 3, 29)));
++        assertFalse(PriceCalculator.isHighSeason(LocalDate.of(2028, 4, 8)));
++        assertTrue(PriceCalculator.isHighSeason(LocalDate.of(2028, 4, 9)));
++        assertTrue(PriceCalculator.isHighSeason(LocalDate.of(2028, 4, 16)));
++        assertFalse(PriceCalculator.isHighSeason(LocalDate.of(2028, 4, 17)));
++    }
++
+     @Test
+     void nonRefundableTakes15PercentOffRoundingHalfEven() {
+         Price price = calculator.calculate(
+@@ -68,9 +80,9 @@ class PriceCalculatorTest {
+         Price price = calculator.calculate(
+                 suite, LocalDate.of(2027, 1, 5), LocalDate.of(2027, 1, 9), RatePlan.NON_REFUNDABLE);
+ 
+-        // 4 nights of 579.90 + 20% = 695.88 each
+-        assertEquals(new BigDecimal("2783.52"), price.subtotal());
+-        assertEquals(new BigDecimal("417.53"), price.discount());
+-        assertEquals(new BigDecimal("2365.99"), price.total());
++        // 4 nights of 579.90 + 25% = 724.88 each
++        assertEquals(new BigDecimal("2899.52"), price.subtotal());
++        assertEquals(new BigDecimal("434.93"), price.discount());
++        assertEquals(new BigDecimal("2464.59"), price.total());
+     }
+ }
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..50dd348 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -71,7 +71,7 @@ class HttpApiTest {
+         long id = reservation.get("id").asLong();
+         assertEquals("PENDING", reservation.get("status").asText());
+         assertEquals("2027-07-10", reservation.get("checkIn").asText());
+-        assertEquals(935.76, reservation.get("total").asDouble());
++        assertEquals(974.76, reservation.get("total").asDouble());
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+@@ -112,7 +112,7 @@ class HttpApiTest {
+         assertTrue(occupancy.headers().firstValue("Content-Type").orElse("").startsWith("text/csv"));
+         assertTrue(occupancy.body().endsWith("total,1/5\n"));
+ 
+-        assertTrue(get("/reports/revenue?month=2027-07").body().endsWith("total,935.76\n"));
++        assertTrue(get("/reports/revenue?month=2027-07").body().endsWith("total,974.76\n"));
+         assertEquals(400, get("/reports/revenue?month=july").statusCode());
+         assertEquals(400, get("/reports/occupancy").statusCode());
+     }

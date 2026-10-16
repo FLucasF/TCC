@@ -68,7 +68,7 @@ hóspede e dois relatórios.
 | `GET /reports/revenue?month=` | o relatório financeiro do mês (CSV) |
 
 As mensagens não saem de verdade: vão para uma caixa de saída que o `GET /messages` mostra. É uma
-funcionalidade real (a recepção confere o que foi mandado) e é por ela que a suíte enxerga os avisos.
+funcionalidade real (a recepção confere o que foi mandado) e é por ela que se enxergam os avisos de fora.
 
 ## As sementes
 
@@ -106,8 +106,6 @@ funcionalidade real (a recepção confere o que foi mandado) e é por ela que a 
 - **Testes da base:** 26 testes JUnit, verdes (`mvn verify`), cobrindo as diárias, a temporada, o
   arredondamento, o reembolso, as situações da reserva, os relatórios e a API por HTTP. Ficam visíveis
   para o agente, como num projeto de verdade.
-- **Suíte oculta (nossa):** a regressão (o comportamento da base continua igual depois da mudança) e
-  os testes de aceitação de cada cenário. Ela sobe o serviço e chama a API, como a suíte do construction-v6.
 - **Relógio:** a base não depende de "hoje": todas as datas vêm nas chamadas. Se um cenário precisar
   de "hoje", o relógio entra pelo cenário.
 
@@ -117,10 +115,10 @@ A base foi escrita pelo Claude (15/10) e falta a revisão do Lucas. É conferida
 
 1. a lista "o que a base não pode ter", item por item;
 2. as sementes estão a um passo da regra de três (nem antes, nem depois);
-3. os testes da base e a suíte de regressão passam;
+3. os testes da base passam;
 4. um teste de "poder de discriminação" por cenário, como na v3 do Akita: uma solução de referência com o
-   pattern passa na suíte e no avaliador como "acerto", e uma solução ingênua (o `if` a mais) passa na
-   suíte e cai no avaliador como "omissão".
+   pattern cai no avaliador como "acerto", e uma solução ingênua (o `if` a mais), com o mesmo
+   comportamento, cai como "omissão".
 
 **Viés a declarar:** a base foi escrita por um modelo da mesma família de vários modelos testados, e
 o domínio também foi sugerido por ele.
@@ -150,7 +148,7 @@ o domínio também foi sugerido por ele.
 2. ~~Escrever a base, seguindo este roteiro.~~ Feita em `hotel/` (15/10).
 3. Conferir a base (a lista acima) e ler junto com o Lucas.
 4. ~~Escrever os 10 pedidos de mudança, na voz do dono da pousada.~~ Feitos em `../scenarios/` (15/10), com o gabarito em `../../evaluation/answer-key/GABARITO.md`.
-5. A suíte (aceitação de cada cenário e regressão da base), o poder de discriminação e o avaliador.
+5. ~~As soluções de referência.~~ Feitas em `../../evaluation/solutions/` (15/10). Falta a avaliação.
 
 ## A base escrita (15/10)
 
@@ -164,6 +162,9 @@ nada sobre patterns). Conferências já feitas:
 - a checagem de "reserva paga" estava repetida fora das sementes e virou `Reservation.isPaid()`;
 - uma regra de negócio corrigida no teste manual: o relatório financeiro conta o dinheiro que ficou com a
   pousada (`amountKept`), então uma reserva não reembolsável cancelada continua contando.
+- **um defeito achado depois (15/10, pelas soluções do cenário 09):** os relatórios saíam como `text/csv`
+  sem charset, e o Jetty os mandava em Latin-1; nada aparecia porque eles não tinham acento. A base passou a
+  mandar `text/csv; charset=utf-8`.
 
 Os pacotes: `rooms` (os quartos), `reservations` (o preço, a reserva, o ciclo dela), `documents` (o
 comprovante), `messages` (o e-mail e as mensagens enviadas), `reports` (os dois relatórios), `web` (a API) e
