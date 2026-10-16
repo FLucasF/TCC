@@ -21,6 +21,7 @@ pedido de mudança. A pergunta é o que ele faz com o pattern:
 | a base | um projeto só, escrito antes e igual para todos; cada execução sai de uma cópia limpa dela e implementa **um** cenário |
 | cenários | 10: 5 que pedem o pattern e 5 **controles negativos**, pedidos parecidos em que a resposta certa é uma mudança pequena (são eles que medem o exagero) |
 | execuções | de início, 1 por modelo em cada cenário |
+| harness | três braços, acumulando: **N0** (só a base e o pedido), **N1** (um `CLAUDE.md` curto) e **N2** (o mesmo `CLAUDE.md` e a skill `gof-patterns` da construção); ver [`experiment/harnesses/`](experiment/harnesses/README.md) |
 | avaliação | por enquanto, o Lucas e o Claude, com o gabarito e as soluções de referência; as ferramentas vêm depois |
 | o texto dos pedidos | mais escrito e menos técnico: a voz do dono da pousada, sem nomear pattern |
 
