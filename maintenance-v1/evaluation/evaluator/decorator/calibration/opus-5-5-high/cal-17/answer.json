@@ -1,0 +1,67 @@
+{
+  "cenario": "07",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente criou a interface MessageSender e passou o EmailSender a implementá-la. Cada regra virou um embrulho com a mesma interface que chama o próximo: BlockInvalidAddress, ArchiveCopy e RedirectToTestInbox. A combinação por modo fica só na montagem (Hotel.messageSender): o bloqueio vale sempre e por fora, e por dentro dele vem a cópia para o arquivo fora do teste ou o desvio para a caixa de testes no modo de teste. Nenhum embrulho e nem o envio real pergunta pelo modo, e o ReservationService passou a depender da interface.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/messages/MessageSender.java",
+      "linha": 4,
+      "o_que_mostra": "Interface de envio comum ao envio real e aos embrulhos: Message send(to, subject, body)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/EmailSender.java",
+      "linha": 13,
+      "o_que_mostra": "O envio real continua só guardando a mensagem, agora com status SENT, e não sabe nada de modo de teste nem de regras."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/BlockInvalidAddress.java",
+      "linha": 21,
+      "o_que_mostra": "Embrulho do bloqueio: se o endereço for inválido, registra BLOCKED com o endereço original e não chama o próximo; se for válido, delega a next.send (linha 24)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/ArchiveCopy.java",
+      "linha": 16,
+      "o_que_mostra": "Embrulho da cópia: envia a original pelo próximo e logo depois a cópia para arquivo@ com '[Cópia] ' (linha 17), sem consultar o modo."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/RedirectToTestInbox.java",
+      "linha": 16,
+      "o_que_mostra": "Embrulho do desvio: troca o destinatário por testes@, põe '[TESTE] ' no assunto e acrescenta a primeira linha 'Destinatário original: ' e delega ao próximo."
+    },
+    {
+      "arquivo": "src/main/java/hotel/Hotel.java",
+      "linha": 40,
+      "o_que_mostra": "O modo de teste é lido de HOTEL_TEST_MODE só na montagem."
+    },
+    {
+      "arquivo": "src/main/java/hotel/Hotel.java",
+      "linha": 41,
+      "o_que_mostra": "A montagem decide a pilha por modo: RedirectToTestInbox no teste, ArchiveCopy fora dele."
+    },
+    {
+      "arquivo": "src/main/java/hotel/Hotel.java",
+      "linha": 42,
+      "o_que_mostra": "BlockInvalidAddress embrulha por fora nos dois modos, então o bloqueio vale sempre, sem cópia e com o endereço original."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 17,
+      "o_que_mostra": "Quem chama o envio depende de MessageSender, não do caso concreto."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/Message.java",
+      "linha": 4,
+      "o_que_mostra": "A mensagem ganhou o campo status (enum MessageStatus SENT/BLOCKED), que o GET /messages serializa."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "A regex ^[^@\\s]+@[^@\\s.]+(\\.[^@\\s.]+)+$ (BlockInvalidAddress.java:9) exige um único @, algo antes dele e, depois, um nome com pelo menos um ponto no meio. Recusa ana@gmail, ana.gmail.com, @x.com e a@@b.com. A mensagem bloqueada fica com o endereço original, status BLOCKED e sem cópia, também no modo de teste. A cópia sai logo depois da original, com o mesmo corpo e '[Cópia] ' no assunto. No modo de teste a mensagem vai para testes@ com '[TESTE] ' e a primeira linha 'Destinatário original: …', sem cópia. Rodei `mvn -q verify` numa cópia da final/: saída 0, com 29 testes e nenhuma falha nem erro (SendingRulesTest 3, ReservationServiceTest 11, PriceCalculatorTest 6, ReportsTest 5, HttpApiTest 4). O HttpApiTest foi ajustado de 1 para 2 mensagens por causa da cópia, o que é consequência do pedido."
+  },
+  "duvidas": "Pouca. O BlockInvalidAddress grava o BLOCKED direto no SentMessages (BlockInvalidAddress.java:22), em vez de passar pelo envio de dentro. Isso acopla o embrulho à lista, mas não mistura o modo nem as regras, então não vejo motivo para malfeito. O equalsIgnoreCase em Hotel.java:40 também aceita 'TRUE', o que é uma folga aceitável."
+}

@@ -1,0 +1,57 @@
+{
+  "cenario": "05",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente criou uma fábrica, a DocumentFactory, e só ela decide qual documento cada tipo de hóspede recebe. Os três tipos de documento viraram classes que implementam a interface DocumentWriter (título e texto), e o texto do comprovante antigo saiu de ReservationReceipt e foi para PersonReceiptWriter. Os três lugares que antes faziam `new ReservationReceipt` (confirm, checkOut e receiptCopy) agora pedem o documento a `documents.issue(...)`, e não sobrou nenhum `new` à mão nem `if` sobre o tipo de hóspede fora da fábrica.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/documents/DocumentFactory.java",
+      "linha": 19,
+      "o_que_mostra": "writerFor(Guest) é o único lugar que escolhe o documento: empresa vai para a fatura, estrangeiro para o booking receipt, e os outros para o comprovante de hoje"
+    },
+    {
+      "arquivo": "src/main/java/hotel/documents/DocumentFactory.java",
+      "linha": 16,
+      "o_que_mostra": "issue() é o único `new ReservationReceipt` do código-fonte, e o título e o texto vêm do writer escolhido"
+    },
+    {
+      "arquivo": "src/main/java/hotel/documents/DocumentWriter.java",
+      "linha": 7,
+      "o_que_mostra": "Interface com title() e text(), com três implementações: PersonReceiptWriter, CompanyInvoiceWriter e ForeignReceiptWriter"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 70,
+      "o_que_mostra": "confirm pede o documento à fábrica antes de mandar o e-mail"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 112,
+      "o_que_mostra": "checkOut pede o documento à fábrica"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 121,
+      "o_que_mostra": "receiptCopy (a segunda via) pede o documento à fábrica"
+    },
+    {
+      "arquivo": "src/main/java/hotel/documents/PersonReceiptWriter.java",
+      "linha": 15,
+      "o_que_mostra": "O caso que já existia (o comprovante com CPF) também foi para a estrutura nova; o texto saiu de ReservationReceipt.text() (base/src/main/java/hotel/documents/ReservationReceipt.java)"
+    },
+    {
+      "arquivo": "src/main/java/hotel/documents/ReservationReceipt.java",
+      "linha": 27,
+      "o_que_mostra": "O record ganhou os quatro campos de identificação e o componente `text`, que entra no JSON"
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "`mvn -q verify` numa cópia da final/ terminou com saída 0, com 29 testes e nenhuma falha (3 deles são do DocumentsByGuestTest, que é novo). As regras conferem com o pedido. A validação em HttpApi.java:126-134 aceita exatamente uma identificação e recusa nenhuma, duas ou uma incompleta (só o CNPJ sem a razão social, por exemplo) com INVALID_REQUEST. A fatura mostra a empresa e o CNPJ no lugar do CPF e calcula o ISS como total × 0,05 com HALF_EVEN, o mesmo arredondamento de PriceCalculator.cents (CompanyInvoiceWriter.java:33-35); o teste confere os R$ 38,99. O booking receipt (ForeignReceiptWriter.java) usa as datas ISO, que é o toString de LocalDate, escreve 'BRL %,.2f' com Locale.US, alterna '1 night' e 'N nights' e põe a linha 'Discount:' antes do total. O e-mail continua em português e só troca o documento de dentro (ReservationService.java:128-134). ReservationResponse mostra os quatro campos novos, com null nos que não se aplicam. O comprovante da pessoa com CPF tem o mesmo texto da base."
+  },
+  "duvidas": "A forma usada é a fábrica concentrada: uma classe com um método privado que escolhe por if, e não o Factory Method clássico com criador sobrescrito, nem um método polimórfico no Guest. As instruções aceitam essa forma como acerto. A escolha usa Guest.isCompany() e Guest.isForeigner() e cai no comprovante de CPF por padrão. Uma agência nova vai precisar de mais um ramo nesse if, mas ele fica num lugar só. O construtor de conveniência Guest(name, email, cpf) não conta como exagero colateral: é só compatibilidade, não estrutura nova."
+}

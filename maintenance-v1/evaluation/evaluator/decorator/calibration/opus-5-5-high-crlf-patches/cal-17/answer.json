@@ -1,0 +1,52 @@
+{
+  "cenario": "07",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente aplicou o Decorator. Criou a interface MessageSender e fez o EmailSender (o envio real) implementá-la. Cada uma das três regras virou um embrulho próprio (BlockInvalidAddress, ArchiveCopy, RedirectToTestInbox), que recebe o próximo MessageSender e o chama. A combinação por modo é decidida só na montagem, em Hotel.messageSender, e o ReservationService passou a depender da interface, sem saber quais regras estão ativas.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/messages/MessageSender.java",
+      "linha": 4,
+      "o_que_mostra": "Interface de envio com um único método send(to, subject, body), a mesma assinatura do envio de antes."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/EmailSender.java",
+      "linha": 13,
+      "o_que_mostra": "O envio real implementa a interface e só grava a mensagem como SENT. Não pergunta por modo de teste nem por regra nenhuma."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/BlockInvalidAddress.java",
+      "linha": 21,
+      "o_que_mostra": "Embrulho que valida o endereço. Se for inválido, registra a mensagem como BLOCKED com o endereço original. Se for válido, chama next.send."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/ArchiveCopy.java",
+      "linha": 16,
+      "o_que_mostra": "Embrulho que envia a original pelo próximo e depois a cópia para o arquivo com '[Cópia] '. Não verifica o modo de teste."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/RedirectToTestInbox.java",
+      "linha": 17,
+      "o_que_mostra": "Embrulho que troca o destinatário pela caixa de testes, põe '[TESTE] ' no assunto e acrescenta a linha 'Destinatário original: ...' ao texto, delegando ao próximo."
+    },
+    {
+      "arquivo": "src/main/java/hotel/Hotel.java",
+      "linha": 41,
+      "o_que_mostra": "A montagem decide a combinação por modo: RedirectToTestInbox no teste, ArchiveCopy fora dele, e BlockInvalidAddress por fora nos dois casos (linha 42)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 18,
+      "o_que_mostra": "O serviço passou a depender de MessageSender, não do EmailSender concreto. Quem chama o envio não sabe das regras."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "Rodei mvn verify numa cópia da final/: BUILD SUCCESS, 29 testes, nenhuma falha, incluindo o novo SendingRulesTest. A regex ^[^@\\s]+@[^@\\s.]+(\\.[^@\\s.]+)+$ (BlockInvalidAddress.java:9) exige um único @, algo antes dele e um domínio com ponto no meio, e recusa 'ana@gmail', 'ana.gmail.com', '@x.com' e 'a@@b.com'. A mensagem bloqueada fica com o endereço original, não gera cópia e continua sendo bloqueada no modo de teste, porque o bloqueio é o embrulho mais de fora. A cópia sai logo depois da original, com o mesmo texto e o assunto '[Cópia] '. O modo de teste é ligado por HOTEL_TEST_MODE=true (aceita qualquer combinação de maiúsculas e minúsculas) e não gera cópia. O campo status (SENT/BLOCKED) vai para o record Message, que o GET /messages serializa direto (HttpApi.java:81). O diff mostra o ReservationService.java reescrito inteiro, mas o conteúdo só mudou o tipo EmailSender para MessageSender; o resto parece ser diferença de fim de linha."
+  },
+  "duvidas": "O BlockInvalidAddress grava direto no SentMessages, em vez de passar por um envio, para registrar o BLOCKED. Isso é aceitável para um embrulho que interrompe a corrente e não muda a classe. As regras anunciadas (madrugada e limite por dia) não foram implementadas, o que está certo, porque o pedido só as anuncia."
+}

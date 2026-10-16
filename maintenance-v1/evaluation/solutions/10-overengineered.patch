@@ -1,69 +1,16 @@
 diff --git a/src/main/java/hotel/reports/OccupancyReport.java b/src/main/java/hotel/reports/OccupancyReport.java
-index d6b2308..f341662 100644
+index bf87b70..f341662 100644
 --- a/src/main/java/hotel/reports/OccupancyReport.java
 +++ b/src/main/java/hotel/reports/OccupancyReport.java
-@@ -1,46 +1,52 @@
--package hotel.reports;
--
--import hotel.reservations.Reservation;
--import hotel.reservations.ReservationStore;
--import hotel.rooms.Room;
--import hotel.rooms.Rooms;
--import java.time.LocalDate;
--import java.util.ArrayList;
--import java.util.Comparator;
--import java.util.List;
--
--/** Which rooms are occupied on a given night, for the front desk (CSV). */
--public final class OccupancyReport {
--
--    private final Rooms rooms;
--    private final ReservationStore store;
--
--    public OccupancyReport(Rooms rooms, ReservationStore store) {
--        this.rooms = rooms;
--        this.store = store;
--    }
--
--    public String generate(LocalDate night) {
--        List<Reservation> occupying = new ArrayList<>();
--        for (Reservation reservation : store.all()) {
--            boolean coversNight = !reservation.checkIn().isAfter(night) && reservation.checkOut().isAfter(night);
--            if (reservation.isPaid() && coversNight) {
--                occupying.add(reservation);
--            }
--        }
--        occupying.sort(Comparator.comparingInt(Reservation::roomNumber));
--
--        StringBuilder csv = new StringBuilder();
--        csv.append("room,type,reservation,check_in,check_out\n");
--        for (Reservation reservation : occupying) {
--            Room room = rooms.find(reservation.roomNumber()).orElseThrow();
--            csv.append(room.number()).append(',')
--                    .append(room.type()).append(',')
--                    .append(reservation.id()).append(',')
--                    .append(reservation.checkIn()).append(',')
--                    .append(reservation.checkOut()).append('\n');
--        }
--        csv.append("total,").append(occupying.size()).append('/').append(rooms.all().size()).append('\n');
--        return csv.toString();
--    }
--}
-+package hotel.reports;
-+
-+import hotel.reservations.Reservation;
-+import hotel.reservations.ReservationStore;
-+import hotel.rooms.Room;
-+import hotel.rooms.Rooms;
-+import java.time.LocalDate;
-+import java.util.ArrayList;
-+import java.util.Comparator;
-+import java.util.List;
+@@ -8,10 +8,19 @@ import java.time.LocalDate;
+ import java.util.ArrayList;
+ import java.util.Comparator;
+ import java.util.List;
 +import java.util.stream.Collectors;
-+
-+/** Which rooms are occupied on a given night, for the front desk (CSV). */
-+public final class OccupancyReport {
-+
+ 
+ /** Which rooms are occupied on a given night, for the front desk (CSV). */
+ public final class OccupancyReport {
+ 
 +    private static final List<ReportColumn> COLUMNS = List.of(
 +            new ReportColumn("room", (reservation, room) -> room.number()),
 +            new ReportColumn("type", (reservation, room) -> room.type()),
@@ -72,35 +19,27 @@ index d6b2308..f341662 100644
 +            new ReportColumn("check_in", (reservation, room) -> reservation.checkIn()),
 +            new ReportColumn("check_out", (reservation, room) -> reservation.checkOut()));
 +
-+    private final Rooms rooms;
-+    private final ReservationStore store;
-+
-+    public OccupancyReport(Rooms rooms, ReservationStore store) {
-+        this.rooms = rooms;
-+        this.store = store;
-+    }
-+
-+    public String generate(LocalDate night) {
-+        List<Reservation> occupying = new ArrayList<>();
-+        for (Reservation reservation : store.all()) {
-+            boolean coversNight = !reservation.checkIn().isAfter(night) && reservation.checkOut().isAfter(night);
-+            if (reservation.isPaid() && coversNight) {
-+                occupying.add(reservation);
-+            }
-+        }
-+        occupying.sort(Comparator.comparingInt(Reservation::roomNumber));
-+
-+        StringBuilder csv = new StringBuilder();
+     private final Rooms rooms;
+     private final ReservationStore store;
+ 
+@@ -31,14 +40,11 @@ public final class OccupancyReport {
+         occupying.sort(Comparator.comparingInt(Reservation::roomNumber));
+ 
+         StringBuilder csv = new StringBuilder();
+-        csv.append("room,type,reservation,check_in,check_out\n");
 +        csv.append(COLUMNS.stream().map(ReportColumn::header).collect(Collectors.joining(","))).append('\n');
-+        for (Reservation reservation : occupying) {
-+            Room room = rooms.find(reservation.roomNumber()).orElseThrow();
+         for (Reservation reservation : occupying) {
+             Room room = rooms.find(reservation.roomNumber()).orElseThrow();
+-            csv.append(room.number()).append(',')
+-                    .append(room.type()).append(',')
+-                    .append(reservation.id()).append(',')
+-                    .append(reservation.checkIn()).append(',')
+-                    .append(reservation.checkOut()).append('\n');
 +            csv.append(COLUMNS.stream().map(column -> column.valueOf(reservation, room))
 +                    .collect(Collectors.joining(","))).append('\n');
-+        }
-+        csv.append("total,").append(occupying.size()).append('/').append(rooms.all().size()).append('\n');
-+        return csv.toString();
-+    }
-+}
+         }
+         csv.append("total,").append(occupying.size()).append('/').append(rooms.all().size()).append('\n');
+         return csv.toString();
 diff --git a/src/main/java/hotel/reports/ReportColumn.java b/src/main/java/hotel/reports/ReportColumn.java
 new file mode 100644
 index 0000000..0f253f4
