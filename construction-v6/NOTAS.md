@@ -521,3 +521,44 @@ cada código corrigido mais de uma vez; o risco de um Claude corrigir Claude dec
 família; e o Lucas lendo uma amostra às cegas, com a concordância medida (onde for baixa, a pergunta vira
 descritiva).
 
+## As quatro dimensões da correção (17/10/2026)
+
+Combinado com o orientador: a correção da construção **não precisa de scripts deterministas** no lugar da
+leitura, porque o Lucas revisa tudo junto com a IA. Ferramentas (o CK, o Sonar, as que já existem) entram para
+**ajudar a IA a decidir**, como material de leitura, e não como nota. A correção julga quatro dimensões:
+
+| dimensão | o que se julga | o material da IA |
+|---|---|---|
+| **arquitetura** | a divisão em pacotes, o sentido das dependências, o que o negócio sabe da web | o relatório de arquitetura (`<run>/architecture/`) e o código |
+| **implementação dos padrões** | Strategy, Adapter e Factory, com o State como secundário | o código, com a rubrica (a base são as perguntas P1 a P7 e as calibrações da seção anterior) |
+| **cobertura e qualidade dos testes** | quanto do código os testes executam, e quanto do que executam eles conferem | o PIT: `line_coverage` e `mutation_score` |
+| **qualidade do banco** | as ligações entre as entidades, os relacionamentos, a organização (os tipos, os nulos, as travas) | a foto do esquema (`database-schema.json`), agora com as colunas, e as entidades no código |
+
+**O ArchUnit volta, como relatório.** Ele tinha saído em 15/10 com as outras réguas, mas a arquitetura é uma
+das quatro dimensões, e sem ele era a única sem nenhum fato de ferramenta. Os ciclos entre pacotes são o que
+a leitura deduz mal: um ciclo que passa por 6 pacotes não aparece abrindo arquivo por arquivo. A saída
+deixou de ser uma contagem e virou um relatório por execução (`evaluation/measures/report_architecture.py`,
+em `<run>/architecture/`): os pacotes, as dependências entre eles com as classes que as fazem, cada grupo de
+pacotes em ciclo **uma vez só** (com as dependências de dentro do grupo, no lugar de um ciclo por caminho,
+como o ArchUnit contava) e as classes de fora da web que dependem de controller ou usam a web de entrada.
+O que o ciclo significa (os listeners do Opus nos dois sentidos, o serviço do Sonnet-02 que recebe o DTO da
+web) é a IA quem decide.
+
+Validação (17/10): nos 8 pilotos, os pacotes em ciclo são **os mesmos** da medida antiga (Opus 4, 3 e 6;
+Sonnet-02 2; os outros 0), e a classe plantada numa cópia do Opus-03 (guarda um controller e devolve um
+`ResponseEntity`) aparece nas duas regras de camada, que dão 0 em todos os pilotos.
+
+**A foto do banco ganha as colunas**: o tipo com o tamanho (`numeric(12,2)`, `character varying(255)`), se
+aceita nulo e o valor padrão. Sem elas, a organização do banco não se julgava: dinheiro em `numeric` ou em
+`double`, campo obrigatório que aceita nulo. Conferida no Opus-03 (40 colunas em 6 tabelas; a suíte segue
+463 de 463). **Nenhum piloto tem a foto no disco**: para a IA ler o banco dos pilotos, a suíte tem de rodar
+de novo neles.
+
+**Em aberto:**
+- **a suíte** (a correção do comportamento) não está entre as quatro dimensões. Fica como ferramenta, e
+  falta decidir se a correção entra como dimensão ou só como condição (um serviço que não sobe);
+- **o CK e o Sonar** ainda não entraram. O CK (acoplamento, coesão e complexidade por classe) é um jar sem
+  servidor, no padrão das outras ferramentas; o Sonar precisa de um servidor, e o que ele dá a mais são os
+  code smells e a duplicação;
+- **a rubrica** ainda não está escrita, e o protocolo da seção anterior também não.
+

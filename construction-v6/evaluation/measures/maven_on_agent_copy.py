@@ -1,5 +1,5 @@
 """The agent's project, and Maven run on a copy of it inside the pinned image. Shared by the measures
-(measure_test_quality.py).
+(measure_test_quality.py, report_architecture.py).
 
 The project is the one of the shallowest pom.xml in the workspace (outside target/ and .git/), the same rule as the
 build and the suite. The measures never touch the agent's workspace: they work on a copy, which

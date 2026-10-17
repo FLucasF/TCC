@@ -76,6 +76,13 @@ APPLICATION_SCHEMAS = "n.nspname NOT IN ('pg_catalog', 'information_schema') AND
 SCHEMA_QUERIES = {
     "tables": f"""SELECT coalesce(json_agg(c.relname ORDER BY c.relname), '[]') FROM pg_class c
         JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('r', 'p') AND {APPLICATION_SCHEMAS}""",
+    # the type with its size (numeric(12,2), character varying(255)), whether it accepts null, and the default
+    "columns": f"""SELECT coalesce(json_agg(json_build_object('table', c.relname, 'column', a.attname,
+        'type', format_type(a.atttypid, a.atttypmod), 'nullable', NOT a.attnotnull,
+        'default', pg_get_expr(d.adbin, d.adrelid)) ORDER BY c.relname, a.attnum), '[]')
+        FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+        LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+        WHERE c.relkind IN ('r', 'p') AND a.attnum > 0 AND NOT a.attisdropped AND {APPLICATION_SCHEMAS}""",
     "constraints": f"""SELECT coalesce(json_agg(json_build_object('table', c.conrelid::regclass::text,
         'name', c.conname, 'type', c.contype, 'definition', pg_get_constraintdef(c.oid))
         ORDER BY c.conrelid::regclass::text, c.conname),
@@ -88,8 +95,9 @@ SCHEMA_QUERIES = {
 
 
 def save_database_schema(output_folder: Path) -> None:
-    """Saves the agent's schema (tables, constraints, unique indexes) as database-schema.json, for the AI's reading of
-    the database (what the database itself enforces). Read after the suite, before the database is removed."""
+    """Saves the agent's schema (tables, columns, constraints, unique indexes) as database-schema.json, for the AI's
+    reading of the database (how it is organized and what it enforces). Read after the suite, before the database is
+    removed."""
     schema: dict[str, object] = {}
     for name, query in SCHEMA_QUERIES.items():
         answer = subprocess.run(["docker", "exec", DATABASE_CONTAINER, "psql", "-U", DATABASE_USER, "-d", DATABASE_NAME,

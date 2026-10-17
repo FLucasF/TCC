@@ -1,27 +1,35 @@
-# A medida dos testes (V6)
+# As medidas por execução (V6)
 
-A qualidade dos testes que o agente escreveu, por **mutação** (PIT): pequenos erros são plantados no
-código dele, um de cada vez, e os testes dele rodam contra cada um. Um erro que os testes pegam é um
-mutante "morto"; um que passa, "sobreviveu".
+Duas ferramentas da correção, que rodam numa cópia do projeto do agente:
+- **a qualidade dos testes**, por **mutação** (PIT): pequenos erros são plantados no código dele, um de cada
+  vez, e os testes dele rodam contra cada um. Um erro que os testes pegam é um mutante "morto"; um que passa,
+  "sobreviveu";
+- **o relatório de arquitetura** (ArchUnit): os pacotes, as dependências entre eles e os ciclos, para a
+  leitura da IA. Não é nota: o que um ciclo significa é a IA quem decide.
 
-É uma das duas medidas por execução do V6, ao lado da suíte (a correção, em `../reference/`). O resto
-da correção (o desenho, a arquitetura, o banco) é feito pela **IA junto com o Lucas**, lendo o código
-(decisão de 15/10/2026, nas notas).
+Elas ficam ao lado da suíte (a correção, em `../reference/`). A correção julga quatro dimensões (a
+arquitetura, os padrões, os testes e o banco) e é feita pela **IA junto com o Lucas**, lendo o código; estas
+ferramentas são material dessa leitura (decisões de 15/10 e 17/10/2026, nas notas).
 
-A medida nunca toca no workspace do agente: trabalha numa **cópia**, dentro da imagem travada
+As duas nunca tocam no workspace do agente: trabalham numa **cópia**, dentro da imagem travada
 (`experimento-harness:v5`, a mesma do build), com os arquivos entrando e saindo por `tar` e as
 dependências do Maven num volume do Docker (`v6-maven-cache`).
 
 | arquivo | o que faz |
 |---|---|
 | `measure_test_quality.py` | roda o PIT nos testes do agente e escreve um CSV por lote |
+| `report_architecture.py` | compila a cópia e escreve, em cada execução, o relatório de arquitetura (`<run>/architecture/`) |
 | `maven_on_agent_copy.py` | acha o projeto (o `pom.xml` mais raso) e roda o Maven numa cópia dentro da imagem |
 
 ```bash
 python evaluation/measures/measure_test_quality.py runs/pilots analysis/pilots/pit.csv
 ```
 
-## As colunas
+```bash
+python evaluation/measures/report_architecture.py runs/pilots
+```
+
+## As colunas do PIT
 
 `tests` (os métodos `@Test`/`@ParameterizedTest` do agente), `mutants`, `killed`, `survived`,
 `no_coverage` (os mutantes que nenhum teste sequer executa), `mutation_score` (mortos ÷ mutantes),
@@ -34,7 +42,7 @@ só olha os mutantes que os testes executam: um agente com poucos testes executa
 força fica alta mesmo sem conferir nada (o Haiku-01 tem 71% de força **sem nenhuma asserção**, com 29%
 de cobertura).
 
-## Como foi validada
+## Como o PIT foi validado
 
 O **poder de discriminação**, como nas tarefas do benchmark do Akita, que têm de separar a solução certa
 da ingênua: `measure_test_quality.py --without-assertions` roda os **mesmos** testes com todas as
@@ -57,7 +65,30 @@ asserções, um `assertThrows` removido deixa o teste falhar antes de qualquer m
 pula esses testes (`skipFailingTests`, que só funciona na configuração do plugin: um `-D` é ignorado em
 silêncio).
 
-## Resultado nos 8 pilotos
+## O PIT nos 8 pilotos
 
 Em `analysis/pilots/` (`pit.csv` e `pit-without-assertions.csv`): o Haiku mata 11% dos mutantes no
 piloto 1 (os testes do piloto 2 falham); o Sonnet, de 48% a 81%; o Opus, de 82% a 89%.
+
+## O relatório de arquitetura
+
+Em cada execução, `architecture/architecture.json` (tudo) e `architecture-report.txt` (o mesmo, para ler).
+Uma execução que já tem a pasta é pulada: um relatório nunca é escrito por cima de outro. As regras estão em
+`../reference/src/main/java/reference/architecture/ArchitectureReport.java`:
+- **os pacotes**: os que ficam logo abaixo do pacote raiz (`com.loja.orders.(*)..`), com as classes de cada
+  um. As classes do próprio pacote raiz (a `Application`) ficam fora de todos;
+- **as dependências entre pacotes**, cada uma com as dependências de classe que a fazem
+  (`catalog.InventoryService -> order.OrderItem`);
+- **os ciclos**: cada grupo de pacotes que dependem uns dos outros em círculo (um componente fortemente
+  conexo), **uma vez só**, com as dependências de dentro do grupo. O ArchUnit, pelo `beFreeOfCycles`, conta
+  cada caminho como um ciclo, e um único par `a ↔ b` vira muitos quando passa por outros pacotes;
+- **fora da camada web**, as classes que dependem de um controller e as que usam a API da web **de entrada**
+  (as anotações e os tipos do Spring MVC, o `jakarta.servlet`, o `ResponseEntity`). A web **de saída** (o
+  `RestClient`, para chamar a TransLog) e o `HttpStatus` não contam: um adaptador usa os dois
+  legitimamente.
+
+**Como foi validado (17/10/2026).** Nos 8 pilotos, os pacotes em ciclo são os mesmos da medida antiga, que
+contava pelo ArchUnit (`architecture.py`, no histórico do git até o commit `3426ad23`): Opus-01 4, Opus-02 3,
+Opus-03 6, Sonnet-02 2, os outros 0. Uma classe plantada numa cópia do Opus-03, que guarda um controller e
+devolve um `ResponseEntity`, aparece nas duas regras de camada; nos pilotos, as duas dão 0, e os zeros são de
+verdade.
