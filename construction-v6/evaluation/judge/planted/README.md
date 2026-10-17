@@ -26,3 +26,6 @@ dizerem a mesma coisa. O relatório de arquitetura foi gerado de novo com a clas
 Corrigido pelo Claude Opus 5.5 (effort `high`), uma dimensão por vez: **21 de 21** itens iguais ao esperado. Ele achou
 todos os defeitos e não se confundiu com o que o original já tinha. Achou também, sem que fosse plantado, a
 `PurchaseHistory` (uma interface com uma implementação só, item E) e o `OrderReceipts` como código sem uso.
+
+Com as réguas do formato escrito (sem lista fechada), a dimensão do banco foi corrigida de novo, sem script: as 6
+conclusões do banco iguais ao esperado (`../batches/written-1/`).

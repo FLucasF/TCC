@@ -43,6 +43,7 @@ códigos em cada `key.json`.
 |---|---|
 | os erros plantados | **21 de 21**: os 8 itens que os defeitos mudam e os 13 que não mudam (`batches/planted-1/`) |
 | contra as ferramentas, nos 8 pilotos | **115 de 116**: padrões 99 de 100 (a régua do Semgrep), banco 16 de 16 (as fotos) (`batches/pilots-1/`) |
+| o formato escrito, no serviço plantado | **o banco: 6 de 6** conclusões iguais ao esperado; as outras dimensões faltam (`batches/written-1/`) |
 | contra ela mesma (corrigir de novo e comparar) | **não feita** |
 | contra o Lucas (a leitura às cegas) | **não feita** |
 
