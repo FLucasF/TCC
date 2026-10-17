@@ -2,11 +2,12 @@
 `mvn verify` built), and the suite (reference.suite.Suite), which starts and restarts the service by itself.
 Everything the suite needs to know about the agent is its workspace.
 
-Usage (from TCC_V6):  python evaluation/reference/run_suite.py <agent-workspace> <output-folder>
-For example:          python evaluation/reference/run_suite.py runs/pilots/OPUS55-N0-03/workspace suite-out
+Usage (from TCC_V6):  python evaluation/reference/run_suite_against_service.py <agent-workspace> <output-folder>
+For example:          python evaluation/reference/run_suite_against_service.py \
+                          runs/pilots/OPUS55-N0-03/workspace suite-out
 
 Output: <output-folder>/suite-report.txt (what is printed), suite-result.json (every check), database-schema.json
-(the schema the service created, for the database measure), and service.log and
+(the schema the service created, for the AI's reading of the database), and service.log and
 service-b.log (the output of each machine, before and after the restart). The service runs on two machines with the
 same database, as the prompt says; --machines 1 exists only to validate the suite.
 """
@@ -86,8 +87,8 @@ SCHEMA_QUERIES = {
 
 
 def save_database_schema(output_folder: Path) -> None:
-    """Saves the agent's schema (tables, constraints, unique indexes) as database-schema.json, for the database
-    measure (evaluation/measures/database.py). Read after the suite, before the database is removed."""
+    """Saves the agent's schema (tables, constraints, unique indexes) as database-schema.json, for the AI's reading of
+    the database (what the database itself enforces). Read after the suite, before the database is removed."""
     schema: dict[str, object] = {}
     for name, query in SCHEMA_QUERIES.items():
         answer = subprocess.run(["docker", "exec", DATABASE_CONTAINER, "psql", "-U", DATABASE_USER, "-d", DATABASE_NAME,
@@ -143,7 +144,7 @@ def main() -> None:
         machines = int(arguments[position + 1])
         del arguments[position:position + 2]
     if len(arguments) != 2:
-        sys.exit("usage: python run_suite.py <agent-workspace> <output-folder> [--machines 2]")
+        sys.exit("usage: python run_suite_against_service.py <agent-workspace> <output-folder> [--machines 2]")
     sys.exit(run_suite(Path(arguments[0]).resolve(), Path(arguments[1]).resolve(), machines=machines))
 
 

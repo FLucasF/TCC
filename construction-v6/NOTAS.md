@@ -7,7 +7,7 @@
 > abaixo usa os nomes daquela época: `prompt-v2-rascunho.md` é hoje `experiment/prompt/prompt.md`;
 > as versões `prompt-v2-rascunho.antes-*.md` estão em `experiment/prompt/history/prompt.antes-*.md`;
 > `piloto/<id>/` é `runs/pilots/<id>/`; `reference/` é `evaluation/reference/`; e o `piloto.sh` virou
-> `infra/scripts/pilot.sh` e depois `infra/scripts/pilot.py` (as ferramentas do V6 passaram para Python).
+> `infra/scripts/pilot.sh` e depois `infra/scripts/run_pilot_without_harness.py` (as ferramentas do V6 passaram para Python).
 
 ## Os padrões medidos
 
@@ -416,14 +416,14 @@ juntar os scripts por responsabilidade).
 
 ## Item 2 concluído: a suíte completa (14/10/2026)
 
-A suíte (`evaluation/reference/suite/`, rodada pelo `run-suite.sh`, hoje `run_suite.py`) sobe o serviço do agente com um Postgres
+A suíte (`evaluation/reference/suite/`, rodada pelo `run-suite.sh`, hoje `run_suite_against_service.py`) sobe o serviço do agente com um Postgres
 descartável e uma TransLog falsa, e faz as mesmas chamadas no serviço e no `Store`, comparando passo a passo.
 Cinco grupos: catálogo, resumo (os exemplos, as fronteiras e 400 sorteados), ciclo do pedido (11 cenários),
 persistência (reinicia o serviço) e concorrência (4 corridas).
 
 - **Contra o Opus com a API em inglês (OPUS55-N0-03):** 463 de 463. 1.325 s, 39 turnos, US$ 3,20, build verde
   com 39 testes próprios. A correção continua saturada no topo, como no Akita.
-- **A suíte pega erro?** 12 erros plantados, um de cada vez, no serviço do Opus (`plant-mutants.py`, hoje `plant_mutants.py`):
+- **A suíte pega erro?** 12 erros plantados, um de cada vez, no serviço do Opus (`plant-mutants.py`, hoje `check_suite_catches_planted_bugs.py`):
   **12 de 12 pegos.** Prazo de 48 h, aviso repetido, estoque "basta um item", cancelamento sem devolver estoque
   ou crédito, entregar sem enviar, aviso de envio faltando, WELCOME10 com pedido cancelado, estoque que volta ao
   inicial ao reiniciar, pedidos perdidos ao reiniciar, leitura do estoque sem `FOR UPDATE` e pagamento sem
@@ -436,7 +436,7 @@ Em `evaluation/semgrep/` ([README](evaluation/semgrep/README.md)). Decisões do 
 - **Factory descritiva**, sem hipótese: nos 8 pilotos, o Spring cria todas as estratégias (`container`).
 - **Adapter medido pelo vazamento** do vocabulário da TransLog (`"STD"`/`"EXP"`, `price_cents`,
   `eta_hours`, `ZIP_NOT_SERVED`), e não pelo "HTTP isolado", que todos fazem.
-- **Ferramentas em Python** (o V6 inteiro, menos o `differential.mjs`), com mypy estrito e ruff.
+- **Ferramentas em Python** (o V6 inteiro, menos o `compare_reference_with_v5.mjs`), com mypy estrito e ruff.
 - **A regra cruzada pode morar na casa do par** (STORE_PICKUP dentro do cupom FreeShipping, COURIER
   dentro do Gold), e **converter a unidade da transportadora fora do adaptador é vazamento**.
 
@@ -484,10 +484,40 @@ projeto do agente, dentro da imagem travada:
 - **ArchUnit** (arquitetura): pacotes presos em ciclo, classes de negócio que dependem de controller, classes
   de negócio que usam a web de entrada. As duas últimas deram 0 em todos os pilotos; uma classe plantada
   prova que acusariam.
-- **O esquema do banco**: o `run_suite.py` o fotografa depois da suíte; a medida responde se o banco trava
+- **O esquema do banco**: o `run_suite_against_service.py` o fotografa depois da suíte; a medida responde se o banco trava
   o estoque negativo e o aviso repetido, e conta as chaves estrangeiras.
 
 Achado para discutir: o **Opus tem mais pacotes em ciclo** (3 a 6) que o Sonnet (0 a 2) e o Haiku (0),
 porque divide o código por funcionalidade e liga os pacotes por listeners nos dois sentidos. A arquitetura
 não acompanha as outras medidas, e isso é informação, não defeito da medida.
+
+## A correção passa a ser da IA com o Lucas (15/10/2026)
+
+Decisão do Lucas com o orientador: a correção é feita pela **IA junto com o Lucas**, lendo o código, no lugar
+das réguas por regra fixa.
+
+| peça | decisão | por quê |
+|---|---|---|
+| a régua do Semgrep (P1 a P7, F) | **sai** | a leitura do desenho passa para a IA com o Lucas |
+| a arquitetura (ArchUnit) e o banco (as restrições do esquema) | **saem** | idem |
+| a comparação do gabarito com o V5 | **sai** | o trabalho dela já foi feito (20.000 de 20.000) |
+| o gabarito (`Calculator`, `Store`, `PromptExamples`) | **fica** | gera e confere os exemplos do enunciado, e é a resposta oficial dos pontos de dúvida |
+| a suíte | **fica, como ferramenta da IA** | é a mesma prova para todos os serviços; a correção, a concorrência e o reinício não se veem lendo |
+| a foto do esquema do banco | **fica**, como material de leitura da IA | o que o banco realmente criou é mais confiável que deduzir pelas entidades |
+| o validador da suíte | **fica** | revalida a suíte quando o enunciado mudar |
+| o PIT | **fica** | dá o número da qualidade dos testes, que nenhuma leitura dá |
+
+O que saiu está no histórico do git (até o commit `3426ad23`).
+
+**A base da rubrica da IA** vem do que foi feito: as perguntas P1 a P7 (Strategy: o código de cada caso mora
+na casa dele? a escolha nomeia os casos?; a região como controle negativo; o Adapter pelo vazamento do
+vocabulário da TransLog; o State pelas decisões fora da situação) e as decisões de calibração (a regra
+cruzada pode morar na casa do par; converter a unidade da transportadora fora do adaptador é vazamento;
+traduzir para o código da transportadora é trabalho do adaptador; classe aninhada é casa).
+
+**Para a correção por IA se sustentar na banca** (a escrever no protocolo): a rubrica escrita antes; a
+leitura às cegas (código anonimizado, sem nível nem modelo); o juiz travado (modelo, versão e prompt fixos),
+cada código corrigido mais de uma vez; o risco de um Claude corrigir Claude declarado, ou um juiz de outra
+família; e o Lucas lendo uma amostra às cegas, com a concordância medida (onde for baixa, a pergunta vira
+descritiva).
 

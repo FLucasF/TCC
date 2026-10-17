@@ -2,7 +2,7 @@
 A suite that misses a planted bug has a hole. The mutants below are written for the code of runs/pilots/OPUS55-N0-03
 (each one is a literal text replacement in one file of that service).
 
-Usage (from TCC_V6):  python evaluation/reference/plant_mutants.py runs/pilots/OPUS55-N0-03 [mutant-name ...] [--machines 2]
+Usage (from TCC_V6):  python evaluation/reference/check_suite_catches_planted_bugs.py runs/pilots/OPUS55-N0-03 [mutant-name ...] [--machines 2]
 Output: <pilot>/suite-mutants.txt, one block per mutant (caught or MISSED, and the groups that failed).
 """
 
@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 from typing import NamedTuple
 
-from run_suite import run_suite
+from run_suite_against_service import run_suite
 
 
 class Change(NamedTuple):
@@ -129,7 +129,7 @@ def try_mutant(pilot: Path, name: str, mutant: Mutant, machines: int = 2) -> lis
 
 def main() -> None:
     if len(sys.argv) < 2:
-        sys.exit("usage: python plant_mutants.py <pilot-folder> [mutant-name ...] [--machines 2]")
+        sys.exit("usage: python check_suite_catches_planted_bugs.py <pilot-folder> [mutant-name ...] [--machines 2]")
     arguments = sys.argv[1:]
     machines = 2
     if "--machines" in arguments:

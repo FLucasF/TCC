@@ -1,8 +1,8 @@
 """A pilot of the v2 prompt: ONE run, the same way as V5's run-one.sh (same image, same isolation, same token), but
 writing to runs/pilots/, outside TCC_V5 (the V5 batch is frozen).
 
-Usage (from TCC_V6):  python infra/scripts/pilot.py <id> <model> [effort] [--dry-run]
-                      python infra/scripts/pilot.py SONNET55-N0-04 claude-sonnet-5-5 medium
+Usage (from TCC_V6):  python infra/scripts/run_pilot_without_harness.py <id> <model> [effort] [--dry-run]
+                      python infra/scripts/run_pilot_without_harness.py SONNET55-N0-04 claude-sonnet-5-5 medium
 
 Differences from run-one.sh, on purpose:
   - only the arm without harness (N0): the workspace starts empty;
@@ -145,7 +145,7 @@ def main() -> None:
     dry_run = "--dry-run" in arguments            # does every check and shows the commands, runs nothing
     arguments = [argument for argument in arguments if argument != "--dry-run"]
     if len(arguments) not in (2, 3):
-        die("usage: python infra/scripts/pilot.py <id> <model> [effort] [--dry-run]")
+        die("usage: python infra/scripts/run_pilot_without_harness.py <id> <model> [effort] [--dry-run]")
     run_id, model = arguments[0], arguments[1]
     effort = arguments[2] if len(arguments) == 3 else "medium"
     run_folder = PILOTS / run_id

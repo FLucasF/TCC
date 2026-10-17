@@ -1,11 +1,12 @@
 """The quality of the agent's own tests, by mutation testing (PIT): small bugs are planted in the agent's code, one at a
 time, and its tests run against each one. A mutant the tests catch is "killed"; one they let through "survived".
 
-Usage (from TCC_V6):  python evaluation/measures/pit.py <runs-folder> <output.csv> [--without-assertions]
-                      python evaluation/measures/pit.py runs/pilots pit-pilots.csv
+Usage (from TCC_V6):  python evaluation/measures/measure_test_quality.py <runs-folder> <output.csv>
+                          [--without-assertions]
+                      python evaluation/measures/measure_test_quality.py runs/pilots pit-pilots.csv
 
 <runs-folder> has one folder per run, each with its workspace/. The agent's workspace is never touched: PIT runs on a
-copy, in the pinned image (agent_project.py). --without-assertions is the validation of this measure (the
+copy, in the pinned image (maven_on_agent_copy.py). --without-assertions is the validation of this measure (the
 "discrimination power" of Akita's benchmark): the same tests, with every assertion removed, run the same code but
 check nothing, so they must kill far fewer mutants. A measure that does not drop there measures coverage, not tests.
 
@@ -25,7 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from agent_project import find_project_folder, run_maven  # noqa: E402
+from maven_on_agent_copy import find_project_folder, run_maven  # noqa: E402
 
 PIT_VERSION = "1.30.1"
 PIT_JUNIT5_PLUGIN_VERSION = "1.2.3"     # 1.17.x does not run on JUnit 6 / Spring Boot 4 (found on 2026-10-14)
@@ -233,7 +234,7 @@ def main() -> None:
     assertions = "--without-assertions" not in arguments
     arguments = [argument for argument in arguments if argument != "--without-assertions"]
     if len(arguments) != 2:
-        sys.exit("usage: python pit.py <runs-folder> <output.csv> [--without-assertions]")
+        sys.exit("usage: python measure_test_quality.py <runs-folder> <output.csv> [--without-assertions]")
     runs_folder, output_csv = Path(arguments[0]), Path(arguments[1])
     if output_csv.exists():
         sys.exit(f"{output_csv} already exists: a result is never written over another")

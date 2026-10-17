@@ -1,7 +1,8 @@
-"""The agent's project, and Maven run on a copy of it inside the pinned image. Shared by the measures (pit.py...).
+"""The agent's project, and Maven run on a copy of it inside the pinned image. Shared by the measures
+(measure_test_quality.py).
 
 The project is the one of the shallowest pom.xml in the workspace (outside target/ and .git/), the same rule as the
-build, the suite and the Semgrep régua. The measures never touch the agent's workspace: they work on a copy, which
+build and the suite. The measures never touch the agent's workspace: they work on a copy, which
 goes into the container as a tar through stdin and whose results come back as a tar through stdout (a bind mount of
 a Windows folder makes the container read each file across the Docker VM boundary, which is very slow).
 

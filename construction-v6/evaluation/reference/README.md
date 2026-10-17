@@ -13,16 +13,16 @@ ferramentas estão em inglês (o padrão novo); só o texto que vai para o promp
 | `Store` | **o gabarito do estado**: o ciclo do pedido, o estoque, o saldo e os avisos. Cada método é uma rota da API |
 | `PromptExamples` | gera os 10 exemplos do prompt a partir do gabarito, e confere o prompt (`--check`) |
 | `suite/` | **a suíte completa** (`Suite` é a entrada): sobe o serviço do agente e uma TransLog falsa, e faz as mesmas chamadas no serviço e no `Store`, comparando passo a passo (`Lockstep`). Grupos: catálogo, resumo (os exemplos + fronteiras + sorteados, `SummaryCases`), ciclo do pedido (`LifecycleScenarios`), persistência (reinicia o serviço) e concorrência (`ConcurrencyChecks`) |
-| `run_suite.py` | acha o jar do agente, sobe um Postgres descartável e roda a `Suite`, com o serviço em **duas máquinas** (duas instâncias com o mesmo banco, as chamadas alternando entre elas, como diz o enunciado) |
-| `plant_mutants.py` | valida a própria suíte: planta 13 erros conhecidos no serviço do OPUS55-N0-03, um de cada vez, e confere que a suíte pega cada um (13 de 13). O `lock-in-memory` (trava só na memória) passa com `--machines 1` e é pego com 2 |
-| `V5Differential` + `differential.mjs` | compara o gabarito com o do V5 na parte em que as regras são iguais |
+| `run_suite_against_service.py` | acha o jar do agente, sobe um Postgres descartável e roda a `Suite`, com o serviço em **duas máquinas** (duas instâncias com o mesmo banco, as chamadas alternando entre elas, como diz o enunciado) |
+| `check_suite_catches_planted_bugs.py` | valida a própria suíte: planta 13 erros conhecidos no serviço do OPUS55-N0-03, um de cada vez, e confere que a suíte pega cada um (13 de 13). O `lock-in-memory` (trava só na memória) passa com `--machines 1` e é pego com 2 |
 | `CalculatorTest` | 54 testes das regras novas e das fronteiras exatas |
 | `StoreTest` | 36 testes do ciclo do pedido, contados como pequenas histórias |
 
 ## Como o gabarito foi validado
 
 1. **Contra o gabarito do V5**, na parte em que as regras não mudaram: 20.000 compras aleatórias,
-   **20.000 iguais**. A matemática em comum (juros, arredondamento, cupons, seguro) herda a validação do V5.
+   **20.000 iguais** (o comparador, `V5Differential` + `compare_reference_with_v5.mjs`, saiu em 15/10/2026,
+   depois de feito o trabalho; está no histórico do git, até o commit `3426ad23`). A matemática em comum (juros, arredondamento, cupons, seguro) herda a validação do V5.
    O diferencial achou um **defeito latente no gabarito do V5**: ele soma os pesos em ponto flutuante, e um
    pedido de exatamente 5 kg pode virar 5,000000000000001 kg, recusando o motoboy. O caso dos 5 kg da suíte do
    V5 (2 × 2,50 kg) dá 5 exatos também em ponto flutuante, então os resultados do V5 não foram afetados.
@@ -37,14 +37,13 @@ ferramentas estão em inglês (o padrão novo); só o texto que vai para o promp
 
 ```bash
 mvn test                                                                          # os 90 testes
-mvn -q compile && java -cp target/classes reference.V5Differential 20000 20261014 | node differential.mjs
 java -cp target/classes reference.PromptExamples > exemplos.md                    # gera a seção de exemplos
 java -cp target/classes reference.PromptExamples --check ../../experiment/prompt/prompt.md  # confere o prompt
-python run_suite.py ../../runs/pilots/<RUN>/workspace ../../runs/pilots/<RUN>/suite  # a suíte contra um serviço
-python plant_mutants.py ../../runs/pilots/OPUS55-N0-03                       # os erros plantados
+python run_suite_against_service.py ../../runs/pilots/<RUN>/workspace ../../runs/pilots/<RUN>/suite  # a suíte contra um serviço
+python check_suite_catches_planted_bugs.py ../../runs/pilots/OPUS55-N0-03                       # os erros plantados
 ```
 
-O `infra/scripts/pilot.py` roda o `--check` antes de cada execução e se recusa a rodar
+O `infra/scripts/run_pilot_without_harness.py` roda o `--check` antes de cada execução e se recusa a rodar
 se os exemplos não conferirem.
 
 Os resultados da suíte contra os pilotos ficam na pasta de cada piloto (`runs/pilots/<RUN>/`); os de
