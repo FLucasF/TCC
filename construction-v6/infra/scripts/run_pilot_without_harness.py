@@ -1,7 +1,7 @@
 """A pilot of the v2 prompt: ONE run, the same way as V5's run-one.sh (same image, same isolation, same token), but
-writing to runs/pilots/, outside TCC_V5 (the V5 batch is frozen).
+writing to runs/pilots/, outside construction-v5 (the V5 batch is frozen).
 
-Usage (from TCC_V6):  python infra/scripts/run_pilot_without_harness.py <id> <model> [effort] [--dry-run]
+Usage (from construction-v6):  python infra/scripts/run_pilot_without_harness.py <id> <model> [effort] [--dry-run]
                       python infra/scripts/run_pilot_without_harness.py SONNET55-N0-04 claude-sonnet-5-5 medium
 
 Differences from run-one.sh, on purpose:
@@ -30,7 +30,7 @@ V6 = Path(__file__).resolve().parents[2]
 PROMPT = V6 / "experiment" / "prompt" / "prompt.md"
 REFERENCE = V6 / "evaluation" / "reference"
 PILOTS = V6 / "runs" / "pilots"
-ENV_FILE = V6.parent / "TCC_V5" / ".env"          # the same subscription token as V5 (never printed)
+ENV_FILE = V6.parent / "construction-v5" / ".env"          # the same subscription token as V5 (never printed)
 IMAGE = "experimento-harness:v5"
 
 # what runs inside the container: the agent, reading the prompt from stdin

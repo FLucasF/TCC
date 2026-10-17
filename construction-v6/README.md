@@ -1,4 +1,4 @@
-# TCC_V6: a pesquisa nova (em construção)
+# construction-v6: a pesquisa nova (em construção)
 
 O próximo experimento: o mesmo serviço de checkout em Java/Spring, agora com um enunciado
 mais complexo e testável (o ciclo do pedido, o estoque, uma transportadora com API estrangeira,
@@ -72,5 +72,5 @@ python evaluation/measures/measure_test_quality.py runs/pilots analysis/pilots/p
 
 O `--dry-run` faz todas as conferências e mostra os comandos do Docker sem rodar o agente; sem ele,
 o piloto roda de verdade. Fora do git: o `target/` de cada build e o `classpath.txt` da suíte. O
-token da assinatura é o mesmo do V5 (`../TCC_V5/.env`), que o Docker lê pelo `--env-file`; o
+token da assinatura é o mesmo do V5 (`../construction-v5/.env`), que o Docker lê pelo `--env-file`; o
 `run_pilot_without_harness.py` só confere se ele existe, sem imprimir o valor.

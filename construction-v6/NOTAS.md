@@ -136,7 +136,7 @@ Quatro tipos de cenário:
 ## Pilotos (14/10/2026)
 
 Todos no N0 (sem harness), effort `medium`, com a imagem `experimento-harness:v5` e o mesmo
-isolamento do V5, gravados em `piloto/<id>/` (fora do TCC_V5). Sem exemplos conferidos no enunciado
+isolamento do V5, gravados em `piloto/<id>/` (fora do construction-v5). Sem exemplos conferidos no enunciado
 (ainda não existem). Leitura por busca no código, não pela régua nem pela suíte: a **correção das
 contas ainda não foi testada**.
 

@@ -1,7 +1,7 @@
 """The quality of the agent's own tests, by mutation testing (PIT): small bugs are planted in the agent's code, one at a
 time, and its tests run against each one. A mutant the tests catch is "killed"; one they let through "survived".
 
-Usage (from TCC_V6):  python evaluation/measures/measure_test_quality.py <runs-folder> <output.csv>
+Usage (from construction-v6):  python evaluation/measures/measure_test_quality.py <runs-folder> <output.csv>
                           [--without-assertions]
                       python evaluation/measures/measure_test_quality.py runs/pilots pit-pilots.csv
 

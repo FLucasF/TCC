@@ -2,7 +2,7 @@
 A suite that misses a planted bug has a hole. The mutants below are written for the code of runs/pilots/OPUS55-N0-03
 (each one is a literal text replacement in one file of that service).
 
-Usage (from TCC_V6):  python evaluation/reference/check_suite_catches_planted_bugs.py runs/pilots/OPUS55-N0-03 [mutant-name ...] [--machines 2]
+Usage (from construction-v6):  python evaluation/reference/check_suite_catches_planted_bugs.py runs/pilots/OPUS55-N0-03 [mutant-name ...] [--machines 2]
 Output: <pilot>/suite-mutants.txt, one block per mutant (caught or MISSED, and the groups that failed).
 """
 

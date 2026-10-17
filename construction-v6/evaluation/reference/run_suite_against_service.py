@@ -2,7 +2,8 @@
 `mvn verify` built), and the suite (reference.suite.Suite), which starts and restarts the service by itself.
 Everything the suite needs to know about the agent is its workspace.
 
-Usage (from TCC_V6):  python evaluation/reference/run_suite_against_service.py <agent-workspace> <output-folder>
+Usage (from construction-v6):
+                      python evaluation/reference/run_suite_against_service.py <agent-workspace> <output-folder>
 For example:          python evaluation/reference/run_suite_against_service.py \
                           runs/pilots/OPUS55-N0-03/workspace suite-out
 
