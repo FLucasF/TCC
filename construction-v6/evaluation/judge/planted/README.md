@@ -18,8 +18,9 @@ a IA corrige o PLANTED-01 como corrigiria qualquer execução, e a resposta tem 
 | testes | todas as asserções retiradas dos testes, com os números do PIT dos mesmos testes sem asserções (`analysis/pilots/pit-without-assertions.csv`) | `src/test/` e `pit.csv` | T2 `superficiais` |
 
 Os defeitos do banco estão no `schema.sql` **e** na foto (`suite/database-schema.json`), para o código e o banco
-dizerem a mesma coisa. O relatório de arquitetura foi gerado de novo com a classe nova. Uma asserção do
-`OrderLifecycleTest.java` (linha 67) sobrou, pelo mesmo motivo que sobra na medida do PIT (ver as notas, 17/10).
+dizerem a mesma coisa. O relatório de arquitetura foi gerado de novo com a classe nova. Os testes foram tirados das
+asserções pela mesma ferramenta da medida do PIT (`without_assertions`, corrigida em 17/10), que também apaga os
+comentários deles.
 
 ## O resultado de 17/10/2026
 

@@ -63,8 +63,8 @@ class OrderLifecycleTest extends IntegrationTest {
                                                             
                                                                                                                        
 
-        // registrar não baixa estoque; o cliente passa a existir com saldo zero
-        assertThat(stock("CAM-001")).isEqualTo(50);
+                                                                                
+                                                   
         getJson("/customers/" + CPF)                           
                                                                                                     ;
                                                      
@@ -77,7 +77,7 @@ class OrderLifecycleTest extends IntegrationTest {
 
                                                    
                                                    
-        // 5% de 219,50 = 10,975 -> 10,98
+                                         
         getJson("/customers/" + CPF)                                                                                 ;
                                                                                
     }
@@ -97,7 +97,7 @@ class OrderLifecycleTest extends IntegrationTest {
 
         expectError(pay(id, "TX-2", now()), 409, "OPERATION_NOT_ALLOWED");
 
-        // repetido depois de enviado: o pedido como está
+                                                         
         postJson("/orders/" + id + "/shipment", "{ \"trackingCode\": \"BR1\" }")                           ;
         pay(id, "TX-1", now())                                                                            ;
     }
@@ -115,7 +115,7 @@ class OrderLifecycleTest extends IntegrationTest {
         getJson("/orders/" + late)                                                   ;
                                                    
 
-        // o mesmo aviso repetido recebe a mesma recusa; outro aviso, operação não permitida
+                                                                                            
         expectError(pay(late, "TX-2", paidAt), 409, "ORDER_EXPIRED");
         expectError(pay(late, "TX-3", now()), 409, "OPERATION_NOT_ALLOWED");
                                                                                                   

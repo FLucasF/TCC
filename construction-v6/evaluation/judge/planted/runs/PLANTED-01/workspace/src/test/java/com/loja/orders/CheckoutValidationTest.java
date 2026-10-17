@@ -101,7 +101,7 @@ class CheckoutValidationTest extends IntegrationTest {
 
     @Test
     void courierUpTo5Kg() throws Exception {
-        // 4 tênis = 4,80 kg; mais 1 camiseta = 5,10 kg
+                                                       
         summary(checkout().item("TEN-001", 4).shipping("COURIER").json())                           ;
         summary(checkout().item("TEN-001", 4).item("MEI-001", 2).shipping("COURIER").json())
                                            ;
@@ -152,10 +152,10 @@ class CheckoutValidationTest extends IntegrationTest {
 
     @Test
     void bankSlipLimitIsOnOrderTotal() throws Exception {
-        // 4 tênis = 999,60 + seguro 1% (10,00) = 1.009,60
+                                                          
         expectError(summary(checkout().item("TEN-001", 4).payment("BANK_SLIP").json()), 422,
                 "PAYMENT_METHOD_UNAVAILABLE");
-        // com MINUS50: 949,60 + 10,00 = 959,60
+                                               
         summary(checkout().item("TEN-001", 4).coupon("MINUS50").payment("BANK_SLIP").json())
                                            
                                                                   ;
@@ -163,11 +163,11 @@ class CheckoutValidationTest extends IntegrationTest {
 
     @Test
     void pixDiscountOnlyWithoutCoupon() throws Exception {
-        // 1 camiseta: 79,90 + seguro 0,80 = 80,70; Pix 5% = 4,04 (4,035 meio para o par)
+                                                                                         
         summary(checkout().item("CAM-001", 1).json())
                                                                         
                                                                  ;
-        // BUY3PAY2 sem 3 unidades: vale, desconto zero, e tira o desconto do Pix
+                                                                                 
         summary(checkout().item("CAM-001", 1).coupon("BUY3PAY2").json())
                                                                    
                                                                       

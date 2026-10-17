@@ -143,9 +143,48 @@ def blank_out(source: str, start: int, end: int) -> str:
 LEFTOVER_NAME = re.compile(r"(?<=[;{}])(\s*)(?!(?:return|break|continue)\b)[A-Za-z_]\w*(\s*);")
 
 
+def without_comments(source: str) -> str:
+    """The Java source with every comment replaced by spaces (the line breaks stay, so nothing moves). Quoted text,
+    text blocks and chars are kept as they are."""
+    kept: list[str] = []
+    position, length = 0, len(source)
+    while position < length:
+        char = source[position]
+        if source.startswith('"""', position):                     # text block
+            closing = source.find('"""', position + 3)
+            end = length if closing < 0 else closing + 3
+        elif char in "\"'":                                         # string or char, with its escapes
+            end = position + 1
+            while end < length and source[end] not in (char, "\n"):
+                end += 2 if source[end] == "\\" else 1
+            end = min(end + 1, length)
+        elif source.startswith("//", position):                    # line comment: up to the line break
+            end = source.find("\n", position)
+            end = length if end < 0 else end
+            kept.append(" " * (end - position))
+            position = end
+            continue
+        elif source.startswith("/*", position):                    # block comment: only its line breaks stay
+            closing = source.find("*/", position + 2)
+            end = length if closing < 0 else closing + 2
+            kept.append(re.sub(r"[^\n]", " ", source[position:end]))
+            position = end
+            continue
+        else:
+            end = position + 1
+        kept.append(source[position:end])
+        position = end
+    return "".join(kept)
+
+
 def without_assertions(source: str) -> str:
     """The test file with every assertion removed: assert...(...); and verify(...)...; statements, and the
-    .andExpect(...) of MockMvc chains. The tests still run the agent's code, but check nothing."""
+    .andExpect(...) of MockMvc chains. The tests still run the agent's code, but check nothing.
+
+    The comments go first (17/10/2026): a ";" or "{" inside a comment right before an assertion looked like the end of
+    the previous statement, and the assertion stayed (one did, in OPUS55-N0-03); and an assertion written inside a
+    comment could make the blanking run into the code after it."""
+    source = without_comments(source)
     while match := EXPECTATION_CALL.search(source):
         source = blank_out(source, match.start(), matching_parenthesis(source, match.end() - 1) + 1)
     position = 0

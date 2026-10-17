@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** Monta o JSON dos dados da compra para os testes. */
+                                                       
 public final class Checkout {
 
     private String cpf = "12345678909";

@@ -599,9 +599,10 @@ feito, na ordem combinada com o Lucas:
   `prompt.md` de cada execução.
 - **A suíte quebrava** quando nenhum pedido podia ser criado (um pool de 0 threads na concorrência), em vez de
   relatar as diferenças. Corrigido (`ConcurrencyChecks.allAtOnce`); um serviço que funciona não muda de resultado.
-- **A retirada das asserções do PIT deixa escapar uma asserção** quando o comentário logo antes dela tem um `;` (o
-  ponto e vírgula do comentário parece o fim do comando anterior): no Opus-03, 1 asserção ficou. A conclusão da
-  validação do PIT (a nota cai em todos) não muda; não mexi, para não mudar números já validados sem o Lucas ver.
+- **A retirada das asserções do PIT deixava escapar uma asserção** quando o comentário logo antes dela tinha um `;`
+  (o ponto e vírgula do comentário parecia o fim do comando anterior): no Opus-03, 1 asserção ficou. **Corrigido**
+  (o Lucas pediu "corrija tudo"): os comentários saem antes da busca (`without_comments`), e a validação do PIT rodou
+  de novo (os números estão no README das medidas).
 - **O enunciado pede o PostgreSQL 18, e a suíte sobe o 16** (`postgres:16-alpine`). Não mexi: é para o Lucas
   decidir qual dos dois muda.
 

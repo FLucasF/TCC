@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import com.loja.orders.support.IntegrationTest;
 
-/** Os exemplos conferidos pelo financeiro. */
+                                              
 class CheckoutSummaryTest extends IntegrationTest {
 
     private static String summaryJson(String subtotal, String coupon, String shipping, int days, String insurance,

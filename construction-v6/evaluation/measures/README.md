@@ -48,17 +48,23 @@ O **poder de discriminação**, como nas tarefas do benchmark do Akita, que têm
 da ingênua: `measure_test_quality.py --without-assertions` roda os **mesmos** testes com todas as
 asserções removidas. Eles executam o mesmo código e não conferem nada, então a nota tem de despencar;
 uma medida que não cai ali mede cobertura, e não testes. Nos 7 pilotos com testes que passam, a nota
-caiu em todos (14/10/2026):
+caiu em todos (14/10/2026, refeito em 17/10):
 
 | piloto | com asserções | sem asserções |
 |---|---|---|
 | Haiku-01 | 0,112 | 0,095 |
 | Sonnet-01 | 0,479 | 0,250 |
-| Sonnet-02 | 0,812 | 0,496 |
+| Sonnet-02 | 0,812 | 0,492 |
 | Sonnet-03 | 0,782 | 0,105 |
-| Opus-01 | 0,863 | 0,398 |
-| Opus-02 | 0,823 | 0,381 |
+| Opus-01 | 0,863 | 0,394 |
+| Opus-02 | 0,823 | 0,372 |
 | Opus-03 | 0,886 | 0,539 |
+
+**Refeito em 17/10/2026**: a retirada das asserções deixava escapar uma quando o comentário logo antes dela tinha
+um `;` (o ponto e vírgula do comentário parecia o fim do comando anterior). Agora os comentários saem antes da busca
+(`without_comments`), e nos testes dos 8 pilotos não sobra nenhuma asserção. Três notas sem asserções caíram um
+pouco (Sonnet-02 de 0,496 para 0,492, Opus-01 de 0,398 para 0,394, Opus-02 de 0,381 para 0,372); a conclusão não
+muda.
 
 O que sobra sem asserções são os mutantes que fazem o código lançar exceção e derrubar o teste. Sem as
 asserções, um `assertThrows` removido deixa o teste falhar antes de qualquer mutante; nesse modo o PIT

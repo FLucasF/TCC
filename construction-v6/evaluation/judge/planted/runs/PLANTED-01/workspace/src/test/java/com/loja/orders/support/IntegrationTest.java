@@ -78,7 +78,7 @@ public abstract class IntegrationTest {
         return jdbc.sql("SELECT stock FROM product WHERE sku = :sku").param("sku", sku).query(Integer.class).single();
     }
 
-    /** Um pedido montado com o mínimo, trocando só o que o teste precisar. */
+                                                                              
     protected static Checkout checkout() {
         return new Checkout();
     }

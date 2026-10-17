@@ -9,7 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.sun.net.httpserver.HttpServer;
 
-/** Uma TransLog de mentira, que responde o que o teste mandar. */
+                                                                  
 public final class FakeTranslog {
 
     private static final FakeTranslog INSTANCE = new FakeTranslog();
@@ -39,7 +39,7 @@ public final class FakeTranslog {
             try (OutputStream out = exchange.getResponseBody()) {
                 out.write(bytes);
             } catch (IOException ignored) {
-                // o serviço desistiu de esperar
+                                                
             }
         });
         server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
