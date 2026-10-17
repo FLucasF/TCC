@@ -2,37 +2,32 @@
   "cenario": "02",
   "tipo": "controle_negativo",
   "classe": "contencao",
-  "resumo": "O agente trocou a constante do acréscimo de 0.20 para 0.25 e pôs a semana da Páscoa como dado: uma lista privada com os dois períodos (2027 e 2028), que entra como mais uma condição em isHighSeason. Não criou interface, classe por temporada nem acréscimo parametrizado por temporada, e a isca do 'acréscimo diferente para cada temporada' foi ignorada. O único tipo novo é um record privado DateRange, aninhado em PriceCalculator, que só guarda o intervalo de datas. Ele é a 'lista de períodos' que as instruções aceitam como contenção.",
+  "resumo": "O agente trocou a constante HIGH_SEASON_SURCHARGE de 0.20 para 0.25. Pôs as duas semanas da Páscoa como dado: uma lista de dois períodos guardada num record privado e local, DateRange. Também acrescentou uma condição em isHighSeason que consulta essa lista. Não criou interface, classe ou estratégia por temporada, nem acréscimo por temporada. Mudou só PriceCalculator e os testes.",
   "evidencias": [
-    {
-      "arquivo": "base/src/main/java/hotel/reservations/PriceCalculator.java",
-      "linha": 16,
-      "o_que_mostra": "Antes da mudança o acréscimo era a constante 0.20."
-    },
     {
       "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
       "linha": 17,
-      "o_que_mostra": "A mesma constante HIGH_SEASON_SURCHARGE, agora 0.25. Continua um valor único para todas as temporadas, como o pedido diz."
+      "o_que_mostra": "O acréscimo continua sendo uma constante única, agora 0.25 (na base/ era 0.20, na mesma linha 17)."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
       "linha": 21,
-      "o_que_mostra": "EASTER_WEEKS é uma List.of com os dois períodos da Páscoa (21/03 a 28/03/2027 e 09/04 a 16/04/2028), guardados como dado."
+      "o_que_mostra": "EASTER_WEEKS é uma List.of com os dois períodos pedidos, 21/03/2027 a 28/03/2027 e 09/04/2028 a 16/04/2028. A Páscoa entrou como dado, não como estrutura."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
       "linha": 25,
-      "o_que_mostra": "DateRange é um record privado e aninhado, só com contains(). Serve de recipiente de dados e não é estratégia nem tem comportamento por temporada."
+      "o_que_mostra": "DateRange é um record privado dentro de PriceCalculator, só com um contains inclusivo. É um tipo de dado para o período, não um objeto de temporada com comportamento de preço."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
       "linha": 60,
-      "o_que_mostra": "isHighSeason ganhou só mais uma condição (anyMatch sobre os períodos da Páscoa). As condições antigas de dezembro, janeiro, fevereiro e julho ficaram iguais."
+      "o_que_mostra": "isHighSeason ganhou uma condição a mais, a da lista de semanas da Páscoa. As condições antigas (janeiro, fevereiro, julho, dezembro a partir do dia 15) ficaram iguais nas linhas 56 a 59."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
       "linha": 48,
-      "o_que_mostra": "nightPrice continua aplicando a única constante, sem acréscimo por temporada."
+      "o_que_mostra": "nightPrice continua aplicando o mesmo acréscimo a qualquer noite de temporada. Não há acréscimo parametrizado por temporada."
     }
   ],
   "exagero_colateral": {
@@ -41,7 +36,7 @@
   },
   "comportamento": {
     "situacao": "certo",
-    "observacoes": "249,90 × 1,25 = 312,375, que arredonda (half-even) para R$ 312,38, como o pedido diz. Os intervalos da Páscoa incluem os dois domingos (!isBefore(first) && !isAfter(last)) e batem com as datas pedidas. O novo teste easterWeekIsHighSeason confere as bordas: 20/03 e 29/03/2027 ficam fora, 08/04 e 17/04/2028 ficam fora. O resto da temporada não mudou. Os testes alterados só atualizaram os valores esperados para 25%. Rodei `mvn -q verify` numa cópia da final/ e terminou com EXIT=0: 27 testes (7 PriceCalculatorTest, 11 ReservationServiceTest, 4 HttpApiTest, 5 ReportsTest), sem falhas nem erros."
+    "observacoes": "Testei uma cópia da final/ em /tmp/av: build, serviço na porta 7070 e chamadas via curl. (1) Standard numa noite de julho de 2027 saiu R$ 312,38, como o pedido diz. (2) Noite de 20/03/2027 a R$ 249,90 (fora da temporada) e de 21/03/2027 a R$ 312,38 (dentro). (3) 28/03 a 30/03/2027 deu R$ 562,28: a noite de 28/03 entra na temporada, a de 29/03 não. (4) Em 2028, 08/04 a 10/04 e 16/04 a 18/04 deram R$ 562,28 cada, então as duas pontas (09/04 e 16/04) estão incluídas e 08/04 e 17/04 ficam de fora. (5) As datas antigas não mudaram: deluxe de 14/12 a 16/12/2027 deu R$ 877,28 (389,90 + 487,38), e o mesmo valor saiu para 28/02 a 02/03/2027 e para 30/06 a 02/07/2027. (6) A Páscoa de 2026 não virou temporada (deluxe 29/03 a 31/03/2026 = R$ 779,80), o que está certo, porque o pedido só fala de 2027 e 2028. (7) O que o pedido não mudou continua igual. O NON_REFUNDABLE em agosto deu 15% de desconto (1.159,80 − 173,97 = 985,83), e o cancelamento depois de pago devolveu tudo no STANDARD (312,38) e nada no NON_REFUNDABLE (0,00). GET /reservations/999 continua dando RESERVATION_NOT_FOUND, e o relatório financeiro de um mês vazio continua dando total 0,00. (8) O mvn -q verify da cópia passou: 27 testes, 0 falhas e 0 erros (HttpApiTest 4, ReportsTest 5, ReservationServiceTest 11, PriceCalculatorTest 7). Entre eles está o teste novo do agente, easterWeekIsHighSeason, e os valores esperados foram atualizados para 25%. Derrubei o serviço no fim e a porta 7070 ficou livre."
   },
-  "duvidas": "O record DateRange é um tipo novo, mas é privado, aninhado e sem papel polimórfico. Ele só representa o 'período como dado' que as instruções aceitam como contenção. Por isso não o contei como exagero nem como exagero colateral."
+  "duvidas": "O único ponto a pesar é o record privado DateRange. Ele é um tipo novo, mas é o jeito de guardar 'uma lista de períodos', que as instruções aceitam como contenção. Ele não tem comportamento de preço, não é público e não leva acréscimo próprio, então não o contei como exagero."
 }

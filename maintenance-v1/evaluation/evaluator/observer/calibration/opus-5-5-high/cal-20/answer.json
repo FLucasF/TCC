@@ -2,32 +2,37 @@
   "cenario": "03",
   "tipo": "pede_pattern",
   "classe": "omissao",
-  "resumo": "O agente pôs os e-mails novos direto dentro do ReservationService, mandando um depois do outro. Em `confirm`, os e-mails da governança e do financeiro vêm logo depois do e-mail do hóspede. Em `cancel`, os dois avisos ficam dentro de um `if (wasConfirmed)` em sequência. Não existe interface de ouvinte, lista de interessados nem registro na classe `Hotel`: o serviço conhece cada destinatário pelo endereço e monta cada texto ele mesmo.",
+  "resumo": "O agente não aplicou o Observer. Os e-mails da governança e do financeiro foram escritos à mão dentro de ReservationService: em confirm eles vêm logo depois do e-mail do hóspede, e em cancel ficam num if (wasConfirmed). Não existe interface de ouvinte nem lista de interessados, e a montagem em Hotel continua igual. Para avisar o restaurante ou o transfer, seria preciso mexer de novo em confirm e cancel.",
   "evidencias": [
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 14,
-      "o_que_mostra": "Os endereços da governança e do financeiro viraram constantes do próprio serviço de reservas (linhas 14-15), que passa a conhecer cada destinatário."
+      "o_que_mostra": "Os endereços da governança e do financeiro viraram constantes do próprio serviço de reservas (linhas 14-15), que conhece cada destino."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 72,
-      "o_que_mostra": "O e-mail do hóspede continua sendo uma chamada direta a `emailSender.send` e não virou ouvinte."
+      "o_que_mostra": "O e-mail do hóspede continua sendo uma chamada direta a emailSender.send, como era na base."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 77,
-      "o_que_mostra": "O e-mail da governança é montado e enviado à mão dentro de `confirm`, logo depois do e-mail do hóspede."
+      "o_que_mostra": "confirm monta e manda o e-mail da governança (assunto e corpo) logo depois do e-mail do hóspede."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 82,
-      "o_que_mostra": "O e-mail do financeiro é montado e enviado à mão dentro de `confirm`, em sequência."
+      "o_que_mostra": "confirm monta e manda também o e-mail do financeiro, de novo à mão."
     },
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 104,
-      "o_que_mostra": "No cancelamento, um `if (wasConfirmed)` manda o e-mail da governança e, dentro de outro `if (refund.signum() > 0)`, o do financeiro (linhas 104-113), sem nenhum mecanismo de anúncio."
+      "o_que_mostra": "cancel recebeu um if (wasConfirmed) com os e-mails da governança e, se houver reembolso (linha 109), do financeiro. É uma sequência de chamadas, sem ouvintes."
+    },
+    {
+      "arquivo": "src/main/java/hotel/Hotel.java",
+      "linha": 24,
+      "o_que_mostra": "A montagem do sistema não registra ouvinte nenhum: o ReservationService ainda recebe só o EmailSender, como na base."
     }
   ],
   "exagero_colateral": {
@@ -36,7 +41,7 @@
   },
   "comportamento": {
     "situacao": "certo",
-    "observacoes": "Rodei `mvn -q verify` numa cópia da `final/` e ele saiu com código 0: 26 testes, sem falhas nem erros. Na confirmação, o e-mail do hóspede ficou igual (ReservationService.java:72-75). A governança recebe o assunto 'Reserva confirmada - quarto N' com as datas de entrada e saída e o número de hóspedes (77-81). O financeiro recebe 'Pagamento recebido - reserva N' com o valor pago (82-84). No cancelamento de uma reserva confirmada, a governança recebe 'Reserva cancelada - quarto N' com as datas (106-108) e o financeiro recebe 'Reembolso - reserva N' com o valor, só quando o reembolso é maior que zero (109-112). Uma reserva pendente cancelada não avisa ninguém, por causa do `wasConfirmed` (98, 104). Datas e valores usam o TextFormat do comprovante. O agente só mudou as contagens de mensagens nos testes que já existiam, de 1 para 3. Nenhum teste novo cobre os avisos do cancelamento nem o conteúdo dos e-mails novos."
+    "observacoes": "Rodei numa cópia da final/. O mvn -q verify passou: 26 testes, 0 falhas (ReportsTest 5, PriceCalculatorTest 6, ReservationServiceTest 11, HttpApiTest 4). O agente só mudou a contagem de mensagens esperadas de 1 para 3 em testes que já existiam e não escreveu nenhum teste novo para os avisos da governança e do financeiro. Subi o jar na porta 7070 e criei 4 reservas: 201 STANDARD em julho, 101 NON_REFUNDABLE, 102 STANDARD e 201 em agosto, esta deixada pendente. Ao confirmar as reservas 1, 2 e 3, cada uma gerou 3 e-mails. O do hóspede tem o mesmo texto do confirmationEmailBody da base, que o patch não tocou. A governança recebe 'Reserva confirmada - quarto 201' com 'Entrada: 10/07/2027 | Saída: 12/07/2027' e 'Hóspedes: 2'. O financeiro recebe 'Pagamento recebido - reserva 1' com 'R$ 935,76'. Cancelar a reserva 1 (STANDARD, confirmada) gerou 'Reserva cancelada - quarto 201' com as datas e 'Reembolso - reserva 1' com 'Devolver R$ 935,76'. Cancelar a reserva 2 (NON_REFUNDABLE, confirmada) avisou só a governança, porque o reembolso foi 0. Cancelar a reserva 4 (pendente) não gerou e-mail nenhum: o total ficou em 12 mensagens. Também conferi o que não mudou: criar uma reserva com noites sobrepostas no quarto 102 continua dando 409 ROOM_UNAVAILABLE, confirmar uma reserva cancelada continua dando 409 OPERATION_NOT_ALLOWED, e o relatório de receita de 2027-03 sai certo (424,83 + 499,80 = 924,63). No fim derrubei o serviço e confirmei que a porta 7070 não responde mais."
   },
   "duvidas": ""
 }

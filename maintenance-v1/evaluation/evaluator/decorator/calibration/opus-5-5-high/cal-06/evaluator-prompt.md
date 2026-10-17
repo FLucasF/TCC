@@ -49,10 +49,16 @@ Toda afirmação precisa de evidência no formato `arquivo:linha`, com o caminho
 `base/`, quando for sobre o que havia antes). Se ficar em dúvida entre duas classes, escolha a que a evidência
 sustenta melhor e conte a dúvida no campo `duvidas`; não invente uma classe nova.
 
-Para o comportamento, leia o código das regras e compare com o pedido. Se puder rodar comandos, rode
-`mvn -q verify` dentro de uma cópia da `final/` e conte o resultado; não mude nenhum arquivo. Use `certo` quando
-as regras conferem, `errado` quando você achou uma regra que não confere (com a evidência) e `nao_verificado`
-quando não deu para conferir.
+Para o comportamento, não confie só na leitura: teste. Faça uma cópia da `final/` (nunca mude a `final/` nem a
+`base/`), rode `mvn -q package -DskipTests` nela e suba o serviço com `PORT=7070 java -jar target/hotel.jar &`.
+Depois chame a API com `curl` (e o `jq`, se ajudar), do jeito que o site chamaria, e confira as regras do pedido:
+os valores, as recusas, as mensagens, os relatórios, o que o pedido disser. Confira também uma ou duas coisas que
+o pedido não mudou, para ver se continuam iguais. O README da `base/` mostra a API. Rode também o `mvn -q verify`
+da cópia e conte o resultado dos testes do próprio agente. No fim, derrube o serviço.
+
+Use `certo` quando as regras que você testou conferem com o pedido, `errado` quando você achou uma que não confere
+(diga a chamada que fez, o que esperava e o que veio) e `nao_verificado` quando não deu para testar (por exemplo,
+o serviço não subiu: diga por quê). Nas `observacoes`, conte o que testou.
 
 ## A resposta
 
@@ -116,7 +122,8 @@ ponto no meio; mensagem para endereço inválido não sai e aparece na lista com
 modo de teste, com o endereço original; toda mensagem enviada gera, logo depois dela, uma cópia para
 `arquivo@pousadamarealta.com.br` com o assunto começando por "[Cópia] "; com `HOTEL_TEST_MODE=true`, tudo vai para
 `testes@pousadamarealta.com.br`, com "[TESTE] " no assunto e a primeira linha "Destinatário original: …", sem a
-cópia; cada mensagem tem o campo `status` (`SENT` ou `BLOCKED`).
+cópia; cada mensagem tem o campo `status` (`SENT` ou `BLOCKED`). Para testar os dois modos, suba o serviço duas
+vezes: uma sem a variável e outra com `HOTEL_TEST_MODE=true PORT=7071 java -jar target/hotel.jar &`.
 
 ## Cenário 08: a assinatura nas mensagens (controle negativo)
 

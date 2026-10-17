@@ -23,4 +23,4 @@
 | cal-03 | 10-contained | contencao | contencao | sim |
 | cal-08 | 10-overengineered | exagero | exagero | sim |
 
-**20 de 20** na classe esperada. Custo: US$ 2.94.
+**20 de 20** na classe esperada. Custo: US$ 5.23.

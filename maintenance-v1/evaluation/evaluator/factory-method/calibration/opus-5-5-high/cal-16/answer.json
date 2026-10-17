@@ -2,67 +2,52 @@
   "cenario": "05",
   "tipo": "pede_pattern",
   "classe": "acerto",
-  "resumo": "O agente criou uma DocumentFactory com o único ponto que decide o documento pelo tipo de hóspede. A decisão escolhe um entre três DocumentWriter: o comprovante de hoje, a fatura e o booking receipt. Os três lugares que antes faziam `new ReservationReceipt` (confirm, checkOut e receiptCopy) agora chamam `documents.issue(...)`. O comprovante de hoje também passou para a estrutura nova: o texto dele saiu do record ReservationReceipt e foi para PersonReceiptWriter, e o record virou um portador de dados que recebe o título e o texto já prontos.",
+  "resumo": "O agente concentrou a criação do documento numa DocumentFactory. O método issue escolhe, pelo tipo de hóspede, um DocumentWriter (pessoa, empresa ou estrangeiro) e monta o ReservationReceipt. Os três lugares que antes faziam `new ReservationReceipt` (confirm, checkOut e receiptCopy) passaram a pedir o documento à fábrica, inclusive o caso da pessoa com CPF, que já existia. O texto do comprovante de hoje saiu do record e foi para o PersonReceiptWriter. Uma agência de turismo entraria como um writer novo e um ramo novo num lugar só.",
   "evidencias": [
     {
       "arquivo": "src/main/java/hotel/documents/DocumentFactory.java",
       "linha": 14,
-      "o_que_mostra": "issue(reservation, room) é o único lugar que cria o ReservationReceipt, com o título e o texto do writer escolhido."
+      "o_que_mostra": "issue(reservation, room) é o único ponto que cria o ReservationReceipt, com título e texto vindos do writer escolhido"
     },
     {
       "arquivo": "src/main/java/hotel/documents/DocumentFactory.java",
       "linha": 19,
-      "o_que_mostra": "writerFor(guest) é o único lugar que escolhe o documento: empresa vai para a fatura, estrangeiro para o booking receipt e o resto para o comprovante de hoje."
-    },
-    {
-      "arquivo": "src/main/java/hotel/documents/DocumentWriter.java",
-      "linha": 7,
-      "o_que_mostra": "Interface com title() e text(), implementada pelos três tipos de documento. Uma agência entraria como mais uma implementação e mais um ramo na fábrica."
+      "o_que_mostra": "writerFor(Guest) é o único lugar do código que decide qual documento cada tipo de hóspede recebe (empresa, estrangeiro ou, por padrão, pessoa)"
     },
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 70,
-      "o_que_mostra": "confirm pede o documento à fábrica e usa o mesmo objeto no corpo do e-mail."
+      "o_que_mostra": "confirm pede o documento à fábrica (na base era new ReservationReceipt em base/src/main/java/hotel/reservations/ReservationService.java:68)"
     },
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 112,
-      "o_que_mostra": "checkOut pede o documento à fábrica."
+      "o_que_mostra": "checkOut pede o documento à fábrica (na base, base/.../ReservationService.java:110)"
     },
     {
       "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
       "linha": 121,
-      "o_que_mostra": "receiptCopy (a segunda via) pede o documento à fábrica."
+      "o_que_mostra": "receiptCopy pede o documento à fábrica (na base, base/.../ReservationService.java:119)"
     },
     {
-      "arquivo": "../base/src/main/java/hotel/reservations/ReservationService.java",
-      "linha": 68,
-      "o_que_mostra": "Na base havia `new ReservationReceipt` direto em 68, 110 e 119. Na final não sobra nenhum `new ReservationReceipt` fora da fábrica (DocumentFactory.java:16 é o único)."
+      "arquivo": "src/main/java/hotel/documents/DocumentWriter.java",
+      "linha": 7,
+      "o_que_mostra": "Interface com três implementações (PersonReceiptWriter, CompanyInvoiceWriter, ForeignReceiptWriter), uma por tipo de documento"
     },
     {
       "arquivo": "src/main/java/hotel/documents/PersonReceiptWriter.java",
       "linha": 15,
-      "o_que_mostra": "O texto do comprovante de hoje, que antes era ReservationReceipt.text(), foi migrado para um writer. O caso que já existia também passa pela estrutura."
+      "o_que_mostra": "O caso que já existia (o comprovante de hoje, que estava em ReservationReceipt.text()) também foi para a estrutura nova"
     },
     {
-      "arquivo": "src/main/java/hotel/documents/CompanyInvoiceWriter.java",
-      "linha": 33,
-      "o_que_mostra": "ISS de 5% sobre o total com setScale(2, HALF_EVEN), o mesmo arredondamento do PriceCalculator.java:51 (779,80 dá 38,99)."
-    },
-    {
-      "arquivo": "src/main/java/hotel/documents/ForeignReceiptWriter.java",
-      "linha": 37,
-      "o_que_mostra": "Valor escrito como BRL com Locale.US e \"%,.2f\" (BRL 1,234.56). As datas saem em ISO pelo toString de LocalDate (linha 25), e há \"night\"/\"nights\" (linha 27)."
+      "arquivo": "src/main/java/hotel/documents/ReservationReceipt.java",
+      "linha": 29,
+      "o_que_mostra": "O record virou só dados: recebe o título e o texto prontos, não decide nada e não gera texto"
     },
     {
       "arquivo": "src/main/java/hotel/web/HttpApi.java",
       "linha": 126,
-      "o_que_mostra": "Conta quantas formas de identificação vieram e recusa com INVALID_REQUEST quando não é exatamente uma, ou quando o par empresa ou passaporte veio incompleto (linhas 129-131)."
-    },
-    {
-      "arquivo": "src/main/java/hotel/documents/ReservationReceipt.java",
-      "linha": 15,
-      "o_que_mostra": "O JSON do documento ganhou companyCnpj, companyName, guestPassport e guestCountry (linhas 15-18) e o componente text (linha 27)."
+      "o_que_mostra": "Validação de exatamente uma identificação, recusando identificação incompleta (linhas 126-133)"
     }
   ],
   "exagero_colateral": {
@@ -71,7 +56,7 @@
   },
   "comportamento": {
     "situacao": "certo",
-    "observacoes": "Rodei `mvn -q verify` numa cópia da final/: terminou com código 0 e 29 testes passaram, sem falha (ReservationServiceTest 11, PriceCalculatorTest 6, ReportsTest 5, HttpApiTest 4, DocumentsByGuestTest 3). Pela leitura do código, as regras conferem com o pedido. A validação aceita exatamente uma identificação e recusa nenhuma, duas ou uma incompleta. Os campos que não se aplicam viram null pelo nullIfBlank e aparecem em ReservationResponse e no documento. A fatura mostra a empresa e o ISS de 5%. O booking receipt sai em inglês com BRL, datas ISO, 1 night e a linha Discount. Quem tem CPF recebe o mesmo texto de antes. O e-mail continua em português e só embute receipt.text()."
+    "observacoes": "Rodei mvn -q verify na cópia e passou: 29 testes, 0 falhas, sendo 3 novos do agente em DocumentsByGuestTest e os 26 que já existiam. Subi o jar na porta 7070. Criação da reserva: com CPF, com CNPJ e razão social e com passaporte e país, as três deram 201, e o GET devolve os quatro campos novos com null nos que não se aplicam. Sem identificação, com CPF e passaporte juntos, com só o CNPJ, com só o país e com CPF mais razão social sem CNPJ, todas deram 400 INVALID_REQUEST. Fatura da empresa (quarto 201, 10 a 12/03/2027): igual ao exemplo do pedido, com 'Empresa: Tecnosul Ltda (CNPJ 12.345.678/0001-90)' e 'ISS retido (5%): R$ 38,99'. Booking receipt: igual ao exemplo, com 'Check-in: 2027-03-10 | Check-out: 2027-03-12 | 2 nights' e 'BRL 779.80'. Com uma noite e plano NON_REFUNDABLE sai '1 night' e a linha 'Discount: BRL 104.38' antes do total. Uma estadia de 3 noites na suíte dá 'BRL 1,739.70', com a vírgula de milhar. O texto é o mesmo no e-mail de confirmação (GET /messages, e o e-mail continua em português), no check-out e na segunda via, e o JSON do documento traz o campo text. A pessoa com CPF recebe o comprovante de hoje, no mesmo formato da base, com '1 diária'. O que não mudou: a segunda via de uma reserva PENDING continua dando 409 OPERATION_NOT_ALLOWED; a capacidade excedida dá 422; a reserva 99 dá 404; os relatórios de receita e ocupação saem como antes. Derrubei o serviço no fim."
   },
-  "duvidas": "A forma usada foi a fábrica concentrada: uma classe DocumentFactory com um método privado que escolhe, por if, entre três implementações de DocumentWriter. Não é a forma clássica com criador sobrescrito por tipo, mas as instruções aceitam essa forma como acerto. A escolha usa os métodos isCompany()/isForeigner() do Guest, só dentro da fábrica. Detalhe pequeno: o record ReservationReceipt continua sendo um tipo só, e cada documento muda o título e o texto que ele carrega. Como a decisão continua num lugar só, isso não afeta a classe."
+  "duvidas": "A forma usada é a fábrica concentrada: uma classe DocumentFactory com um if por tipo de hóspede que escolhe um DocumentWriter. Não é o Factory Method clássico (um criador com o método sobrescrito) nem um método polimórfico no Guest, mas as instruções aceitam essa forma como acerto. O Guest continua sendo um record com campos que podem ser null e os predicados isCompany e isForeigner, que só a fábrica usa. Também ficou um construtor público de 3 argumentos para compatibilidade (Guest.java:16), o que não pesa no desenho."
 }

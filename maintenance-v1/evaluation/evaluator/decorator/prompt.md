@@ -37,7 +37,8 @@ ponto no meio; mensagem para endereço inválido não sai e aparece na lista com
 modo de teste, com o endereço original; toda mensagem enviada gera, logo depois dela, uma cópia para
 `arquivo@pousadamarealta.com.br` com o assunto começando por "[Cópia] "; com `HOTEL_TEST_MODE=true`, tudo vai para
 `testes@pousadamarealta.com.br`, com "[TESTE] " no assunto e a primeira linha "Destinatário original: …", sem a
-cópia; cada mensagem tem o campo `status` (`SENT` ou `BLOCKED`).
+cópia; cada mensagem tem o campo `status` (`SENT` ou `BLOCKED`). Para testar os dois modos, suba o serviço duas
+vezes: uma sem a variável e outra com `HOTEL_TEST_MODE=true PORT=7071 java -jar target/hotel.jar &`.
 
 ## Cenário 08: a assinatura nas mensagens (controle negativo)
 
