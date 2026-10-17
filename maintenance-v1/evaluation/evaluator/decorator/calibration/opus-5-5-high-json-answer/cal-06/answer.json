@@ -1,0 +1,52 @@
+{
+  "cenario": "07",
+  "tipo": "pede_pattern",
+  "classe": "omissao",
+  "resumo": "O agente colocou as três regras como `if` em sequência dentro do próprio `EmailSender.send`: o endereço inválido, o modo de teste e a cópia para o arquivo. O modo de teste virou um booleano que o próprio envio consulta. Não existe interface de envio, nem embrulho, nem lista de regras, e a classe `Hotel` só passa o booleano. Por isso a combinação por modo e as regras anunciadas (não enviar de madrugada, limite por dia) só cabem como mais `if` dentro do `send`.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/messages/EmailSender.java",
+      "linha": 28,
+      "o_que_mostra": "Primeiro `if`, dentro do `send`: o endereço inválido é validado por regex e a mensagem é gravada como BLOCKED."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/EmailSender.java",
+      "linha": 31,
+      "o_que_mostra": "Segundo `if`, dentro do `send`: o envio de dentro pergunta pelo modo de teste e desvia para a caixa de testes, com o prefixo e a linha do destinatário original."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/EmailSender.java",
+      "linha": 35,
+      "o_que_mostra": "A cópia para o arquivo está escrita à mão no mesmo método, logo depois do envio original. Ela não sai no modo de teste só por causa do `return` antecipado da linha 32, ou seja, a combinação por modo é decidida pela ordem dos `if`."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/EmailSender.java",
+      "linha": 16,
+      "o_que_mostra": "`private final boolean testMode`: o modo é um estado do envio concreto, não uma decisão de montagem."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/EmailSender.java",
+      "linha": 9,
+      "o_que_mostra": "`EmailSender` continua `final` e sem interface. Não há nada que possa ser embrulhado."
+    },
+    {
+      "arquivo": "src/main/java/hotel/Hotel.java",
+      "linha": 25,
+      "o_que_mostra": "A montagem só lê HOTEL_TEST_MODE e passa um booleano ao construtor. Ela não empilha nenhuma regra."
+    },
+    {
+      "arquivo": "src/main/java/hotel/messages/MessageStatus.java",
+      "linha": 3,
+      "o_que_mostra": "Enum SENT/BLOCKED, que é o novo campo `status` das mensagens. É uma mudança de dado, não uma estrutura de regras."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "Fiz uma cópia da final/ em /tmp, rodei o package e subi o serviço duas vezes: na 7070 sem a variável e na 7071 com HOTEL_TEST_MODE=true. Em cada um criei reservas e confirmei com POST /reservations/{id}/confirmation, depois conferi o GET /messages. Modo normal: ana@gmail.com e ana@mail.co.uk saíram com status SENT, cada uma seguida logo depois por uma cópia para arquivo@pousadamarealta.com.br, com o assunto '[Cópia] Reserva confirmada - Pousada Maré Alta' e o corpo idêntico ao original. Os endereços ana@gmail, ana.gmail.com, a@b@c.com, @gmail.com, ana@.com e ana@gmail. ficaram BLOCKED, com o endereço original e sem cópia. Modo de teste: os endereços válidos foram para testes@pousadamarealta.com.br, com o assunto '[TESTE] ...', a primeira linha 'Destinatário original: ana@gmail.com' seguida do texto original, status SENT e sem cópia. Os inválidos ficaram BLOCKED com o endereço original. O que não devia mudar continua igual: check-in, check-out (o comprovante não gera mensagem, como na base), o cancelamento STANDARD com reembolso integral e os relatórios de receita e de ocupação em CSV. O `mvn -q verify` passou com 26 testes e 0 falhas (ReportsTest 5, PriceCalculatorTest 6, ReservationServiceTest 11, HttpApiTest 4). O agente não escreveu nenhum teste novo para as regras: só trocou de 1 para 2 a contagem esperada de mensagens em ReservationServiceTest e HttpApiTest. No fim derrubei os dois serviços."
+  },
+  "duvidas": "Nenhuma sobre a classe: as três regras estão no mesmo `send`, que pergunta pelo modo, e não há nenhuma peça própria por regra. Uma observação menor: o regex aceita só caracteres que não sejam espaço nem @. Isso está de acordo com a definição do pedido, que é tolerante."
+}

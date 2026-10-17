@@ -172,10 +172,28 @@ def parse_answer(text: str) -> dict[str, Any] | None:
     return found
 
 
+CLASS_CODE_BY_WORD = {"acerto": "acerto", "alternativa equivalente": "alternativa_equivalente",
+                      "malfeito": "malfeito", "omissão": "omissao", "contenção": "contencao", "exagero": "exagero"}
+
+
 def read_answer(case_folder: Path) -> tuple[str | None, float | None]:
-    """Reads the evaluator's transcript again, rewrites answer.json, and returns the class and the cost."""
+    """Reads the evaluator's transcript again and returns the class and the cost. The answer is written text with
+    one conclusion line per item (the request, the collateral overengineering, the behavior): answer.md keeps the
+    text, answer.json the conclusions. Answers from before (a JSON object) are still understood."""
     text, cost = final_answer(case_folder / "evaluator-output.jsonl")
-    answer = parse_answer(text)
+    found = [line.split(":", 1)[1].strip().lower() for line in text.splitlines()
+             if line.strip().startswith("Conclusão:")]
+    answer: dict[str, Any] | None
+    if found:
+        (case_folder / "answer.md").write_text(text + LINE_BREAK, encoding="utf-8")
+        answer = {
+            "classe": CLASS_CODE_BY_WORD.get(found[0]),
+            "exagero_colateral": found[1] if len(found) > 1 else None,
+            "comportamento": found[2] if len(found) > 2 else None,
+            "conclusoes": found,
+        }
+    else:
+        answer = parse_answer(text)
     (case_folder / "answer.json").write_text(json.dumps(answer if answer is not None else {"unparsed": text},
                                                         ensure_ascii=False, indent=2) + LINE_BREAK, encoding="utf-8")
     given = answer.get("classe") if answer else None

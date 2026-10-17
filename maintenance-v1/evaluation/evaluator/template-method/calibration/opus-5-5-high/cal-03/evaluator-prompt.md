@@ -21,14 +21,14 @@ dizem qual pedido é de qual tipo e o que conta em cada caso.
 Você vai dar a cada execução uma destas classes:
 
 - `acerto`: o pedido precisava do pattern, e ele foi aplicado direito;
-- `alternativa_equivalente`: o pedido precisava do pattern, e a variação foi resolvida com outra estrutura que as
+- `alternativa equivalente`: o pedido precisava do pattern, e a variação foi resolvida com outra estrutura que as
   instruções do pattern aceitam de antemão;
 - `malfeito`: a estrutura do pattern existe, mas convive com o jeito antigo. Por exemplo, só os casos novos foram
   para a estrutura nova, ou quem usa a estrutura ainda pergunta qual é o caso concreto, ou um dos lugares que
   deveriam passar por ela continua fazendo à mão;
-- `omissao`: o pedido precisava do pattern, e a mudança foi feita sem ele (mais um `if`, mais um `case`, mais
+- `omissão`: o pedido precisava do pattern, e a mudança foi feita sem ele (mais um `if`, mais um `case`, mais
   uma cópia);
-- `contencao`: o pedido era um controle negativo, e a mudança foi a simples;
+- `contenção`: o pedido era um controle negativo, e a mudança foi a simples;
 - `exagero`: o pedido era um controle negativo, e foi criada estrutura que ninguém pediu (uma interface, uma
   classe por caso, uma fábrica, um embrulho, um esqueleto genérico).
 
@@ -47,7 +47,7 @@ na resposta final, nos comentários ou nos nomes das classes: uma classe chamada
 
 Toda afirmação precisa de evidência no formato `arquivo:linha`, com o caminho a partir da `final/` (ou da
 `base/`, quando for sobre o que havia antes). Se ficar em dúvida entre duas classes, escolha a que a evidência
-sustenta melhor e conte a dúvida no campo `duvidas`; não invente uma classe nova.
+sustenta melhor e conte a dúvida na seção "Dúvidas"; não invente uma classe nova.
 
 Para o comportamento, não confie só na leitura: teste. Faça uma cópia da `final/` (nunca mude a `final/` nem a
 `base/`), rode `mvn -q package -DskipTests` nela e suba o serviço com `PORT=7070 java -jar target/hotel.jar &`.
@@ -62,24 +62,43 @@ o serviço não subiu: diga por quê). Nas `observacoes`, conte o que testou.
 
 ## A resposta
 
-Responda só com um objeto JSON, sem texto antes ou depois:
+Responda só com a correção, em markdown, sem texto antes ou depois, neste formato (o mesmo da correção da
+construção):
 
-```json
-{
-  "cenario": "01",
-  "tipo": "pede_pattern",
-  "classe": "acerto",
-  "resumo": "duas ou três frases dizendo o que o agente fez com o desenho",
-  "evidencias": [
-    {"arquivo": "src/main/java/hotel/reservations/RatePlan.java", "linha": 18, "o_que_mostra": "..."}
-  ],
-  "exagero_colateral": {"houve": false, "evidencias": []},
-  "comportamento": {"situacao": "certo", "observacoes": "..."},
-  "duvidas": ""
-}
+```markdown
+# Cenário 01
+
+## Visão geral
+
+Um parágrafo: o que o agente fez com o desenho, o que está bom e o problema mais sério, se houver.
+
+## Item a item
+
+**O pedido (pede o pattern).** O que o agente fez, com a evidência em `arquivo:linha`, e por que isso é ou não
+o pattern que o pedido precisava.
+Conclusão: acerto
+
+**O exagero colateral.** A estrutura criada fora do que o pedido tocava, com a evidência, ou "não há".
+Conclusão: contenção
+
+**O comportamento.** O que você testou (as chamadas principais), o que esperava e o que veio.
+Conclusão: segue
+
+## Dúvidas
+
+O que a evidência não decidiu, ou "nenhuma".
 ```
 
-O `tipo` é `pede_pattern` ou `controle_negativo`, e a `classe` é uma das seis acima.
+São três itens, sempre nesta ordem, e cada um fecha com uma linha de conclusão, sozinha na linha, começando por
+`Conclusão:` e com uma palavra só:
+
+- **o pedido**: uma das seis classes (`acerto`, `alternativa equivalente`, `malfeito`, `omissão`, `contenção`,
+  `exagero`). No título do item, diga se o pedido pede o pattern ou é um controle negativo;
+- **o exagero colateral**: `contenção` (não há) ou `exagero` (há);
+- **o comportamento**: `segue` (o que você testou confere), `em parte`, `não segue` ou `não se aplica` (não deu
+  para testar: diga por quê).
+
+O texto é o que um leitor lê; a conclusão é o que se conta. Os dois têm de dizer a mesma coisa.
 
 ---
 

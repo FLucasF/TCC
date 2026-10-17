@@ -1,67 +1,10 @@
 {
-  "cenario": "01",
-  "tipo": "pede_pattern",
   "classe": "acerto",
-  "resumo": "O agente criou a interface RatePlanPolicy com três métodos: validate, price e refund. Cada um dos cinco planos ganhou uma implementação própria, os dois antigos inclusive, e um EnumMap em RatePlans liga cada valor do enum à sua política. Os dois switch de comportamento da base (o do desconto e o do reembolso) foram removidos. O PriceCalculator e o ReservationService agora pedem ao plano sem dizer o nome de nenhum, e as regras de quem pode usar cada plano (código da empresa, sexta a domingo, 7 noites) ficaram dentro da classe de cada plano.",
-  "evidencias": [
-    {
-      "arquivo": "base/src/main/java/hotel/reservations/PriceCalculator.java",
-      "linha": 26,
-      "o_que_mostra": "Na base, o desconto era decidido por um switch sobre o plano. Esse switch foi removido na final."
-    },
-    {
-      "arquivo": "base/src/main/java/hotel/reservations/ReservationService.java",
-      "linha": 86,
-      "o_que_mostra": "Na base, o reembolso também era decidido por um switch sobre o plano. Esse switch também foi removido."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/RatePlanPolicy.java",
-      "linha": 7,
-      "o_que_mostra": "É a interface da estratégia, com validate (linha 10), price (linha 12) e refund (linha 14). Preço, validação e reembolso ficam num lugar só por plano."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/RatePlans.java",
-      "linha": 12,
-      "o_que_mostra": "É o único ponto de seleção: um EnumMap que liga os cinco planos às suas implementações (linhas 12 a 16), STANDARD e NON_REFUNDABLE inclusive."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
-      "linha": 26,
-      "o_que_mostra": "O calculate busca a política e chama plan.validate e plan.price (linhas 27 e 28) sem nomear nenhum plano. Ele só monta o subtotal das diárias com a temporada, por nightlyCharges."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
-      "linha": 88,
-      "o_que_mostra": "O cancelamento chama ratePlans.policyFor(...).refund(reservation), sem switch e sem if sobre o plano."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/NonRefundablePlan.java",
-      "linha": 8,
-      "o_que_mostra": "O plano antigo foi migrado para a estrutura: o desconto de 15% está aqui e o reembolso zero está na linha 21. O StandardPlan.java faz o mesmo com o plano normal."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/CorporatePlan.java",
-      "linha": 16,
-      "o_que_mostra": "A validação do código da empresa e a tabela de descontos (linhas 10 a 13) ficam dentro do próprio plano."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/WeekendPackagePlan.java",
-      "linha": 20,
-      "o_que_mostra": "A regra de sexta ao domingo, o preço fechado por tipo de quarto que ignora o subtotal com temporada (linha 30) e a devolução de 50% (linha 36) ficam todos no plano."
-    },
-    {
-      "arquivo": "src/main/java/hotel/reservations/LongStayPlan.java",
-      "linha": 15,
-      "o_que_mostra": "O mínimo de 7 noites e os 10% sobre o subtotal, que já inclui a temporada, ficam no plano."
-    }
-  ],
-  "exagero_colateral": {
-    "houve": false,
-    "evidencias": []
-  },
-  "comportamento": {
-    "situacao": "certo",
-    "observacoes": "Testei com o serviço no ar na porta 7070. Os três exemplos do pedido conferem. No convênio, o deluxe da TECNOSUL de 10/03 a 12/03/2027 deu subtotal 779,80, desconto 93,58 e total 686,22. A AGROVALE deu 18% (140,36) e a FARMAVIDA, num standard, deu 25% (124,95 sobre 499,80). O convênio sem código, com ACME e com 'tecnosul' em minúsculas foi recusado com 400 INVALID_REQUEST. O pacote de fim de semana deu 820,00 no deluxe de 12/03 a 14/03/2027. Em temporada deu 520,00 no standard em janeiro e 1.200,00 na suíte em julho, com desconto 0. Sábado a segunda, sexta a sábado e sexta a sexta foram recusados com 400 INVALID_REQUEST. O pacote pago e cancelado devolveu 410,00. A estadia longa no standard de 01/03 a 08/03/2027 deu 1.749,30, 174,93 e 1.574,37. Seis noites foram recusadas com 400. Sete noites em julho deram subtotal 2.099,16 e desconto 209,92, então a temporada continua valendo. Pagos e cancelados, o convênio e a estadia longa devolveram tudo, o standard devolveu tudo e o não reembolsável devolveu 0,00. Um pacote pendente cancelado devolveu 0,00. O STANDARD com companyCode no corpo ignorou o código e cobrou o preço cheio. Também conferi o que não mudou: o NON_REFUNDABLE na suíte de 05/01 a 09/01/2027 deu 2.783,52, 417,53 e 2.365,99, como no teste da base. Campo faltando continua dando 400, excesso de hóspedes continua dando 422, e o comprovante, o relatório financeiro e o de ocupação saíram normais. O mvn -q verify da cópia passou: 30 testes, nenhuma falha. Desses, 4 são testes novos do agente (NewRatePlansTest) e o resto são os testes antigos, adaptados à nova assinatura. Derrubei o serviço no fim."
-  },
-  "duvidas": "Não há dúvida que mude a classe. Três observações menores. As classes NightlyCharges e PercentOff são auxiliares novas, mas servem diretamente às estratégias dentro da área que o pedido mexia, por isso não as contei como exagero colateral. A validação do plano roda dentro do PriceCalculator.calculate, depois das checagens de quarto, capacidade e disponibilidade: um pacote em data errada num quarto já ocupado responde 409 ROOM_UNAVAILABLE, não 400. O pedido não fala dessa ordem. Por fim, o companyCode é passado ao NewReservation em todos os planos e só o CorporatePlan o lê; isso não é regra de plano fora do lugar."
+  "exagero_colateral": "contenção",
+  "comportamento": "segue",
+  "conclusoes": [
+    "acerto",
+    "contenção",
+    "segue"
+  ]
 }
