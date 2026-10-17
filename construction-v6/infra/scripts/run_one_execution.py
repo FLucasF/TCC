@@ -11,6 +11,7 @@ every check and shows the Docker commands without running anything.
 
 Output in runs/<batch>/<arm>-<model>/ (for example runs/pilots-2/N0-haiku-4-5/):
     workspace/          the project as the agent left it, with the harness files it received
+    agent-git.bundle    only when the agent ran `git init`: its history (the .git folder leaves the workspace)
     prompt.md           a copy of experiment/prompt/prompt.md, the exact text the agent received
     claude-output.jsonl the transcript; stderr.txt; build.txt (mvn verify, in a container without the token)
     meta.json           the run's identity (prompt and harness hashes, model, effort) and its summary
@@ -31,6 +32,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -87,6 +89,28 @@ def agent_docker_command(container_name: str, run_folder: Path, workspace: Path,
     command = pilot_agent_docker_command(run_folder, workspace, model, effort)
     command[command.index("--name") + 1] = container_name
     return command
+
+
+def move_agent_git_out(run_folder: Path) -> bool:
+    """When the agent ran `git init` in its workspace, its history goes to <run>/agent-git.bundle and the .git folder
+    leaves the workspace, so the study's repository versions the project's files (and not a nested repository).
+    Returns whether the agent had a git of its own."""
+    agent_git = run_folder / "workspace" / ".git"
+    if not agent_git.is_dir():
+        return False
+    bundle = run_folder / "agent-git.bundle"
+    bundled = subprocess.run(["git", "-C", str(run_folder / "workspace"), "bundle", "create", str(bundle), "--all"],
+                             capture_output=True, check=False)
+    if bundled.returncode != 0 or not bundle.is_file():
+        die(f"could not bundle the agent's git in {agent_git}: {bundled.stderr.decode(errors='replace')}")
+    shutil.rmtree(agent_git, onexc=remove_read_only)
+    return True
+
+
+def remove_read_only(function: Callable[[str], object], path: str, _error: BaseException) -> None:
+    """Git keeps its object files read-only, and Windows refuses to delete those: make them writable, then retry."""
+    Path(path).chmod(0o700)
+    function(path)
 
 
 def skill_reads(run_folder: Path) -> list[str]:
@@ -162,7 +186,7 @@ def main() -> None:
     meta = summarize(run_folder, {
         **identity, "start": start.isoformat(timespec="seconds"), "end": end.isoformat(timespec="seconds"),
         "seconds": seconds, "run_exit_code": run_exit_code, "build_exit_code": build_exit_code,
-        "skill_opened": bool(reads), "skill_reads": reads,
+        "skill_opened": bool(reads), "skill_reads": reads, "agent_git_bundled": move_agent_git_out(run_folder),
     })
     (run_folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: meta[key] for key in ("seconds", "turns", "cost_usd", "build_exit_code", "skill_opened",
