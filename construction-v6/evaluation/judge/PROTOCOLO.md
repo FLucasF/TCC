@@ -64,7 +64,7 @@ texto diz o mesmo que o esperado (por exemplo, que o brinde do GOLD é decidido 
    (`planted/esperado.md`). Resultado: 21 de 21.
 2. **Contra as ferramentas.** Nos pilotos, as respostas que uma ferramenta já deu: P1 a P7 e F pela régua do
    Semgrep (validada em 2.200 de 2.200 respostas contra o V5), e B1 a B7 pela foto do esquema
-   (`expected/pilotos.md`). Resultado: 115 de 116.
+   (`expected/pilotos.md`). Resultado: 115 de 116; a diferença era a régua (os gramas no P6), e, decidido que os gramas entram, as 116 conferem.
 3. **Contra ela mesma.** Corrigir os mesmos pilotos de novo, em conversas novas, e ver, item a item, se as duas
    correções chegam à mesma conclusão. Mede quanto da resposta é do código e quanto é do acaso. **Falta fazer.**
 4. **Contra o Lucas.** O Lucas corrige às cegas uma amostra (três execuções, as quatro dimensões), escrevendo do

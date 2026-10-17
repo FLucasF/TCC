@@ -607,10 +607,11 @@ feito, na ordem combinada com o Lucas:
   enunciado que os agentes recebem: `postgres:18.6-alpine`, fixado pelo hash. O Opus-03 segue com 463 de 463, e as
   fotos dos 8 pilotos foram tiradas de novo no 18. O 18 registra cada `NOT NULL` também como restrição (tipo `n`);
   a foto os deixa de fora, porque as colunas já dizem se aceitam nulo.
+- **Os gramas no P6: decidido que entram** (17/10). A régua põe os gramas entre as unidades da TransLog, como a
+  calibração de 14/10 já dizia para as unidades da transportadora; o esperado do Opus-02 passou a `vazado`, e a
+  prova 2 fica com as 116 respostas conferindo. Se o Lucas preferir só as horas, muda o P6 da régua e esse esperado.
 
 **Para o Lucas decidir:**
-- **os gramas no P6**: a régua põe os gramas entre as unidades da TransLog (o Opus-02 converte kg em gramas fora
-  do adaptador, e a IA diz `vazado`); a régua do Semgrep só via as horas;
 - **o critério de aceite das réguas** (a proposta do protocolo: achar todos os plantados e chegar à mesma conclusão
   que ela mesma e que o Lucas na grande maioria dos itens) e o que fazer quando duas correções da mesma execução
   discordam;

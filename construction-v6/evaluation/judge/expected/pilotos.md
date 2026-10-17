@@ -13,7 +13,7 @@ Para conferir uma correção dos pilotos item a item. Uma célula vazia é um it
 | HAIKU45-N0-01 | espalhado | condicional_no_calculo | espalhado | condicional_no_calculo | espalhado | condicional_no_calculo | espalhado | condicional_no_calculo | switch | condicional |  | espalhado | nenhum |
 | HAIKU45-N0-02 | espalhado | condicional_no_calculo | espalhado | condicional_no_calculo | espalhado | condicional_no_calculo | espalhado | condicional_no_calculo | switch | condicional | vazado | espalhado | nenhum |
 | OPUS55-N0-01 | isolado | consulta | isolado | consulta | isolado | consulta | isolado | consulta | enum_dados | dados |  | isolado | container |
-| OPUS55-N0-02 | isolado | consulta | isolado | consulta | isolado | consulta | isolado | consulta | enum_dados | dados | isolado | isolado | container |
+| OPUS55-N0-02 | isolado | consulta | isolado | consulta | isolado | consulta | isolado | consulta | enum_dados | dados | vazado | isolado | container |
 | OPUS55-N0-03 | isolado | consulta | isolado | consulta | isolado | consulta | isolado | consulta | enum_dados | dados | vazado | isolado | container |
 | SONNET55-N0-01 | isolado | consulta | isolado | consulta | isolado | consulta | isolado | consulta | enum_dados | dados |  | espalhado | container |
 | SONNET55-N0-02 | isolado | consulta | isolado | consulta | isolado | consulta | isolado | consulta | enum_dados | dados |  | espalhado | container |
@@ -30,4 +30,4 @@ Para conferir uma correção dos pilotos item a item. Uma célula vazia é um it
 | SONNET55-N0-02 | atende |  | nao_se_aplica |  |  |  |
 | SONNET55-N0-03 | atende |  | atende |  |  |  |
 
-**Em aberto:** o P6 do OPUS55-N0-02 está `isolado` porque a régua do Semgrep só via as horas. A régua atual põe os gramas entre as unidades da TransLog, e esse agente converte kg em gramas fora do adaptador: pela régua atual, `vazado`. O Lucas confirma qual vale.
+**O P6 do OPUS55-N0-02 é `vazado`, e não o `isolado` da régua do Semgrep** (17/10/2026): a régua do Semgrep só via as horas; a régua atual põe os gramas entre as unidades da TransLog, e esse agente converte kg em gramas fora do adaptador (`EntregaPorTransportadora.java:26`). É a decisão de calibração de 14/10 ("converter a unidade da transportadora fora do adaptador é vazamento"), aplicada a todas as unidades dela.

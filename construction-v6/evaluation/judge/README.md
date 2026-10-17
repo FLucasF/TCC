@@ -49,7 +49,9 @@ códigos em cada `key.json`.
 
 **A única diferença** (o P6 do OPUS55-N0-02: a IA diz `vazado`, a régua do Semgrep dizia `isolado`) vem da régua: ela
 põe os **gramas** entre as unidades da TransLog, e esse agente converte kg em gramas fora do adaptador; a régua do
-Semgrep só procurava as horas. **O Lucas confirma se os gramas entram.**
+Semgrep só procurava as horas. **Decidido em 17/10: os gramas entram** (é a calibração de 14/10, "converter a unidade
+da transportadora fora do adaptador é vazamento", aplicada a todas as unidades dela), e o esperado do Opus-02 passou a
+`vazado`: com isso, as 116 respostas conferem.
 
 **O que a IA achou sem que ninguém pedisse**, conferido no código: o serviço do Sonnet-02 recebe o `PedidoRequest`
 da camada web (A1), o Opus-03 tem uma interface com uma implementação só (`PurchaseHistory`, E), e o Sonnet-01 e o
