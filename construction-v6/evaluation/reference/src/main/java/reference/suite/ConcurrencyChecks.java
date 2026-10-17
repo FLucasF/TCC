@@ -124,6 +124,8 @@ public final class ConcurrencyChecks {
 
     /** Starts all the calls together (a latch releases them at the same instant) and waits for all. */
     private static List<Reply> allAtOnce(List<Callable<Reply>> calls) throws Exception {
+        // no order could be created: nothing to race, and the differences already say why (a pool of 0 threads throws)
+        if (calls.isEmpty()) return List.of();
         ExecutorService pool = Executors.newFixedThreadPool(calls.size());
         CountDownLatch go = new CountDownLatch(1);
         try {

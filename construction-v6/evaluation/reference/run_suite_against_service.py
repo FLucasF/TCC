@@ -87,15 +87,16 @@ SCHEMA_QUERIES = {
         'name', c.conname, 'type', c.contype, 'definition', pg_get_constraintdef(c.oid))
         ORDER BY c.conrelid::regclass::text, c.conname),
         '[]') FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE {APPLICATION_SCHEMAS}""",
-    "uniqueIndexes": f"""SELECT coalesce(json_agg(json_build_object('table', t.relname, 'name', i.relname,
-        'definition', pg_get_indexdef(i.oid)) ORDER BY t.relname, i.relname), '[]') FROM pg_index x
-        JOIN pg_class i ON i.oid = x.indexrelid JOIN pg_class t ON t.oid = x.indrelid
-        JOIN pg_namespace n ON n.oid = t.relnamespace WHERE x.indisunique AND {APPLICATION_SCHEMAS}""",
+    # every index, unique or not: a foreign key without an index is read from here
+    "indexes": f"""SELECT coalesce(json_agg(json_build_object('table', t.relname, 'name', i.relname,
+        'definition', pg_get_indexdef(i.oid), 'unique', x.indisunique) ORDER BY t.relname, i.relname), '[]')
+        FROM pg_index x JOIN pg_class i ON i.oid = x.indexrelid JOIN pg_class t ON t.oid = x.indrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace WHERE {APPLICATION_SCHEMAS}""",
 }
 
 
 def save_database_schema(output_folder: Path) -> None:
-    """Saves the agent's schema (tables, columns, constraints, unique indexes) as database-schema.json, for the AI's
+    """Saves the agent's schema (tables, columns, constraints, indexes) as database-schema.json, for the AI's
     reading of the database (how it is organized and what it enforces). Read after the suite, before the database is
     removed."""
     schema: dict[str, object] = {}
