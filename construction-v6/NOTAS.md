@@ -683,3 +683,21 @@ no B4 e no B5 um único ponto errado já é `não segue`; no comportamento, o qu
 "Dúvidas") e do conserto do F (as réguas ainda mandavam salvar em `correcao/…`), as conclusões deram 21 de 21
 iguais ao esperado (ver `evaluation/judge/planted/README.md`). Ficaram de fora: os outros sete pilotos e a conferência
 um a um dos 13 erros de comportamento que a suíte pegava.
+
+**Ainda em 17/10: o script de rodar, o A2 e o piloto do Haiku.** O `infra/scripts/run_one_execution.py <lote> <braço>
+<modelo> [effort]` roda uma execução em `runs/<lote>/<braço>-<modelo>/`, no molde do da manutenção: o workspace
+começa vazio com os arquivos do harness do braço (`experiment/harnesses/N1/` e `N2/`, que precisam existir e estar
+commitados; o N0 não recebe nada), e o `meta.json` diz se o agente abriu a skill. O material da correção vem depois,
+pelas medidas, por lote. O A2 ganhou a âncora da conclusão (o pior laço decide: `segue` sem ciclo, `em parte` com
+ciclos só por tipo de dado, `não segue` com um laço por comportamento), e o `planted/esperado.md` passou para as
+palavras da linha de conclusão. O piloto com o enunciado atual, `runs/pilots-2/N0-haiku-4-5` (Haiku 4.5, effort
+`medium`): 527 s, 74 turnos, US$ 0,80, o build passa com 6 testes, e o agente terminou com "CONCLUÍDO". Mas o
+serviço **não sobe**: o Hibernate recusa a entidade `Order`, com a coluna `installments` mapeada duas vezes, e a foto
+do banco sai vazia. O PIT dá 2,4% (os 6 testes cobrem 1% das linhas). O relatório de arquitetura: 10 pacotes, sem
+ciclo. Corrigido pela IA (Claude Opus 5.5, effort `high`, as 8 dimensões, US$ 3,94,
+`analysis/pilots-2/judge/opus-5-5-high/`): o comportamento achou o erro do Hibernate e marcou C2 a C9 `não se aplica`
+(C1 `não segue`, C10 `segue`); o banco corrigiu pelas entidades, dizendo que a foto veio vazia; o Strategy deu
+`omissão` nos quatro pontos e nos remendos (o R1 `não se aplica`: o frete grátis do GOLD não foi implementado), o
+State `omissão` no P7, o Adapter `omissão` (gramas, horas e o código do serviço fora do cliente da TransLog); os
+testes `não segue` no T1 (só testam o `PricingUtil`) e `segue` no T2 (as poucas asserções conferem valores exatos);
+a arquitetura `não segue` no A1 (o `HttpStatus` nas recusas e o DTO da API no cálculo).

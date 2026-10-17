@@ -19,25 +19,25 @@ execução que vale).
 | `experiment/prompt/` | o enunciado (`prompt.md`) e, em `history/`, as versões anteriores |
 | `evaluation/reference/` | o gabarito (a calculadora do resumo e o `Store`, o modelo do estado), os testes dele e a suíte completa que compara o serviço do agente com o gabarito ([README](evaluation/reference/README.md)) |
 | `evaluation/measures/` | a medida dos testes do agente, por mutação (PIT), e o relatório de arquitetura (ArchUnit) ([README](evaluation/measures/README.md)) |
-| `evaluation/judge/` | **a correção**: as réguas das quatro dimensões, em markdown, para a IA ler e interpretar; o serviço com defeitos plantados e o [protocolo](evaluation/judge/PROTOCOLO.md) ([README](evaluation/judge/README.md)) |
-| `infra/scripts/` | o `run_pilot_without_harness.py`, que roda um piloto sem harness com a imagem do V5, e o `freeze.py`, que faz o congelamento |
+| `evaluation/judge/` | **a correção**: as réguas das cinco dimensões, em markdown, para a IA ler e interpretar; o serviço com defeitos plantados e o [protocolo](evaluation/judge/PROTOCOLO.md) ([README](evaluation/judge/README.md)) |
+| `infra/scripts/` | o `run_one_execution.py`, que roda uma execução de um braço (N0, N1 ou N2) num lote, com a imagem do V5, como o da manutenção; o `run_pilot_without_harness.py`, dos 8 pilotos antigos; e o `freeze.py`, que faz o congelamento |
 | `runs/pilots/` | os pilotos: uma pasta por execução, com a transcrição, o build, os resultados da suíte e o relatório de arquitetura |
 | `analysis/` | os resultados das medidas, por lote (`analysis/pilots/`: o PIT dos 8 pilotos) |
 
-Os harnesses (N1 a N3) ainda não estão aqui: o Lucas vai redesenhá-los.
+Os harnesses ainda não estão aqui: o Lucas vai escrevê-los em `experiment/harnesses/N1/` e `N2/` (o script recusa um braço
+sem a pasta, ou com mudança não commitada).
 
 ## Como a correção é feita
 
-Desde 15/10/2026, a correção é feita pela **IA junto com o Lucas**, lendo o código com uma rubrica. Ela julga
-quatro dimensões (17/10/2026): a **arquitetura**, a **implementação dos padrões**, a **cobertura e a qualidade dos
-testes** e a **qualidade do banco** (as ligações entre as entidades, os relacionamentos, a organização). As
-réguas estão em `evaluation/judge/rubric/`, em markdown: a IA lê a régua de uma dimensão, interpreta o código e
-responde item por item com evidência, sem script; o [protocolo](evaluation/judge/PROTOCOLO.md) diz o que o sustenta
-e o que falta antes de valer. As ferramentas abaixo são material dessa leitura, não nota:
-- **a suíte** (`evaluation/reference/`): a mesma prova para todos os serviços (o resumo, o ciclo do pedido, o
-  reinício, as duas máquinas, a concorrência). A correção do desenho não lê o resultado dela; a foto do esquema que o
-  banco do agente criou é o material do banco (`database-schema.json`: as tabelas, as colunas com tipo e nulo, as restrições e os
-  índices);
+Desde 17/10/2026, a correção é a mesma da manutenção: a **IA corrige sozinha e às cegas**, uma dimensão por
+conversa, e responde em texto, com uma linha de conclusão por item. São cinco dimensões: a **arquitetura**, a
+**implementação dos padrões**, a **cobertura e a qualidade dos testes**, a **qualidade do banco** e o
+**comportamento**, em que a IA sobe um PostgreSQL, uma TransLog falsa e o serviço, e testa ela mesma pela API. As
+réguas estão em `evaluation/judge/rubric/`; o `evaluation/judge/judge_with_agent.py` monta as cópias às cegas e roda
+a IA no Docker, em lote; o [protocolo](evaluation/judge/PROTOCOLO.md) diz o que o sustenta. As ferramentas abaixo são
+material dessa leitura, não nota:
+- **a foto do banco** (`evaluation/measures/photograph_database.py`): o esquema que o serviço do agente cria num
+  PostgreSQL limpo (`database-schema.json`: as tabelas, as colunas com tipo e nulo, as restrições e os índices);
 - **o PIT** (`evaluation/measures/`): a cobertura de linhas e quantos erros os testes do agente pegam;
 - **o relatório de arquitetura** (`evaluation/measures/`): os pacotes, as dependências entre eles e os ciclos,
   lidos pelo ArchUnit.
@@ -67,22 +67,26 @@ Windows, o padrão seria o cp1252). Os dois são ferramentas de desenvolvimento,
 ## Comandos (a partir desta pasta)
 
 ```bash
-python infra/scripts/run_pilot_without_harness.py OPUS55-N0-04 claude-opus-5-5 medium --dry-run
+python infra/scripts/run_one_execution.py pilots-2 N0 claude-haiku-4-5 medium --dry-run
 ```
 
 ```bash
-python evaluation/reference/run_suite_against_service.py runs/pilots/OPUS55-N0-04/workspace runs/pilots/OPUS55-N0-04/suite
+python evaluation/measures/measure_test_quality.py runs/pilots-2 analysis/pilots-2/pit.csv
 ```
 
 ```bash
-python evaluation/measures/measure_test_quality.py runs/pilots analysis/pilots/pit.csv
+python evaluation/measures/report_architecture.py runs/pilots-2
 ```
 
 ```bash
-python evaluation/measures/report_architecture.py runs/pilots
+python evaluation/measures/photograph_database.py runs/pilots-2/N0-haiku-4-5/workspace runs/pilots-2/N0-haiku-4-5/database
+```
+
+```bash
+python evaluation/judge/judge_with_agent.py pilots-2 claude-opus-5-5 high --dry-run
 ```
 
 O `--dry-run` faz todas as conferências e mostra os comandos do Docker sem rodar o agente; sem ele,
-o piloto roda de verdade. Fora do git: o `target/` de cada build e o `classpath.txt` da suíte. O
+a execução roda de verdade. Fora do git: o `target/` de cada build e o `classpath.txt` da suíte. O
 token da assinatura é o mesmo do V5 (`../construction-v5/.env`), que o Docker lê pelo `--env-file`; o
-`run_pilot_without_harness.py` só confere se ele existe, sem imprimir o valor.
+script só confere se ele existe, sem imprimir o valor.

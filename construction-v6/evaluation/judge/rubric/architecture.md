@@ -30,7 +30,9 @@ dependências de classe que fecham o círculo e diga por qual dependência ele f
 de dado** compartilhado (um record, um enum, um evento), que poderia mudar de pacote sem mudar o desenho, é leve. Um
 ciclo que fecha por **comportamento** (serviços ou regras de pacotes diferentes chamando uns aos outros nos dois
 sentidos, inclusive listeners que se ouvem nos dois sentidos) é estrutural, e é o que pesa. Se o relatório não tem
-nenhum grupo, diga isso.
+nenhum grupo, diga isso. A conclusão vem do pior laço: `segue` sem ciclo, `em parte` quando todos os ciclos fecham
+por tipo de dado, e `não segue` quando há um laço que fecha por comportamento (**um só já basta**, mesmo que o resto
+do grupo seja leve).
 
 **A3, o controller só traduz?** O controller deveria receber a requisição, chamar a regra de negócio e traduzir o
 resultado (ou a recusa) para HTTP, sem decidir nada do negócio. É problema um controller fazer conta, decidir uma

@@ -7,9 +7,9 @@ Duas ferramentas da correção, que rodam numa cópia do projeto do agente:
 - **o relatório de arquitetura** (ArchUnit): os pacotes, as dependências entre eles e os ciclos, para a
   leitura da IA. Não é nota: o que um ciclo significa é a IA quem decide.
 
-Elas ficam ao lado da suíte (a correção, em `../reference/`). A correção julga quatro dimensões (a
-arquitetura, os padrões, os testes e o banco) e é feita pela **IA junto com o Lucas**, lendo o código; estas
-ferramentas são material dessa leitura (decisões de 15/10 e 17/10/2026, nas notas).
+A correção (em `../judge/`) julga cinco dimensões (a arquitetura, os padrões, os testes, o banco e o
+comportamento), feita pela IA sozinha e às cegas; estas ferramentas, e a foto do banco
+(`photograph_database.py`), são material dessa leitura (decisões de 15/10 e 17/10/2026, nas notas).
 
 As duas nunca tocam no workspace do agente: trabalham numa **cópia**, dentro da imagem travada
 (`experimento-harness:v5`, a mesma do build), com os arquivos entrando e saindo por `tar` e as
