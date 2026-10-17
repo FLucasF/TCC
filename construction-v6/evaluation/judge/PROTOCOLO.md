@@ -88,8 +88,10 @@ Um item em que as conclusões divergem muito é reescrito (e as provas rodam de 
 - Sobre o risco de **um Claude corrigir código de Claude**: está declarado. Se a banca pedir, uma amostra pode ser
   corrigida também por uma IA de outra família, com as mesmas réguas, e a concordância entra no texto.
 - **As réguas não podem estar nos braços do harness.** Se um braço receber uma skill ou uma regra com as mesmas
-  práticas da régua, a correção premia quem recebeu a própria régua. Os harnesses N1 a N3 ainda vão ser
-  redesenhados; quando forem, isso se confere ou se declara.
+  práticas da régua, a correção premia quem recebeu a própria régua. Conferido nos harnesses N1 e N2 (17/10/2026):
+  os dois itens que repetiam perguntas da régua (o sistema de fora, o P6; os testes conferindo valores, o T2) saíram
+  antes de qualquer execução. Ficam os dois princípios dos padrões, que são a hipótese do estudo e se declaram no
+  texto (`experiment/harnesses/README.md`).
 
 ## 6. O congelamento
 

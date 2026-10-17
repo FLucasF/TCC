@@ -19,8 +19,16 @@ Adaptado do da manutenção (decisão do Lucas, 17/10/2026), com as mesmas ideia
 mudança (ler o código que a mudança toca, mudar só o que o pedido precisa) pelo que é de construção. Curto de
 propósito, como a Anthropic recomenda, e sem nomear nenhum pattern (isso fica para a skill do N2). Fala dos dois
 lados do que se mede: dar a cada caso um lugar seu quando os casos crescem, e não criar estrutura para uma variação
-que ninguém pediu. Os dois itens a mais tocam as dimensões que a manutenção não mede: o sistema de fora (a
-TransLog, o ponto do Adapter) e os testes.
+que ninguém pediu.
+
+**A régua fica fora do harness** (decisão do Lucas, 17/10/2026). A primeira versão tinha mais dois itens: "os termos e
+as unidades do sistema de fora ficam numa peça só, do lado dele" e "teste o que o enunciado pede, conferindo os
+valores". Eram quase as perguntas da correção no P6 (o Adapter) e no T2 (as asserções conferem valores?), e o
+enunciado de propósito não pede testes: com eles, a correção premiaria quem recebeu a própria pergunta. Saíram antes
+de qualquer execução. Ficam só os dois princípios, que são a hipótese do estudo, e não uma dica da prova: eles não
+nomeiam pattern, caso nem ponto do enunciado. Com isso, o Adapter só pode melhorar pela skill do N2, e os testes, o
+banco, a arquitetura e o comportamento medem se um harness voltado aos padrões muda o resto, sem dica direta. O
+texto do TCC declara que os princípios do N1 são os mesmos que a régua usa para julgar os padrões.
 
 ## A skill
 
