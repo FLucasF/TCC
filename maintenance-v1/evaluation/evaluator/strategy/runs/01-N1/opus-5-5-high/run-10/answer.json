@@ -1,0 +1,62 @@
+{
+  "cenario": "01",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente usou o próprio enum como estratégia. RatePlan passou a ter dois métodos abstratos, price e refund, e cada uma das cinco constantes (as duas antigas inclusive) traz o seu preço, a sua validação de elegibilidade e a sua devolução no próprio corpo. O switch de desconto do PriceCalculator e o switch de reembolso do ReservationService sumiram: o cálculo e o cancelamento só pedem ao plano. O PriceCalculator ficou com a parte que os planos compartilham, a soma das diárias com a temporada e o arredondamento.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 118,
+      "o_que_mostra": "Métodos abstratos price(...) e refund(...) que cada constante sobrescreve. É o enum usado como Strategy."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 19,
+      "o_que_mostra": "STANDARD, um dos planos antigos, agora tem corpo próprio com preço sem desconto e devolução integral."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 47,
+      "o_que_mostra": "CORPORATE guarda no próprio corpo o mapa de descontos por empresa (Tecnosul 12%, Agrovale 18%, Farmavida 25%) e recusa código ausente ou desconhecido com INVALID_REQUEST (linhas 55-59)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 80,
+      "o_que_mostra": "A validação de sexta a domingo, com exatamente 2 noites, fica dentro de WEEKEND_PACKAGE e não no serviço. O preço fechado por tipo de quarto ignora a temporada (linhas 72-75 e 87-88), e a devolução é de metade (linha 93)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 104,
+      "o_que_mostra": "A exigência de 7 noites ou mais fica dentro de LONG_STAY, com 10% de desconto sobre as diárias que já incluem a temporada (linha 109)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 24,
+      "o_que_mostra": "calculate só delega para ratePlan.price(...), sem switch. O switch de desconto que existia em base/src/main/java/hotel/reservations/PriceCalculator.java:26-29 foi removido."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 27,
+      "o_que_mostra": "nightlySubtotal é a peça comum (soma das diárias com a temporada) que os planos usam, e ela não decide nada pelo plano."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 87,
+      "o_que_mostra": "O cancelamento chama reservation.ratePlan().refund(...). O switch de reembolso que existia em base/src/main/java/hotel/reservations/ReservationService.java:86-89 foi removido."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 49,
+      "o_que_mostra": "A criação da reserva passa o companyCode ao cálculo sem perguntar qual é o plano. O serviço não tem nenhum if sobre ratePlan."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "Rodei mvn -q verify numa cópia da final/ e ele terminou com código 0. Os testes novos conferem os exemplos do pedido: Tecnosul deluxe com 779,80 de diárias, 93,58 de desconto e 686,22 de total; pacote deluxe a 820,00 com devolução de 410,00; estadia longa com 1.749,30 de diárias, 174,93 de desconto e 1.574,37 de total. Também conferem as recusas do convênio sem código ou com código desconhecido, do pacote fora de sexta a domingo e da estadia longa com menos de 7 noites. No código, os percentuais e os preços fechados (520, 820 e 1.200) conferem com o pedido. O pacote não aplica a temporada. Convênio e estadia longa devolvem tudo. STANDARD e NON_REFUNDABLE mantêm 0% com devolução integral e 15% sem devolução. As recusas usam ErrorCode.INVALID_REQUEST, que o HttpApi já mapeava para 400. O companyCode é ignorado nos outros planos."
+  },
+  "duvidas": "Tenho duas ressalvas pequenas, e nenhuma muda a classe. A primeira é que a assinatura comum price(..., String companyCode, ...) em RatePlan.java:118-119 leva a todos os planos um parâmetro que só o convênio usa. Um plano futuro que precise de outro dado da reserva vai obrigar a mudar a assinatura dos cinco. Não é um switch de comportamento fora do plano, então ainda conta como acerto. A segunda é que a validação de elegibilidade foi feita dentro de price(), sem um método validate separado. A regra continua no lugar do plano, mas só roda depois da checagem de disponibilidade do quarto, e isso afeta apenas qual erro aparece primeiro."
+}

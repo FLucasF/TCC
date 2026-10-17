@@ -7,9 +7,11 @@ braços acumulam, como na construção (decisão do Lucas, 15/10/2026):
 |---|---|---|
 | **N0** | só a base e o pedido | nenhuma |
 | **N1** | o `CLAUDE.md` | `N1/` |
-| **N2** | o mesmo `CLAUDE.md`, byte a byte, e a skill `gof-patterns` | `N2/` |
+| **N2** | o `CLAUDE.md` do N1 com uma linha a mais, mandando consultar a skill, e a skill `gof-patterns` | `N2/` |
 
-Manter o `CLAUDE.md` igual no N1 e no N2 é o que permite atribuir à skill a diferença entre os dois.
+O `CLAUDE.md` do N2 é o do N1, intacto, com um item a mais no fim: "Antes de decidir a estrutura da mudança,
+consulte a skill `gof-patterns`." A diferença entre o N1 e o N2 é, então, a skill **e** a instrução de
+consultá-la; as duas não se separam (veja abaixo por quê).
 
 ## O `CLAUDE.md`
 
@@ -37,9 +39,19 @@ Ela fala de quando usar cada pattern e de quando não usar (a seção "Anti-Patt
 cada pattern). Pode ajudar nos cenários que pedem o pattern e nos controles negativos, ou empurrar para o
 exagero: os dados vão dizer.
 
-**A skill só age se o agente a usar.** O Claude Code decide sozinho se abre a skill, pela descrição dela. A
-transcrição de cada execução mostra se ela foi lida, e isso precisa ser anotado: uma execução do N2 em que a
-skill nunca foi aberta é, na prática, um N1.
+**A skill só age se o agente a usar.** O Claude Code não lê a skill sozinho: no começo, o agente recebe só o nome
+e a descrição dela, e o conteúdo só entra se o próprio modelo decidir chamá-la. A descrição da `gof-patterns`
+fala de "escolher design patterns" e de "decisões de arquitetura", e os pedidos daqui, na voz do dono da
+pousada, nunca falam disso. O resultado:
+
+- no cenário 01, com o `CLAUDE.md` igual ao do N1, **nenhum dos 11 agentes do N2 abriu a skill** (16/10/2026);
+- na construção, a mesma skill **nunca foi aberta**: 0 de 55 execuções do N2 e 0 de 55 do N3, no
+  `construction-v5`.
+
+Por isso, desde 17/10/2026 (decisão do Lucas), o `CLAUDE.md` do N2 manda consultar a skill. As 11 execuções do
+N2 sem a linha ficam guardadas como registro de que a skill disponível não é usada espontaneamente. A transcrição
+de cada execução continua dizendo se a skill foi aberta (`skill_opened` no `meta.json`): uma execução do N2 sem a
+skill aberta é, na prática, um N1.
 
 Não mexa em nada desta pasta depois que as execuções começarem: é ela que identifica o que cada execução
 recebeu.

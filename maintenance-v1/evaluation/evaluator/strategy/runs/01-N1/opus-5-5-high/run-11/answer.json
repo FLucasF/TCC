@@ -1,0 +1,52 @@
+{
+  "cenario": "01",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente usou o próprio enum como estratégia. RatePlan passou a ter três métodos abstratos (validate, price, refund), e cada uma das cinco constantes, inclusive STANDARD e NON_REFUNDABLE, sobrescreve os três no seu próprio corpo. Os dois switch de comportamento da base (desconto em PriceCalculator.calculate e reembolso em ReservationService.cancel) sumiram: o cálculo, a validação e o cancelamento pedem ao plano, sem nomear nenhum. Um plano novo agora é só uma constante nova em RatePlan.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 128,
+      "o_que_mostra": "Métodos abstratos validate, price (l.130) e refund (l.134): o contrato da estratégia, que cada constante implementa"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 17,
+      "o_que_mostra": "STANDARD, um plano antigo, tem o seu próprio corpo: valida sem restrição, preço sem desconto, devolve amountPaid. NON_REFUNDABLE faz o mesmo logo abaixo, com 15% e reembolso zero"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlan.java",
+      "linha": 77,
+      "o_que_mostra": "WEEKEND_PACKAGE junta no mesmo lugar a regra de sexta a domingo (l.80), o preço fechado (l.87) e a devolução de metade (l.94). O switch da l.99 é sobre o tipo de quarto, dentro do plano, e não sobre o plano"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 26,
+      "o_que_mostra": "calculate só delega para ratePlan.price(...). O switch de desconto da base (base/src/main/java/hotel/reservations/PriceCalculator.java:26) virou nightlyPrice, que recebe a taxa como parâmetro e não decide pelo plano (l.30-38)"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 88,
+      "o_que_mostra": "O cancelamento pede reservation.ratePlan().refund(...). O switch da base (base/src/main/java/hotel/reservations/ReservationService.java:86) foi removido"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 34,
+      "o_que_mostra": "A validação das regras do plano é delegada a request.ratePlan().validate(...), sem nenhum if por plano no serviço"
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/CorporateAgreement.java",
+      "linha": 7,
+      "o_que_mostra": "As empresas do convênio e as suas porcentagens ficam num enum de dados, que só o CORPORATE usa (RatePlan.java:57 e 66)"
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "Rodei mvn -q verify numa cópia da final/: saiu com código 0 e 36 testes, nenhuma falha (ReportsTest 5, PriceCalculatorTest 9, ReservationServiceTest 17, HttpApiTest 5). Pela leitura do código: Tecnosul 12%, Agrovale 18%, Farmavida 25% (CorporateAgreement.java:8-10). Convênio sem código ou com código desconhecido dá INVALID_REQUEST (RatePlan.java:57-60), que a API devolve como 400. O pacote exige entrada na sexta e saída dois dias depois (RatePlan.java:80), tem preço fechado de 520/820/1200 sem temporada e sem desconto (l.88-103) e devolve metade do pago (l.95). A estadia longa exige 7 noites ou mais (l.111) e dá 10% sobre as diárias com a temporada valendo (l.118). Convênio e estadia longa devolvem tudo. Os dois planos antigos têm os mesmos valores e reembolsos da base. Os exemplos do pedido (686,22; 820,00 e 410,00; 1.574,37) estão cobertos por testes que passam. companyCode é ignorado nos outros planos."
+  },
+  "duvidas": "Nenhuma dúvida sobre a classe. Duas observações menores de desenho. (1) As assinaturas de validate e price recebem companyCode em todos os planos, embora só o CORPORATE o use, e price recebe o PriceCalculator como colaborador; é um contrato um pouco largo, mas não é switch de comportamento. (2) Quem chamar a sobrecarga PriceCalculator.calculate de 4 argumentos (PriceCalculator.java:20) com CORPORATE leva um NoSuchElementException em RatePlan.java:66 (orElseThrow), e não um INVALID_REQUEST. Pelo fluxo normal isso não acontece, porque validate roda antes (ReservationService.java:34)."
+}

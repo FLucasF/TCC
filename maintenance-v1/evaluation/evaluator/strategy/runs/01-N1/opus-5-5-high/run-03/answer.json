@@ -1,0 +1,67 @@
+{
+  "cenario": "01",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente criou a interface RatePlanStrategy, com preço, validação e reembolso, e fez uma implementação para cada um dos cinco planos, os dois antigos inclusive. A implementação é escolhida num único mapa RatePlan -> estratégia. Os dois switch de comportamento da base (o desconto em PriceCalculator.calculate e o reembolso em ReservationService.cancel) sumiram: o cálculo, a criação e o cancelamento pedem ao plano, sem nomear nenhum. As regras de quem pode usar cada plano (sexta a domingo, 7 noites, código da empresa) estão dentro da estratégia de cada um.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlanStrategy.java",
+      "linha": 7,
+      "o_que_mostra": "Interface com os três comportamentos de um plano: price, validate e refund (linhas 8 a 10)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/RatePlanStrategies.java",
+      "linha": 7,
+      "o_que_mostra": "Único ponto de seleção: um Map.of de RatePlan para estratégia com os cinco planos, sem switch de comportamento."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/StandardStrategy.java",
+      "linha": 7,
+      "o_que_mostra": "O plano antigo STANDARD também virou estratégia: sem desconto, sem validação, devolve amountPaid."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/NonRefundableStrategy.java",
+      "linha": 9,
+      "o_que_mostra": "O NON_REFUNDABLE também virou estratégia: 15% de desconto, e o reembolso zero (linha 28) saiu do switch do serviço."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 23,
+      "o_que_mostra": "calculate só delega para RatePlanStrategies.get(ratePlan).price(...). O switch de desconto da base (base/src/main/java/hotel/reservations/PriceCalculator.java:26) foi removido."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 87,
+      "o_que_mostra": "cancel pede o reembolso à estratégia. O switch de reembolso da base (base/src/main/java/hotel/reservations/ReservationService.java:86) foi removido."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 49,
+      "o_que_mostra": "create chama validate da estratégia, sem nenhum if sobre o plano no serviço."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/CorporateStrategy.java",
+      "linha": 29,
+      "o_que_mostra": "A recusa do convênio sem código, ou com código fora da lista, fica dentro da estratégia e lança INVALID_REQUEST. Os descontos por empresa estão no mapa das linhas 10 a 13."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/WeekendPackageStrategy.java",
+      "linha": 26,
+      "o_que_mostra": "A regra sexta -> domingo seguinte fica na estratégia. O preço fechado por tipo de quarto está nas linhas 12 a 15 e a devolução de metade na linha 34."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/LongStayStrategy.java",
+      "linha": 28,
+      "o_que_mostra": "O mínimo de 7 noites fica na estratégia. O desconto de 10% (linha 22) é calculado sobre nightPrice, que inclui a temporada."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "mvn -q verify passou numa cópia da final/: 38 testes, nenhuma falha (PriceCalculatorTest 8, ReservationServiceTest 21, ReportsTest 5, HttpApiTest 4). As regras conferem com o pedido. Tecnosul 12%, Agrovale 18% e Farmavida 25%. Convênio sem código ou com código desconhecido dá INVALID_REQUEST, que o HttpApi já transforma em 400. O pacote exige entrada na sexta e saída dois dias depois; custa 520/820/1200 pelo tipo de quarto, sem temporada e sem desconto; devolve metade do valor pago, ou seja 0 quando a reserva ainda está pendente. A estadia longa exige 7 noites ou mais e dá 10% com a temporada valendo. Convênio e estadia longa devolvem tudo. Os testes conferem os exemplos do pedido: 779,80/93,58/686,22, 820,00 e 410,00, 1.749,30/174,93/1.574,37. STANDARD e NON_REFUNDABLE mantêm a regra de antes. O companyCode é ignorado pelos outros planos."
+  },
+  "duvidas": "Não mudam a classe, mas vale registrar. (1) O laço que soma as diárias foi copiado em quatro estratégias (Standard, NonRefundable, Corporate, LongStay) em vez de ficar num só lugar. É duplicação, mas não há decisão sobre o plano fora do plano. (2) A sobrecarga PriceCalculator.calculate(room, checkIn, checkOut, ratePlan), que passa companyCode null, dá NullPointerException para CORPORATE: Map.of.get(null) lança essa exceção (CorporateStrategy.java:23). O serviço não é afetado porque valida antes de calcular (ReservationService.java:49-50); só quem chamar o cálculo direto passa por isso. (3) A validação do plano roda depois da checagem de disponibilidade do quarto, então um pedido que falha nas duas regras recebe ROOM_UNAVAILABLE em vez de INVALID_REQUEST. É uma escolha de ordem, o pedido não fala disso."
+}

@@ -325,7 +325,9 @@ def evaluate_runs(scenario: str, arm: str, model: str, effort: str, workers: int
         verdict = "" if not ours else ("sim" if given == ours else "NÃO")
         lines.append(f"| {case.code} | {case.run_folder.name} | {given} | {ours} | {verdict} |")
     costs = [result["cost_usd"] for result in results if result["cost_usd"] is not None]
-    lines += ["", f"**{agreements} de {len(cases)}** iguais à nossa leitura. Custo: US$ {sum(costs):.2f}."]
+    comparison = (f"**{agreements} de {len(cases)}** iguais à nossa leitura." if reading
+                  else "Sem leitura nossa para comparar.")
+    lines += ["", f"{comparison} Custo: US$ {sum(costs):.2f}."]
     text = LINE_BREAK.join(lines) + LINE_BREAK
     (output_folder / "summary.md").write_text(text, encoding="utf-8")
     print(text)

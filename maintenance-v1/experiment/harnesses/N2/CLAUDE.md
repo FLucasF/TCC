@@ -10,3 +10,4 @@
 - Mude só o que o pedido precisa. Não reorganize partes do código que o pedido não toca.
 - O comportamento que o pedido não mudou continua igual. Ajuste os testes do que mudou de propósito, teste o que
   é novo e termine com o `mvn verify` passando.
+- Antes de decidir a estrutura da mudança, consulte a skill `gof-patterns`.

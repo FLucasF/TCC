@@ -1,0 +1,72 @@
+{
+  "cenario": "01",
+  "tipo": "pede_pattern",
+  "classe": "acerto",
+  "resumo": "O agente criou a interface RatePlanPolicy com validate, price e refund, e escreveu uma implementação para cada um dos cinco planos, os dois antigos inclusive. Um registro EnumMap é o único ponto que escolhe o plano. Os dois switch de comportamento da base (desconto em PriceCalculator e reembolso em ReservationService.cancel) sumiram. Hoje o cálculo, a criação e o cancelamento pedem a resposta à política, sem citar nenhum plano pelo nome, e as regras de quem pode usar cada plano (código da empresa, sexta a domingo, 7 noites) ficam dentro da política do próprio plano.",
+  "evidencias": [
+    {
+      "arquivo": "src/main/java/hotel/reservations/rateplans/RatePlanPolicy.java",
+      "linha": 19,
+      "o_que_mostra": "A interface da estratégia junta validate (linha 16, que por padrão aceita tudo), price (linha 19) e refund (linha 22, que por padrão devolve tudo o que foi pago)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/rateplans/RatePlanPolicies.java",
+      "linha": 13,
+      "o_que_mostra": "O EnumMap liga cada um dos cinco planos à sua implementação (linhas 13 a 17). É o único ponto de seleção."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/rateplans/StandardPolicy.java",
+      "linha": 13,
+      "o_que_mostra": "O plano antigo STANDARD foi para uma classe própria: desconto zero, e o reembolso fica no padrão da interface."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/rateplans/NonRefundablePolicy.java",
+      "linha": 19,
+      "o_que_mostra": "O plano antigo NON_REFUNDABLE também foi para uma classe própria: 15% de desconto (linha 15) e reembolso zero."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 34,
+      "o_que_mostra": "O calculate só delega para a política do plano. Não sobrou switch no cálculo. A base tinha o switch em base/src/main/java/hotel/reservations/PriceCalculator.java:26."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/PriceCalculator.java",
+      "linha": 52,
+      "o_que_mostra": "nightlyPlanPrice recebe a fração de desconto da política e não decide nada pelo plano. É um auxiliar neutro de cálculo."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 63,
+      "o_que_mostra": "Na criação, o serviço pede à política que valide (linha 63) e que calcule o preço (linha 64), sem nenhum if sobre o plano."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/ReservationService.java",
+      "linha": 101,
+      "o_que_mostra": "O cancelamento pede o reembolso à política. Isso substitui o switch da base, em base/src/main/java/hotel/reservations/ReservationService.java:86."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/rateplans/CorporatePolicy.java",
+      "linha": 21,
+      "o_que_mostra": "A recusa do convênio sem código, ou com um código desconhecido, fica dentro da política. O mapa TECNOSUL 0.12, AGROVALE 0.18 e FARMAVIDA 0.25 está nas linhas 14 a 17."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/rateplans/WeekendPackagePolicy.java",
+      "linha": 25,
+      "o_que_mostra": "A validação de sexta a domingo, exatamente duas noites, fica na política. O preço fechado por tipo de quarto vai sem temporada nem desconto (linhas 35 e 36), e o reembolso é metade (linha 41)."
+    },
+    {
+      "arquivo": "src/main/java/hotel/reservations/rateplans/LongStayPolicy.java",
+      "linha": 20,
+      "o_que_mostra": "A exigência de pelo menos 7 noites fica na política. O desconto é de 10% sobre o subtotal com temporada (linha 29), e o reembolso é o padrão, ou seja, tudo."
+    }
+  ],
+  "exagero_colateral": {
+    "houve": false,
+    "evidencias": []
+  },
+  "comportamento": {
+    "situacao": "certo",
+    "observacoes": "Rodei mvn -q verify numa cópia da final/ e terminou com código 0: 32 testes, nenhuma falha (ReportsTest 5, ReservationServiceTest 14, PriceCalculatorTest 9, HttpApiTest 4). Há testes novos para os exemplos do financeiro: 779,80, 93,58 e 686,22 no convênio Tecnosul; 820,00 com reembolso de 410,00 no pacote; 1.749,30, 174,93 e 1.574,37 na estadia longa. Também há testes para as recusas: convênio sem código ou com ACME, pacote fora de sexta a domingo, estadia longa com 6 noites. Pela leitura do código, as recusas usam ErrorCode.INVALID_REQUEST, e o companyCode vem do HttpApi (HttpApi.java:135). Os outros planos ignoram esse código. Os dois planos antigos mantêm 15% e reembolso zero, e o standard mantém o reembolso total. Ponto pequeno: PriceCalculator.calculate(room, checkIn, checkOut, ratePlan) (PriceCalculator.java:29-30) monta o pedido com companyCode nulo. Chamado com CORPORATE, ele chega a Map.of().get(null) em CorporatePolicy.java:30 e lança NullPointerException. O fluxo real valida antes de calcular e não passa por aí; hoje esse caminho só é usado pelos testes antigos."
+  },
+  "duvidas": "Nenhuma dúvida sobre a classe. Duas observações pequenas, nenhuma muda a classe. Primeira: as políticas recebem o PriceCalculator como colaborador, e para isso ele ganhou métodos públicos (nights, subtotal, nightlyPlanPrice e nightPrice, além de isHighSeason e cents, que viraram públicos); nenhum deles decide pelo plano. Segunda: os construtores novos que recebem RatePlanPolicies, em PriceCalculator.java:24 e ReservationService.java:27, servem de injeção do próprio registro do pattern, e por isso não contei como exagero colateral. O agente também apagou os comentários Javadoc das constantes de RatePlan.java."
+}
