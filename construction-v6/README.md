@@ -24,8 +24,9 @@ execução que vale).
 | `runs/pilots/` | os pilotos: uma pasta por execução, com a transcrição, o build, os resultados da suíte e o relatório de arquitetura |
 | `analysis/` | os resultados das medidas, por lote (`analysis/pilots/`: o PIT dos 8 pilotos) |
 
-Os harnesses ainda não estão aqui: o Lucas vai escrevê-los em `experiment/harnesses/N1/` e `N2/` (o script recusa um braço
-sem a pasta, ou com mudança não commitada).
+Os harnesses estão em `experiment/harnesses/` ([README](experiment/harnesses/README.md)): o N1 é um `CLAUDE.md` curto, e o
+N2 é o mesmo com uma linha que manda consultar a skill `gof-patterns`, que vai junto (o script recusa um braço com
+mudança não commitada).
 
 ## Como a correção é feita
 
