@@ -24,7 +24,8 @@ from pathlib import Path
 REFERENCE = Path(__file__).resolve().parent
 DATABASE_CONTAINER = "suite-postgres"
 DATABASE_PORT = 55432
-DATABASE_IMAGE = "postgres:16-alpine"
+# the PostgreSQL the prompt asks for (18), pinned by digest so the tag moving does not change the suite (17/10/2026)
+DATABASE_IMAGE = "postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873"
 # a throwaway database for the suite: these are test values, not a secret
 DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD = "shop", "postgres", "suite"
 DATABASE_START_TIMEOUT_SECONDS = 60
@@ -83,10 +84,12 @@ SCHEMA_QUERIES = {
         FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
         LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
         WHERE c.relkind IN ('r', 'p') AND a.attnum > 0 AND NOT a.attisdropped AND {APPLICATION_SCHEMAS}""",
+    # PostgreSQL 18 also lists each NOT NULL here (type 'n'): left out, the columns already say it ("nullable")
     "constraints": f"""SELECT coalesce(json_agg(json_build_object('table', c.conrelid::regclass::text,
         'name', c.conname, 'type', c.contype, 'definition', pg_get_constraintdef(c.oid))
         ORDER BY c.conrelid::regclass::text, c.conname),
-        '[]') FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE {APPLICATION_SCHEMAS}""",
+        '[]') FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace
+        WHERE c.contype <> 'n' AND {APPLICATION_SCHEMAS}""",
     # every index, unique or not: a foreign key without an index is read from here
     "indexes": f"""SELECT coalesce(json_agg(json_build_object('table', t.relname, 'name', i.relname,
         'definition', pg_get_indexdef(i.oid), 'unique', x.indisunique) ORDER BY t.relname, i.relname), '[]')

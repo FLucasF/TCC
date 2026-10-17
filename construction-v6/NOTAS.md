@@ -603,8 +603,10 @@ feito, na ordem combinada com o Lucas:
   (o ponto e vírgula do comentário parecia o fim do comando anterior): no Opus-03, 1 asserção ficou. **Corrigido**
   (o Lucas pediu "corrija tudo"): os comentários saem antes da busca (`without_comments`), e a validação do PIT rodou
   de novo (os números estão no README das medidas).
-- **O enunciado pede o PostgreSQL 18, e a suíte sobe o 16** (`postgres:16-alpine`). Não mexi: é para o Lucas
-  decidir qual dos dois muda.
+- **O enunciado pede o PostgreSQL 18, e a suíte subia o 16.** **Corrigido do lado da suíte**, para não mudar o
+  enunciado que os agentes recebem: `postgres:18.6-alpine`, fixado pelo hash. O Opus-03 segue com 463 de 463, e as
+  fotos dos 8 pilotos foram tiradas de novo no 18. O 18 registra cada `NOT NULL` também como restrição (tipo `n`);
+  a foto os deixa de fora, porque as colunas já dizem se aceitam nulo.
 
 **Para o Lucas decidir:**
 - **os gramas no P6**: a régua põe os gramas entre as unidades da TransLog (o Opus-02 converte kg em gramas fora
