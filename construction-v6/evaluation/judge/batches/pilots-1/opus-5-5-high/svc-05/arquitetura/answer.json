@@ -1,0 +1,174 @@
+{
+  "dimensao": "arquitetura",
+  "itens": [
+    {
+      "id": "A1",
+      "resposta": "indeterminado",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "nenhuma classe fora da camada web depende de controller nem usa a API da web de entrada; nenhum pacote de regra (checkout, cupom, entrega, pagamento, clube, acoes) depende de api, só api -> checkout"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/api/PedidosController.java",
+          "linha": 49,
+          "o_que_mostra": "o controller recebe CompraRequest com @RequestBody e passa o mesmo objeto direto ao serviço, sem traduzir nada"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/checkout/CompraRequest.java",
+          "linha": 6,
+          "o_que_mostra": "CompraRequest é o corpo JSON da requisição (cliente aninhado, enums como String, parcelas como Integer anulável), mas mora no pacote checkout e não com o controller"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/checkout/CalculadoraResumo.java",
+          "linha": 62,
+          "o_que_mostra": "o cálculo recebe CompraRequest e ele mesmo converte as Strings cruas (Regiao.de, busca por código, validarBasico na linha 145), ou seja, a tradução da entrada HTTP acontece dentro da regra"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/checkout/PedidoServico.java",
+          "linha": 64,
+          "o_que_mostra": "registrar(CompraRequest) e resumo(CompraRequest) usam o corpo da requisição como entrada do serviço"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/erro/CodigoErro.java",
+          "linha": 4,
+          "o_que_mostra": "o enum de erros de negócio, usado por toda a regra, guarda o código HTTP de cada erro (422, 503, 409, 404)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/erro/CodigoErro.java",
+          "linha": 22,
+          "o_que_mostra": "ESTOQUE_INSUFICIENTE_PAGAMENTO(409) existe só para trocar o HTTP: o código público é o mesmo (linha 39)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/checkout/PedidoServico.java",
+          "linha": 111,
+          "o_que_mostra": "o serviço escolhe a variante 409 do erro de estoque, uma escolha que só muda a resposta HTTP"
+        }
+      ],
+      "observacao": "Fiquei entre atende e nao_atende. A favor de atende: nenhuma classe de regra importa tipo do Spring MVC, ResponseEntity ou o pacote api (o relatório confirma), e a régua define os objetos da API como os records 'quando moram com os controllers', o que não é o caso de CompraRequest. A favor de nao_atende: pelo que o código faz, CompraRequest é o corpo HTTP lido direto por @RequestBody e entregue cru à regra, que faz a tradução das Strings; além disso, o catálogo de erros que a regra lança carrega os códigos HTTP, e PedidoServico.java:111 escolhe um código que só existe para virar 409. Não dá para escolher um lado sem chutar como a régua trata um DTO de requisição posto no pacote do negócio e um enum de erro com status HTTP."
+    },
+    {
+      "id": "A2",
+      "resposta": "sem_ciclos",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "Cycles: 0 group(s), 0 of 10 packages caught in one"
+        }
+      ],
+      "observacao": "Não há grupos em ciclo. As 24 dependências entre pacotes vão todas num sentido só (api -> checkout -> acoes/cupom/entrega/pagamento/clube -> persistencia/erro -> dominio)."
+    },
+    {
+      "id": "A3",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/api/PedidosController.java",
+          "linha": 55,
+          "o_que_mostra": "registrar só chama servico.registrar e traduz para 201 + PedidoResposta"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/api/PedidosController.java",
+          "linha": 65,
+          "o_que_mostra": "pagar só desembrulha o corpo e chama servico.pagar; prazo de 48 h, estoque e transição ficam em PedidoServico.java:92-116"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/api/PedidosController.java",
+          "linha": 81,
+          "o_que_mostra": "cancelar só delega; a regra de quando cancelar está em PedidoServico.java:142-154"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/api/PedidosController.java",
+          "linha": 86,
+          "o_que_mostra": "consulta de produto vai direto ao repositório; o controller só transforma 'não achou' em PRODUTO_NAO_ENCONTRADO"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/api/PedidosController.java",
+          "linha": 103,
+          "o_que_mostra": "marcar aviso como lido vai direto ao repositório (AvisoRepositorio.java:40), sem decisão no controller"
+        }
+      ],
+      "observacao": "Nenhum controller faz conta, decide uma recusa do negócio, muda a situação do pedido ou mexe no estoque. A ressalva é que as consultas de produto, cliente e avisos e a leitura do aviso (linhas 84-108) pulam o serviço e chamam os repositórios direto, e o controller lança os erros de 'não encontrado'. Isso é consulta e tradução para 404, não regra de negócio."
+    },
+    {
+      "id": "A4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/persistencia/PedidoRepositorio.java",
+          "linha": 28,
+          "o_que_mostra": "SQL do pedido via JdbcClient fica no repositório"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/persistencia/ProdutoRepositorio.java",
+          "linha": 64,
+          "o_que_mostra": "a baixa de estoque com SELECT ... FOR UPDATE fica no repositório; o serviço só chama produtos.baixarEstoque (PedidoServico.java:109)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/persistencia/Inicializador.java",
+          "linha": 42,
+          "o_que_mostra": "o único uso de Connection/ScriptUtils (criar o esquema) também está no pacote de persistência"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/cupom/BemVindo10.java",
+          "linha": 26,
+          "o_que_mostra": "a regra do cupom pergunta ao PedidoRepositorio (possuiCompraConfirmada) em vez de montar SQL"
+        },
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "acoes, checkout e cupom chegam aos dados só pela dependência para persistencia"
+        }
+      ],
+      "observacao": "Um grep por jdbc/SELECT/UPDATE/INSERT fora de persistencia não achou nada. Parte da regra acaba dentro do SQL (as situações que contam como compra em PedidoRepositorio.java:105, a checagem de estoque em ProdutoRepositorio.java:66), mas ela fica nas classes de acesso a dados."
+    },
+    {
+      "id": "A5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/checkout/PedidoServico.java",
+          "linha": 61,
+          "o_que_mostra": "o resumo chama calculadora.calcular(compra)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/checkout/PedidoServico.java",
+          "linha": 65,
+          "o_que_mostra": "o registro chama o mesmo calculadora.calcular(compra) e grava esse Resumo no pedido (linha 79)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/checkout/CalculadoraResumo.java",
+          "linha": 62,
+          "o_que_mostra": "um único método calcula todas as etapas, do subtotal até a cobrança"
+        }
+      ],
+      "observacao": "Nenhuma etapa é refeita só num dos fluxos. Depois disso, o pedido só lê o resumo gravado (por exemplo, CreditarClube.java:19 usa resumo().creditoProximaCompra())."
+    },
+    {
+      "id": "A6",
+      "resposta": "misto",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "10 pacotes: por assunto (checkout, cupom, entrega, pagamento, clube, acoes) ao lado de pacotes por camada ou técnica (api, persistencia, dominio, erro)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/persistencia/PedidoRepositorio.java",
+          "linha": 1,
+          "o_que_mostra": "todos os repositórios ficam juntos num pacote de camada, não no assunto de cada um"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/cupom/Cupom.java",
+          "linha": 1,
+          "o_que_mostra": "os cupons ficam num pacote do assunto, com uma classe por cupom"
+        }
+      ],
+      "observacao": "As variações do negócio (cupom, entrega, pagamento, clube, ações pós-pagamento) estão separadas por assunto. Já a web, a persistência, as entidades e os erros estão separados por camada."
+    }
+  ],
+  "resumo": "As dependências estão limpas: não há ciclos, o SQL fica todo em persistencia, o controller só delega e traduz, e o resumo e o pedido usam o mesmo cálculo. As variações do negócio ficam atrás de interfaces (Cupom, ModalidadeEntrega, FormaPagamento, NivelClube, AcaoPagamentoConfirmado). O ponto fraco está na fronteira com a web: o corpo JSON (CompraRequest) entra cru na regra, que faz ela mesma a tradução das Strings, e o enum de erros do negócio carrega os códigos HTTP.",
+  "duvidas": "A1: não sei se a régua conta como 'objeto da API do projeto' um record de requisição que mora no pacote do negócio (checkout), nem se um enum de erro de negócio com o status HTTP embutido conta como depender de 'códigos HTTP'. Por isso respondi indeterminado em vez de escolher."
+}

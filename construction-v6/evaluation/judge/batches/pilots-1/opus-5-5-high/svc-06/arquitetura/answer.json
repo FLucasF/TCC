@@ -1,0 +1,154 @@
+{
+  "dimensao": "arquitetura",
+  "itens": [
+    {
+      "id": "A1",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/exception/PedidoException.java",
+          "linha": 7,
+          "o_que_mostra": "a exceção que a regra de negócio lança guarda um org.springframework.http.HttpStatus (o código HTTP entra na própria recusa do negócio)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/PedidoService.java",
+          "linha": 51,
+          "o_que_mostra": "criarPedido recebe o CheckoutRequestDTO, que é o corpo da requisição de POST /pedidos"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/PedidoService.java",
+          "linha": 101,
+          "o_que_mostra": "o ciclo do pedido decide a recusa já com HttpStatus.CONFLICT (o mesmo nas linhas 85, 112, 154, 171, 183 e 223)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/ResumoPedidoService.java",
+          "linha": 31,
+          "o_que_mostra": "o cálculo recebe o CheckoutRequestDTO e devolve o ResumoDTO, que é o corpo da resposta (ResumoDTO tem @JsonProperty)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/ValidacaoService.java",
+          "linha": 30,
+          "o_que_mostra": "as validações recebem o CheckoutRequestDTO e lançam erros com HttpStatus.UNPROCESSABLE_ENTITY (linha 43 em diante)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/TransLogService.java",
+          "linha": 53,
+          "o_que_mostra": "HttpStatus.SERVICE_UNAVAILABLE na regra que trata a transportadora fora do ar"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/AvisoService.java",
+          "linha": 24,
+          "o_que_mostra": "HttpStatus.NOT_FOUND no serviço de avisos (o mesmo em ClienteService.java:20)"
+        },
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "service -> dto (11 dependências de classe) e service -> exception (5): a regra de negócio depende dos objetos da API e da exceção que carrega o código HTTP"
+        }
+      ],
+      "observacao": "O relatório diz 'none' para a web de entrada porque só procura as anotações do Spring MVC e o ResponseEntity. Mesmo assim, a regra pede 'os códigos HTTP': todas as classes de serviço escolhem o HttpStatus de cada recusa, e com isso a tradução para HTTP acontece dentro da regra de negócio, não na camada web. Os DTOs ficam no pacote dto e não junto com os controllers, mas CheckoutRequestDTO e ResumoDTO são exatamente o corpo da requisição e o da resposta da API, e é com eles que PedidoService, ResumoPedidoService e ValidacaoService trabalham. O ResumoDTO também é guardado no pedido como JSON (PedidoService.java:73)."
+    },
+    {
+      "id": "A2",
+      "resposta": "sem_ciclos",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "'Cycles: 0 group(s), 0 of 6 packages caught in one'"
+        }
+      ],
+      "observacao": "Não há grupos em ciclo. As dependências só seguem num sentido: controller -> service -> repository -> domain, com dto e exception usados por cima."
+    },
+    {
+      "id": "A3",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/controller/CheckoutController.java",
+          "linha": 39,
+          "o_que_mostra": "o controller tem calcularPesoTotal, que lê os produtos do repositório e faz a soma peso × quantidade (linhas 39 a 50)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/controller/CheckoutController.java",
+          "linha": 30,
+          "o_que_mostra": "o controller monta a sequência das recusas do negócio: valida, calcula o peso, confere a entrega, confere o cupom, calcula o resumo e confere o boleto com o totalFinal (linhas 30 a 35)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/controller/CheckoutController.java",
+          "linha": 26,
+          "o_que_mostra": "o controller injeta o ProdutoRepository e lê os dados direto do repositório"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/controller/ProdutoController.java",
+          "linha": 20,
+          "o_que_mostra": "ProdutoController vai ao repositório sem passar por um serviço e ele mesmo monta a recusa PRODUTO_NAO_ENCONTRADO"
+        }
+      ],
+      "observacao": "PedidoController só traduz. Já o CheckoutController faz uma conta do negócio (o peso do pedido, que decide se o motoboy está disponível) e decide a ordem das recusas do resumo. Essa orquestração deveria ficar num serviço, como acontece em PedidoService.criarPedido. O caso do ProdutoController é só uma consulta, então pesa menos."
+    },
+    {
+      "id": "A4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/repository/PedidoRepository.java",
+          "linha": 12,
+          "o_que_mostra": "a única consulta escrita à mão (JPQL) fica num repositório Spring Data"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/repository/AvisoRepository.java",
+          "linha": 12,
+          "o_que_mostra": "a outra consulta @Query também fica no repositório"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/PedidoService.java",
+          "linha": 120,
+          "o_que_mostra": "o serviço chega aos dados só pelos repositórios (findById/save)"
+        }
+      ],
+      "observacao": "Nenhuma classe de regra de negócio usa JDBC, EntityManager ou SQL montado. ResumoPedidoService.java:12 importa @Query mas não usa. O acesso que foge da regra é o de controllers indo direto ao repositório, e isso já entrou no A3."
+    },
+    {
+      "id": "A5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/controller/CheckoutController.java",
+          "linha": 34,
+          "o_que_mostra": "o resumo chama resumoPedidoService.calcularResumo(req)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/PedidoService.java",
+          "linha": 63,
+          "o_que_mostra": "o registro do pedido chama o mesmo resumoPedidoService.calcularResumo(req) e guarda o resultado no pedido (linha 73)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/service/ResumoPedidoService.java",
+          "linha": 31,
+          "o_que_mostra": "um só método faz todas as etapas: subtotal, cupom, frete, prazo, seguro, ajuste, parcelas, crédito e brinde"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/pedidos/controller/CheckoutController.java",
+          "linha": 39,
+          "o_que_mostra": "cópia do cálculo do peso no fluxo do resumo, igual a PedidoService.java:228; ela só alimenta a checagem do motoboy"
+        }
+      ],
+      "observacao": "Os valores do resumo e do pedido saem do mesmo calcularResumo, então atende. Há código duplicado em volta. A sequência de validações aparece duas vezes, uma no CheckoutController (30-35) e outra no PedidoService (53-66), e cada fluxo tem a sua cópia do cálculo do peso (CheckoutController:39 e PedidoService:228, além de ResumoPedidoService:98). Essas cópias decidem recusas, não os valores do resumo, mas podem divergir no futuro. Também há uma terceira soma do subtotal, sem arredondar, em ValidacaoService:155, usada pelos dois fluxos."
+    },
+    {
+      "id": "A6",
+      "resposta": "por_camada",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "pacotes controller, domain, dto, exception, repository e service: cada um é uma camada técnica, nenhum é um assunto do negócio"
+        }
+      ],
+      "observacao": ""
+    }
+  ],
+  "resumo": "Não há ciclos e o acesso a dados fica todo em repositórios Spring Data. Mesmo assim, a regra de negócio está presa à web: todos os serviços lançam recusas com HttpStatus, e o cálculo e as validações trabalham com o CheckoutRequestDTO e o ResumoDTO da API. O resumo e o pedido usam o mesmo calcularResumo, mas o CheckoutController faz conta (o peso) e orquestra as recusas, repetindo a sequência que existe no PedidoService.",
+  "duvidas": "No A1, os DTOs ficam no pacote dto e não junto com os controllers. Respondi nao_atende porque eles são o corpo da requisição e o da resposta, e porque o uso de HttpStatus nos serviços já basta para esse valor. No A5, as cópias do peso e da sequência de validações só afetam as recusas, não os valores, então respondi atende; quem ler 'uma etapa refeita só num dos fluxos' de forma mais ampla pode discordar."
+}

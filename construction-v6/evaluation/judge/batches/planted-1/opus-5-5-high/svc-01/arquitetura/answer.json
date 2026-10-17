@@ -1,0 +1,214 @@
+{
+  "dimensao": "arquitetura",
+  "itens": [
+    {
+      "id": "A1",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/common/ApiException.java",
+          "linha": 11,
+          "o_que_mostra": "a exceção que a regra de negócio lança guarda um org.springframework.http.HttpStatus (import na linha 3); unprocessable/notFound/conflict fixam 422/404/409 (linhas 18, 22, 26)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 155,
+          "o_que_mostra": "o ciclo do pedido recusa a transição com ApiException.conflict, que já traz o 409; o mesmo acontece nas linhas 79, 104 e 171"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/PaymentRejectedException.java",
+          "linha": 12,
+          "o_que_mostra": "a recusa do pagamento (prazo vencido ou falta de estoque) escolhe HttpStatus.CONFLICT"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/shipping/CarrierShippingOption.java",
+          "linha": 39,
+          "o_que_mostra": "a regra do frete pela transportadora escolhe HttpStatus.SERVICE_UNAVAILABLE (import da linha 6); na linha 37, ApiException.unprocessable"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/shipping/CourierShipping.java",
+          "linha": 26,
+          "o_que_mostra": "a regra do motoboy (limite de 5 kg) lança ApiException.unprocessable, que já traz o 422"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/payment/BankSlipPayment.java",
+          "linha": 31,
+          "o_que_mostra": "a regra do boleto acima de R$ 1.000 lança ApiException.unprocessable, que já traz o 422"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/coupon/Coupons.java",
+          "linha": 39,
+          "o_que_mostra": "a recusa do cupom é ApiException.unprocessable, que já traz o 422"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutCalculator.java",
+          "linha": 122,
+          "o_que_mostra": "o cálculo do resumo cria as recusas como ApiException.unprocessable, que já trazem o 422"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderReceipts.java",
+          "linha": 19,
+          "o_que_mostra": "um @Service do pacote order devolve ResponseEntity<OrderResponse> (o record de resposta da API, que fica junto do OrderController) e recebe o ProductController no construtor (linha 14)"
+        },
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "seção 'Classes outside the web layer': order.OrderReceipts usa catalog.ProductController e org.springframework.http.ResponseEntity"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 50,
+          "o_que_mostra": "place recebe o CheckoutRequest, a entrada crua montada pelo CheckoutRequestParser a partir do JSON (só Strings mais o flag couponInformed); na linha 159, o serviço converte o texto de paidAt"
+        }
+      ],
+      "observacao": "O relatório só aponta o OrderReceipts, que ninguém chama no projeto (código morto, mas é um @Service fora da camada web que usa ResponseEntity, OrderResponse e um controller). O problema que pesa mais vem do ApiException: ele carrega um HttpStatus do Spring, e por isso toda a regra de negócio (cálculo, frete, cupom, pagamento, ciclo do pedido) já decide o código HTTP de cada recusa. CarrierShippingOption e PaymentRejectedException chegam a importar HttpStatus diretamente. Há um ponto menor e discutível: o CheckoutRequest é uma cópia quase direta do corpo da requisição, que o calculador e o OrderService recebem como entrada."
+    },
+    {
+      "id": "A2",
+      "resposta": "leves",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "um único grupo em ciclo: catalog, checkout, coupon, customer, order, shipping"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutRequest.java",
+          "linha": 18,
+          "o_que_mostra": "checkout -> order fecha pelo record order.OrderItem (sku, quantity), usado também por CheckoutCalculator e CheckoutRequestParser"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/coupon/CouponContext.java",
+          "linha": 12,
+          "o_que_mostra": "coupon -> checkout fecha pelo record checkout.CartItem; coupon -> catalog, pelo record Product (Buy3Pay2Coupon.java:27)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/shipping/ShippingRequest.java",
+          "linha": 8,
+          "o_que_mostra": "shipping -> checkout fecha pelo enum checkout.Region (também em CarrierShippingOption.java:41)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/StockReturnListener.java",
+          "linha": 11,
+          "o_que_mostra": "catalog -> order fecha porque catalog implementa o contrato de evento OrderLifecycleListener e lê Order/OrderStatus; InventoryService.java:28 recebe List<OrderItem>. O catalog nunca chama um serviço do order"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/customer/ClubCreditListener.java",
+          "linha": 11,
+          "o_que_mostra": "customer -> order e customer -> checkout fecham pelo listener de eventos do pedido e pelos dados Order, OrderStatus e CheckoutSummary (linha 21)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 90,
+          "o_que_mostra": "no sentido contrário, o order chama comportamento: inventory.take (catalog) e customers.createIfAbsent na linha 63 (customer)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderRepository.java",
+          "linha": 21,
+          "o_que_mostra": "order -> coupon: OrderRepository implementa a porta coupon.PurchaseHistory (inversão de dependência no sentido certo)"
+        }
+      ],
+      "observacao": "Fechamento de cada dependência no sentido de volta: checkout->order pelo record OrderItem; coupon->checkout pelo record CartItem; coupon->catalog pelo record Product; coupon->shipping pela interface ShippingOption, que chega só como dado de contexto (o cupom lê hasShippingFee); shipping->checkout pelo enum Region; customer->checkout pelo record CheckoutSummary; catalog->order e customer->order pelo contrato de evento OrderLifecycleListener mais os dados Order, OrderStatus e OrderItem. Nos sentidos de ida (order->checkout, order->catalog, order->customer, checkout->coupon/shipping/catalog) há chamadas de serviço, mas nenhum pacote chama serviço do outro nos dois sentidos, e os listeners só ouvem o order, em um sentido. Ponto discutível: order->catalog e order->customer misturam chamada direta (take, createIfAbsent) com listener (giveBack, crédito). Para desfazer o ciclo, OrderItem, Order e o contrato do listener teriam de ir para um pacote neutro. Considerei isso mudança de pacote de tipos de dado e evento, não mudança de desenho."
+    },
+    {
+      "id": "A3",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderController.java",
+          "linha": 32,
+          "o_que_mostra": "registrar o pedido = parse do corpo, service.place e OrderResponse.of; pagamento, envio, entrega e cancelamento (linhas 43-59) só extraem campos e delegam ao OrderService"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutController.java",
+          "linha": 20,
+          "o_que_mostra": "o resumo só faz calculator.calculate(parser.parse(body))"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/notification/NotificationController.java",
+          "linha": 27,
+          "o_que_mostra": "a única decisão no controller é devolver CUSTOMER_NOT_FOUND quando o CPF não existe, o que é a tradução de 'não achado' numa consulta"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/ProductController.java",
+          "linha": 21,
+          "o_que_mostra": "consulta direta ao repositório, com 404 quando não acha"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/customer/CustomerController.java",
+          "linha": 21,
+          "o_que_mostra": "consulta direta ao repositório, com 404 quando não acha"
+        }
+      ],
+      "observacao": "Nenhum controller faz conta, muda a situação do pedido ou mexe no estoque. As recusas de INVALID_ORDER (carrinho vazio, SKU repetido, quantidade inválida) ficam no CheckoutRequestParser (checkout/CheckoutRequestParser.java:64), um componente de tradução da entrada, e não no controller. NotificationController e as consultas de produto e cliente vão direto ao repositório, sem serviço no meio, mas só para ler."
+    },
+    {
+      "id": "A4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderRepository.java",
+          "linha": 31,
+          "o_que_mostra": "SQL do pedido e do aviso de pagamento via JdbcClient, num @Repository"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/ProductRepository.java",
+          "linha": 48,
+          "o_que_mostra": "o SELECT ... FOR UPDATE e o UPDATE do estoque (linha 57) ficam no repositório; InventoryService só chama lockStock e changeStock"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/customer/CustomerRepository.java",
+          "linha": 61,
+          "o_que_mostra": "o SQL do saldo de crédito fica no repositório"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/notification/NotificationRepository.java",
+          "linha": 22,
+          "o_que_mostra": "o SQL dos avisos fica no repositório"
+        }
+      ],
+      "observacao": "Uma busca por JdbcClient, java.sql, SELECT, INSERT e UPDATE só encontra os quatro @Repository e o AppConfig, que apenas monta o DataSource. OrderService, InventoryService, os listeners e o CheckoutCalculator falam com os dados só pelos repositórios."
+    },
+    {
+      "id": "A5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutController.java",
+          "linha": 20,
+          "o_que_mostra": "o resumo chama CheckoutCalculator.calculate"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 52,
+          "o_que_mostra": "o registro do pedido chama o mesmo CheckoutCalculator.calculate e grava o CheckoutSummary devolvido"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutCalculator.java",
+          "linha": 50,
+          "o_que_mostra": "um único método faz as seis etapas: subtotal, frete, cupom, seguro, total e ajuste do pagamento"
+        }
+      ],
+      "observacao": "Nenhuma etapa é refeita só no fluxo do pedido: o OrderService não recalcula nada, só guarda o resumo. Detalhe interno sem efeito no item: a linha 104 do calculador recalcula o brinde à mão (tier == GOLD && subtotal > 500) em vez de usar ClubTier.gift (checkout/ClubTier.java:39), mas é o mesmo código para os dois fluxos."
+    },
+    {
+      "id": "A6",
+      "resposta": "por_funcionalidade",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "pacotes catalog, checkout, coupon, customer, notification, order, payment e shipping, mais common e config"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderController.java",
+          "linha": 17,
+          "o_que_mostra": "controller, serviço (OrderService), repositório (OrderRepository) e modelo do pedido no mesmo pacote order; o mesmo vale para catalog, customer e notification"
+        }
+      ],
+      "observacao": "Cada pacote corresponde a um assunto do negócio e tem controller, serviço e repositório dentro. Só common (Money, ApiException, JsonBodies) e config são técnicos e transversais."
+    }
+  ],
+  "resumo": "O desenho é por funcionalidade. O acesso a dados fica bem isolado em repositórios, os controllers só traduzem, e o resumo e o pedido passam pelo mesmo CheckoutCalculator. A falha principal é que a regra de negócio conhece HTTP: todas as recusas são ApiException com HttpStatus do Spring, e há um @Service morto que devolve ResponseEntity e injeta um controller. O ciclo de seis pacotes fecha por records, enums e um contrato de listener, não por serviços que se chamam nos dois sentidos.",
+  "duvidas": "A2 ficou entre 'leves' e 'estruturais'. O order chama diretamente serviços de catalog e customer (take, createIfAbsent), e esses pacotes dependem de volta do order por um listener de eventos mais os records Order/OrderItem e o enum OrderStatus. Escolhi 'leves' porque o caminho de volta é só contrato de evento e dados, sem nenhuma chamada a serviço do order. Quem entender que um listener implementado num pacote e chamado por serviço do outro já é acoplamento por comportamento marcaria 'estruturais'."
+}

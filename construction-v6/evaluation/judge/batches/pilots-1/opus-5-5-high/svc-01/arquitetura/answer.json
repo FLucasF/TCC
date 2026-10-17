@@ -1,0 +1,209 @@
+{
+  "dimensao": "arquitetura",
+  "itens": [
+    {
+      "id": "A1",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/comum/ErroNegocio.java",
+          "linha": 9,
+          "o_que_mostra": "a exceção de negócio guarda um org.springframework.http.HttpStatus; as fábricas invalido/naoEncontrado/conflito (linhas 18, 22, 26) já escolhem 422/404/409"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/entrega/ModalidadeTransportadora.java",
+          "linha": 26,
+          "o_que_mostra": "a regra de entrega importa HttpStatus e escolhe ela mesma o 503 (HttpStatus.SERVICE_UNAVAILABLE) para TRANSPORTADORA_INDISPONIVEL"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CalculadoraResumo.java",
+          "linha": 56,
+          "o_que_mostra": "o cálculo recebe o corpo cru da requisição (JsonNode) e lê os campos do contrato HTTP ('cliente', 'itens', 'modalidadeEntrega', 'parcelas'...) nas linhas 60-92 e 115-173; o parse e a validação da entrada ficam dentro da regra, não no controller"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CalculadoraResumo.java",
+          "linha": 58,
+          "o_que_mostra": "a regra lança ErroNegocio.invalido, ou seja, decide o status HTTP 422 por meio de ErroNegocio"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 55,
+          "o_que_mostra": "o serviço de pedido recebe o JsonNode da requisição (registrar(JsonNode dados))"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 85,
+          "o_que_mostra": "o ciclo do pedido lança ErroNegocio.conflito, que leva HttpStatus.CONFLICT"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cupom/Cupom.java",
+          "linha": 17,
+          "o_que_mostra": "a regra de cupom monta a recusa já com o status HTTP 422 (ErroNegocio.invalido)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/entrega/Motoboy.java",
+          "linha": 24,
+          "o_que_mostra": "a regra de entrega também usa ErroNegocio.invalido, que leva HttpStatus"
+        },
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "'Classes outside the web layer that use the incoming web: none'. A ferramenta não conta HttpStatus nem JsonNode como web de entrada, então as dependências acima só aparecem quando se abre o código"
+        }
+      ],
+      "observacao": "Nenhuma classe de regra usa anotação do Spring MVC nem ResponseEntity. Mas os códigos HTTP entram na regra de negócio por dois caminhos. (1) ErroNegocio (comum) carrega HttpStatus, e as regras de checkout, entrega, cupom e pedido escolhem o status ao recusar; ModalidadeTransportadora chega a importar HttpStatus direto. (2) CalculadoraResumo e PedidoService.registrar recebem o corpo JSON da requisição (JsonNode) e traduzem o formato da API dentro da regra, quando essa tradução deveria ficar na camada web. Não há records de requisição ou resposta dos controllers sendo usados pela regra: PedidoResposta só é usado pelo PedidoController."
+    },
+    {
+      "id": "A2",
+      "resposta": "leves",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "grupo 1: checkout, clube, cupom, entrega. As idas checkout -> clube/cupom/entrega vêm todas de checkout.CalculadoraResumo; as voltas para checkout são cupom -> checkout (ItemCarrinho) e entrega -> checkout (Regiao)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/ItemCarrinho.java",
+          "linha": 7,
+          "o_que_mostra": "ItemCarrinho é um record (produto, quantidade) com valor() e peso() derivados; é o que fecha cupom -> checkout (ContextoCupom, Leve3Pague2)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/Regiao.java",
+          "linha": 9,
+          "o_que_mostra": "Regiao é um enum (percentual e limite do seguro, dias adicionais); é o que fecha entrega -> checkout (ContextoEntrega, ModalidadeTransportadora)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/entrega/ContextoEntrega.java",
+          "linha": 8,
+          "o_que_mostra": "entrega só usa Regiao como campo de dado e lê diasAdicionaisDespacho(); não chama nenhum serviço do checkout"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cupom/ContextoCupom.java",
+          "linha": 10,
+          "o_que_mostra": "cupom recebe List<ItemCarrinho> como dado; não chama CalculadoraResumo"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/clube/Ouro.java",
+          "linha": 27,
+          "o_que_mostra": "clube -> entrega (ModalidadeEntrega) existe, mas entrega não depende de clube; isso só entra no grupo passando por entrega -> checkout.Regiao"
+        }
+      ],
+      "observacao": "Há um grupo só (checkout, clube, cupom, entrega). Todo círculo passa por uma volta para checkout, e só existem duas: cupom -> checkout pelo record ItemCarrinho e entrega -> checkout pelo enum Regiao. Os dois são tipos de dado que moram no checkout e poderiam ir para comum ou catalogo sem mudar o desenho. As arestas de comportamento (CalculadoraResumo chamando NiveisClube, Cupons e ModalidadesEntrega; Ouro chamando ModalidadeEntrega.isentavelPeloClube) vão num sentido só. Nenhum serviço de outro pacote chama o checkout de volta."
+    },
+    {
+      "id": "A3",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CheckoutController.java",
+          "linha": 20,
+          "o_que_mostra": "só delega para calculadora.calcular e devolve o resumo"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoController.java",
+          "linha": 38,
+          "o_que_mostra": "lê idTransacao e pagoEm do corpo (texto/instante, linhas 56-70) e delega para servico.pagar; as outras operações também só delegam (linhas 28, 33, 43, 48, 53)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 84,
+          "o_que_mostra": "as transições, os 48h, o estoque e o cancelamento são decididos no serviço, não no controller"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/aviso/AvisoController.java",
+          "linha": 24,
+          "o_que_mostra": "chama o repositório direto para marcar o aviso como lido; não mexe em pedido, estoque nem conta"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cliente/ClienteController.java",
+          "linha": 35,
+          "o_que_mostra": "confere se o cliente existe (404) antes de listar avisos, também direto no repositório"
+        }
+      ],
+      "observacao": "Nenhum controller faz conta, decide uma recusa do negócio, muda a situação do pedido ou mexe no estoque. ProdutoController, ClienteController e AvisoController vão direto aos repositórios para consultas simples e para marcar aviso como lido, sem uma camada de serviço. Isso não chega a ser regra de negócio no sentido do item: as decisões que tomam são só 404 de recurso inexistente."
+    },
+    {
+      "id": "A4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoRepositorio.java",
+          "linha": 37,
+          "o_que_mostra": "o SQL do pedido fica no @Repository, com JdbcClient"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/catalogo/ProdutoRepositorio.java",
+          "linha": 30,
+          "o_que_mostra": "SELECT ... FOR UPDATE e UPDATE de estoque (linha 35) no repositório do catálogo"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cliente/ClienteRepositorio.java",
+          "linha": 22,
+          "o_que_mostra": "SQL do cliente no repositório"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/aviso/AvisoRepositorio.java",
+          "linha": 22,
+          "o_que_mostra": "SQL do aviso no repositório"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 145,
+          "o_que_mostra": "o serviço trava e baixa o estoque por métodos do repositório (produtos.travar, produtos.alterarEstoque), sem SQL"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cupom/BemVindo10.java",
+          "linha": 27,
+          "o_que_mostra": "o cupom consulta o histórico pela interface HistoricoCompras, implementada por PedidoRepositorio"
+        }
+      ],
+      "observacao": "Um grep por jdbc/JdbcClient/SELECT/UPDATE/INSERT só acha os quatro *Repositorio e PedidosApplication. Em PedidosApplication é só o ajuste do prefixo 'jdbc:' na URL do banco, sem SQL."
+    },
+    {
+      "id": "A5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CheckoutController.java",
+          "linha": 20,
+          "o_que_mostra": "o resumo chama CalculadoraResumo.calcular"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 57,
+          "o_que_mostra": "o registro chama o mesmo CalculadoraResumo.calcular e grava checkout.resumo() sem recalcular nada (linhas 61-67)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CalculadoraResumo.java",
+          "linha": 56,
+          "o_que_mostra": "o cálculo inteiro (subtotal, cupom, frete, seguro, ajuste do pagamento, crédito e brinde) existe num lugar só"
+        }
+      ],
+      "observacao": ""
+    },
+    {
+      "id": "A6",
+      "resposta": "por_funcionalidade",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "10 pacotes por assunto: aviso, catalogo, checkout, cliente, clube, comum, cupom, entrega, pagamento, pedido"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoController.java",
+          "linha": 17,
+          "o_que_mostra": "o pacote pedido junta o controller, o serviço (PedidoService), o repositório (PedidoRepositorio) e o modelo"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/catalogo/ProdutoRepositorio.java",
+          "linha": 15,
+          "o_que_mostra": "o catálogo também tem controller, repositório e record no mesmo pacote"
+        }
+      ],
+      "observacao": "comum é um pacote transversal (Dinheiro, ErroNegocio, TratadorErros, Configuracao), mas a organização principal é por assunto."
+    }
+  ],
+  "resumo": "Os pacotes estão organizados por assunto. As variações (entrega, cupom, clube, pagamento) são polimórficas e injetadas, o SQL fica nos repositórios e o resumo e o pedido usam o mesmo cálculo. O ponto fraco é a fronteira com a web: a regra recebe o JsonNode da requisição e faz ela mesma a tradução do contrato HTTP, e as recusas do negócio levam o HttpStatus na exceção. O único ciclo entre pacotes fecha por um record e um enum que moram no checkout, então é leve.",
+  "duvidas": "Em A1, JsonNode não é tipo do Spring MVC. Contei como dependência da web porque é o corpo cru da requisição e a regra lê os nomes de campo do contrato HTTP. Mesmo sem esse argumento, o HttpStatus dentro de ErroNegocio, usado pelas regras, sustenta o nao_atende."
+}

@@ -1,0 +1,234 @@
+{
+  "dimensao": "arquitetura",
+  "itens": [
+    {
+      "id": "A1",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/comum/ErroNegocio.java",
+          "linha": 6,
+          "o_que_mostra": "a exceção de negócio guarda um campo 'status', que é o código HTTP da resposta"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/comum/ErroNegocio.java",
+          "linha": 16,
+          "o_que_mostra": "naoProcessavel = new ErroNegocio(422, ...); naoEncontrado (l.20) = 404; conflito (l.24) = 409: as fábricas são nomeadas pela semântica HTTP"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/entrega/Indisponivel.java",
+          "linha": 15,
+          "o_que_mostra": "a regra de entrega escreve o literal HTTP 503 para TRANSPORTADORA_INDISPONIVEL"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/entrega/Indisponivel.java",
+          "linha": 11,
+          "o_que_mostra": "MODALIDADE_INDISPONIVEL criado com naoProcessavel (422) dentro do pacote de entrega"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CalculadoraCheckout.java",
+          "linha": 124,
+          "o_que_mostra": "o cálculo do checkout cria todas as recusas com o status 422"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/cupom/Cupons.java",
+          "linha": 24,
+          "o_que_mostra": "a regra de cupom escolhe 422 para CUPOM_INVALIDO"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/cupom/NaoAplicavel.java",
+          "linha": 11,
+          "o_que_mostra": "CUPOM_NAO_APLICAVEL com 422"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 76,
+          "o_que_mostra": "o ciclo do pedido escolhe 409 (conflito) para PEDIDO_EXPIRADO; o mesmo vale para ESTOQUE_INSUFICIENTE (l.79), OPERACAO_NAO_PERMITIDA (l.139), 404 para PEDIDO_NAO_ENCONTRADO (l.144) e 422 (l.148)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/comum/TratadorDeErros.java",
+          "linha": 21,
+          "o_que_mostra": "a camada web só copia erro.status(): a tradução para HTTP já foi decidida na regra de negócio"
+        },
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "nenhuma classe fora da web depende de um controller nem usa tipos do Spring MVC ou ResponseEntity"
+        }
+      ],
+      "observacao": "Nenhum tipo do Spring MVC e nenhum record de controller (PedidoResposta, SaldoResposta, ProdutoResposta, AvisoResposta) chega à regra de negócio, como o relatório confirma. A regra de negócio recebe DadosCompra e devolve Resumo, Checkout e Pedido, que são tipos próprios. O problema são os códigos HTTP: cada regra (cálculo, cupom, entrega, ciclo do pedido) escolhe o status HTTP da recusa, por 422, 404 ou 409 embutidos nas fábricas de ErroNegocio ou pelo literal 503 em Indisponivel. O item cita os códigos HTTP explicitamente. Um ponto menor: DadosCompra.ler (checkout/DadosCompra.java:29) lê o corpo JSON cru (Map) e decide PEDIDO_INVALIDO. Ou seja, quem traduz a entrada HTTP é um tipo do pacote checkout, e não o controller."
+    },
+    {
+      "id": "A2",
+      "resposta": "leves",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "um único grupo em ciclo: aviso, cliente, pedido"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 51,
+          "o_que_mostra": "pedido -> cliente é comportamento: PedidoService chama clientes.garantir(...) (ClienteRepositorio)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cliente/CreditoDoClube.java",
+          "linha": 20,
+          "o_que_mostra": "cliente -> pedido só pelos tipos de dado: o listener recebe os records de evento PagamentoAprovado/PedidoCancelado e lê Pedido; não chama nenhum serviço do pedido"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/aviso/AvisosAoCliente.java",
+          "linha": 41,
+          "o_que_mostra": "aviso -> pedido só pelos tipos de dado: os listeners leem cpf() e id() do record Pedido levado nos eventos"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cliente/ClienteController.java",
+          "linha": 36,
+          "o_que_mostra": "cliente -> aviso: o controller de cliente consulta AvisoRepositorio e mapeia para AvisoResposta"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/eventos/PagamentoAprovado.java",
+          "linha": 11,
+          "o_que_mostra": "o evento é um record que carrega o Pedido inteiro"
+        }
+      ],
+      "observacao": "Grupo 1 (aviso, cliente, pedido). Uma direção é de comportamento: pedido -> cliente, porque PedidoService chama ClienteRepositorio.garantir. A outra direção não é: cliente -> pedido e aviso -> pedido fecham só pelos records de evento (PagamentoAprovado, PedidoCancelado, PedidoEnviado) e pelo record Pedido que eles carregam. Nem cliente nem aviso chamam serviços do pedido nem publicam eventos que o pedido ouça. Então não há chamadas nos dois sentidos. A aresta cliente -> aviso (ClienteController -> AvisoRepositorio/AvisoResposta) só faz o circuito passar por aviso. Fica a ressalva de que o tipo de dado que fecha o ciclo é o próprio Pedido, a entidade central do pacote pedido. Para quebrar o ciclo, os eventos teriam de carregar só cpf, id e crédito, ou ir com o Pedido para um pacote neutro, e isso não muda o desenho."
+    },
+    {
+      "id": "A3",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoController.java",
+          "linha": 31,
+          "o_que_mostra": "registrar só lê os dados, chama servico.registrar e monta a resposta 201"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoController.java",
+          "linha": 43,
+          "o_que_mostra": "pagamento só extrai idTransacao/pagoEm e delega a servico.registrarPagamento; envio, entrega e cancelamento (l.49, 54, 59) também só delegam"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoController.java",
+          "linha": 66,
+          "o_que_mostra": "um id que não é número vira PEDIDO_NAO_ENCONTRADO: é tradução da entrada, não regra"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CheckoutController.java",
+          "linha": 19,
+          "o_que_mostra": "o resumo só delega a calculadora.calcular"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cliente/ClienteController.java",
+          "linha": 33,
+          "o_que_mostra": "só confere se o cliente existe (404) antes de listar os avisos; não decide nada do negócio"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/aviso/AvisoController.java",
+          "linha": 25,
+          "o_que_mostra": "marcar como lido delega ao repositório e traduz a ausência em 404"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/catalogo/ProdutoController.java",
+          "linha": 29,
+          "o_que_mostra": "só ajusta a escala de pesoKg para a saída"
+        }
+      ],
+      "observacao": "Nenhum controller faz conta, decide recusa do negócio, muda a situação do pedido ou mexe no estoque. Cliente, Aviso e Produto falam direto com os repositórios, sem um serviço no meio, mas só para ler ou fazer a própria operação pedida (marcar o aviso como lido)."
+    },
+    {
+      "id": "A4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoRepositorio.java",
+          "linha": 33,
+          "o_que_mostra": "o SQL do pedido fica no @Repository"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cliente/ClienteRepositorio.java",
+          "linha": 19,
+          "o_que_mostra": "o SQL do cliente fica no @Repository"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/aviso/AvisoRepositorio.java",
+          "linha": 22,
+          "o_que_mostra": "o SQL do aviso fica no @Repository"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/catalogo/ProdutoRepositorio.java",
+          "linha": 23,
+          "o_que_mostra": "o SQL do produto fica no @Repository"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/catalogo/Estoque.java",
+          "linha": 35,
+          "o_que_mostra": "Estoque (@Component) faz SELECT ... FOR UPDATE e UPDATE condicional (l.47): é a classe de acesso aos dados do estoque, com a baixa atômica de tudo ou nada"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 78,
+          "o_que_mostra": "a regra do pedido só chama estoque.baixar(...) e decide o cancelamento, sem SQL"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CalculadoraCheckout.java",
+          "linha": 105,
+          "o_que_mostra": "o cálculo busca os produtos por ProdutoRepositorio.buscarVarios, sem SQL"
+        }
+      ],
+      "observacao": "As únicas classes com JdbcClient e SQL são os quatro *Repositorio e Estoque. Estoque tem o nome de um componente de domínio e não é @Repository, mas tudo o que faz é a trava, a conferência e o UPDATE do estoque. A decisão do negócio (cancelar o pedido e avisar) fica em PedidoService. Por isso a conto como classe de acesso a dados."
+    },
+    {
+      "id": "A5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/checkout/CheckoutController.java",
+          "linha": 19,
+          "o_que_mostra": "o resumo chama CalculadoraCheckout.calcular(...).resumo()"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoService.java",
+          "linha": 48,
+          "o_que_mostra": "o registro chama o mesmo CalculadoraCheckout.calcular(dados)"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoRepositorio.java",
+          "linha": 51,
+          "o_que_mostra": "o pedido grava os campos do Resumo calculado, sem refazer nenhuma etapa"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/cliente/CreditoDoClube.java",
+          "linha": 21,
+          "o_que_mostra": "o crédito do pagamento usa o creditoProximaCompra gravado, sem recalcular"
+        }
+      ],
+      "observacao": "Os dois fluxos usam uma única CalculadoraCheckout.calcular (CalculadoraCheckout.java:48), e o pedido guarda o Resumo que ela devolve."
+    },
+    {
+      "id": "A6",
+      "resposta": "por_funcionalidade",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "pacotes aviso, catalogo, checkout, cliente, pedido (por assunto) e comum"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/pedido/PedidoController.java",
+          "linha": 21,
+          "o_que_mostra": "o controller, o serviço, o repositório e a entidade do pedido moram juntos no pacote pedido"
+        },
+        {
+          "arquivo": "src/main/java/br/com/loja/pedidos/catalogo/ProdutoController.java",
+          "linha": 10,
+          "o_que_mostra": "o catálogo tem o próprio controller, repositório e Estoque"
+        }
+      ],
+      "observacao": "Cada pacote é um assunto e traz as próprias camadas dentro. O pacote comum guarda o que é transversal (Dinheiro, ErroNegocio, configuração, tratador de erros). O checkout se subdivide por assunto: clube, cupom, entrega, pagamento."
+    }
+  ],
+  "resumo": "O projeto é organizado por funcionalidade. Tem um cálculo único para o resumo e para o pedido, controllers que só traduzem e SQL confinado aos repositórios e ao Estoque. O ponto fraco é que as regras de negócio escolhem o código HTTP de cada recusa: 422, 404 e 409 vêm embutidos em ErroNegocio, e o 503 aparece como literal na entrega. O único ciclo (aviso, cliente, pedido) fecha pelos records de evento e pelo record Pedido.",
+  "duvidas": "A4: Estoque não se chama repositório, mas faz só acesso a dados do estoque com trava; contei como classe de acesso a dados. A2: o tipo que fecha o ciclo é o próprio Pedido, levado nos eventos; julguei leve porque nenhum pacote chama o comportamento do outro nos dois sentidos."
+}

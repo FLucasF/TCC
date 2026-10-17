@@ -1,0 +1,194 @@
+{
+  "dimensao": "arquitetura",
+  "itens": [
+    {
+      "id": "A1",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "a dependência pedido -> api é feita por pedido.Checkout -> api.PedidoRequest e por pedido.PedidoService -> api.PedidoRequest"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/Checkout.java",
+          "linha": 15,
+          "o_que_mostra": "o cálculo do resumo importa o record do corpo da requisição, loja.api.PedidoRequest"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/Checkout.java",
+          "linha": 59,
+          "o_que_mostra": "calcular(PedidoRequest req): a regra de cálculo recebe o objeto de entrada da API e lê os campos dele, inclusive PedidoRequest.Item (linha 67)"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/PedidoService.java",
+          "linha": 15,
+          "o_que_mostra": "o serviço do ciclo do pedido importa loja.api.PedidoRequest"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/PedidoService.java",
+          "linha": 50,
+          "o_que_mostra": "registrar(PedidoRequest req) recebe o objeto da API e monta o Pedido a partir dele"
+        },
+        {
+          "arquivo": "src/main/java/loja/dominio/NegocioException.java",
+          "linha": 9,
+          "o_que_mostra": "a exceção do domínio carrega o código HTTP (422, 409 e 404 nas linhas 16, 20 e 24)"
+        },
+        {
+          "arquivo": "src/main/java/loja/entrega/TransLogClient.java",
+          "linha": 81,
+          "o_que_mostra": "a entrega cria a recusa já com o HTTP 503"
+        },
+        {
+          "arquivo": "src/main/java/loja/api/TratadorDeErros.java",
+          "linha": 18,
+          "o_que_mostra": "a camada web só repassa e.status(): quem escolhe o código HTTP é a regra de negócio"
+        }
+      ],
+      "observacao": "O relatório não aponta nenhum tipo do Spring MVC fora da camada web: não há ResponseEntity nem anotações web nas regras. Mesmo assim, há duas violações. (1) Checkout e PedidoService recebem o record da requisição, PedidoRequest, que mora em loja.api. (2) A NegocioException do domínio, usada por cupom, pagamento, entrega e pedido, leva o código HTTP como int (422/409/404/503), e o TratadorDeErros só o repassa. A tradução da recusa para HTTP fica, então, na regra de negócio e não na web."
+    },
+    {
+      "id": "A2",
+      "resposta": "leves",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "grupo 1 (api, pedido): api -> pedido por api.PedidoController -> pedido.PedidoService; pedido -> api por pedido.Checkout -> api.PedidoRequest e pedido.PedidoService -> api.PedidoRequest"
+        },
+        {
+          "arquivo": "src/main/java/loja/api/PedidoRequest.java",
+          "linha": 6,
+          "o_que_mostra": "PedidoRequest é um record puro, sem comportamento, com os records aninhados Cliente e Item"
+        },
+        {
+          "arquivo": "src/main/java/loja/api/PedidoController.java",
+          "linha": 30,
+          "o_que_mostra": "o sentido api -> pedido é o normal: o controller chama o serviço"
+        }
+      ],
+      "observacao": "Há um só grupo, api e pedido. Ele fecha pela dependência pedido -> api, que é só o tipo de dado PedidoRequest (um record, nas classes Checkout e PedidoService). Nenhuma classe de pedido chama comportamento de api. Se o record mudasse para pedido ou dominio, o ciclo sumiria sem mudar o desenho. Esse mesmo uso aparece como violação em A1."
+    },
+    {
+      "id": "A3",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/loja/api/PedidoController.java",
+          "linha": 30,
+          "o_que_mostra": "resumo só delega para service.resumo"
+        },
+        {
+          "arquivo": "src/main/java/loja/api/PedidoController.java",
+          "linha": 35,
+          "o_que_mostra": "registrar delega e traduz para 201 e PedidoDto"
+        },
+        {
+          "arquivo": "src/main/java/loja/api/PedidoController.java",
+          "linha": 48,
+          "o_que_mostra": "pagar, enviar, entregar e cancelar (linhas 48, 53, 58 e 63) só repassam os campos do corpo para o serviço"
+        },
+        {
+          "arquivo": "src/main/java/loja/api/CadastroController.java",
+          "linha": 36,
+          "o_que_mostra": "consulta de produto, saldo e avisos direto no repositório, com 404 quando não encontra (linhas 36, 42 e 47)"
+        },
+        {
+          "arquivo": "src/main/java/loja/api/CadastroController.java",
+          "linha": 60,
+          "o_que_mostra": "marcar o aviso como lido é chamado direto no repositório, depois de conferir se ele existe e de converter o id (linhas 53-59)"
+        }
+      ],
+      "observacao": "No PedidoController não há conta, decisão de recusa, mudança da situação do pedido nem mexida no estoque: tudo isso fica em PedidoService, Checkout e AcaoPedido. O CadastroController não tem serviço no meio: fala direto com os repositórios, devolve 404 quando o produto, o cliente ou o aviso não existe e marca o aviso como lido. São consultas e uma troca simples de flag do aviso, nenhuma das quatro coisas que o item cita. Por isso a resposta é atende, com essa ressalva."
+    },
+    {
+      "id": "A4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/loja/infra/PedidoRepository.java",
+          "linha": 31,
+          "o_que_mostra": "SQL do pedido via JdbcClient dentro do repositório"
+        },
+        {
+          "arquivo": "src/main/java/loja/infra/ProdutoRepository.java",
+          "linha": 41,
+          "o_que_mostra": "a baixa condicional do estoque (UPDATE ... WHERE estoque >= ?) fica no repositório"
+        },
+        {
+          "arquivo": "src/main/java/loja/infra/ClienteRepository.java",
+          "linha": 32,
+          "o_que_mostra": "o crédito do cliente é gravado com SQL dentro do repositório"
+        },
+        {
+          "arquivo": "src/main/java/loja/infra/AvisoRepository.java",
+          "linha": 23,
+          "o_que_mostra": "o SQL dos avisos fica no repositório"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/BaixaEstoque.java",
+          "linha": 27,
+          "o_que_mostra": "a regra chama produtos.baixarEstoque, sem montar SQL"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/Checkout.java",
+          "linha": 122,
+          "o_que_mostra": "a primeira compra é consultada por pedidos.cpfTemPedidoPago, um método do repositório"
+        }
+      ],
+      "observacao": "Uma busca por JdbcClient, SELECT, INSERT e UPDATE só encontra resultados em loja.infra. PedidoService usa TransactionTemplate e savepoints (PedidoService.java:55-62 e 92-98). Isso é controle de transação do Spring, não SQL nem JDBC na regra."
+    },
+    {
+      "id": "A5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/loja/pedido/PedidoService.java",
+          "linha": 47,
+          "o_que_mostra": "o resumo chama checkout.calcular(req)"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/PedidoService.java",
+          "linha": 51,
+          "o_que_mostra": "o registro chama o mesmo checkout.calcular(req) e grava esse Resumo no pedido (linha 53)"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/Checkout.java",
+          "linha": 59,
+          "o_que_mostra": "um único método faz todas as etapas do cálculo"
+        },
+        {
+          "arquivo": "src/main/java/loja/pedido/CreditoClube.java",
+          "linha": 21,
+          "o_que_mostra": "o pagamento usa o crédito do resumo gravado e não recalcula"
+        }
+      ],
+      "observacao": "Não há segunda cópia de nenhuma etapa. O pedido guarda o Resumo calculado no registro, e quem vem depois (crédito, consulta) lê esse resumo gravado."
+    },
+    {
+      "id": "A6",
+      "resposta": "misto",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "8 pacotes: api, clube, cupom, dominio, entrega, infra, pagamento, pedido"
+        },
+        {
+          "arquivo": "src/main/java/loja/cupom/Cupom.java",
+          "linha": null,
+          "o_que_mostra": "os pacotes por assunto (clube, cupom, entrega, pagamento, pedido) têm cada um suas regras"
+        },
+        {
+          "arquivo": "src/main/java/loja/infra/PedidoRepository.java",
+          "linha": null,
+          "o_que_mostra": "os pacotes por camada (api para a web, infra para todos os repositórios, dominio para as entidades) atravessam os assuntos"
+        }
+      ],
+      "observacao": "As regras ficam em pacotes por funcionalidade, e a web, a persistência e as entidades ficam em pacotes por camada."
+    }
+  ],
+  "resumo": "As regras de negócio estão bem separadas: cada variação (entrega, cupom, clube, pagamento, ações do pagamento) é um componente próprio, o SQL fica todo nos repositórios de infra e um único Checkout serve o resumo e o registro. O ponto fraco é a fronteira com a web: o cálculo e o serviço recebem o PedidoRequest da camada api, o que também cria um ciclo leve api<->pedido, e a exceção de negócio já traz o código HTTP.",
+  "duvidas": "Em A3, o CadastroController fala direto com os repositórios, devolve os 404 de produto, cliente e aviso e marca o aviso como lido sem nenhum serviço no meio. Considerei isso consulta e tradução, não regra de negócio dentro dos critérios do item. Uma leitura mais estrita poderia ver a marcação de leitura como regra no controller."
+}

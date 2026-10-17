@@ -1,0 +1,224 @@
+{
+  "dimensao": "arquitetura",
+  "itens": [
+    {
+      "id": "A1",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/common/ApiException.java",
+          "linha": 8,
+          "o_que_mostra": "a exceção que a regra de negócio lança guarda um org.springframework.http.HttpStatus; as fábricas unprocessable/notFound/conflict (linhas 17-27) fixam o 422/404/409"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/shipping/CarrierShippingOption.java",
+          "linha": 39,
+          "o_que_mostra": "a regra de frete importa HttpStatus (linha 6) e escolhe o 503 SERVICE_UNAVAILABLE quando a TransLog está fora do ar"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/PaymentRejectedException.java",
+          "linha": 12,
+          "o_que_mostra": "a recusa do pagamento no ciclo do pedido é criada com HttpStatus.CONFLICT"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 155,
+          "o_que_mostra": "o ciclo do pedido recusa a transição com ApiException.conflict, ou seja, com o 409; o mesmo nas linhas 79 e 104 (422) e 171 (404)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutCalculator.java",
+          "linha": 122,
+          "o_que_mostra": "o cálculo recusa com ApiException.unprocessable, ou seja, com o 422"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/coupon/Coupons.java",
+          "linha": 39,
+          "o_que_mostra": "a regra de cupom recusa com ApiException.unprocessable (422)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/payment/BankSlipPayment.java",
+          "linha": 31,
+          "o_que_mostra": "a regra do boleto recusa com ApiException.unprocessable (422)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/shipping/CourierShipping.java",
+          "linha": 26,
+          "o_que_mostra": "a regra do motoboy recusa com ApiException.unprocessable (422)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutCalculator.java",
+          "linha": 50,
+          "o_que_mostra": "o cálculo recebe o CheckoutRequest, o corpo da requisição já lido (campos em texto bruto e a marca couponInformed), que mora no pacote do CheckoutController e é montado pelo CheckoutRequestParser a partir do JSON"
+        },
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "diz 'use the incoming web: none' porque só procura as anotações do Spring MVC e o ResponseEntity; o HttpStatus usado em common.ApiException, shipping.CarrierShippingOption e order.PaymentRejectedException fica fora do que ele pega"
+        }
+      ],
+      "observacao": "Os tipos do Spring MVC e o ResponseEntity ficam mesmo nos controllers e no ApiExceptionHandler. Mas toda recusa do negócio já sai com o código HTTP escolhido na própria regra: CheckoutCalculator, OrderService, Coupons, BankSlipPayment, CourierShipping e CarrierShippingOption (que importa HttpStatus direto), além de PaymentRejectedException. A tradução para HTTP não fica na camada web. Há um ponto secundário: o CheckoutCalculator e o OrderService.place recebem o CheckoutRequest, que é o objeto de entrada da API e mora com o CheckoutController."
+    },
+    {
+      "id": "A2",
+      "resposta": "estruturais",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "um grupo em ciclo: catalog, checkout, coupon, customer, order, shipping"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 90,
+          "o_que_mostra": "order -> catalog por comportamento: o OrderService chama inventory.take para baixar o estoque"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/StockReturnListener.java",
+          "linha": 11,
+          "o_que_mostra": "catalog -> order por comportamento: o catálogo implementa o OrderLifecycleListener do pedido e devolve o estoque no cancelamento (linha 22)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 63,
+          "o_que_mostra": "order -> customer por comportamento: o OrderService chama customers.createIfAbsent"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/customer/ClubCreditListener.java",
+          "linha": 11,
+          "o_que_mostra": "customer -> order por comportamento: o cliente implementa o OrderLifecycleListener para lançar e estornar o crédito"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 52,
+          "o_que_mostra": "order -> checkout: o OrderService chama o CheckoutCalculator"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutRequest.java",
+          "linha": 18,
+          "o_que_mostra": "checkout -> order só por dado: o record OrderItem"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/coupon/CouponContext.java",
+          "linha": 12,
+          "o_que_mostra": "coupon -> checkout só por dado: o record CartItem; checkout -> coupon é a chamada ao Coupons (CheckoutCalculator:74)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/shipping/ShippingRequest.java",
+          "linha": null,
+          "o_que_mostra": "shipping -> checkout só pelo enum Region (também em CarrierShippingOption:41)"
+        }
+      ],
+      "observacao": "É um grupo só, com seis pacotes. Por onde cada volta fecha: (1) checkout<->order fecha pelo record OrderItem (leve). (2) coupon<->checkout fecha pelo record CartItem (leve). (3) shipping<->checkout fecha pelo enum Region (leve). (4) order->coupon->checkout->order fecha pelo OrderRepository implementando PurchaseHistory mais o OrderItem (leve). (5) catalog<->order fecha por comportamento: o pedido chama o InventoryService.take direto, e o catálogo implementa o OrderLifecycleListener do pedido para o giveBack. (6) customer<->order fecha igual: o pedido chama o CustomerRepository.createIfAbsent, e o cliente implementa o OrderLifecycleListener. Nos dois últimos, a volta não se fecha por um tipo de dado e sim pela interface de listener, junto com uma chamada direta no sentido oposto. Por isso o valor é estruturais. Uma nuance: em tempo de execução as chamadas vão sempre de order para catalog/customer; o sentido inverso é inversão de dependência pelo listener. Ainda assim, o estoque é baixado por chamada direta e devolvido por evento, então os dois pacotes se conhecem pelo comportamento."
+    },
+    {
+      "id": "A3",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutController.java",
+          "linha": 20,
+          "o_que_mostra": "só lê o corpo e chama o calculator.calculate"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderController.java",
+          "linha": 32,
+          "o_que_mostra": "lê o corpo, chama o service.place e monta o OrderResponse"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderController.java",
+          "linha": 42,
+          "o_que_mostra": "pagamento, envio, entrega e cancelamento só extraem os campos do JSON e chamam o OrderService, que valida a situação e muda o pedido"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/ProductController.java",
+          "linha": 21,
+          "o_que_mostra": "busca no repositório e traduz a ausência para PRODUCT_NOT_FOUND"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/notification/NotificationController.java",
+          "linha": 27,
+          "o_que_mostra": "confere se o cliente existe antes de listar os avisos e responde CUSTOMER_NOT_FOUND"
+        }
+      ],
+      "observacao": "Nenhum controller faz conta, muda a situação do pedido ou mexe no estoque. O caso mais próximo de uma decisão é o NotificationController:27, que chama dois repositórios e recusa com CUSTOMER_NOT_FOUND. Tomei isso como tradução de 'recurso não existe', e não como recusa do negócio. ProductController, CustomerController e NotificationController falam direto com os repositórios, sem serviço no meio, mas só para ler ou marcar como lido."
+    },
+    {
+      "id": "A4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderRepository.java",
+          "linha": 31,
+          "o_que_mostra": "o SQL do pedido, pelo JdbcClient, fica no @Repository"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/ProductRepository.java",
+          "linha": 48,
+          "o_que_mostra": "o SELECT ... FOR UPDATE e o UPDATE do estoque ficam no repositório"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/customer/CustomerRepository.java",
+          "linha": 61,
+          "o_que_mostra": "o UPDATE do saldo fica no repositório"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/notification/NotificationRepository.java",
+          "linha": 22,
+          "o_que_mostra": "o SQL dos avisos fica no repositório"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/InventoryService.java",
+          "linha": 30,
+          "o_que_mostra": "a regra de estoque usa products.lockStock/changeStock, sem SQL"
+        }
+      ],
+      "observacao": "Uma busca por JdbcClient, java.sql e SQL só encontra os quatro *Repository. OrderService e InventoryService só controlam transações (TransactionTemplate, @Transactional) e não escrevem SQL."
+    },
+    {
+      "id": "A5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "src/main/java/com/loja/orders/checkout/CheckoutController.java",
+          "linha": 20,
+          "o_que_mostra": "o resumo chama o CheckoutCalculator.calculate"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderService.java",
+          "linha": 52,
+          "o_que_mostra": "o registro do pedido chama o mesmo CheckoutCalculator.calculate e guarda o resumo que ele devolve"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderController.java",
+          "linha": 32,
+          "o_que_mostra": "os dois fluxos usam o mesmo CheckoutRequestParser.parse"
+        }
+      ],
+      "observacao": "Não há nenhuma etapa do cálculo refeita só num dos fluxos."
+    },
+    {
+      "id": "A6",
+      "resposta": "por_funcionalidade",
+      "evidencias": [
+        {
+          "arquivo": "arquitetura.txt",
+          "linha": null,
+          "o_que_mostra": "pacotes catalog, checkout, coupon, customer, notification, order, payment e shipping, mais common e config"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/order/OrderController.java",
+          "linha": 17,
+          "o_que_mostra": "controller, service, repository e modelo do pedido moram juntos no pacote order"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/orders/catalog/ProductRepository.java",
+          "linha": 19,
+          "o_que_mostra": "o catálogo tem seu próprio controller, repositório e serviço de estoque"
+        }
+      ],
+      "observacao": "Cada assunto tem seu pacote com as próprias camadas. common (Money, ErrorCode, ApiException, JsonBodies) e config são pacotes transversais."
+    }
+  ],
+  "resumo": "Os pacotes são organizados por assunto. Cupons, entregas e pagamentos são extensíveis por interfaces, há um único cálculo para o resumo e para o pedido, e o SQL fica isolado nos repositórios. Os pontos fracos: a regra de negócio já escolhe o código HTTP de cada recusa (ApiException com HttpStatus, e o 503 decidido no CarrierShippingOption), e os pacotes order, catalog e customer formam ciclos por comportamento, com chamada direta num sentido e listener no outro.",
+  "duvidas": "A2: os ciclos catalog<->order e customer<->order usam inversão de dependência (o listener é do pacote order), mas fecham por uma interface de comportamento, e não por um tipo de dado. Por isso marquei estruturais e não leves. A3: o NotificationController confere se o cliente existe antes de listar os avisos; tomei isso como tradução de 'não encontrado', não como regra de negócio."
+}

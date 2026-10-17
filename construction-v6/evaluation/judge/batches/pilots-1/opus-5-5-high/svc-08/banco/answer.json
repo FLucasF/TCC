@@ -1,0 +1,237 @@
+{
+  "dimensao": "banco",
+  "itens": [
+    {
+      "id": "B1",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "as 4 tabelas do domínio têm chave primária: aviso_pkey (id), cliente_pkey (cpf), pedido_pkey (id), produto_pkey (sku)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 34,
+          "o_que_mostra": "sku TEXT PRIMARY KEY no produto; o mesmo nas linhas 41 (cliente.cpf), 45 (pedido.id) e 54 (aviso.id)"
+        }
+      ],
+      "observacao": "Não há tabela de ferramenta de migração no banco."
+    },
+    {
+      "id": "B2",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "constraints não tem nenhuma restrição do tipo 'f': só 4 chaves primárias e o CHECK produto_estoque_check"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 46,
+          "o_que_mostra": "pedido.cpf TEXT NOT NULL sem REFERENCES cliente"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 56,
+          "o_que_mostra": "aviso.cpf TEXT NOT NULL sem REFERENCES cliente"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 58,
+          "o_que_mostra": "aviso.pedido_id TEXT NOT NULL sem REFERENCES pedido"
+        }
+      ],
+      "observacao": "Três ligações estão guardadas em coluna e nenhuma tem chave estrangeira: pedido.cpf → cliente, aviso.cpf → cliente e aviso.pedido_id → pedido. As ligações item → pedido e item → produto não estão em coluna nenhuma, porque os itens ficam como JSON em pedido.itens (é o B8). O aviso de pagamento não tem tabela própria: o id da transação fica na coluna pedido.id_transacao, na própria linha do pedido, então essa ligação não precisa de chave estrangeira."
+    },
+    {
+      "id": "B3",
+      "resposta": "nao_se_aplica",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "não há restrição do tipo 'f'; indexes só tem os índices das 4 chaves primárias"
+        }
+      ],
+      "observacao": "Não há chave estrangeira para indexar. As colunas de ligação pedido.cpf, aviso.cpf e aviso.pedido_id também não têm índice nenhum."
+    },
+    {
+      "id": "B4",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "produto.preco e cliente.saldo_credito são numeric(14,2)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 51,
+          "o_que_mostra": "o resumo do pedido, com os valores em dinheiro, é gravado como JSON numa coluna TEXT"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/dominio/Resumo.java",
+          "linha": 6,
+          "o_que_mostra": "os campos de dinheiro do resumo são BigDecimal, que viram números decimais exatos no JSON"
+        }
+      ],
+      "observacao": "Nenhuma coluna usa real, double precision ou money. Os valores do resumo (subtotal, frete, total etc.) não estão em colunas numeric: ficam como texto JSON em pedido.resumo. São exatos, mas o banco não vê o tipo deles."
+    },
+    {
+      "id": "B5",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "o único instante guardado é pedido.criado_em, do tipo text; não existe coluna timestamp without time zone"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 128,
+          "o_que_mostra": "criado_em é gravado com Instant.toString(), em ISO-8601 UTC com 'Z'"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 82,
+          "o_que_mostra": "a leitura usa Instant.parse, que exige o fuso"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/dominio/PedidoService.java",
+          "linha": 46,
+          "o_que_mostra": "o instante é truncado em segundos antes de ser gravado"
+        }
+      ],
+      "observacao": "O instante fica num text em ISO-8601 com 'Z', o que não deixa ambiguidade de fuso, e nenhuma coluna é timestamp without time zone. Mesmo assim não é timestamptz: o banco não valida o formato e não faz conta de datas. O ORDER BY criado_em (linha 81) funciona por ordem alfabética, e só dá certo porque o código trunca em segundos. Como os comentários foram tirados, não deu para conferir se a escolha estava explicada no código. O pagoEm não é guardado."
+    },
+    {
+      "id": "B6",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "só pedido.codigo_rastreio e pedido.id_transacao aceitam nulo; todas as outras colunas são NOT NULL"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 49,
+          "o_que_mostra": "codigo_rastreio e id_transacao (linha 50) ficam anuláveis, porque só existem depois do envio ou do pagamento"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 46,
+          "o_que_mostra": "cpf, situacao, criado_em, resumo e itens do pedido são NOT NULL (linhas 46 a 52)"
+        }
+      ],
+      "observacao": "CPF, e-mail, saldo, situação, data de registro, SKU, nome, preço, peso, estoque e os campos do aviso são todos NOT NULL. Os valores do resumo e a quantidade de cada item ficam dentro do JSON, então o banco só garante que o texto inteiro não é nulo, e não cada campo dentro dele."
+    },
+    {
+      "id": "B7",
+      "resposta": "parcial",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "produto_estoque_check: CHECK ((estoque >= 0))"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 38,
+          "o_que_mostra": "estoque INTEGER NOT NULL CHECK (estoque >= 0)"
+        },
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "pedido.id_transacao não tem restrição única e não existe tabela de avisos de pagamento"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/dominio/PedidoService.java",
+          "linha": 61,
+          "o_que_mostra": "o aviso de pagamento repetido só é barrado no código, comparando com pedido.idTransacao()"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 52,
+          "o_que_mostra": "itens é TEXT com JSON; a quantidade não tem CHECK"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/dominio/CalculadoraResumo.java",
+          "linha": 55,
+          "o_que_mostra": "a quantidade positiva só é validada no código"
+        }
+      ],
+      "observacao": "Estoque nunca negativo: o banco garante, com o CHECK (estoque >= 0). Aviso de pagamento repetido: só o código cuida (PedidoService.java:61); pedido.id_transacao não é UNIQUE e não há chave com o id da transação, e o upsert da linha 131 sobrescreve o id_transacao sem nenhuma checagem. Quantidade positiva: só o código cuida (CalculadoraResumo.java:55); a quantidade fica dentro do JSON em pedido.itens, onde não cabe um CHECK. O banco garante 1 das 3 regras."
+    },
+    {
+      "id": "B8",
+      "resposta": "nao_atende",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "pedido.itens é text, e não existe tabela de itens"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 130,
+          "o_que_mostra": "a lista de itens é gravada com json.writeValueAsString(p.itens()) dentro da coluna itens"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 56,
+          "o_que_mostra": "aviso.cpf repete o cpf do pedido, que já sai de aviso.pedido_id"
+        }
+      ],
+      "observacao": "A lista inteira de itens do pedido (sku e quantidade) fica como JSON em pedido.itens. Isso esconde do banco as ligações item → pedido e item → produto, e não é uma foto do momento: o sku é uma referência ao produto, não um valor congelado. Já o resumo em JSON (pedido.resumo) é a foto pedida pelo enunciado. A forma como está guardado, como texto, só pesa no B4/B6. Há também uma redundância menor: aviso.cpf dá para tirar de aviso.pedido_id → pedido.cpf. Os dados que mudam (preço atual, e-mail) não se repetem: o pedido não guarda o e-mail."
+    },
+    {
+      "id": "B9",
+      "resposta": "script_sql",
+      "evidencias": [
+        {
+          "arquivo": "pom.xml",
+          "linha": 22,
+          "o_que_mostra": "as dependências são só o webmvc e as de teste: não há JPA/Hibernate, Flyway, Liquibase nem driver JDBC"
+        },
+        {
+          "arquivo": "src/main/resources/application.properties",
+          "linha": 1,
+          "o_que_mostra": "não há spring.jpa.hibernate.ddl-auto nem configuração de migração"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 32,
+          "o_que_mostra": "o esquema é um texto com CREATE TABLE IF NOT EXISTS dentro do código"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 94,
+          "o_que_mostra": "prepararBanco roda esse script toda vez que o serviço sobe"
+        }
+      ],
+      "observacao": "O esquema sai de um script próprio, embutido no Java e enviado por um cliente do protocolo do PostgreSQL feito à mão (PgConexao). Não há schema.sql nem pasta db/migration, e não há versionamento: uma mudança de esquema não é aplicada sobre tabelas que já existem."
+    },
+    {
+      "id": "B10",
+      "resposta": "atende",
+      "evidencias": [
+        {
+          "arquivo": "banco.json",
+          "linha": null,
+          "o_que_mostra": "todas as colunas de texto são text; não há character varying(n) nem char(n)"
+        },
+        {
+          "arquivo": "src/main/java/com/loja/persistencia/PgPersistencia.java",
+          "linha": 35,
+          "o_que_mostra": "nome TEXT NOT NULL; o mesmo padrão TEXT no resto do esquema"
+        }
+      ],
+      "observacao": ""
+    }
+  ],
+  "resumo": "O esquema é pequeno e feito à mão: 4 tabelas, todas com chave primária, colunas obrigatórias NOT NULL, dinheiro em numeric, textos em text e um CHECK que impede estoque negativo. Mas não há nenhuma chave estrangeira, os itens do pedido ficam como JSON numa coluna de texto, o instante do pedido é text em vez de timestamptz, e a regra do aviso de pagamento repetido fica só no código. O esquema é criado por um script embutido no Java, sem ferramenta de migração.",
+  "duvidas": "No B5, o text em ISO-8601 com 'Z' não cai exatamente em nenhum valor. Respondi atende porque guarda o instante sem ambiguidade e nenhuma coluna é timestamp without time zone, mas não deu para conferir se o código explicava a escolha, porque os comentários foram tirados."
+}

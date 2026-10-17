@@ -560,5 +560,59 @@ de novo neles.
 - **o CK e o Sonar** ainda não entraram. O CK (acoplamento, coesão e complexidade por classe) é um jar sem
   servidor, no padrão das outras ferramentas; o Sonar precisa de um servidor, e o que ele dá a mais são os
   code smells e a duplicação;
-- **a rubrica** ainda não está escrita, e o protocolo da seção anterior também não.
+- **a rubrica** ainda não está escrita, e o protocolo da seção anterior também não. *(Feitos em 17/10: ver a
+  seção seguinte.)*
+
+## O juiz, as réguas e a validação (17/10/2026)
+
+Em `evaluation/judge/` ([README](evaluation/judge/README.md), [protocolo](evaluation/judge/PROTOCOLO.md)). O que foi
+feito, na ordem combinada com o Lucas:
+
+1. **As réguas das quatro dimensões** (`rubric/`). Os padrões herdam a régua do Semgrep (P1 a P7, F) e as decisões
+   de calibração de 14/10, e ganham o `E` (estrutura sem necessidade, o exagero colateral da manutenção). A
+   arquitetura (A1 a A6) é lida com o relatório do ArchUnit; os testes (T1 a T4), com os números do PIT; o banco
+   (B1 a B10), com a foto, e cada item cita a fonte publicada (a documentação e a wiki do PostgreSQL, a do Spring
+   Boot, Elmasri & Navathe). A fonte que eu queria para "o `ddl-auto` não serve em produção" (o guia do Hibernate)
+   não foi confirmada; o B9 cita só o Spring Boot ("um mecanismo só", "ferramentas de migração de mais alto nível").
+2. **A correção é uma IA lendo as réguas em markdown** (decisão do Lucas, 17/10: "não quero script de juiz nem
+   nada, vai ser markdown para IA ler e interpretar"). O `rubric/common.md` diz o que ler na pasta da execução, o
+   que não abrir, as regras (uma dimensão por conversa, contra o efeito halo; evidência; `indeterminado`) e o
+   formato da resposta (`correcao/<dimensão>.md`). Um script de juiz chegou a existir (no molde do avaliador da
+   manutenção) e rodou a validação abaixo; saiu no mesmo dia. As respostas dele ficaram em `batches/`.
+3. **O material do banco**: a foto ganhou todos os índices (o B3, chave estrangeira sem índice, precisa dos não
+   únicos), e a suíte rodou de novo nos 8 pilotos para tirar a foto. Só o Opus-03 fala a API atual (463 de 463);
+   nos outros a suíte não se aplica (a API de antes), mas a foto sai, porque o serviço sobe e cria o esquema.
+   Os dois Haiku não sobem: a foto sai vazia, e a régua diz para corrigir pelo código. Das saídas da suíte nos outros pilotos, só a foto
+   ficou.
+4. **A validação**: 21 de 21 no serviço com defeitos plantados (`planted/`); 115 de 116 contra as ferramentas nos
+   pilotos (a régua do Semgrep, rodada do histórico, e as fotos). Números e detalhes no README do juiz.
+5. **O protocolo** e o `infra/scripts/freeze.py` (o congelamento, como o do V5). **Não congelei**: faltam os
+   harnesses, a leitura do Lucas e as decisões abaixo.
+
+**Achados no caminho:**
+- **Os pilotos rodaram com quatro versões anteriores do enunciado** (nenhum com o atual). A régua manda ler o
+  `prompt.md` de cada execução.
+- **A suíte quebrava** quando nenhum pedido podia ser criado (um pool de 0 threads na concorrência), em vez de
+  relatar as diferenças. Corrigido (`ConcurrencyChecks.allAtOnce`); um serviço que funciona não muda de resultado.
+- **A retirada das asserções do PIT deixa escapar uma asserção** quando o comentário logo antes dela tem um `;` (o
+  ponto e vírgula do comentário parece o fim do comando anterior): no Opus-03, 1 asserção ficou. A conclusão da
+  validação do PIT (a nota cai em todos) não muda; não mexi, para não mudar números já validados sem o Lucas ver.
+- **O enunciado pede o PostgreSQL 18, e a suíte sobe o 16** (`postgres:16-alpine`). Não mexi: é para o Lucas
+  decidir qual dos dois muda.
+
+**Para o Lucas decidir:**
+- **os gramas no P6**: a régua põe os gramas entre as unidades da TransLog (o Opus-02 converte kg em gramas fora
+  do adaptador, e a IA diz `vazado`); a régua do Semgrep só via as horas;
+- **o critério de aceite das réguas** (a proposta do protocolo: todos os plantados e 80% de concordância por
+  dimensão) e o que fazer quando duas correções da mesma execução discordam;
+- **o custo da correção**: com o Opus 5.5 em effort `high`, cerca de US$ 0,50 por dimensão de uma execução; as 220
+  execuções corrigidas duas vezes nas quatro dimensões seriam umas 1.760 correções, uma por conversa. Vale testar
+  um effort menor ou outro modelo, com as mesmas provas;
+- **o anonimato** nas execuções que valem: o nome da pasta diz o modelo, e sem script a cópia neutra é feita à mão;
+- os pontos que já estavam em aberto: a suíte como dimensão, o CK e o Sonar, e as réguas longe dos braços do
+  harness.
+
+**O que falta fazer:** a prova 3 (corrigir os pilotos de novo e comparar; parada em 17/10 para não estourar a
+janela de 5 horas da assinatura, que o primeiro lote levou de 36% para 61%) e a prova 4 (a leitura às cegas do
+Lucas).
 
