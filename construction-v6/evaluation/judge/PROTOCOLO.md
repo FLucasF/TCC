@@ -17,8 +17,10 @@ Quatro dimensões, cada uma com a sua régua em `rubric/`:
 | a cobertura e a qualidade dos testes | `tests.md` (T1 a T4) | os números do PIT |
 | a qualidade do banco | `database.md` (B1 a B10) | a foto do esquema |
 
-Cada item tem uma **lista fechada** de valores. A régua não procura a solução perfeita: pergunta se o código segue
-uma prática, e cada prática do banco cita a fonte publicada. A base dos padrões é a régua do Semgrep do V6 (as
+Cada item é uma pergunta, com as definições e o que conta como certo e como problema; a resposta é um **feedback
+escrito**, com evidência, e não um valor de uma lista (decisão do Lucas, 17/10: a lista fechada existia para um
+script comparar respostas, e quem vai ler e juntar as correções é uma IA). A régua não procura a solução perfeita:
+pergunta se o código segue uma prática, e cada prática do banco cita a fonte publicada. A base dos padrões é a régua do Semgrep do V6 (as
 perguntas P1 a P7 e as decisões de calibração de 14/10), que por sua vez é a régua do V5 reescrita.
 
 A **correção do comportamento** (a suíte) não é uma das quatro dimensões, e a IA não lê o resultado dela. Se ela
@@ -42,13 +44,20 @@ Estão no `rubric/common.md`, que a IA lê antes de cada correção. Em resumo:
   cópia com um nome neutro e guarda a chave fora dela.
 - **Julgar pelo que o código faz**: os comentários, os READMEs e os nomes das classes não contam. Na validação, a IA
   leu o projeto sem comentários; na correção sem script, ela lê o projeto como está e é instruída a ignorá-los.
-- **Evidência obrigatória**: toda resposta cita `arquivo:linha` ou o elemento do material.
-- **Na dúvida, `indeterminado`**, que conta como discordância na conferência (a regra do V5).
+- **Evidência obrigatória**: toda afirmação cita `arquivo:linha` ou o elemento do material.
+- **Na dúvida, dizer**: o que a evidência mostra e o que fica incerto, sem arredondar para o lado mais provável.
+
+**A leitura das correções.** Uma IA lê as correções escritas para juntar os resultados (por modelo, por braço do
+harness) e para as comparações da seção 4. Como as respostas não são palavras de uma lista, a contagem e a
+concordância são uma interpretação dessa IA, que precisa citar as correções em que se apoia; o Lucas confere uma
+amostra dessa leitura, como confere a correção.
 
 ## 4. A validação das réguas
 
-Quatro provas. As duas primeiras foram feitas em 17/10/2026 (os números estão no README; as respostas, em
-`batches/`).
+Quatro provas. As duas primeiras foram feitas em 17/10/2026, com a versão anterior das réguas, que pedia um valor de
+lista em cada item (as perguntas, as definições e os critérios são os mesmos de agora; mudou só a forma da
+resposta). Os números estão no README; as respostas, em `batches/`. Numa correção escrita, a conferência é se o
+texto diz o mesmo que o esperado (por exemplo, que o brinde do GOLD é decidido fora do nível).
 
 1. **Erros plantados.** O `planted/runs/PLANTED-01` é uma cópia do OPUS55-N0-03 com defeitos conhecidos, um ou dois
    por dimensão (o `planted/README.md` diz quais). A correção tem de achar cada um e não se confundir com o resto
@@ -56,14 +65,14 @@ Quatro provas. As duas primeiras foram feitas em 17/10/2026 (os números estão 
 2. **Contra as ferramentas.** Nos pilotos, as respostas que uma ferramenta já deu: P1 a P7 e F pela régua do
    Semgrep (validada em 2.200 de 2.200 respostas contra o V5), e B1 a B7 pela foto do esquema
    (`expected/pilotos.md`). Resultado: 115 de 116.
-3. **Contra ela mesma.** Corrigir os mesmos pilotos de novo, em conversas novas, e comparar item a item. Mede quanto
-   da resposta é do código e quanto é do acaso. **Falta fazer.**
-4. **Contra o Lucas.** O Lucas corrige às cegas uma amostra (três execuções, as quatro dimensões), no mesmo formato
-   da IA, e a concordância é contada item a item. **Falta fazer.**
+3. **Contra ela mesma.** Corrigir os mesmos pilotos de novo, em conversas novas, e ver, item a item, se as duas
+   correções chegam à mesma conclusão. Mede quanto da resposta é do código e quanto é do acaso. **Falta fazer.**
+4. **Contra o Lucas.** O Lucas corrige às cegas uma amostra (três execuções, as quatro dimensões), escrevendo do
+   mesmo jeito, e compara, item a item, se ele e a IA chegaram à mesma conclusão. **Falta fazer.**
 
-**Proposta de critério:** as réguas só valem para as execuções do TCC se a correção acertar todos os defeitos
-plantados e se, em cada dimensão, concordar com ela mesma e com o Lucas em pelo menos 80% dos itens. Um item com
-concordância baixa é reescrito (e as provas rodam de novo) ou passa a ser só descritivo.
+**Proposta de critério:** as réguas só valem para as execuções do TCC se a correção achar todos os defeitos
+plantados e se, em cada dimensão, chegar à mesma conclusão que ela mesma e que o Lucas na grande maioria dos itens.
+Um item em que as conclusões divergem muito é reescrito (e as provas rodam de novo) ou passa a ser só descritivo.
 
 ## 5. Nas execuções que valem
 

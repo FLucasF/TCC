@@ -1,6 +1,6 @@
 # O que a correção do PLANTED-01 tem de achar
 
-Os itens que os defeitos plantados mudam, e os que o original (OPUS55-N0-03) já tinha e os defeitos não mudam (a correção não pode se confundir com eles). Os defeitos estão no README desta pasta.
+Os itens que os defeitos plantados mudam, e os que o original (OPUS55-N0-03) já tinha e os defeitos não mudam (a correção não pode se confundir com eles). Os defeitos estão no README desta pasta. As palavras vêm da versão anterior da régua, que pedia um valor de lista: o `../expected/pilotos.md` diz como ler cada uma numa correção escrita.
 
 **De onde vêm.** Os defeitos plantados (P4, A1, B2, B4, B5, B7, T2) e, para conferir que o juiz não se confunde com eles, os valores que o original (OPUS55-N0-03) já tem e os defeitos não mudam: P1 a P3, P5 a P7 e F da régua do Semgrep, e B1 e B3 calculados da foto (o B3 já era parcial no original: a notification.order_id não tem índice).
 

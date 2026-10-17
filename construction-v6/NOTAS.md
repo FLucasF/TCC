@@ -576,9 +576,14 @@ feito, na ordem combinada com o Lucas:
    não foi confirmada; o B9 cita só o Spring Boot ("um mecanismo só", "ferramentas de migração de mais alto nível").
 2. **A correção é uma IA lendo as réguas em markdown** (decisão do Lucas, 17/10: "não quero script de juiz nem
    nada, vai ser markdown para IA ler e interpretar"). O `rubric/common.md` diz o que ler na pasta da execução, o
-   que não abrir, as regras (uma dimensão por conversa, contra o efeito halo; evidência; `indeterminado`) e o
-   formato da resposta (`correcao/<dimensão>.md`). Um script de juiz chegou a existir (no molde do avaliador da
-   manutenção) e rodou a validação abaixo; saiu no mesmo dia. As respostas dele ficaram em `batches/`.
+   que não abrir, as regras (uma dimensão por conversa, contra o efeito halo; evidência) e o formato da resposta
+   (`correcao/<dimensão>.md`). Um script de juiz chegou a existir (no molde do avaliador da manutenção) e rodou a
+   validação abaixo; saiu no mesmo dia. As respostas dele ficaram em `batches/`.
+   **A resposta é escrita, sem lista fechada** (decisão do Lucas, 17/10: a lista existia para o script bater as
+   respostas com constantes; quem vai ler e juntar as correções é uma IA, então o feedback pode ser escrito). As
+   réguas mantêm as perguntas, as definições, os critérios e as fontes; a resposta é um feedback de revisor, item a
+   item, com evidência. A validação foi feita com a versão de lista; as respostas esperadas ficaram nas palavras
+   dela, com um guia de como ler cada uma.
 3. **O material do banco**: a foto ganhou todos os índices (o B3, chave estrangeira sem índice, precisa dos não
    únicos), e a suíte rodou de novo nos 8 pilotos para tirar a foto. Só o Opus-03 fala a API atual (463 de 463);
    nos outros a suíte não se aplica (a API de antes), mas a foto sai, porque o serviço sobe e cria o esquema.
@@ -603,8 +608,9 @@ feito, na ordem combinada com o Lucas:
 **Para o Lucas decidir:**
 - **os gramas no P6**: a régua põe os gramas entre as unidades da TransLog (o Opus-02 converte kg em gramas fora
   do adaptador, e a IA diz `vazado`); a régua do Semgrep só via as horas;
-- **o critério de aceite das réguas** (a proposta do protocolo: todos os plantados e 80% de concordância por
-  dimensão) e o que fazer quando duas correções da mesma execução discordam;
+- **o critério de aceite das réguas** (a proposta do protocolo: achar todos os plantados e chegar à mesma conclusão
+  que ela mesma e que o Lucas na grande maioria dos itens) e o que fazer quando duas correções da mesma execução
+  discordam;
 - **o custo da correção**: com o Opus 5.5 em effort `high`, cerca de US$ 0,50 por dimensão de uma execução; as 220
   execuções corrigidas duas vezes nas quatro dimensões seriam umas 1.760 correções, uma por conversa. Vale testar
   um effort menor ou outro modelo, com as mesmas provas;

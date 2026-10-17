@@ -1,8 +1,9 @@
 # A correção por IA (V6)
 
 A correção da construção é feita por uma IA que **lê as réguas em markdown e interpreta o código**, numa sessão com
-o Lucas, uma dimensão de uma execução por vez. Não há script: a IA lê, responde item por item com evidência e
-escreve a correção em markdown. O que sustenta a correção e o que falta antes de valer está no
+o Lucas, uma dimensão de uma execução por vez. Não há script nem lista fechada de respostas: a IA passa pelos itens
+da régua e escreve um feedback, como o de um revisor de código, com evidência em `arquivo:linha`. As correções
+depois são lidas e juntadas por uma IA. O que sustenta a correção e o que falta antes de valer está no
 [protocolo](PROTOCOLO.md).
 
 | arquivo | o que é |
@@ -34,7 +35,9 @@ do PIT (`evaluation/measures/measure_test_quality.py`) e a foto do banco (a suí
 
 As réguas foram testadas com o Claude Opus 5.5 (effort `high`), uma dimensão por vez, às cegas (a pasta com um
 código no lugar do nome, o projeto sem comentários). Isso foi feito por um script, que depois saiu: a correção não
-usa script. As respostas e as transcrições estão em `batches/`, e a chave dos códigos em cada `key.json`.
+usa script. Naquela versão, a régua pedia um valor de lista em cada item; as perguntas, as definições e os critérios
+são os de agora, e mudou só a forma da resposta. As respostas e as transcrições estão em `batches/`, e a chave dos
+códigos em cada `key.json`.
 
 | prova | resultado |
 |---|---|

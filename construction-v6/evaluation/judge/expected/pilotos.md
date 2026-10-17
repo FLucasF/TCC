@@ -1,6 +1,8 @@
 # As respostas que as ferramentas já deram nos 8 pilotos
 
-Para conferir uma correção dos pilotos item a item. Uma célula vazia é um item que nenhuma ferramenta responde: ali só vale a leitura. `indeterminado` conta como discordância.
+Para conferir uma correção dos pilotos item a item. Uma célula vazia é um item que nenhuma ferramenta responde: ali só vale a leitura.
+
+**Como ler as palavras.** Elas vêm da versão anterior da régua, que pedia um valor de lista em cada item. Numa correção escrita, confira se o texto chega à mesma conclusão: `isolado`/`espalhado`, se o código de cada caso mora na casa dele ou se algum caso escapa; `consulta`, `condicional_unica` e `condicional_no_calculo`, as três formas de escolher o caso (a régua dos padrões as descreve); `enum_dados`/`dados`, a variação por região como dado; `vazado`, algum termo ou unidade da TransLog fora do lado dela; `container`/`nenhum`, como os objetos são criados; no banco, `atende`, `parcial` e `nao_atende`, se a prática é seguida em tudo, em parte ou em nada.
 
 **De onde vêm.** padroes: a régua do Semgrep removida em 15/10 (validada em 2.200 de 2.200 respostas contra o V5), rodada do histórico do git (commit 28ddaa29) nos 8 pilotos em 17/10/2026; o P6 só nos pilotos cujo enunciado tinha o vocabulário estrangeiro da TransLog. banco: B1 e B3 calculados das fotos do esquema (os pilotos sem foto, cujo serviço não subiu, ficam de fora). No OPUS55-N0-03, B2, B4, B5 e B7 lidos da foto (as ligações têm chave estrangeira, o dinheiro é numeric, os instantes têm fuso, e há o CHECK do estoque, a chave com o id da transação e o CHECK da quantidade): é o par de controle do serviço plantado.
 
