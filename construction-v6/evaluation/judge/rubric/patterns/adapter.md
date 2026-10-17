@@ -1,7 +1,7 @@
 # As instruções do pattern: Adapter
 
 Este pattern cuida de um ponto que pede o padrão (P6, a TransLog) e de um controle negativo (as entregas sem
-transportadora). A correção vai em `correcao/padroes-adapter.md`.
+transportadora).
 
 ## O ponto que pede o padrão: a TransLog (P6)
 

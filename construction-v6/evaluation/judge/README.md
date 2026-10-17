@@ -29,7 +29,7 @@ Numa conversa nova, para cada dimensão (e, nos padrões, para cada pattern: sã
    compare com o `planted/esperado.md`.
 
 O material precisa existir antes: o relatório de arquitetura (`evaluation/measures/report_architecture.py`), a linha
-do PIT (`evaluation/measures/measure_test_quality.py`) e a foto do banco (a suíte, `run_suite_against_service.py`).
+do PIT (`evaluation/measures/measure_test_quality.py`) e a foto do banco (`evaluation/measures/photograph_database.py`, sem a suíte). A correção roda com `judge_with_agent.py` (às cegas, no Docker, com um PostgreSQL ao lado na 5ª dimensão, o comportamento).
 
 ## A validação (17/10/2026)
 

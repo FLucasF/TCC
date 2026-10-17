@@ -1,6 +1,6 @@
 # A dimensão: a qualidade do banco
 
-A correção vai em `correcao/banco.md`. A pergunta é se o banco que o serviço cria segue as boas práticas de banco
+A pergunta é se o banco que o serviço cria segue as boas práticas de banco
 relacional: as ligações entre as entidades, os relacionamentos, a organização e as garantias. Não existe um
 esquema certo a ser encontrado. Cada item é uma prática publicada, com a fonte ao lado.
 
@@ -41,12 +41,14 @@ uma restrição única) cuja **primeira** coluna é a da chave estrangeira conta
 **B4, o dinheiro é guardado num tipo exato?** Fontes: documentação do PostgreSQL, 8.1.3 (*Floating-Point Types*: "se
 você precisa de armazenamento e cálculo exatos, como valores em dinheiro, use o tipo `numeric`"), e a wiki do
 PostgreSQL, *Don't Do This* ("Don't use money"). O certo é `numeric` (ou centavos num inteiro). É problema `real`,
-`double precision` ou `money`: cite as colunas.
+`double precision` ou `money`: cite as colunas. **Uma coluna de dinheiro num tipo inexato já basta para
+`não segue`**, mesmo que as outras estejam certas.
 
 **B5, as datas e horas guardam o fuso?** Fonte: wiki do PostgreSQL, *Don't Do This* ("Don't use timestamp (without
 time zone)"). O enunciado usa instantes com fuso (`2026-10-14T15:30:00Z`) e a regra das 48 horas. O certo é
 `timestamp with time zone` (ou um tipo que guarda o instante sem ambiguidade, como um inteiro em UTC, explicado no
-código). É problema `timestamp without time zone`: cite as colunas.
+código). É problema `timestamp without time zone`: cite as colunas. **Uma coluna de instante sem fuso já basta
+para `não segue`**, mesmo que as outras estejam certas.
 
 **B6, o que é obrigatório é `NOT NULL`?** Fonte: documentação do PostgreSQL, 5.5.2 (*Not-Null Constraints*).
 Obrigatório é o que o enunciado diz que todo pedido, item, produto, cliente ou aviso tem (o CPF, a situação, a data

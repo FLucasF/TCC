@@ -645,3 +645,41 @@ e as respostas esperadas seguem valendo. Os controles negativos do Adapter, do S
 cenários do começo destas notas, que já os tinha; agora cada um tem item próprio (`P6-exagero`, `P7-exagero`,
 `F-exagero`), e ainda não há resposta esperada para eles.
 
+
+## A correção alinhada com a da manutenção (17/10/2026)
+
+Decisões do Lucas, para as duas pesquisas corrigirem do mesmo jeito (o melhor de cada uma):
+
+| ponto | decisão |
+|---|---|
+| quem julga | a IA, investigando do zero; nenhum script decide certo ou errado |
+| o comportamento | vira a **5ª dimensão** da construção: a IA sobe o PostgreSQL, uma TransLog falsa e o serviço, e testa ela mesma pela API (a suíte deixa de ser material da correção) |
+| o material | o PIT, o relatório de arquitetura e a foto do banco continuam (a foto passa a ser tirada sem a suíte) |
+| a resposta | nas duas pesquisas, o feedback escrito de revisor **e uma linha de conclusão por item**: nos padrões, as palavras comuns (acerto, omissão, malfeito, contenção, exagero); nas outras dimensões, uma lista curta a definir. Muda a decisão de 17/10 (só texto) |
+| como roda | igual à manutenção: um script que só monta a cópia às cegas (com nome neutro), sobe a IA no Docker e guarda a resposta, em lote; na 5ª dimensão, com um PostgreSQL ao lado |
+
+**O plano, na ordem:**
+1. A linha de conclusão nas duas réguas comuns (`rubric/common.md` aqui; `evaluation/evaluator/common.md` na
+   manutenção, que passa a responder em texto + conclusão).
+2. A régua da 5ª dimensão (`rubric/behavior.md`): o que testar do enunciado (os exemplos, as recusas, o ciclo do
+   pedido, o estoque, a última peça com duas instâncias, o aviso repetido, o reinício); a TransLog falsa a IA
+   escreve ela mesma (um `java Stub.java` com o `HttpServer` do JDK); o banco chega pelas `DB_*`.
+3. A foto do banco sem a suíte (um modo do script que só sobe o serviço e fotografa o esquema).
+4. O script da correção da construção, no molde do da manutenção, com o PostgreSQL ao lado na 5ª dimensão.
+5. A validação: os defeitos plantados (as 21 respostas e os 13 erros de comportamento que a suíte pegava), os
+   pilotos, e, na manutenção, a calibração de novo nas 20 soluções. Custa cota: confirmar com o Lucas antes.
+
+**Feito em 17/10 (os passos 1 a 4):** a régua comum reescrita (`rubric/common.md`: a IA sozinha e às cegas, o
+material, a linha de conclusão), a régua da 5ª dimensão (`rubric/behavior.md`, C1 a C10), a foto do banco sem a
+suíte (`evaluation/measures/photograph_database.py`, igual à da suíte no OPUS55-N0-03: 6 tabelas, 40 colunas, 14
+restrições, 8 índices), o script da correção (`evaluation/judge/judge_with_agent.py`, com o PostgreSQL ao lado na 5ª
+dimensão; o dry-run monta as 64 pastas dos pilotos) e o protocolo atualizado. Na manutenção, o avaliador passou a
+responder em texto com as três linhas de conclusão.
+
+**O passo 5, também em 17/10 (Claude Opus 5.5, effort `high`):** a calibração da manutenção deu 20 de 20 no formato
+novo (US$ 6,44); o comportamento no OPUS55-N0-03 subiu o serviço, uma segunda instância e a TransLog falsa e testou
+pela API, com os 10 itens `segue` (US$ 2,42); no serviço plantado, depois de duas regras novas nas réguas (no A1,
+no B4 e no B5 um único ponto errado já é `não segue`; no comportamento, o que o enunciado não decide vai para as
+"Dúvidas") e do conserto do F (as réguas ainda mandavam salvar em `correcao/…`), as conclusões deram 21 de 21
+iguais ao esperado (ver `evaluation/judge/planted/README.md`). Ficaram de fora: os outros sete pilotos e a conferência
+um a um dos 13 erros de comportamento que a suíte pegava.

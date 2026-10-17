@@ -30,3 +30,23 @@ todos os defeitos e não se confundiu com o que o original já tinha. Achou tamb
 
 Com as réguas do formato escrito (sem lista fechada), a dimensão do banco foi corrigida de novo, sem script: as 6
 conclusões do banco iguais ao esperado (`../batches/written-1/`).
+
+## O resultado com a correção alinhada (17/10/2026)
+
+Com a correção alinhada com a da manutenção (as oito dimensões, o comportamento testado pela própria IA, a resposta em
+texto com uma linha de conclusão por item), Claude Opus 5.5 (effort `high`) achou **todos os defeitos plantados**, e
+nada do que o original já tinha foi confundido com eles. Em três itens, porém, a palavra da conclusão foi mais branda
+que a do esperado: A1, B4 e B5 saíram `em parte`, e o esperado é `nao_atende`. Ele viu o defeito nos três, mas pesou o
+resto do item (um único `OrderReceipts`, uma única coluna em `double precision`, uma única coluna sem fuso). Na
+primeira tentativa, o Factory saiu sem as linhas de conclusão, porque as réguas ainda mandavam salvar a correção em
+`correcao/…` e o F não tinha palavra de conclusão. Depois do conserto, o F saiu `não se aplica` (contêiner, criação
+concentrada). O comportamento achou, rodando, o efeito do `created_at` sem fuso: numa segunda instância com a JVM no
+fuso de São Paulo, um pagamento com 47 horas foi recusado por prazo vencido. Saída em
+`../../../analysis/planted/judge/opus-5-5-high/`.
+
+Depois disso, as réguas ganharam duas regras: no A1, no B4 e no B5, um único ponto errado já é `não segue` (a pergunta
+é de sim ou não), e no comportamento um ponto que o enunciado não decide vai para as "Dúvidas" sem mudar a conclusão.
+Corrigidas de novo a arquitetura, o banco e o comportamento, as conclusões ficaram **21 de 21 iguais ao esperado**. Duas
+mudanças fora do esperado: o A2 passou de `em parte` para `não segue` com os mesmos achados (os dois laços de
+comportamento, `order`↔`catalog` e `order`↔`customer`), e o fuso do servidor no C6 foi para as "Dúvidas", porque o
+enunciado não diz em que fuso o serviço roda.

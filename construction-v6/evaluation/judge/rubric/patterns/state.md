@@ -1,8 +1,7 @@
 # As instruções do pattern: State (secundário)
 
 Este pattern cuida de um ponto que pede o padrão (P7, a situação do pedido), de um remendo (o cancelamento) e de um
-controle negativo (a situação do aviso). É um pattern secundário: o enunciado pede menos dele que dos outros. A
-correção vai em `correcao/padroes-state.md`.
+controle negativo (a situação do aviso). É um pattern secundário: o enunciado pede menos dele que dos outros.
 
 ## O ponto que pede o padrão: a situação do pedido (P7)
 

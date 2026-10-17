@@ -1,6 +1,6 @@
 # A dimensão: a arquitetura
 
-A correção vai em `correcao/arquitetura.md`. Além do enunciado e do projeto, você lê o **relatório de arquitetura**
+Além do enunciado e do projeto, você lê o **relatório de arquitetura**
 (`architecture/architecture-report.txt`), lido por uma ferramenta (ArchUnit) nas classes compiladas do projeto.
 Ele traz fatos, não notas:
 
@@ -22,7 +22,8 @@ deveria depender de nada que só existe porque o serviço é chamado por HTTP: o
 corpo da requisição e da resposta, quando moram com os controllers). O certo é a regra de negócio receber e devolver
 tipos próprios, com a tradução de e para HTTP na camada web. O relatório pega os tipos do Spring; os objetos da API
 do projeto você acha nas dependências entre pacotes (por exemplo, um serviço que recebe o `PedidoRequest` do pacote
-dos controllers). Cite cada classe de negócio que conhece a web.
+dos controllers). Cite cada classe de negócio que conhece a web. A pergunta é de sim ou não: **uma classe de
+negócio que conhece a web já basta para `não segue`**, mesmo que todo o resto esteja limpo.
 
 **A2, os ciclos entre pacotes são acoplamento real?** Para cada grupo de pacotes em ciclo do relatório, abra as
 dependências de classe que fecham o círculo e diga por qual dependência ele fecha. Um ciclo que fecha por um **tipo

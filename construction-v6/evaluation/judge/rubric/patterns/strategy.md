@@ -1,7 +1,6 @@
 # As instruções do pattern: Strategy
 
-Este pattern cuida de quatro pontos que pedem o padrão (P1 a P4) e de um controle negativo (P5). A correção vai em
-`correcao/padroes-strategy.md`.
+Este pattern cuida de quatro pontos que pedem o padrão (P1 a P4) e de um controle negativo (P5).
 
 ## Os pontos que pedem o padrão (P1 a P4)
 

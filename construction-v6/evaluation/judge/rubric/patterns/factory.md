@@ -1,8 +1,7 @@
 # As instruções do pattern: Factory (a criação concentrada)
 
 Este pattern cuida de como os objetos são criados (F) e de um controle negativo (os objetos sem regra). O que se
-mede é o **princípio criacional**, a criação concentrada num lugar só, e não a *Factory Method* estrita do GoF. A
-correção vai em `correcao/padroes-factory.md`.
+mede é o **princípio criacional**, a criação concentrada num lugar só, e não a *Factory Method* estrita do GoF.
 
 ## O ponto: a criação dos objetos de cada caso (F)
 
@@ -19,7 +18,7 @@ registro), por constantes de enum com corpo, por `new` espalhado nos lugares que
 
 **Este item é descritivo** (decisão do Lucas, 14/10/2026: nos 8 pilotos, o contêiner do Spring cria todas as
 estratégias de quem as tem, e a pergunta não separa ninguém). Diga a forma e se a criação está concentrada, sem
-chamar de acerto ou omissão. Vale registrar quando aparece o `new` dos casos e das suas dependências espalhado e
+chamar de acerto ou omissão; a conclusão do F é `não se aplica`, a marca de um item que descreve. Vale registrar quando aparece o `new` dos casos e das suas dependências espalhado e
 repetido (`new ExpressShipping(new TranslogClient(url))` em mais de um lugar, cada fluxo criando as suas peças).
 Quando o agente não criou objeto por caso (a variação
 está em `if`), diga isso: a criação não tem o que concentrar, e o problema já aparece no Strategy.

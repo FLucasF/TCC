@@ -1,6 +1,6 @@
 # A dimensão: a cobertura e a qualidade dos testes
 
-A correção vai em `correcao/testes.md`. O enunciado **não pede testes**: só diz que "o projeto precisa funcionar
+O enunciado **não pede testes**: só diz que "o projeto precisa funcionar
 com `mvn verify`" num computador "sem banco de dados nem Docker". Escrever testes, e quais, foi decisão do agente.
 
 Além do enunciado e do projeto, você lê os números da **medida por mutação** (a linha da execução no CSV do PIT do

@@ -1,9 +1,7 @@
 # A dimensão: a implementação dos padrões (a parte comum)
 
 Os padrões são corrigidos **um por conversa**, como as outras dimensões: este arquivo e depois o do pattern
-(`strategy.md`, `adapter.md`, `state.md` ou `factory.md`). A correção vai em `correcao/padroes-<pattern>.md`
-(`padroes-strategy.md`, `padroes-adapter.md`, `padroes-state.md`, `padroes-factory.md`). Não há material além do
-enunciado e do projeto.
+(`strategy.md`, `adapter.md`, `state.md` ou `factory.md`). Não há material além do enunciado e do projeto.
 
 O enunciado foi escrito para que alguns pontos peçam um padrão sem dizer o nome dele, e para que outros pareçam
 pedir e não peçam (os controles negativos). Cada pattern tem três tipos de ponto:
@@ -26,8 +24,8 @@ código de cada caso e como o caso é escolhido.
 Duas situações são próprias de um projeto criado do zero:
 
 - **um caso que não existe no código** (um cupom que o agente não implementou, uma situação do pedido que falta): diga
-  isso e julgue o desenho com os casos que existem. Se o serviço faz o que o enunciado pede, é a suíte que mede, e não
-  esta correção;
+  isso e julgue o desenho com os casos que existem. Se o serviço faz o que o enunciado pede, é a dimensão do
+  comportamento que mede, e não esta correção;
 - **um ponto que o enunciado daquela execução não tinha**: os pilotos rodaram com versões anteriores do enunciado
   (no `prompt.md` da execução), e alguma regra ou alguma frase pode não estar lá. Confira no `prompt.md` e, se o ponto
   não estiver, diga que ele não se aplica àquela execução, em vez de cobrar o que o agente não recebeu.
@@ -70,4 +68,4 @@ Em qualquer pattern, registre à parte a estrutura que o projeto criou numa part
 enunciado pede**: uma interface com uma implementação só que nada substitui, uma camada que só repassa, um builder
 ou uma fábrica que ninguém precisava. Não conte aqui os controles negativos do pattern, que têm item próprio. Cite
 cada caso, ou diga que não há. Como os quatro patterns olham o mesmo projeto, cada correção registra só o que achou
-perto do seu pattern.
+perto do seu pattern. A conclusão do E é `contenção` (não há) ou `exagero` (há).

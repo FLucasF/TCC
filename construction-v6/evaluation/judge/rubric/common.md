@@ -1,60 +1,58 @@
 # A correção de um serviço
 
-Este guia é para a IA que corrige, numa sessão com o Lucas, **uma dimensão de uma execução** da construção: o serviço
-de pedidos de uma loja online, em Java com Spring Boot e PostgreSQL, que um agente de programação escreveu do zero
-a partir de um enunciado. A régua da dimensão vem logo depois deste guia (`architecture.md`, `tests.md` ou
-`database.md`). Os padrões têm uma régua por pattern, como na manutenção: `patterns/common.md` e depois
-`patterns/strategy.md`, `patterns/adapter.md`, `patterns/state.md` ou `patterns/factory.md`, um pattern por
-conversa. Leia tudo inteiro antes de abrir o código.
+Este guia é para a IA que corrige **uma dimensão de uma execução** da construção: o serviço de pedidos de uma loja
+online, em Java com Spring Boot e PostgreSQL, que um agente de programação escreveu do zero a partir de um
+enunciado. A régua da dimensão vem logo depois deste guia: `architecture.md`, `tests.md`, `database.md` ou
+`behavior.md`; os padrões têm uma régua por pattern, como na manutenção (`patterns/common.md` e depois
+`patterns/strategy.md`, `patterns/adapter.md`, `patterns/state.md` ou `patterns/factory.md`). Leia tudo inteiro
+antes de abrir o código.
 
-A pergunta não é se o serviço dá a resposta certa (isso é medido à parte, pela suíte de testes), e sim se o
-desenho segue as boas práticas da dimensão. Não existe uma solução perfeita a ser encontrada. A régua traz as
-perguntas e as definições; a resposta é um **feedback escrito**, como o de um revisor de código: o que o agente fez,
-se isso segue a prática, por que importa naquele ponto do enunciado e, quando não segue, o que seria melhor. As
-correções depois são lidas e comparadas por uma IA, então escreva para ser entendido sem abrir o código, mas sem
-encher: o que importa, com a evidência.
+Você corrige sozinha, às cegas, numa pasta de trabalho preparada para isso. Você não sabe qual agente ou modelo
+fez o serviço, e não deve tentar adivinhar.
 
-## O que ler, numa pasta de execução (`runs/<lote>/<execução>/`)
+São cinco dimensões. Quatro olham o **desenho** (a arquitetura, os padrões, os testes, o banco): ali a pergunta não
+é se o serviço dá a resposta certa, e sim se o código segue as boas práticas da dimensão. A quinta, o
+**comportamento** (`behavior.md`), é a que pergunta se o serviço faz o que o enunciado pede: nela você sobe o
+serviço e testa. Não existe uma solução perfeita a ser encontrada. A régua traz as perguntas e as definições; a
+resposta é um **feedback escrito**, como o de um revisor de código, com **uma linha de conclusão em cada item**.
+
+## O que há na pasta de trabalho
 
 | o quê | onde | para quê |
 |---|---|---|
-| o enunciado | `prompt.md` | o texto exato que **aquele** agente recebeu. Use este, e não o de `experiment/prompt/`: os pilotos rodaram com versões anteriores |
-| o projeto | `workspace/`, o projeto do `pom.xml` mais raso (o mesmo que o build compila); só o `pom.xml` e o `src/` | todas as dimensões |
+| o enunciado | `prompt.md` | o texto exato que aquele agente recebeu (os pilotos rodaram com versões anteriores do enunciado; use sempre este) |
+| o projeto | `workspace/`, o projeto do `pom.xml` mais raso (o mesmo que o build compila) | todas as dimensões |
 | o relatório de arquitetura | `architecture/architecture-report.txt` | a arquitetura |
-| os números do PIT | a linha da execução no CSV do lote (`analysis/<lote>/pit.csv`; para o serviço plantado, `evaluation/judge/planted/pit.csv`) | os testes |
-| a foto do banco | `suite/database-schema.json` | o banco. Se o arquivo não existir, ou não tiver nenhuma tabela, o serviço não subiu na suíte: corrija pelo código e diga isso |
+| os números do PIT | `pit.txt` | os testes |
+| a foto do banco | `database/database-schema.json` | o banco. Se não houver tabela nenhuma, o serviço não subiu: corrija pelo código e diga isso |
 
-**O que não abrir:** o `meta.json`, a transcrição (`claude-output.jsonl`), o `run.log`, o `stderr.txt`, o
-`build.txt`, os resultados da suíte (`suite-report.txt`, `suite-result.json`) e as correções de outras dimensões.
-Eles dizem quem fez, quanto custou ou se o serviço acertou, e nada disso entra no desenho.
-
-**Às cegas.** O nome da pasta da execução diz o modelo (`OPUS55-N0-03`). Não use isso, e não tente adivinhar quem
-fez o trabalho. Quando a correção valer para o TCC, o Lucas entrega a execução numa cópia com um nome neutro.
+Os três materiais são feitos por ferramentas antes da correção. Eles ajudam a ver o que a leitura vê mal (um ciclo
+entre pacotes, um teste que roda e não confere nada, a coluna que o banco realmente criou), mas **não são nota**:
+quem decide o que eles significam é você.
 
 ## As regras
 
 1. **Uma dimensão por conversa** (nos padrões, um pattern por conversa). A impressão de uma não pode contaminar a
-   outra (o efeito halo). Para corrigir outra dimensão ou outro pattern da mesma execução, comece outra conversa.
+   outra (o efeito halo).
 2. **Julgue pelo que o código faz, nunca pelo que ele diz de si.** Os comentários, os READMEs e os nomes das classes
    não contam. Uma classe chamada `ShippingStrategy` que esconde um `switch` sobre as entregas não é um Strategy;
    um pacote chamado `domain` que importa o controller não é um domínio isolado.
 3. **Toda afirmação precisa de evidência.** No código, `arquivo:linha`, com o caminho a partir da pasta do
-   projeto. Num material (o relatório de arquitetura, a foto do banco, o CSV do PIT), o arquivo e o nome do
-   elemento (a tabela, a coluna, a restrição, o grupo de pacotes). Uma afirmação sem evidência não conta.
+   projeto. Num material, o arquivo e o nome do elemento (a tabela, a coluna, a restrição, o grupo de pacotes). No
+   comportamento, a chamada que você fez, o que esperava e o que veio. Uma afirmação sem evidência não conta.
 4. **Diga quando não tiver certeza.** Se a evidência não decide, escreva o que ela mostra, o que fica em dúvida e
    por quê. Não arredonde a dúvida para o lado mais provável.
-5. **Passe por todos os itens da régua**, na ordem dela. Um item que não se aplica ao projeto (a foto do banco
-   quando o serviço não subiu, os testes quando não há teste) leva uma linha dizendo isso.
-6. **Não mude nenhum arquivo do projeto.** Ler e buscar à vontade (`grep`, `find`); não precisa compilar nem rodar.
+5. **Passe por todos os itens da régua**, na ordem dela. Um item que não se aplica leva uma linha dizendo isso.
+6. **Não mude nenhum arquivo da pasta de trabalho.** Nas dimensões de desenho, leia e busque à vontade (`grep`,
+   `find`); não precisa compilar nem rodar. No comportamento, compile e rode numa cópia do projeto (`behavior.md`
+   diz como).
 
 ## A resposta
 
-Escreva a correção em `runs/<lote>/<execução>/correcao/<dimensão>.md` (`arquitetura.md`, `testes.md`, `banco.md`,
-ou, nos padrões, `padroes-strategy.md`, `padroes-adapter.md`, `padroes-state.md`, `padroes-factory.md`), neste
-formato:
+Responda só com a correção, em markdown, neste formato:
 
 ```markdown
-# <dimensão>: <execução>
+# <dimensão>
 
 ## Visão geral
 
@@ -62,12 +60,26 @@ Um parágrafo: como o agente resolveu a dimensão, os pontos fortes e os problem
 
 ## Item a item
 
-**B1, chave primária.** As seis tabelas têm chave primária (`suite/database-schema.json`, as restrições `p`), e a do
-item do pedido é composta, `(order_id, line_no)` (`schema.sql:46`). Segue a prática.
+**B1, chave primária.** As seis tabelas têm chave primária (`database/database-schema.json`, as restrições `p`), e
+a do item do pedido é composta, `(order_id, line_no)` (`schema.sql:46`). Segue a prática.
+Conclusão: segue
 
 **B2, as ligações.** ...
+Conclusão: em parte
 
 ## O que mudaria primeiro
 
 Uma ou duas mudanças que mais melhorariam a dimensão, com o motivo.
+
+## Dúvidas
+
+O que o enunciado ou a régua não decidem e você teve de decidir, com a leitura que escolheu (ou "nenhuma").
 ```
+
+**A linha de conclusão** fecha cada item, sozinha na linha, começando por `Conclusão:` e com uma palavra só:
+
+- nos **padrões**: `acerto`, `omissão` ou `malfeito` nos pontos que pedem o padrão (o óbvio e o remendo);
+  `contenção` ou `exagero` nos controles negativos; `não se aplica` quando o ponto não existe naquela execução;
+- nas **outras dimensões**: `segue`, `em parte`, `não segue` ou `não se aplica`.
+
+O texto é o que um leitor lê; a conclusão é o que se conta. Os dois têm de dizer a mesma coisa.
