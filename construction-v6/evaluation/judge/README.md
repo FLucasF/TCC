@@ -9,7 +9,7 @@ depois são lidas e juntadas por uma IA. O que sustenta a correção e o que fal
 | arquivo | o que é |
 |---|---|
 | [`rubric/common.md`](rubric/common.md) | **comece por aqui**: o que ler na pasta da execução, o que não abrir, as regras e o formato da resposta |
-| [`rubric/patterns.md`](rubric/patterns.md) | os padrões: P1 a P4 (Strategy), P5 (o controle negativo), P6 (Adapter), P7 (State), F (Factory, descritivo) e E (estrutura sem necessidade) |
+| [`rubric/patterns/`](rubric/patterns/common.md) | os padrões, **um prompt por pattern**, como na manutenção: a parte comum (`common.md`: as definições e o E, a estrutura sem necessidade) e `strategy.md` (P1 a P4 e o controle negativo P5), `adapter.md` (P6 e o seu controle negativo), `state.md` (P7, o remendo do cancelamento e o controle negativo do aviso) e `factory.md` (F, descritivo, e o controle negativo) |
 | [`rubric/architecture.md`](rubric/architecture.md) | a arquitetura: A1 a A6, lidos com o relatório de arquitetura |
 | [`rubric/tests.md`](rubric/tests.md) | os testes: T1 a T4, lidos com os números do PIT |
 | [`rubric/database.md`](rubric/database.md) | o banco: B1 a B10, cada um com a fonte, lidos com a foto do esquema |
@@ -19,7 +19,7 @@ depois são lidas e juntadas por uma IA. O que sustenta a correção e o que fal
 
 ## Como corrigir uma execução
 
-Numa conversa nova, para cada dimensão:
+Numa conversa nova, para cada dimensão (e, nos padrões, para cada pattern: são quatro conversas):
 
 1. Peça à IA para ler o `rubric/common.md` e a régua da dimensão.
 2. Diga qual é a pasta da execução (`runs/<lote>/<execução>/`).

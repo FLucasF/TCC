@@ -627,3 +627,21 @@ feito, na ordem combinada com o Lucas:
 janela de 5 horas da assinatura, que o primeiro lote levou de 36% para 61%) e a prova 4 (a leitura às cegas do
 Lucas).
 
+## Um prompt por pattern (17/10/2026)
+
+Pedido do Lucas: os padrões ganham **um prompt por pattern**, como o avaliador da manutenção (uma parte comum e uma
+parte por pattern). A `rubric/patterns.md` virou a pasta `rubric/patterns/`:
+
+| arquivo | o que cobre |
+|---|---|
+| `common.md` | os três tipos de ponto (o óbvio, o remendo, o controle negativo), as palavras da manutenção para nomear o que se vê (acerto, omissão, malfeito, contenção, exagero), as definições (os casos, nomear um caso, a casa) e o E |
+| `strategy.md` | P1 a P4, as quatro regras cruzadas (o remendo) e o controle negativo P5, a região |
+| `adapter.md` | P6, a TransLog, e o controle negativo: o motoboy e a retirada, valores fixos sem nada de fora para adaptar |
+| `state.md` | P7, o remendo do cancelamento (pago × não pago) e o controle negativo: o aviso, que só vai de `NEW` para `READ` |
+| `factory.md` | F, que segue **descritivo** (a decisão de 14/10), e o controle negativo: fábrica ou builder para objeto sem regra |
+
+Cada pattern é uma conversa, e a correção vai em `correcao/padroes-<pattern>.md`. Os ids (P1 a P7, F, E) não mudaram,
+e as respostas esperadas seguem valendo. Os controles negativos do Adapter, do State e da Factory vêm do mapa de
+cenários do começo destas notas, que já os tinha; agora cada um tem item próprio (`P6-exagero`, `P7-exagero`,
+`F-exagero`), e ainda não há resposta esperada para eles.
+

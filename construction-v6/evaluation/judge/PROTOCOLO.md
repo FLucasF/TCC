@@ -12,7 +12,7 @@ Quatro dimensões, cada uma com a sua régua em `rubric/`:
 
 | dimensão | régua | o material além do código |
 |---|---|---|
-| a implementação dos padrões | `patterns.md` (P1 a P7, F e E) | nenhum |
+| a implementação dos padrões | `patterns/`, um prompt por pattern (Strategy: P1 a P5; Adapter: P6; State: P7; Factory: F; e, em todos, o E) | nenhum |
 | a arquitetura | `architecture.md` (A1 a A6) | o relatório de arquitetura (ArchUnit) |
 | a cobertura e a qualidade dos testes | `tests.md` (T1 a T4) | os números do PIT |
 | a qualidade do banco | `database.md` (B1 a B10) | a foto do esquema |
@@ -37,7 +37,9 @@ novo.
 
 Estão no `rubric/common.md`, que a IA lê antes de cada correção. Em resumo:
 
-- **Uma dimensão por conversa**, para a impressão de uma não contaminar a outra (o efeito halo).
+- **Uma dimensão por conversa**, e nos padrões **um pattern por conversa** (como na manutenção, que tem um prompt
+  por pattern), para a impressão de uma não contaminar a outra (o efeito halo). Cada pattern traz, além do ponto que
+  pede o padrão, o remendo e o controle negativo dele, do mapa de cenários das notas.
 - **Às cegas**: a IA não abre o que diz quem fez o trabalho ou se ele acertou (o `meta.json`, a transcrição, os
   logs, o resultado da suíte), não usa o nome da pasta e não tenta adivinhar o modelo. O nome da pasta das
   execuções diz o modelo (`OPUS55-N0-03`): **proposta**, nas execuções que valem, o Lucas entrega cada uma numa

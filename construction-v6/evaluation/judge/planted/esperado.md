@@ -6,6 +6,8 @@ Os itens que os defeitos plantados mudam, e os que o original (OPUS55-N0-03) já
 
 ## padroes
 
+Cada item cai na correção de um pattern: P1 a P5 no Strategy (`padroes-strategy.md`), P6 no Adapter, P7 no State e F no Factory.
+
 | execução | P1-local | P1-selecao | P2-local | P2-selecao | P3-local | P3-selecao | P4-local | P4-selecao | P5-forma | P5-proporcao | P6 | P7 | F |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | PLANTED-01 | isolado | consulta | isolado | consulta | isolado | consulta | espalhado | condicional_no_calculo | enum_dados | dados | vazado | isolado | container |

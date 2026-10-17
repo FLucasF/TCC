@@ -2,8 +2,10 @@
 
 Este guia é para a IA que corrige, numa sessão com o Lucas, **uma dimensão de uma execução** da construção: o serviço
 de pedidos de uma loja online, em Java com Spring Boot e PostgreSQL, que um agente de programação escreveu do zero
-a partir de um enunciado. A régua da dimensão vem logo depois deste guia (`patterns.md`, `architecture.md`,
-`tests.md` ou `database.md`). Leia os dois inteiros antes de abrir o código.
+a partir de um enunciado. A régua da dimensão vem logo depois deste guia (`architecture.md`, `tests.md` ou
+`database.md`). Os padrões têm uma régua por pattern, como na manutenção: `patterns/common.md` e depois
+`patterns/strategy.md`, `patterns/adapter.md`, `patterns/state.md` ou `patterns/factory.md`, um pattern por
+conversa. Leia tudo inteiro antes de abrir o código.
 
 A pergunta não é se o serviço dá a resposta certa (isso é medido à parte, pela suíte de testes), e sim se o
 desenho segue as boas práticas da dimensão. Não existe uma solução perfeita a ser encontrada. A régua traz as
@@ -31,8 +33,8 @@ fez o trabalho. Quando a correção valer para o TCC, o Lucas entrega a execuç�
 
 ## As regras
 
-1. **Uma dimensão por conversa.** A impressão de uma dimensão não pode contaminar a outra (o efeito halo). Para
-   corrigir outra dimensão da mesma execução, comece outra conversa.
+1. **Uma dimensão por conversa** (nos padrões, um pattern por conversa). A impressão de uma não pode contaminar a
+   outra (o efeito halo). Para corrigir outra dimensão ou outro pattern da mesma execução, comece outra conversa.
 2. **Julgue pelo que o código faz, nunca pelo que ele diz de si.** Os comentários, os READMEs e os nomes das classes
    não contam. Uma classe chamada `ShippingStrategy` que esconde um `switch` sobre as entregas não é um Strategy;
    um pacote chamado `domain` que importa o controller não é um domínio isolado.
@@ -47,8 +49,9 @@ fez o trabalho. Quando a correção valer para o TCC, o Lucas entrega a execuç�
 
 ## A resposta
 
-Escreva a correção em `runs/<lote>/<execução>/correcao/<dimensão>.md` (`padroes.md`, `arquitetura.md`,
-`testes.md` ou `banco.md`), neste formato:
+Escreva a correção em `runs/<lote>/<execução>/correcao/<dimensão>.md` (`arquitetura.md`, `testes.md`, `banco.md`,
+ou, nos padrões, `padroes-strategy.md`, `padroes-adapter.md`, `padroes-state.md`, `padroes-factory.md`), neste
+formato:
 
 ```markdown
 # <dimensão>: <execução>
