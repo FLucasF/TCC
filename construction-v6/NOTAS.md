@@ -552,7 +552,8 @@ Sonnet-02 2; os outros 0), e a classe plantada numa cópia do Opus-03 (guarda um
 aceita nulo e o valor padrão. Sem elas, a organização do banco não se julgava: dinheiro em `numeric` ou em
 `double`, campo obrigatório que aceita nulo. Conferida no Opus-03 (40 colunas em 6 tabelas; a suíte segue
 463 de 463). **Nenhum piloto tem a foto no disco**: para a IA ler o banco dos pilotos, a suíte tem de rodar
-de novo neles.
+de novo neles. *(Feito no mesmo dia: as fotos dos 8 pilotos estão em `runs/pilots/<id>/suite/`, tiradas de novo
+no PostgreSQL 18; ver a seção seguinte.)*
 
 **Em aberto:**
 - **a suíte** (a correção do comportamento) não está entre as quatro dimensões. Fica como ferramenta, e

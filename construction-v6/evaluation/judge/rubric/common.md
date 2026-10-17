@@ -19,7 +19,7 @@ encher: o que importa, com a evidência.
 | o enunciado | `prompt.md` | o texto exato que **aquele** agente recebeu. Use este, e não o de `experiment/prompt/`: os pilotos rodaram com versões anteriores |
 | o projeto | `workspace/`, o projeto do `pom.xml` mais raso (o mesmo que o build compila); só o `pom.xml` e o `src/` | todas as dimensões |
 | o relatório de arquitetura | `architecture/architecture-report.txt` | a arquitetura |
-| os números do PIT | a linha da execução no CSV do lote (`analysis/<lote>/pit.csv`) | os testes |
+| os números do PIT | a linha da execução no CSV do lote (`analysis/<lote>/pit.csv`; para o serviço plantado, `evaluation/judge/planted/pit.csv`) | os testes |
 | a foto do banco | `suite/database-schema.json` | o banco. Se o arquivo não existir, ou não tiver nenhuma tabela, o serviço não subiu na suíte: corrija pelo código e diga isso |
 
 **O que não abrir:** o `meta.json`, a transcrição (`claude-output.jsonl`), o `run.log`, o `stderr.txt`, o
