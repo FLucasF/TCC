@@ -71,10 +71,20 @@ class PitResult:
 
 # ------------------------------------------------------------------ preparing the copy
 
+def uses_only_junit4(pom_text: str) -> bool:
+    """Whether the project's tests are JUnit 4 (junit:junit, and no JUnit 5 Jupiter)."""
+    return "<artifactId>junit</artifactId>" in pom_text and "junit-jupiter" not in pom_text
+
+
 def with_pit_plugin(pom_text: str, skip_failing_tests: bool = False) -> str:
     """The pom with PIT's plugin added (inside <build><plugins>, creating them if needed). skipFailingTests has no
     command-line property in pitest-maven (a -D is silently ignored, found on 2026-10-14): it only works here."""
     plugin = PIT_PLUGIN
+    if uses_only_junit4(pom_text):
+        # PIT runs JUnit 4 by itself; the JUnit 5 plugin makes it find no tests at all (a Javalin project chooses its
+        # JUnit, found on 2026-10-18; a Spring Boot one always brought JUnit 5)
+        junit5_plugin = plugin[plugin.index("        <dependencies>"):plugin.index("        <configuration>")]
+        plugin = plugin.replace(junit5_plugin, "")
     if skip_failing_tests:
         with_skip = "<threads>4</threads>\n          <skipFailingTests>true</skipFailingTests>"
         plugin = plugin.replace("<threads>4</threads>", with_skip)

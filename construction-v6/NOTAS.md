@@ -801,3 +801,35 @@ uma rodada em Spring Boot, e as execuções em Javalin começam no batch-2.
 - **O piloto** (`runs/pilots-javalin/N0-sonnet-5-5`, US$ 1,16): o serviço em Javalin 6.7.0 sobe, a suíte passa em 463
   de 463, o PIT dá 85%, e a correção nas 8 dimensões funcionou (US$ 5,91; a IA subiu o serviço com `PORT`).
 - **O serviço plantado continua em Spring**: a régua neutra vale para ele, mas não há um serviço plantado em Javalin.
+
+## O batch-2: a construção em Javalin (18/10/2026)
+
+Os mesmos 3 modelos e 3 braços do batch-1, com o enunciado em Javalin (US$ 11,90 nas execuções), o material, a suíte
+como conferência e a correção nas 8 dimensões (US$ 47,46, mais a parte de 3 correções interrompidas ao passar de 3
+para 6 correções ao mesmo tempo). Entre parênteses, o batch-1 em Spring.
+
+| execução | Strategy (12) | State | Adapter | suíte (463) | comportamento | testes, PIT |
+|---|---|---|---|---|---|---|
+| Haiku N0 | 12 omissão (9 omissão) | omissão | omissão (malfeito) | não sobe na 1ª subida (189) | 2 segue, 4 em parte, 1 não segue, 3 n/a | 3, 0% |
+| Haiku N1 | 12 omissão (8 omissão, 3 malfeito, 1 acerto) | omissão | malfeito | 267 (não subia) | 4 segue, 4 em parte, 2 não segue | 1, 1% |
+| Haiku N2 | **5 acerto, 5 malfeito**, 2 omissão (12 omissão) | omissão | malfeito (acerto) | não sobe (não subia) | não sobe | 1, 12% |
+| Sonnet 4.5 N0 | 12 omissão (12 omissão) | omissão | omissão (malfeito) | 221 (286) | 4 segue, 6 em parte | 4, 2% |
+| Sonnet 4.5 N1 | 4 acerto, 8 omissão (10 acerto) | omissão | **acerto** (malfeito) | 265 (194) | 5 segue, 5 em parte | 2, 24% |
+| Sonnet 4.5 N2 | 11 acerto, 1 malfeito (10 acerto) | omissão (malfeito) | malfeito | 2 (436) | 3 segue, 2 em parte, 5 não segue | 2, 2% |
+| Sonnet 5.5 N0 | 12 acerto | omissão (malfeito) | malfeito | 463 | 10 segue | 10, 68% |
+| Sonnet 5.5 N1 | 12 acerto | malfeito (acerto) | malfeito | 462 | 10 segue | 11, 58% |
+| Sonnet 5.5 N2 | 12 acerto | malfeito | malfeito | 463 | 10 segue | 16, 50% |
+
+- **Os que não sobem**, por erros do agente: Haiku N0, o `commit` com `autoCommit` ligado no carregamento do catálogo
+  (na segunda subida o serviço funciona, e a correção viu isso; a suíte tenta uma vez só); Haiku N2, um erro de
+  sintaxe no SQL do esquema. O Sonnet 4.5 N2 sobe, mas esqueceu a dependência do Jackson: toda resposta em JSON dá
+  erro 500 (uma armadilha do Javalin que o Spring resolvia sozinho).
+- **O Haiku no N2 aplicou o Strategy pela primeira vez** (interfaces, uma classe por caso, fábricas), e abriu a skill.
+- **O Sonnet 4.5 no N1 aplicou menos que no Spring** (só nos cupons; a entrega é um `switch`), mas é o único `acerto`
+  de Adapter do lote.
+- **O Sonnet 5.5 continua acertando o Strategy e passando na suíte nos três braços**; o State varia entre os braços.
+- **Os testes não caem do N0 ao N2 no Sonnet 5.5 em Javalin** (10, 11 e 16), ao contrário do batch-1 (20, 14 e 9). O
+  indício de que o harness tira espaço dos testes não se repetiu nele.
+- **Ferramenta consertada no caminho**: o PIT acrescentava sempre o plugin do JUnit 5 e falhava nos projetos em JUnit 4
+  (o Haiku N0 e N1 escolheram JUnit 4; no Spring o JUnit 5 vinha junto). Agora o plugin só entra quando o projeto usa
+  JUnit 5; as outras 7 linhas do PIT não mudaram.
