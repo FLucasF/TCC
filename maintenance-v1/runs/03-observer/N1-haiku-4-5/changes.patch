@@ -1,0 +1,167 @@
+diff --git a/src/main/java/hotel/reservations/ReservationService.java b/src/main/java/hotel/reservations/ReservationService.java
+index b40212b..6a3762c 100644
+--- a/src/main/java/hotel/reservations/ReservationService.java
++++ b/src/main/java/hotel/reservations/ReservationService.java
+@@ -1,10 +1,12 @@
+ package hotel.reservations;
+ 
+ import hotel.documents.ReservationReceipt;
++import hotel.documents.TextFormat;
+ import hotel.messages.EmailSender;
+ import hotel.rooms.Room;
+ import hotel.rooms.Rooms;
+ import java.math.BigDecimal;
++import java.time.LocalDate;
+ 
+ /** The life of a reservation: created, confirmed (paid), checked in, checked out, or cancelled. */
+ public final class ReservationService {
+@@ -70,6 +72,18 @@ public final class ReservationService {
+                 reservation.guest().email(),
+                 "Reserva confirmada - " + HOTEL_NAME,
+                 confirmationEmailBody(reservation, receipt));
++
++        Room room = roomOf(reservation);
++        emailSender.send(
++                "governanca@pousadamarealta.com.br",
++                "Reserva confirmada - quarto " + room.number(),
++                governanceConfirmationEmailBody(reservation));
++
++        emailSender.send(
++                "financeiro@pousadamarealta.com.br",
++                "Pagamento recebido - reserva " + reservation.id(),
++                financeConfirmationEmailBody(reservation));
++
+         return reservation;
+     }
+ 
+@@ -83,11 +97,28 @@ public final class ReservationService {
+                 && reservation.status() != ReservationStatus.CONFIRMED) {
+             throw notAllowed(reservation, "cancel");
+         }
++        boolean wasConfirmed = reservation.status() == ReservationStatus.CONFIRMED;
+         BigDecimal refund = switch (reservation.ratePlan()) {
+             case STANDARD -> reservation.amountPaid();
+             case NON_REFUNDABLE -> PriceCalculator.cents(BigDecimal.ZERO);
+         };
+         reservation.cancel(refund);
++
++        if (wasConfirmed) {
++            Room room = roomOf(reservation);
++            emailSender.send(
++                    "governanca@pousadamarealta.com.br",
++                    "Reserva cancelada - quarto " + room.number(),
++                    governanceCancellationEmailBody(reservation));
++
++            if (refund.signum() > 0) {
++                emailSender.send(
++                        "financeiro@pousadamarealta.com.br",
++                        "Reembolso - reserva " + reservation.id(),
++                        financeCancellationEmailBody(reservation, refund));
++            }
++        }
++
+         return reservation;
+     }
+ 
+@@ -131,6 +162,27 @@ public final class ReservationService {
+                 + "Até breve!\n";
+     }
+ 
++    private static String governanceConfirmationEmailBody(Reservation reservation) {
++        return "Quarto " + reservation.roomNumber() + "\n"
++                + "Entrada: " + TextFormat.date(reservation.checkIn()) + "\n"
++                + "Saída: " + TextFormat.date(reservation.checkOut()) + "\n"
++                + "Hóspedes: " + reservation.guests() + "\n";
++    }
++
++    private static String financeConfirmationEmailBody(Reservation reservation) {
++        return "Valor: " + TextFormat.money(reservation.amountPaid()) + "\n";
++    }
++
++    private static String governanceCancellationEmailBody(Reservation reservation) {
++        return "Quarto " + reservation.roomNumber() + "\n"
++                + "Entrada: " + TextFormat.date(reservation.checkIn()) + "\n"
++                + "Saída: " + TextFormat.date(reservation.checkOut()) + "\n";
++    }
++
++    private static String financeCancellationEmailBody(Reservation reservation, BigDecimal refund) {
++        return "Valor: " + TextFormat.money(refund) + "\n";
++    }
++
+     private static HotelException notAllowed(Reservation reservation, String operation) {
+         return new HotelException(
+                 ErrorCode.OPERATION_NOT_ALLOWED,
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..91b3fc1 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -79,7 +79,7 @@ class ReservationServiceTest {
+ 
+         assertEquals(ReservationStatus.CONFIRMED, reservation.status());
+         List<Message> sent = sentMessages.all();
+-        assertEquals(1, sent.size());
++        assertEquals(3, sent.size());
+         assertEquals("EMAIL", sent.get(0).channel());
+         assertEquals("ana@example.com", sent.get(0).to());
+         assertEquals("Reserva confirmada - Pousada Maré Alta", sent.get(0).subject());
+@@ -93,7 +93,7 @@ class ReservationServiceTest {
+         service.confirm(reservation.id());
+ 
+         assertEquals(ErrorCode.OPERATION_NOT_ALLOWED, errorOf(() -> service.confirm(reservation.id())));
+-        assertEquals(1, sentMessages.all().size());
++        assertEquals(3, sentMessages.all().size());
+     }
+ 
+     @Test
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..4dac958 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -75,8 +75,10 @@ class HttpApiTest {
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+-        assertEquals(1, messages.size());
++        assertEquals(3, messages.size());
+         assertEquals("carla@example.com", messages.get(0).get("to").asText());
++        assertEquals("governanca@pousadamarealta.com.br", messages.get(1).get("to").asText());
++        assertEquals("financeiro@pousadamarealta.com.br", messages.get(2).get("to").asText());
+ 
+         assertEquals(200, post("/reservations/" + id + "/check-in", "").statusCode());
+         HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");
+@@ -85,6 +87,35 @@ class HttpApiTest {
+         assertEquals("CHECKED_OUT", json.readTree(get("/reservations/" + id).body()).get("status").asText());
+     }
+ 
++    @Test
++    void sendEmailsWhenCancellingConfirmedReservation() throws Exception {
++        HttpResponse<String> created = post("/reservations", RESERVATION_JSON);
++        long id = json.readTree(created.body()).get("id").asLong();
++
++        post("/reservations/" + id + "/confirmation", "");
++        get("/messages");
++
++        assertEquals(200, post("/reservations/" + id + "/cancellation", "").statusCode());
++        JsonNode messages = json.readTree(get("/messages").body());
++        assertEquals(5, messages.size());
++        assertEquals("governanca@pousadamarealta.com.br", messages.get(3).get("to").asText());
++        assertEquals("financeiro@pousadamarealta.com.br", messages.get(4).get("to").asText());
++        assertTrue(messages.get(3).get("subject").asText().contains("Reserva cancelada"));
++        assertTrue(messages.get(4).get("subject").asText().contains("Reembolso"));
++    }
++
++    @Test
++    void doesNotSendEmailWhenCancellingPendingReservation() throws Exception {
++        String pendingReservationJson = RESERVATION_JSON.replace("2027-07-12", "2027-07-13");
++        HttpResponse<String> created = post("/reservations", pendingReservationJson);
++        JsonNode reservation = json.readTree(created.body());
++        long id = reservation.get("id").asLong();
++
++        assertEquals(200, post("/reservations/" + id + "/cancellation", "").statusCode());
++        JsonNode messages = json.readTree(get("/messages").body());
++        assertEquals(0, messages.size());
++    }
++
+     @Test
+     void answersErrorsWithACode() throws Exception {
+         HttpResponse<String> missingFields = post("/reservations", "{\"roomNumber\": 201}");

@@ -1,0 +1,573 @@
+diff --git a/README.md b/README.md
+index 6a970c7..8bf8831 100644
+--- a/README.md
++++ b/README.md
+@@ -30,6 +30,7 @@ serviço reinicia, as reservas se perdem.
+   no `NON_REFUNDABLE`, não recebe nada.
+ - **Mensagens:** os e-mails enviados ficam guardados, e a recepção os consulta em `/messages`.
+ - **Relatórios (CSV):** a ocupação de uma noite, para a recepção, e o dinheiro que ficou com a pousada
++  Todos começam com uma linha de título: `Pousada Maré Alta,<relatório>,<período>`.
+   das reservas que começam num mês, para o contador.
+ 
+ ## A API
+@@ -47,6 +48,8 @@ serviço reinicia, as reservas se perdem.
+ | `GET /messages` | as mensagens enviadas |
+ | `GET /reports/occupancy?date=2027-07-10` | a ocupação de uma noite |
+ | `GET /reports/revenue?month=2027-07` | o financeiro de um mês |
++| `GET /reports/tourism-tax?month=2027-07` | a taxa de turismo da prefeitura (R$ 4,50 por hóspede por noite) |
++| `GET /reports/rate-plans?month=2027-07` | reservas e dinheiro por plano de tarifa |
+ 
+ O corpo de `POST /reservations`:
+ 
+diff --git a/src/main/java/hotel/Hotel.java b/src/main/java/hotel/Hotel.java
+index b75a525..a317636 100644
+--- a/src/main/java/hotel/Hotel.java
++++ b/src/main/java/hotel/Hotel.java
+@@ -4,16 +4,24 @@ import hotel.messages.EmailSender;
+ import hotel.messages.SentMessages;
+ import hotel.reports.OccupancyReport;
+ import hotel.reports.RevenueReport;
++import hotel.reports.RatePlanReport;
++import hotel.reports.Report;
++import hotel.reports.TourismTaxReport;
+ import hotel.reservations.PriceCalculator;
+ import hotel.reservations.ReservationService;
+ import hotel.reservations.ReservationStore;
+ import hotel.rooms.Rooms;
+ import hotel.web.HttpApi;
+ import io.javalin.Javalin;
++import java.math.BigDecimal;
++import java.util.List;
+ 
+ /** Puts the inn's pieces together and runs the HTTP server. */
+ public final class Hotel {
+ 
++    /** What the city charges per guest per night; it changes every year. */
++    static final BigDecimal TOURISM_TAX_PER_GUEST_NIGHT = new BigDecimal("4.50");
++
+     private final Javalin server;
+ 
+     public Hotel() {
+@@ -22,8 +30,13 @@ public final class Hotel {
+         SentMessages sentMessages = new SentMessages();
+         ReservationService reservations =
+                 new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages));
+-        HttpApi api = new HttpApi(
+-                rooms, reservations, sentMessages, new OccupancyReport(rooms, store), new RevenueReport(store));
++        RevenueReport revenueReport = new RevenueReport(store);
++        List<Report> reports = List.of(
++                new OccupancyReport(rooms, store),
++                revenueReport,
++                new TourismTaxReport(store, TOURISM_TAX_PER_GUEST_NIGHT),
++                new RatePlanReport(revenueReport));
++        HttpApi api = new HttpApi(rooms, reservations, sentMessages, reports);
+         this.server = api.server();
+     }
+ 
+diff --git a/src/main/java/hotel/reports/CsvReport.java b/src/main/java/hotel/reports/CsvReport.java
+new file mode 100644
+index 0000000..de3c34f
+--- /dev/null
++++ b/src/main/java/hotel/reports/CsvReport.java
+@@ -0,0 +1,54 @@
++package hotel.reports;
++
++import hotel.reservations.ErrorCode;
++import hotel.reservations.HotelException;
++import java.util.function.Function;
++
++/** The shape every report shares: a title line, then the header, the rows and the total. */
++abstract class CsvReport<P> implements Report {
++
++    static final String INN_NAME = "Pousada Maré Alta";
++
++    private final String name;
++    private final PeriodKind<P> periodKind;
++
++    CsvReport(String name, PeriodKind<P> periodKind) {
++        this.name = name;
++        this.periodKind = periodKind;
++    }
++
++    /** The header, the rows and the total, each line ending in a line break. */
++    abstract String body(P period);
++
++    public String generate(P period) {
++        return INN_NAME + ',' + name + ',' + period + '\n' + body(period);
++    }
++
++    @Override
++    public final String name() {
++        return name;
++    }
++
++    @Override
++    public final String periodParameter() {
++        return periodKind.parameter();
++    }
++
++    @Override
++    public final String generateFor(String period) {
++        return generate(periodKind.parse(period));
++    }
++
++    /** What a report's period is: a name for the query parameter, and how to read it. */
++    record PeriodKind<P>(String parameter, String format, Function<String, P> parser) {
++
++        P parse(String text) {
++            try {
++                return parser.apply(text);
++            } catch (java.time.format.DateTimeParseException badPeriod) {
++                throw new HotelException(
++                        ErrorCode.INVALID_REQUEST, "'" + text + "' is not a " + parameter + " (" + format + ")");
++            }
++        }
++    }
++}
+diff --git a/src/main/java/hotel/reports/OccupancyReport.java b/src/main/java/hotel/reports/OccupancyReport.java
+index bf87b70..4517ba0 100644
+--- a/src/main/java/hotel/reports/OccupancyReport.java
++++ b/src/main/java/hotel/reports/OccupancyReport.java
+@@ -10,17 +10,19 @@ import java.util.Comparator;
+ import java.util.List;
+ 
+ /** Which rooms are occupied on a given night, for the front desk (CSV). */
+-public final class OccupancyReport {
++public final class OccupancyReport extends CsvReport<LocalDate> {
+ 
+     private final Rooms rooms;
+     private final ReservationStore store;
+ 
+     public OccupancyReport(Rooms rooms, ReservationStore store) {
++        super("occupancy", PeriodKinds.DATE);
+         this.rooms = rooms;
+         this.store = store;
+     }
+ 
+-    public String generate(LocalDate night) {
++    @Override
++    String body(LocalDate night) {
+         List<Reservation> occupying = new ArrayList<>();
+         for (Reservation reservation : store.all()) {
+             boolean coversNight = !reservation.checkIn().isAfter(night) && reservation.checkOut().isAfter(night);
+diff --git a/src/main/java/hotel/reports/PeriodKinds.java b/src/main/java/hotel/reports/PeriodKinds.java
+new file mode 100644
+index 0000000..83e0da1
+--- /dev/null
++++ b/src/main/java/hotel/reports/PeriodKinds.java
+@@ -0,0 +1,16 @@
++package hotel.reports;
++
++import java.time.LocalDate;
++import java.time.YearMonth;
++
++/** The periods the reports are asked for. */
++final class PeriodKinds {
++
++    static final CsvReport.PeriodKind<LocalDate> DATE =
++            new CsvReport.PeriodKind<>("date", "yyyy-MM-dd", LocalDate::parse);
++    static final CsvReport.PeriodKind<YearMonth> MONTH =
++            new CsvReport.PeriodKind<>("month", "yyyy-MM", YearMonth::parse);
++
++    private PeriodKinds() {
++    }
++}
+diff --git a/src/main/java/hotel/reports/RatePlanReport.java b/src/main/java/hotel/reports/RatePlanReport.java
+new file mode 100644
+index 0000000..6709a98
+--- /dev/null
++++ b/src/main/java/hotel/reports/RatePlanReport.java
+@@ -0,0 +1,43 @@
++package hotel.reports;
++
++import hotel.reservations.RatePlan;
++import hotel.reservations.Reservation;
++import java.math.BigDecimal;
++import java.time.YearMonth;
++import java.util.List;
++
++/** Which rate plan brings the inn more money: the reservations the revenue report counts, per plan (CSV). */
++public final class RatePlanReport extends CsvReport<YearMonth> {
++
++    private final RevenueReport revenue;
++
++    public RatePlanReport(RevenueReport revenue) {
++        super("rate-plans", PeriodKinds.MONTH);
++        this.revenue = revenue;
++    }
++
++    @Override
++    String body(YearMonth month) {
++        List<Reservation> withRevenue = revenue.reservationsWithRevenue(month);
++
++        StringBuilder csv = new StringBuilder();
++        csv.append("rate_plan,reservations,amount\n");
++        int totalCount = 0;
++        BigDecimal totalAmount = BigDecimal.ZERO.setScale(2);
++        for (RatePlan plan : RatePlan.values()) {
++            int count = 0;
++            BigDecimal amount = BigDecimal.ZERO.setScale(2);
++            for (Reservation reservation : withRevenue) {
++                if (reservation.ratePlan() == plan) {
++                    count++;
++                    amount = amount.add(reservation.amountKept());
++                }
++            }
++            csv.append(plan).append(',').append(count).append(',').append(amount.toPlainString()).append('\n');
++            totalCount += count;
++            totalAmount = totalAmount.add(amount);
++        }
++        csv.append("total,").append(totalCount).append(',').append(totalAmount.toPlainString()).append('\n');
++        return csv.toString();
++    }
++}
+diff --git a/src/main/java/hotel/reports/Report.java b/src/main/java/hotel/reports/Report.java
+new file mode 100644
+index 0000000..1cd0ad0
+--- /dev/null
++++ b/src/main/java/hotel/reports/Report.java
+@@ -0,0 +1,13 @@
++package hotel.reports;
++
++/** A CSV report the HTTP API serves at /reports/{name}, for a period given in one query parameter. */
++public interface Report {
++
++    String name();
++
++    /** The query parameter that carries the period, e.g. "date" or "month". */
++    String periodParameter();
++
++    /** The report for the period as the API received it; throws INVALID_REQUEST if it cannot be read. */
++    String generateFor(String period);
++}
+diff --git a/src/main/java/hotel/reports/RevenueReport.java b/src/main/java/hotel/reports/RevenueReport.java
+index 7fb04ed..80467d8 100644
+--- a/src/main/java/hotel/reports/RevenueReport.java
++++ b/src/main/java/hotel/reports/RevenueReport.java
+@@ -12,24 +12,18 @@ import java.util.List;
+  * The money the inn kept from the reservations that start in a given month, for the accountant (CSV).
+  * A cancelled non-refundable reservation counts: the guest paid and nothing went back.
+  */
+-public final class RevenueReport {
++public final class RevenueReport extends CsvReport<YearMonth> {
+ 
+     private final ReservationStore store;
+ 
+     public RevenueReport(ReservationStore store) {
++        super("revenue", PeriodKinds.MONTH);
+         this.store = store;
+     }
+ 
+-    public String generate(YearMonth month) {
+-        List<Reservation> withRevenue = new ArrayList<>();
+-        for (Reservation reservation : store.all()) {
+-            boolean keptMoney = reservation.amountKept().signum() > 0;
+-            boolean startsInMonth = YearMonth.from(reservation.checkIn()).equals(month);
+-            if (keptMoney && startsInMonth) {
+-                withRevenue.add(reservation);
+-            }
+-        }
+-        withRevenue.sort(Comparator.comparing(Reservation::checkIn).thenComparingLong(Reservation::id));
++    @Override
++    String body(YearMonth month) {
++        List<Reservation> withRevenue = reservationsWithRevenue(month);
+ 
+         StringBuilder csv = new StringBuilder();
+         csv.append("reservation,room,check_in,check_out,status,amount\n");
+@@ -46,4 +40,18 @@ public final class RevenueReport {
+         csv.append("total,").append(revenue.toPlainString()).append('\n');
+         return csv.toString();
+     }
++
++    /** The reservations that start in the month and left money with the inn, in report order. */
++    List<Reservation> reservationsWithRevenue(YearMonth month) {
++        List<Reservation> withRevenue = new ArrayList<>();
++        for (Reservation reservation : store.all()) {
++            boolean keptMoney = reservation.amountKept().signum() > 0;
++            boolean startsInMonth = YearMonth.from(reservation.checkIn()).equals(month);
++            if (keptMoney && startsInMonth) {
++                withRevenue.add(reservation);
++            }
++        }
++        withRevenue.sort(Comparator.comparing(Reservation::checkIn).thenComparingLong(Reservation::id));
++        return withRevenue;
++    }
+ }
+diff --git a/src/main/java/hotel/reports/TourismTaxReport.java b/src/main/java/hotel/reports/TourismTaxReport.java
+new file mode 100644
+index 0000000..cb9828d
+--- /dev/null
++++ b/src/main/java/hotel/reports/TourismTaxReport.java
+@@ -0,0 +1,56 @@
++package hotel.reports;
++
++import hotel.reservations.Reservation;
++import hotel.reservations.ReservationStore;
++import java.math.BigDecimal;
++import java.math.RoundingMode;
++import java.time.YearMonth;
++import java.util.ArrayList;
++import java.util.Comparator;
++import java.util.List;
++
++/** The tourism tax the city charges, per guest per night, on the paid reservations that start in a month (CSV). */
++public final class TourismTaxReport extends CsvReport<YearMonth> {
++
++    private final ReservationStore store;
++    private final BigDecimal taxPerGuestNight;
++
++    public TourismTaxReport(ReservationStore store, BigDecimal taxPerGuestNight) {
++        super("tourism-tax", PeriodKinds.MONTH);
++        this.store = store;
++        this.taxPerGuestNight = taxPerGuestNight;
++    }
++
++    @Override
++    String body(YearMonth month) {
++        List<Reservation> taxed = new ArrayList<>();
++        for (Reservation reservation : store.all()) {
++            if (reservation.isPaid() && YearMonth.from(reservation.checkIn()).equals(month)) {
++                taxed.add(reservation);
++            }
++        }
++        taxed.sort(Comparator.comparing(Reservation::checkIn).thenComparingLong(Reservation::id));
++
++        StringBuilder csv = new StringBuilder();
++        csv.append("reservation,room,check_in,check_out,guests,nights,tax\n");
++        BigDecimal total = BigDecimal.ZERO.setScale(2);
++        for (Reservation reservation : taxed) {
++            BigDecimal tax = tax(reservation);
++            csv.append(reservation.id()).append(',')
++                    .append(reservation.roomNumber()).append(',')
++                    .append(reservation.checkIn()).append(',')
++                    .append(reservation.checkOut()).append(',')
++                    .append(reservation.guests()).append(',')
++                    .append(reservation.price().nights()).append(',')
++                    .append(tax.toPlainString()).append('\n');
++            total = total.add(tax);
++        }
++        csv.append("total,").append(total.toPlainString()).append('\n');
++        return csv.toString();
++    }
++
++    private BigDecimal tax(Reservation reservation) {
++        int guestNights = reservation.guests() * reservation.price().nights();
++        return taxPerGuestNight.multiply(BigDecimal.valueOf(guestNights)).setScale(2, RoundingMode.HALF_EVEN);
++    }
++}
+diff --git a/src/main/java/hotel/web/HttpApi.java b/src/main/java/hotel/web/HttpApi.java
+index f2a3b77..d8f45a4 100644
+--- a/src/main/java/hotel/web/HttpApi.java
++++ b/src/main/java/hotel/web/HttpApi.java
+@@ -5,8 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
+ import com.fasterxml.jackson.databind.json.JsonMapper;
+ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+ import hotel.messages.SentMessages;
+-import hotel.reports.OccupancyReport;
+-import hotel.reports.RevenueReport;
++import hotel.reports.Report;
+ import hotel.reservations.ErrorCode;
+ import hotel.reservations.Guest;
+ import hotel.reservations.HotelException;
+@@ -16,9 +15,7 @@ import hotel.rooms.Rooms;
+ import io.javalin.Javalin;
+ import io.javalin.http.Context;
+ import io.javalin.json.JavalinJackson;
+-import java.time.LocalDate;
+-import java.time.YearMonth;
+-import java.time.format.DateTimeParseException;
++import java.util.List;
+ 
+ /** The HTTP API the inn's website and front desk call. */
+ public final class HttpApi {
+@@ -27,20 +24,17 @@ public final class HttpApi {
+     private final Rooms rooms;
+     private final ReservationService reservations;
+     private final SentMessages sentMessages;
+-    private final OccupancyReport occupancyReport;
+-    private final RevenueReport revenueReport;
++    private final List<Report> reports;
+ 
+     public HttpApi(
+             Rooms rooms,
+             ReservationService reservations,
+             SentMessages sentMessages,
+-            OccupancyReport occupancyReport,
+-            RevenueReport revenueReport) {
++            List<Report> reports) {
+         this.rooms = rooms;
+         this.reservations = reservations;
+         this.sentMessages = sentMessages;
+-        this.occupancyReport = occupancyReport;
+-        this.revenueReport = revenueReport;
++        this.reports = reports;
+ 
+         ObjectMapper jsonMapper = JsonMapper.builder()
+                 .addModule(new JavaTimeModule())
+@@ -80,14 +74,12 @@ public final class HttpApi {
+ 
+         server.get("/messages", ctx -> ctx.json(sentMessages.all()));
+ 
+-        server.get("/reports/occupancy", ctx -> {
+-            LocalDate night = readDate(ctx);
+-            ctx.contentType("text/csv; charset=utf-8").result(occupancyReport.generate(night));
+-        });
+-        server.get("/reports/revenue", ctx -> {
+-            YearMonth month = readMonth(ctx);
+-            ctx.contentType("text/csv; charset=utf-8").result(revenueReport.generate(month));
+-        });
++        for (Report report : reports) {
++            server.get("/reports/" + report.name(), ctx -> {
++                String period = requiredQueryParam(ctx, report.periodParameter());
++                ctx.contentType("text/csv; charset=utf-8").result(report.generateFor(period));
++            });
++        }
+     }
+ 
+     private void registerErrorHandling() {
+@@ -138,24 +130,6 @@ public final class HttpApi {
+         }
+     }
+ 
+-    private static LocalDate readDate(Context ctx) {
+-        String date = requiredQueryParam(ctx, "date");
+-        try {
+-            return LocalDate.parse(date);
+-        } catch (DateTimeParseException badDate) {
+-            throw new HotelException(ErrorCode.INVALID_REQUEST, "'" + date + "' is not a date (yyyy-MM-dd)");
+-        }
+-    }
+-
+-    private static YearMonth readMonth(Context ctx) {
+-        String month = requiredQueryParam(ctx, "month");
+-        try {
+-            return YearMonth.parse(month);
+-        } catch (DateTimeParseException badMonth) {
+-            throw new HotelException(ErrorCode.INVALID_REQUEST, "'" + month + "' is not a month (yyyy-MM)");
+-        }
+-    }
+-
+     private static String requiredQueryParam(Context ctx, String name) {
+         String value = ctx.queryParam(name);
+         if (value == null) {
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index 967cabb..7db8878 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -12,6 +12,7 @@ import hotel.reservations.Reservation;
+ import hotel.reservations.ReservationService;
+ import hotel.reservations.ReservationStore;
+ import hotel.rooms.Rooms;
++import java.math.BigDecimal;
+ import java.time.LocalDate;
+ import java.time.YearMonth;
+ import org.junit.jupiter.api.BeforeEach;
+@@ -50,6 +51,7 @@ class ReportsTest {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 1));
+ 
+         assertEquals("""
++                Pousada Maré Alta,occupancy,2027-04-01
+                 room,type,reservation,check_in,check_out
+                 101,STANDARD,2,2027-03-30,2027-04-02
+                 201,DELUXE,1,2027-04-01,2027-04-03
+@@ -62,6 +64,7 @@ class ReportsTest {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 3));
+ 
+         assertEquals("""
++                Pousada Maré Alta,occupancy,2027-04-03
+                 room,type,reservation,check_in,check_out
+                 301,SUITE,3,2027-04-02,2027-04-04
+                 total,1/5
+@@ -74,6 +77,7 @@ class ReportsTest {
+ 
+         // the unpaid reservation and the refunded cancellation bring nothing
+         assertEquals("""
++                Pousada Maré Alta,revenue,2027-04
+                 reservation,room,check_in,check_out,status,amount
+                 1,201,2027-04-01,2027-04-03,CONFIRMED,779.80
+                 3,301,2027-04-02,2027-04-04,CHECKED_IN,1159.80
+@@ -90,6 +94,7 @@ class ReportsTest {
+         String csv = new RevenueReport(store).generate(YearMonth.of(2027, 5));
+ 
+         assertEquals("""
++                Pousada Maré Alta,revenue,2027-05
+                 reservation,room,check_in,check_out,status,amount
+                 6,101,2027-05-10,2027-05-11,CANCELLED,212.42
+                 total,212.42
+@@ -101,8 +106,62 @@ class ReportsTest {
+         String csv = new RevenueReport(store).generate(YearMonth.of(2027, 6));
+ 
+         assertEquals("""
++                Pousada Maré Alta,revenue,2027-06
+                 reservation,room,check_in,check_out,status,amount
+                 total,0.00
+                 """, csv);
+     }
++
++    @Test
++    void tourismTaxChargesEachPaidReservationPerGuestPerNight() {
++        String csv = new TourismTaxReport(store, new BigDecimal("4.50")).generate(YearMonth.of(2027, 4));
++
++        // the unpaid and the cancelled reservations pay no tax; the one starting in March is another month
++        assertEquals("""
++                Pousada Maré Alta,tourism-tax,2027-04
++                reservation,room,check_in,check_out,guests,nights,tax
++                1,201,2027-04-01,2027-04-03,1,2,9.00
++                3,301,2027-04-02,2027-04-04,1,2,9.00
++                total,18.00
++                """, csv);
++    }
++
++    @Test
++    void tourismTaxMultipliesGuestsByNightsByTheRate() {
++        Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
++        Reservation family = service.create(new NewReservation(
++                201, guest, LocalDate.parse("2027-08-01"), LocalDate.parse("2027-08-04"), 2, RatePlan.STANDARD));
++        service.confirm(family.id());
++
++        String csv = new TourismTaxReport(store, new BigDecimal("4.50")).generate(YearMonth.of(2027, 8));
++
++        assertEquals("""
++                Pousada Maré Alta,tourism-tax,2027-08
++                reservation,room,check_in,check_out,guests,nights,tax
++                6,201,2027-08-01,2027-08-04,2,3,27.00
++                total,27.00
++                """, csv);
++    }
++
++    @Test
++    void ratePlansCountTheReservationsTheRevenueReportCounts() {
++        Reservation may = book(101, "2027-05-10", "2027-05-11", RatePlan.NON_REFUNDABLE);
++        service.confirm(may.id());
++
++        RevenueReport revenue = new RevenueReport(store);
++        assertEquals("""
++                Pousada Maré Alta,rate-plans,2027-04
++                rate_plan,reservations,amount
++                STANDARD,2,1939.60
++                NON_REFUNDABLE,0,0.00
++                total,2,1939.60
++                """, new RatePlanReport(revenue).generate(YearMonth.of(2027, 4)));
++        assertEquals("""
++                Pousada Maré Alta,rate-plans,2027-05
++                rate_plan,reservations,amount
++                STANDARD,0,0.00
++                NON_REFUNDABLE,1,212.42
++                total,1,212.42
++                """, new RatePlanReport(revenue).generate(YearMonth.of(2027, 5)));
++    }
+ }
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..99aa65d 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -115,5 +115,9 @@ class HttpApiTest {
+         assertTrue(get("/reports/revenue?month=2027-07").body().endsWith("total,935.76\n"));
+         assertEquals(400, get("/reports/revenue?month=july").statusCode());
+         assertEquals(400, get("/reports/occupancy").statusCode());
++
++        assertTrue(get("/reports/tourism-tax?month=2027-07").body().endsWith("total,18.00\n"));
++        assertTrue(get("/reports/rate-plans?month=2027-07").body().endsWith("total,1,935.76\n"));
++        assertTrue(get("/reports/rate-plans?month=2027-07").body().startsWith("Pousada Maré Alta,rate-plans,2027-07\n"));
+     }
+ }

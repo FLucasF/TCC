@@ -1,0 +1,63 @@
+diff --git a/src/main/java/hotel/reports/OccupancyReport.java b/src/main/java/hotel/reports/OccupancyReport.java
+index bf87b70..939ead3 100644
+--- a/src/main/java/hotel/reports/OccupancyReport.java
++++ b/src/main/java/hotel/reports/OccupancyReport.java
+@@ -31,12 +31,13 @@ public final class OccupancyReport {
+         occupying.sort(Comparator.comparingInt(Reservation::roomNumber));
+ 
+         StringBuilder csv = new StringBuilder();
+-        csv.append("room,type,reservation,check_in,check_out\n");
++        csv.append("room,type,reservation,guest,check_in,check_out\n");
+         for (Reservation reservation : occupying) {
+             Room room = rooms.find(reservation.roomNumber()).orElseThrow();
+             csv.append(room.number()).append(',')
+                     .append(room.type()).append(',')
+                     .append(reservation.id()).append(',')
++                    .append(reservation.guest().name().replace(',', ' ')).append(',')
+                     .append(reservation.checkIn()).append(',')
+                     .append(reservation.checkOut()).append('\n');
+         }
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index 967cabb..a04b59d 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -50,9 +50,9 @@ class ReportsTest {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 1));
+ 
+         assertEquals("""
+-                room,type,reservation,check_in,check_out
+-                101,STANDARD,2,2027-03-30,2027-04-02
+-                201,DELUXE,1,2027-04-01,2027-04-03
++                room,type,reservation,guest,check_in,check_out
++                101,STANDARD,2,Bruno Lima,2027-03-30,2027-04-02
++                201,DELUXE,1,Bruno Lima,2027-04-01,2027-04-03
+                 total,2/5
+                 """, csv);
+     }
+@@ -62,8 +62,24 @@ class ReportsTest {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 3));
+ 
+         assertEquals("""
+-                room,type,reservation,check_in,check_out
+-                301,SUITE,3,2027-04-02,2027-04-04
++                room,type,reservation,guest,check_in,check_out
++                301,SUITE,3,Bruno Lima,2027-04-02,2027-04-04
++                total,1/5
++                """, csv);
++    }
++
++    @Test
++    void aCommaInTheGuestNameBecomesASpace() {
++        Reservation may = service.create(new NewReservation(101,
++                new Guest("Lima, Bruno", "bruno@example.com", "987.654.321-00"),
++                LocalDate.parse("2027-05-10"), LocalDate.parse("2027-05-11"), 1, RatePlan.STANDARD));
++        service.confirm(may.id());
++
++        String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 5, 10));
++
++        assertEquals("""
++                room,type,reservation,guest,check_in,check_out
++                101,STANDARD,6,Lima  Bruno,2027-05-10,2027-05-11
+                 total,1/5
+                 """, csv);
+     }

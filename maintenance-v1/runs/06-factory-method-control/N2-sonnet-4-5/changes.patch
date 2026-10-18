@@ -1,0 +1,287 @@
+diff --git a/src/main/java/hotel/documents/ReservationReceipt.java b/src/main/java/hotel/documents/ReservationReceipt.java
+index baabf93..bb10069 100644
+--- a/src/main/java/hotel/documents/ReservationReceipt.java
++++ b/src/main/java/hotel/documents/ReservationReceipt.java
+@@ -14,6 +14,7 @@ public record ReservationReceipt(
+         String guestCpf,
+         int roomNumber,
+         RoomType roomType,
++        int children,
+         LocalDate checkIn,
+         LocalDate checkOut,
+         int nights,
+@@ -29,6 +30,7 @@ public record ReservationReceipt(
+                 reservation.guest().cpf(),
+                 room.number(),
+                 room.type(),
++                reservation.children(),
+                 reservation.checkIn(),
+                 reservation.checkOut(),
+                 reservation.price().nights(),
+@@ -42,6 +44,9 @@ public record ReservationReceipt(
+         text.append(title).append(" nº ").append(reservationId).append('\n');
+         text.append("Hóspede: ").append(guestName).append(" (CPF ").append(guestCpf).append(")\n");
+         text.append("Quarto: ").append(roomNumber).append(" (").append(roomType).append(")\n");
++        if (children > 0) {
++            text.append("Crianças: ").append(children).append('\n');
++        }
+         text.append("Entrada: ").append(TextFormat.date(checkIn))
+                 .append(" | Saída: ").append(TextFormat.date(checkOut))
+                 .append(" | ").append(nights).append(nights == 1 ? " diária" : " diárias").append('\n');
+diff --git a/src/main/java/hotel/reservations/NewReservation.java b/src/main/java/hotel/reservations/NewReservation.java
+index 34ba368..e5e69a0 100644
+--- a/src/main/java/hotel/reservations/NewReservation.java
++++ b/src/main/java/hotel/reservations/NewReservation.java
+@@ -3,5 +3,5 @@ package hotel.reservations;
+ import java.time.LocalDate;
+ 
+ public record NewReservation(
+-        int roomNumber, Guest guest, LocalDate checkIn, LocalDate checkOut, int guests, RatePlan ratePlan) {
++        int roomNumber, Guest guest, LocalDate checkIn, LocalDate checkOut, int guests, RatePlan ratePlan, int children) {
+ }
+diff --git a/src/main/java/hotel/reservations/Reservation.java b/src/main/java/hotel/reservations/Reservation.java
+index 23e6799..3d912c8 100644
+--- a/src/main/java/hotel/reservations/Reservation.java
++++ b/src/main/java/hotel/reservations/Reservation.java
+@@ -12,6 +12,7 @@ public final class Reservation {
+     private final LocalDate checkOut;
+     private final int guests;
+     private final RatePlan ratePlan;
++    private final int children;
+     private final Price price;
+     private ReservationStatus status;
+     private BigDecimal amountPaid;
+@@ -25,6 +26,7 @@ public final class Reservation {
+         this.checkOut = request.checkOut();
+         this.guests = request.guests();
+         this.ratePlan = request.ratePlan();
++        this.children = request.children();
+         this.price = price;
+         this.status = ReservationStatus.PENDING;
+         this.amountPaid = PriceCalculator.cents(BigDecimal.ZERO);
+@@ -54,6 +56,10 @@ public final class Reservation {
+         return guests;
+     }
+ 
++    public int children() {
++        return children;
++    }
++
+     public RatePlan ratePlan() {
+         return ratePlan;
+     }
+diff --git a/src/main/java/hotel/reservations/ReservationService.java b/src/main/java/hotel/reservations/ReservationService.java
+index b40212b..1e1e602 100644
+--- a/src/main/java/hotel/reservations/ReservationService.java
++++ b/src/main/java/hotel/reservations/ReservationService.java
+@@ -31,10 +31,14 @@ public final class ReservationService {
+         if (request.guests() < 1) {
+             throw new HotelException(ErrorCode.INVALID_REQUEST, "a reservation needs at least one guest");
+         }
++        if (request.children() < 0) {
++            throw new HotelException(ErrorCode.INVALID_REQUEST, "children cannot be negative");
++        }
+         Room room = rooms.find(request.roomNumber())
+                 .orElseThrow(() -> new HotelException(
+                         ErrorCode.ROOM_NOT_FOUND, "room " + request.roomNumber() + " does not exist"));
+-        if (request.guests() > room.capacity()) {
++        int totalOccupants = request.guests() + request.children();
++        if (totalOccupants > room.capacity()) {
+             throw new HotelException(
+                     ErrorCode.CAPACITY_EXCEEDED,
+                     "room " + room.number() + " takes at most " + room.capacity() + " guests");
+diff --git a/src/main/java/hotel/web/CreateReservationRequest.java b/src/main/java/hotel/web/CreateReservationRequest.java
+index 8849daf..9b61797 100644
+--- a/src/main/java/hotel/web/CreateReservationRequest.java
++++ b/src/main/java/hotel/web/CreateReservationRequest.java
+@@ -3,7 +3,7 @@ package hotel.web;
+ import hotel.reservations.RatePlan;
+ import java.time.LocalDate;
+ 
+-/** The JSON body of POST /reservations. Every field is required. */
++/** The JSON body of POST /reservations. The field 'children' is optional; the rest are required. */
+ public record CreateReservationRequest(
+         Integer roomNumber,
+         String guestName,
+@@ -12,5 +12,6 @@ public record CreateReservationRequest(
+         LocalDate checkIn,
+         LocalDate checkOut,
+         Integer guests,
+-        RatePlan ratePlan) {
++        RatePlan ratePlan,
++        Integer children) {
+ }
+diff --git a/src/main/java/hotel/web/HttpApi.java b/src/main/java/hotel/web/HttpApi.java
+index f2a3b77..5fce18f 100644
+--- a/src/main/java/hotel/web/HttpApi.java
++++ b/src/main/java/hotel/web/HttpApi.java
+@@ -125,8 +125,9 @@ public final class HttpApi {
+             throw new HotelException(ErrorCode.INVALID_REQUEST, "every field of the reservation is required");
+         }
+         Guest guest = new Guest(body.guestName(), body.guestEmail(), body.guestCpf());
++        int children = body.children() != null ? body.children() : 0;
+         return new NewReservation(
+-                body.roomNumber(), guest, body.checkIn(), body.checkOut(), body.guests(), body.ratePlan());
++                body.roomNumber(), guest, body.checkIn(), body.checkOut(), body.guests(), body.ratePlan(), children);
+     }
+ 
+     private static long reservationId(Context ctx) {
+diff --git a/src/main/java/hotel/web/ReservationResponse.java b/src/main/java/hotel/web/ReservationResponse.java
+index 2cba4b5..91ebc91 100644
+--- a/src/main/java/hotel/web/ReservationResponse.java
++++ b/src/main/java/hotel/web/ReservationResponse.java
+@@ -16,6 +16,7 @@ public record ReservationResponse(
+         LocalDate checkOut,
+         int guests,
+         RatePlan ratePlan,
++        Integer children,
+         int nights,
+         BigDecimal subtotal,
+         BigDecimal discount,
+@@ -35,6 +36,7 @@ public record ReservationResponse(
+                 reservation.checkOut(),
+                 reservation.guests(),
+                 reservation.ratePlan(),
++                reservation.children(),
+                 reservation.price().nights(),
+                 reservation.price().subtotal(),
+                 reservation.price().discount(),
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index 967cabb..c44b98e 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -27,7 +27,7 @@ class ReportsTest {
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+         Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
+         return service.create(new NewReservation(
+-                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan));
++                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan, 0));
+     }
+ 
+     @BeforeEach
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..1677c05 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -24,7 +24,7 @@ class ReservationServiceTest {
+     private static NewReservation stay(int roomNumber, String checkIn, String checkOut, int guests, RatePlan plan) {
+         Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
+         return new NewReservation(
+-                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), guests, plan);
++                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), guests, plan, 0);
+     }
+ 
+     private static ErrorCode errorOf(Runnable action) {
+@@ -150,4 +150,61 @@ class ReservationServiceTest {
+     void anUnknownReservationIsNotFound() {
+         assertEquals(ErrorCode.RESERVATION_NOT_FOUND, errorOf(() -> service.find(42)));
+     }
++
++    @Test
++    void childrenCountIsStoredAndDefaultsToZero() {
++        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++        Reservation withChildren = service.create(new NewReservation(
++                201, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD, 2));
++        Reservation withoutChildren = service.create(new NewReservation(
++                102, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD, 0));
++
++        assertEquals(2, withChildren.children());
++        assertEquals(0, withoutChildren.children());
++    }
++
++    @Test
++    void adultsAndChildrenTogetherCannotExceedCapacity() {
++        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++
++        service.create(new NewReservation(
++                101, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD, 1));
++
++        assertEquals(ErrorCode.CAPACITY_EXCEEDED,
++                errorOf(() -> service.create(new NewReservation(
++                        102, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD, 2))));
++    }
++
++    @Test
++    void childrenCannotBeNegative() {
++        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++
++        assertEquals(ErrorCode.INVALID_REQUEST,
++                errorOf(() -> service.create(new NewReservation(
++                        101, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD, -1))));
++    }
++
++    @Test
++    void receiptShowsChildrenWhenPresent() {
++        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++        Reservation reservation = service.create(new NewReservation(
++                201, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD, 2));
++        service.confirm(reservation.id());
++
++        ReservationReceipt receipt = service.receiptCopy(reservation.id());
++        String text = receipt.text();
++
++        assertTrue(text.contains("Crianças: 2"));
++    }
++
++    @Test
++    void receiptDoesNotShowChildrenWhenZero() {
++        Reservation reservation = service.create(stay(101, "2027-03-10", "2027-03-12", 1, RatePlan.STANDARD));
++        service.confirm(reservation.id());
++
++        ReservationReceipt receipt = service.receiptCopy(reservation.id());
++        String text = receipt.text();
++
++        assertTrue(!text.contains("Crianças"));
++    }
+ }
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..0189de2 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -116,4 +116,46 @@ class HttpApiTest {
+         assertEquals(400, get("/reports/revenue?month=july").statusCode());
+         assertEquals(400, get("/reports/occupancy").statusCode());
+     }
++
++    @Test
++    void childrenFieldIsOptionalAndDefaultsToZero() throws Exception {
++        HttpResponse<String> withoutChildren = post("/reservations", RESERVATION_JSON);
++        assertEquals(201, withoutChildren.statusCode());
++        JsonNode reservation = json.readTree(withoutChildren.body());
++        assertEquals(0, reservation.get("children").asInt());
++
++        String withChildren = """
++                {"roomNumber": 301, "guestName": "Maria Silva", "guestEmail": "maria@example.com",
++                 "guestCpf": "222.333.444-55", "checkIn": "2027-07-15", "checkOut": "2027-07-17",
++                 "guests": 2, "ratePlan": "STANDARD", "children": 2}
++                """;
++        HttpResponse<String> response = post("/reservations", withChildren);
++        assertEquals(201, response.statusCode());
++        JsonNode reservationWithChildren = json.readTree(response.body());
++        assertEquals(2, reservationWithChildren.get("children").asInt());
++    }
++
++    @Test
++    void adultsAndChildrenTogetherCannotExceedCapacity() throws Exception {
++        String tooMany = """
++                {"roomNumber": 101, "guestName": "João Costa", "guestEmail": "joao@example.com",
++                 "guestCpf": "333.444.555-66", "checkIn": "2027-08-01", "checkOut": "2027-08-03",
++                 "guests": 2, "ratePlan": "STANDARD", "children": 2}
++                """;
++        HttpResponse<String> response = post("/reservations", tooMany);
++        assertEquals(422, response.statusCode());
++        assertEquals("CAPACITY_EXCEEDED", json.readTree(response.body()).get("error").asText());
++    }
++
++    @Test
++    void childrenCannotBeNegative() throws Exception {
++        String negative = """
++                {"roomNumber": 101, "guestName": "Pedro Santos", "guestEmail": "pedro@example.com",
++                 "guestCpf": "444.555.666-77", "checkIn": "2027-08-10", "checkOut": "2027-08-12",
++                 "guests": 1, "ratePlan": "STANDARD", "children": -1}
++                """;
++        HttpResponse<String> response = post("/reservations", negative);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
+ }

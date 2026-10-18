@@ -1,0 +1,657 @@
+diff --git a/src/main/java/hotel/Hotel.java b/src/main/java/hotel/Hotel.java
+index b75a525..da896c7 100644
+--- a/src/main/java/hotel/Hotel.java
++++ b/src/main/java/hotel/Hotel.java
+@@ -1,7 +1,11 @@
+ package hotel;
+ 
++import hotel.messages.ArchiveCopyRule;
++import hotel.messages.EmailRule;
+ import hotel.messages.EmailSender;
++import hotel.messages.EmailValidationRule;
+ import hotel.messages.SentMessages;
++import hotel.messages.TestModeRedirectionRule;
+ import hotel.reports.OccupancyReport;
+ import hotel.reports.RevenueReport;
+ import hotel.reservations.PriceCalculator;
+@@ -10,6 +14,7 @@ import hotel.reservations.ReservationStore;
+ import hotel.rooms.Rooms;
+ import hotel.web.HttpApi;
+ import io.javalin.Javalin;
++import java.util.List;
+ 
+ /** Puts the inn's pieces together and runs the HTTP server. */
+ public final class Hotel {
+@@ -20,8 +25,16 @@ public final class Hotel {
+         Rooms rooms = new Rooms();
+         ReservationStore store = new ReservationStore();
+         SentMessages sentMessages = new SentMessages();
++
++        boolean testMode = "true".equalsIgnoreCase(System.getenv("HOTEL_TEST_MODE"));
++        List<EmailRule> emailRules = List.of(
++                new EmailValidationRule(),
++                new TestModeRedirectionRule(testMode),
++                new ArchiveCopyRule(testMode)
++        );
++
+         ReservationService reservations =
+-                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages));
++                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages, emailRules));
+         HttpApi api = new HttpApi(
+                 rooms, reservations, sentMessages, new OccupancyReport(rooms, store), new RevenueReport(store));
+         this.server = api.server();
+diff --git a/src/main/java/hotel/messages/ArchiveCopyRule.java b/src/main/java/hotel/messages/ArchiveCopyRule.java
+new file mode 100644
+index 0000000..c76af29
+--- /dev/null
++++ b/src/main/java/hotel/messages/ArchiveCopyRule.java
+@@ -0,0 +1,35 @@
++package hotel.messages;
++
++import java.util.Collections;
++import java.util.List;
++
++/**
++ * Generates an archive copy for every sent email. Blocked messages and test mode messages don't
++ * generate copies.
++ */
++public final class ArchiveCopyRule implements EmailRule {
++
++    private static final String ARCHIVE_ADDRESS = "arquivo@pousadamarealta.com.br";
++    private static final String SUBJECT_PREFIX = "[Cópia] ";
++
++    private final boolean testMode;
++
++    public ArchiveCopyRule(boolean testMode) {
++        this.testMode = testMode;
++    }
++
++    @Override
++    public List<OutgoingEmail> process(OutgoingEmail email) {
++        if (testMode || email.status() == MessageStatus.BLOCKED) {
++            return Collections.emptyList();
++        }
++
++        OutgoingEmail copy = new OutgoingEmail(
++                ARCHIVE_ADDRESS,
++                SUBJECT_PREFIX + email.subject(),
++                email.body()
++        );
++
++        return List.of(copy);
++    }
++}
+diff --git a/src/main/java/hotel/messages/EmailRule.java b/src/main/java/hotel/messages/EmailRule.java
+new file mode 100644
+index 0000000..34a8065
+--- /dev/null
++++ b/src/main/java/hotel/messages/EmailRule.java
+@@ -0,0 +1,17 @@
++package hotel.messages;
++
++import java.util.List;
++
++/**
++ * A rule that processes outgoing emails. It can modify the email, block it, or generate additional
++ * emails (like archive copies).
++ */
++public interface EmailRule {
++    /**
++     * Processes an email and optionally generates additional emails.
++     *
++     * @param email the email being processed
++     * @return additional emails to send (e.g., archive copies), or an empty list
++     */
++    List<OutgoingEmail> process(OutgoingEmail email);
++}
+diff --git a/src/main/java/hotel/messages/EmailSender.java b/src/main/java/hotel/messages/EmailSender.java
+index 3eee255..a6a181d 100644
+--- a/src/main/java/hotel/messages/EmailSender.java
++++ b/src/main/java/hotel/messages/EmailSender.java
+@@ -1,15 +1,37 @@
+ package hotel.messages;
+ 
+-/** Sends e-mails to guests. Every e-mail sent is kept in the list of sent messages. */
++import java.util.ArrayList;
++import java.util.List;
++
++/**
++ * Sends e-mails to guests. Every e-mail sent is kept in the list of sent messages. Rules can
++ * validate, modify, block, or generate additional messages.
++ */
+ public final class EmailSender {
+ 
+     private final SentMessages sentMessages;
++    private final List<EmailRule> rules;
+ 
+-    public EmailSender(SentMessages sentMessages) {
++    public EmailSender(SentMessages sentMessages, List<EmailRule> rules) {
+         this.sentMessages = sentMessages;
++        this.rules = rules;
+     }
+ 
+     public Message send(String to, String subject, String body) {
+-        return sentMessages.add("EMAIL", to, subject, body);
++        OutgoingEmail email = new OutgoingEmail(to, subject, body);
++        List<OutgoingEmail> additionalEmails = new ArrayList<>();
++
++        for (EmailRule rule : rules) {
++            List<OutgoingEmail> generated = rule.process(email);
++            additionalEmails.addAll(generated);
++        }
++
++        Message primaryMessage = sentMessages.add("EMAIL", email.to(), email.subject(), email.body(), email.status());
++
++        for (OutgoingEmail additional : additionalEmails) {
++            sentMessages.add("EMAIL", additional.to(), additional.subject(), additional.body(), additional.status());
++        }
++
++        return primaryMessage;
+     }
+ }
+diff --git a/src/main/java/hotel/messages/EmailValidationRule.java b/src/main/java/hotel/messages/EmailValidationRule.java
+new file mode 100644
+index 0000000..e64cea5
+--- /dev/null
++++ b/src/main/java/hotel/messages/EmailValidationRule.java
+@@ -0,0 +1,38 @@
++package hotel.messages;
++
++import java.util.Collections;
++import java.util.List;
++
++/**
++ * Blocks emails with invalid addresses. An address is valid when it has exactly one @, something
++ * before it, and after it a name with at least one dot (like ana@gmail.com).
++ */
++public final class EmailValidationRule implements EmailRule {
++
++    @Override
++    public List<OutgoingEmail> process(OutgoingEmail email) {
++        if (!isValidEmail(email.to())) {
++            email.block();
++        }
++        return Collections.emptyList();
++    }
++
++    private boolean isValidEmail(String email) {
++        if (email == null || email.isBlank()) {
++            return false;
++        }
++
++        long atCount = email.chars().filter(ch -> ch == '@').count();
++        if (atCount != 1) {
++            return false;
++        }
++
++        int atIndex = email.indexOf('@');
++        if (atIndex == 0) {
++            return false;
++        }
++
++        String domain = email.substring(atIndex + 1);
++        return domain.contains(".");
++    }
++}
+diff --git a/src/main/java/hotel/messages/Message.java b/src/main/java/hotel/messages/Message.java
+index 0ba10b3..00b3c9e 100644
+--- a/src/main/java/hotel/messages/Message.java
++++ b/src/main/java/hotel/messages/Message.java
+@@ -1,4 +1,4 @@
+ package hotel.messages;
+ 
+-public record Message(long id, String channel, String to, String subject, String body) {
++public record Message(long id, String channel, String to, String subject, String body, MessageStatus status) {
+ }
+diff --git a/src/main/java/hotel/messages/MessageStatus.java b/src/main/java/hotel/messages/MessageStatus.java
+new file mode 100644
+index 0000000..1685627
+--- /dev/null
++++ b/src/main/java/hotel/messages/MessageStatus.java
+@@ -0,0 +1,6 @@
++package hotel.messages;
++
++public enum MessageStatus {
++    SENT,
++    BLOCKED
++}
+diff --git a/src/main/java/hotel/messages/OutgoingEmail.java b/src/main/java/hotel/messages/OutgoingEmail.java
+new file mode 100644
+index 0000000..8a22faa
+--- /dev/null
++++ b/src/main/java/hotel/messages/OutgoingEmail.java
+@@ -0,0 +1,56 @@
++package hotel.messages;
++
++/**
++ * An email being prepared for sending. Rules can modify or block it before it actually goes out.
++ */
++public final class OutgoingEmail {
++    private final String originalTo;
++    private String to;
++    private String subject;
++    private String body;
++    private MessageStatus status;
++
++    public OutgoingEmail(String to, String subject, String body) {
++        this.originalTo = to;
++        this.to = to;
++        this.subject = subject;
++        this.body = body;
++        this.status = MessageStatus.SENT;
++    }
++
++    public String originalTo() {
++        return originalTo;
++    }
++
++    public String to() {
++        return to;
++    }
++
++    public void setTo(String to) {
++        this.to = to;
++    }
++
++    public String subject() {
++        return subject;
++    }
++
++    public void setSubject(String subject) {
++        this.subject = subject;
++    }
++
++    public String body() {
++        return body;
++    }
++
++    public void setBody(String body) {
++        this.body = body;
++    }
++
++    public MessageStatus status() {
++        return status;
++    }
++
++    public void block() {
++        this.status = MessageStatus.BLOCKED;
++    }
++}
+diff --git a/src/main/java/hotel/messages/SentMessages.java b/src/main/java/hotel/messages/SentMessages.java
+index 7c0e9fa..c166d29 100644
+--- a/src/main/java/hotel/messages/SentMessages.java
++++ b/src/main/java/hotel/messages/SentMessages.java
+@@ -8,8 +8,8 @@ public final class SentMessages {
+ 
+     private final List<Message> messages = new ArrayList<>();
+ 
+-    synchronized Message add(String channel, String to, String subject, String body) {
+-        Message message = new Message(messages.size() + 1L, channel, to, subject, body);
++    synchronized Message add(String channel, String to, String subject, String body, MessageStatus status) {
++        Message message = new Message(messages.size() + 1L, channel, to, subject, body, status);
+         messages.add(message);
+         return message;
+     }
+diff --git a/src/main/java/hotel/messages/TestModeRedirectionRule.java b/src/main/java/hotel/messages/TestModeRedirectionRule.java
+new file mode 100644
+index 0000000..86b0e76
+--- /dev/null
++++ b/src/main/java/hotel/messages/TestModeRedirectionRule.java
+@@ -0,0 +1,32 @@
++package hotel.messages;
++
++import java.util.Collections;
++import java.util.List;
++
++/**
++ * In test mode, redirects emails to a test address with a warning prefix in the subject and body.
++ */
++public final class TestModeRedirectionRule implements EmailRule {
++
++    private static final String TEST_ADDRESS = "testes@pousadamarealta.com.br";
++    private static final String SUBJECT_PREFIX = "[TESTE] ";
++
++    private final boolean testMode;
++
++    public TestModeRedirectionRule(boolean testMode) {
++        this.testMode = testMode;
++    }
++
++    @Override
++    public List<OutgoingEmail> process(OutgoingEmail email) {
++        if (!testMode || email.status() == MessageStatus.BLOCKED) {
++            return Collections.emptyList();
++        }
++
++        email.setTo(TEST_ADDRESS);
++        email.setSubject(SUBJECT_PREFIX + email.subject());
++        email.setBody("Destinatário original: " + email.originalTo() + "\n" + email.body());
++
++        return Collections.emptyList();
++    }
++}
+diff --git a/src/test/java/hotel/integration/TestModeIntegrationTest.java b/src/test/java/hotel/integration/TestModeIntegrationTest.java
+new file mode 100644
+index 0000000..f20ae43
+--- /dev/null
++++ b/src/test/java/hotel/integration/TestModeIntegrationTest.java
+@@ -0,0 +1,116 @@
++package hotel.integration;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++
++import com.fasterxml.jackson.databind.JsonNode;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import hotel.Hotel;
++import hotel.messages.ArchiveCopyRule;
++import hotel.messages.EmailRule;
++import hotel.messages.EmailSender;
++import hotel.messages.EmailValidationRule;
++import hotel.messages.SentMessages;
++import hotel.messages.TestModeRedirectionRule;
++import hotel.reports.OccupancyReport;
++import hotel.reports.RevenueReport;
++import hotel.reservations.PriceCalculator;
++import hotel.reservations.ReservationService;
++import hotel.reservations.ReservationStore;
++import hotel.rooms.Rooms;
++import hotel.web.HttpApi;
++import io.javalin.Javalin;
++import java.io.IOException;
++import java.net.URI;
++import java.net.http.HttpClient;
++import java.net.http.HttpRequest;
++import java.net.http.HttpResponse;
++import java.util.List;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++
++class TestModeIntegrationTest {
++
++    private static final String RESERVATION_JSON = """
++            {"roomNumber": 201, "guestName": "Carla Dias", "guestEmail": "carla@example.com",
++             "guestCpf": "111.222.333-44", "checkIn": "2027-07-10", "checkOut": "2027-07-12",
++             "guests": 2, "ratePlan": "STANDARD"}
++            """;
++
++    private final HttpClient client = HttpClient.newHttpClient();
++    private final ObjectMapper json = new ObjectMapper();
++    private Javalin server;
++    private String baseUrl;
++
++    @BeforeEach
++    void startServer() {
++        Rooms rooms = new Rooms();
++        ReservationStore store = new ReservationStore();
++        SentMessages sentMessages = new SentMessages();
++
++        List<EmailRule> emailRules = List.of(
++                new EmailValidationRule(),
++                new TestModeRedirectionRule(true),
++                new ArchiveCopyRule(true)
++        );
++
++        ReservationService reservations =
++                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages, emailRules));
++        HttpApi api = new HttpApi(
++                rooms, reservations, sentMessages, new OccupancyReport(rooms, store), new RevenueReport(store));
++        server = api.server();
++        int port = server.start(0).port();
++        baseUrl = "http://localhost:" + port;
++    }
++
++    @AfterEach
++    void stopServer() {
++        server.stop();
++    }
++
++    private HttpResponse<String> get(String path) throws IOException, InterruptedException {
++        return client.send(HttpRequest.newBuilder(URI.create(baseUrl + path)).GET().build(),
++                HttpResponse.BodyHandlers.ofString());
++    }
++
++    private HttpResponse<String> post(String path, String body) throws IOException, InterruptedException {
++        return client.send(HttpRequest.newBuilder(URI.create(baseUrl + path))
++                        .header("Content-Type", "application/json")
++                        .POST(HttpRequest.BodyPublishers.ofString(body))
++                        .build(),
++                HttpResponse.BodyHandlers.ofString());
++    }
++
++    @Test
++    void redirectsEmailsToTestAddressInTestMode() throws Exception {
++        HttpResponse<String> created = post("/reservations", RESERVATION_JSON);
++        long id = json.readTree(created.body()).get("id").asLong();
++
++        post("/reservations/" + id + "/confirmation", "");
++
++        JsonNode messages = json.readTree(get("/messages").body());
++        assertEquals(1, messages.size());
++
++        JsonNode message = messages.get(0);
++        assertEquals("testes@pousadamarealta.com.br", message.get("to").asText());
++        assertEquals("[TESTE] Reserva confirmada - Pousada Maré Alta", message.get("subject").asText());
++        assertEquals("SENT", message.get("status").asText());
++        assertEquals(true, message.get("body").asText().startsWith("Destinatário original: carla@example.com\n"));
++    }
++
++    @Test
++    void blocksInvalidEmailsEvenInTestMode() throws Exception {
++        String invalidEmail = RESERVATION_JSON.replace("carla@example.com", "carla@invalid");
++        HttpResponse<String> created = post("/reservations", invalidEmail);
++        long id = json.readTree(created.body()).get("id").asLong();
++
++        post("/reservations/" + id + "/confirmation", "");
++
++        JsonNode messages = json.readTree(get("/messages").body());
++        assertEquals(1, messages.size());
++
++        JsonNode message = messages.get(0);
++        assertEquals("carla@invalid", message.get("to").asText());
++        assertEquals("BLOCKED", message.get("status").asText());
++    }
++}
+diff --git a/src/test/java/hotel/messages/EmailRulesTest.java b/src/test/java/hotel/messages/EmailRulesTest.java
+new file mode 100644
+index 0000000..c774548
+--- /dev/null
++++ b/src/test/java/hotel/messages/EmailRulesTest.java
+@@ -0,0 +1,145 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++
++import java.util.List;
++import org.junit.jupiter.api.Test;
++
++class EmailRulesTest {
++
++    @Test
++    void blocksInvalidEmailAddresses() {
++        SentMessages sentMessages = new SentMessages();
++        EmailSender sender = new EmailSender(sentMessages, List.of(new EmailValidationRule()));
++
++        sender.send("ana@gmail", "Test", "Body");
++        sender.send("ana.gmail.com", "Test", "Body");
++        sender.send("@gmail.com", "Test", "Body");
++        sender.send("ana@", "Test", "Body");
++        sender.send("ana@com", "Test", "Body");
++        sender.send("ana@gmail.com", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(6, messages.size());
++        assertEquals(MessageStatus.BLOCKED, messages.get(0).status());
++        assertEquals(MessageStatus.BLOCKED, messages.get(1).status());
++        assertEquals(MessageStatus.BLOCKED, messages.get(2).status());
++        assertEquals(MessageStatus.BLOCKED, messages.get(3).status());
++        assertEquals(MessageStatus.BLOCKED, messages.get(4).status());
++        assertEquals(MessageStatus.SENT, messages.get(5).status());
++    }
++
++    @Test
++    void generatesArchiveCopyForSentEmails() {
++        SentMessages sentMessages = new SentMessages();
++        EmailSender sender = new EmailSender(sentMessages, List.of(
++                new EmailValidationRule(),
++                new ArchiveCopyRule(false)
++        ));
++
++        sender.send("ana@gmail.com", "Reserva confirmada", "Sua reserva está confirmada");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(2, messages.size());
++
++        assertEquals("ana@gmail.com", messages.get(0).to());
++        assertEquals("Reserva confirmada", messages.get(0).subject());
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).to());
++        assertEquals("[Cópia] Reserva confirmada", messages.get(1).subject());
++        assertEquals("Sua reserva está confirmada", messages.get(1).body());
++        assertEquals(MessageStatus.SENT, messages.get(1).status());
++    }
++
++    @Test
++    void doesNotGenerateArchiveCopyForBlockedEmails() {
++        SentMessages sentMessages = new SentMessages();
++        EmailSender sender = new EmailSender(sentMessages, List.of(
++                new EmailValidationRule(),
++                new ArchiveCopyRule(false)
++        ));
++
++        sender.send("ana@gmail", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals(MessageStatus.BLOCKED, messages.get(0).status());
++    }
++
++    @Test
++    void redirectsToTestAddressInTestMode() {
++        SentMessages sentMessages = new SentMessages();
++        EmailSender sender = new EmailSender(sentMessages, List.of(
++                new EmailValidationRule(),
++                new TestModeRedirectionRule(true),
++                new ArchiveCopyRule(true)
++        ));
++
++        sender.send("ana@gmail.com", "Reserva confirmada", "Sua reserva está confirmada");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++
++        Message message = messages.get(0);
++        assertEquals("testes@pousadamarealta.com.br", message.to());
++        assertEquals("[TESTE] Reserva confirmada", message.subject());
++        assertEquals("Destinatário original: ana@gmail.com\nSua reserva está confirmada", message.body());
++        assertEquals(MessageStatus.SENT, message.status());
++    }
++
++    @Test
++    void doesNotRedirectBlockedEmailsInTestMode() {
++        SentMessages sentMessages = new SentMessages();
++        EmailSender sender = new EmailSender(sentMessages, List.of(
++                new EmailValidationRule(),
++                new TestModeRedirectionRule(true)
++        ));
++
++        sender.send("ana@invalid", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("ana@invalid", messages.get(0).to());
++        assertEquals(MessageStatus.BLOCKED, messages.get(0).status());
++    }
++
++    @Test
++    void doesNotGenerateArchiveCopyInTestMode() {
++        SentMessages sentMessages = new SentMessages();
++        EmailSender sender = new EmailSender(sentMessages, List.of(
++                new EmailValidationRule(),
++                new TestModeRedirectionRule(true),
++                new ArchiveCopyRule(true)
++        ));
++
++        sender.send("ana@gmail.com", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("testes@pousadamarealta.com.br", messages.get(0).to());
++    }
++
++    @Test
++    void appliesAllRulesInOrder() {
++        SentMessages sentMessages = new SentMessages();
++        EmailSender sender = new EmailSender(sentMessages, List.of(
++                new EmailValidationRule(),
++                new TestModeRedirectionRule(false),
++                new ArchiveCopyRule(false)
++        ));
++
++        sender.send("ana@gmail.com", "Teste", "Corpo");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(2, messages.size());
++
++        assertEquals("ana@gmail.com", messages.get(0).to());
++        assertEquals("Teste", messages.get(0).subject());
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).to());
++        assertEquals("[Cópia] Teste", messages.get(1).subject());
++        assertEquals(MessageStatus.SENT, messages.get(1).status());
++    }
++}
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index 967cabb..bec2aeb 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -14,6 +14,7 @@ import hotel.reservations.ReservationStore;
+ import hotel.rooms.Rooms;
+ import java.time.LocalDate;
+ import java.time.YearMonth;
++import java.util.List;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -22,7 +23,7 @@ class ReportsTest {
+     private final Rooms rooms = new Rooms();
+     private final ReservationStore store = new ReservationStore();
+     private final ReservationService service =
+-            new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(new SentMessages()));
++            new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(new SentMessages(), List.of()));
+ 
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+         Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..61a22ef 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -19,7 +19,7 @@ class ReservationServiceTest {
+ 
+     private final SentMessages sentMessages = new SentMessages();
+     private final ReservationService service = new ReservationService(
+-            new Rooms(), new ReservationStore(), new PriceCalculator(), new EmailSender(sentMessages));
++            new Rooms(), new ReservationStore(), new PriceCalculator(), new EmailSender(sentMessages, List.of()));
+ 
+     private static NewReservation stay(int roomNumber, String checkIn, String checkOut, int guests, RatePlan plan) {
+         Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..3950846 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -75,8 +75,12 @@ class HttpApiTest {
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+-        assertEquals(1, messages.size());
++        assertEquals(2, messages.size());
+         assertEquals("carla@example.com", messages.get(0).get("to").asText());
++        assertEquals("SENT", messages.get(0).get("status").asText());
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).get("to").asText());
++        assertEquals("[Cópia] Reserva confirmada - Pousada Maré Alta", messages.get(1).get("subject").asText());
++        assertEquals("SENT", messages.get(1).get("status").asText());
+ 
+         assertEquals(200, post("/reservations/" + id + "/check-in", "").statusCode());
+         HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");

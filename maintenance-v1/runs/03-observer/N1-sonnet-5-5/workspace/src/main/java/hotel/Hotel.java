@@ -1,0 +1,55 @@
+package hotel;
+
+import hotel.messages.EmailSender;
+import hotel.notifications.FinanceNotifier;
+import hotel.notifications.GuestNotifier;
+import hotel.notifications.HousekeepingNotifier;
+import hotel.messages.SentMessages;
+import hotel.reports.OccupancyReport;
+import hotel.reports.RevenueReport;
+import hotel.reservations.PriceCalculator;
+import hotel.reservations.ReservationService;
+import hotel.reservations.ReservationStore;
+import hotel.rooms.Rooms;
+import hotel.web.HttpApi;
+import io.javalin.Javalin;
+import java.util.List;
+
+/** Puts the inn's pieces together and runs the HTTP server. */
+public final class Hotel {
+
+    private final Javalin server;
+
+    public Hotel() {
+        Rooms rooms = new Rooms();
+        ReservationStore store = new ReservationStore();
+        SentMessages sentMessages = new SentMessages();
+        EmailSender emailSender = new EmailSender(sentMessages);
+        ReservationService reservations = new ReservationService(
+                rooms,
+                store,
+                new PriceCalculator(),
+                List.of(
+                        new GuestNotifier(emailSender),
+                        new HousekeepingNotifier(emailSender),
+                        new FinanceNotifier(emailSender)));
+        HttpApi api = new HttpApi(
+                rooms, reservations, sentMessages, new OccupancyReport(rooms, store), new RevenueReport(store));
+        this.server = api.server();
+    }
+
+    /** Starts listening; port 0 picks a free port. Returns the port in use. */
+    public int start(int port) {
+        server.start(port);
+        return server.port();
+    }
+
+    public void stop() {
+        server.stop();
+    }
+
+    public static void main(String[] args) {
+        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "7070"));
+        new Hotel().start(port);
+    }
+}

@@ -10,6 +10,7 @@ Usage (from maintenance-v1):
 
 Output in runs/<scenario>-<pattern>/<arm>-<model>/ (for example runs/01-strategy/N0-opus-5-5/):
     workspace/          the project as the agent left it (the build's target/ is not versioned)
+    agent-git.bundle    only when the agent ran `git init`: its history (the .git folder leaves the workspace)
     prompt.md           the exact text the agent received (the frame with the request inside)
     changes.patch       what the agent changed, against the copy it received (harness files left out)
     claude-output.jsonl the transcript; stderr.txt; build.txt (mvn verify, in a container without the token)
@@ -28,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -196,6 +198,28 @@ def write_changes(arm: str, workspace: Path, run_folder: Path) -> int:
     return diff.count(b"\ndiff --git ") + (1 if diff.startswith(b"diff --git ") else 0)
 
 
+def move_agent_git_out(run_folder: Path) -> bool:
+    """When the agent ran `git init` in its workspace, its history goes to <run>/agent-git.bundle and the .git folder
+    leaves the workspace, so the study's repository versions the project's files (and not a nested repository).
+    Returns whether the agent had a git of its own."""
+    agent_git = run_folder / "workspace" / ".git"
+    if not agent_git.is_dir():
+        return False
+    bundle = run_folder / "agent-git.bundle"
+    bundled = subprocess.run(["git", "-C", str(run_folder / "workspace"), "bundle", "create", str(bundle), "--all"],
+                             capture_output=True, check=False)
+    if bundled.returncode != 0 or not bundle.is_file():
+        die(f"could not bundle the agent's git in {agent_git}: {bundled.stderr.decode(errors='replace')}")
+    shutil.rmtree(agent_git, onexc=remove_read_only)
+    return True
+
+
+def remove_read_only(function: Callable[[str], object], path: str, _error: BaseException) -> None:
+    """Git keeps its object files read-only, and Windows refuses to delete those: make them writable, then retry."""
+    Path(path).chmod(0o700)
+    function(path)
+
+
 def summarize(run_folder: Path, details: dict[str, Any]) -> dict[str, Any]:
     """A summary read from the transcript, including whether the agent ever opened the skill."""
     result: dict[str, Any] = {}
@@ -281,7 +305,7 @@ def main() -> None:
     meta = summarize(run_folder, {
         **identity, "start": start.isoformat(timespec="seconds"), "end": end.isoformat(timespec="seconds"),
         "seconds": seconds, "run_exit_code": run_exit_code, "build_exit_code": build_exit_code,
-        "changed_files": changed_files,
+        "changed_files": changed_files, "agent_git_bundled": move_agent_git_out(run_folder),
     })
     (run_folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: meta[key] for key in ("seconds", "turns", "cost_usd", "build_exit_code", "changed_files",

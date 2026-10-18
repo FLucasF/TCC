@@ -1,0 +1,165 @@
+diff --git a/src/main/java/hotel/messages/Message.java b/src/main/java/hotel/messages/Message.java
+index 0ba10b3..0456061 100644
+--- a/src/main/java/hotel/messages/Message.java
++++ b/src/main/java/hotel/messages/Message.java
+@@ -1,4 +1,4 @@
+ package hotel.messages;
+ 
+-public record Message(long id, String channel, String to, String subject, String body) {
++public record Message(long id, String channel, String to, String subject, String body, String status) {
+ }
+diff --git a/src/main/java/hotel/messages/SentMessages.java b/src/main/java/hotel/messages/SentMessages.java
+index 7c0e9fa..7060a8b 100644
+--- a/src/main/java/hotel/messages/SentMessages.java
++++ b/src/main/java/hotel/messages/SentMessages.java
+@@ -6,12 +6,61 @@ import java.util.List;
+ /** Every message the inn sent, so the front desk can check what each guest received. */
+ public final class SentMessages {
+ 
++    private static final String ARCHIVE_EMAIL = "arquivo@pousadamarealta.com.br";
++    private static final String TEST_EMAIL = "testes@pousadamarealta.com.br";
++    private static final boolean TEST_MODE = "true".equalsIgnoreCase(System.getenv("HOTEL_TEST_MODE"));
++
+     private final List<Message> messages = new ArrayList<>();
+ 
+     synchronized Message add(String channel, String to, String subject, String body) {
+-        Message message = new Message(messages.size() + 1L, channel, to, subject, body);
+-        messages.add(message);
+-        return message;
++        if (!isValidEmail(to)) {
++            Message blocked = new Message(nextId(), channel, to, subject, body, "BLOCKED");
++            messages.add(blocked);
++            return blocked;
++        }
++
++        String finalTo = to;
++        String finalSubject = subject;
++        String finalBody = body;
++
++        if (TEST_MODE) {
++            finalSubject = "[TESTE] " + subject;
++            finalBody = "Destinatário original: " + to + "\n" + body;
++            finalTo = TEST_EMAIL;
++        }
++
++        Message sent = new Message(nextId(), channel, finalTo, finalSubject, finalBody, "SENT");
++        messages.add(sent);
++
++        if (!TEST_MODE) {
++            Message copy = new Message(nextId(), channel, ARCHIVE_EMAIL, "[Cópia] " + subject, body, "SENT");
++            messages.add(copy);
++        }
++
++        return sent;
++    }
++
++    private long nextId() {
++        return messages.size() + 1L;
++    }
++
++    private boolean isValidEmail(String email) {
++        if (email == null || email.isBlank()) {
++            return false;
++        }
++        int atCount = 0;
++        int atIndex = -1;
++        for (int i = 0; i < email.length(); i++) {
++            if (email.charAt(i) == '@') {
++                atCount++;
++                atIndex = i;
++            }
++        }
++        if (atCount != 1 || atIndex == 0) {
++            return false;
++        }
++        String domain = email.substring(atIndex + 1);
++        return domain.length() > 0 && domain.contains(".");
+     }
+ 
+     public synchronized List<Message> all() {
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..0d7a527 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -79,12 +79,17 @@ class ReservationServiceTest {
+ 
+         assertEquals(ReservationStatus.CONFIRMED, reservation.status());
+         List<Message> sent = sentMessages.all();
+-        assertEquals(1, sent.size());
++        assertEquals(2, sent.size());
+         assertEquals("EMAIL", sent.get(0).channel());
+         assertEquals("ana@example.com", sent.get(0).to());
+         assertEquals("Reserva confirmada - Pousada Maré Alta", sent.get(0).subject());
++        assertEquals("SENT", sent.get(0).status());
+         assertTrue(sent.get(0).body().contains("Desconto: R$ 37,48"));
+         assertTrue(sent.get(0).body().contains("Total: R$ 212,42"));
++        assertEquals("EMAIL", sent.get(1).channel());
++        assertEquals("arquivo@pousadamarealta.com.br", sent.get(1).to());
++        assertEquals("[Cópia] Reserva confirmada - Pousada Maré Alta", sent.get(1).subject());
++        assertEquals("SENT", sent.get(1).status());
+     }
+ 
+     @Test
+@@ -93,7 +98,7 @@ class ReservationServiceTest {
+         service.confirm(reservation.id());
+ 
+         assertEquals(ErrorCode.OPERATION_NOT_ALLOWED, errorOf(() -> service.confirm(reservation.id())));
+-        assertEquals(1, sentMessages.all().size());
++        assertEquals(2, sentMessages.all().size());
+     }
+ 
+     @Test
+@@ -150,4 +155,36 @@ class ReservationServiceTest {
+     void anUnknownReservationIsNotFound() {
+         assertEquals(ErrorCode.RESERVATION_NOT_FOUND, errorOf(() -> service.find(42)));
+     }
++
++    @Test
++    void invalidEmailAddressesAreBlocked() {
++        SentMessages testMessages = new SentMessages();
++        ReservationService testService = new ReservationService(
++                new Rooms(), new ReservationStore(), new PriceCalculator(), new EmailSender(testMessages));
++
++        Guest guest1 = new Guest("Ana", "ana@gmail", "123.456.789-09");
++        Guest guest2 = new Guest("Bob", "bob.gmail.com", "123.456.789-09");
++        Guest guest3 = new Guest("Carol", "carol@", "123.456.789-09");
++
++        Reservation pending1 = testService.create(new NewReservation(
++                201, guest1, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 1, RatePlan.STANDARD));
++        Reservation pending2 = testService.create(new NewReservation(
++                202, guest2, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 1, RatePlan.STANDARD));
++        Reservation pending3 = testService.create(new NewReservation(
++                301, guest3, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 1, RatePlan.STANDARD));
++
++        testService.confirm(pending1.id());
++        testService.confirm(pending2.id());
++        testService.confirm(pending3.id());
++
++        List<Message> all = testMessages.all();
++        assertEquals(3, all.size());
++
++        assertEquals("BLOCKED", all.get(0).status());
++        assertEquals("ana@gmail", all.get(0).to());
++        assertEquals("BLOCKED", all.get(1).status());
++        assertEquals("bob.gmail.com", all.get(1).to());
++        assertEquals("BLOCKED", all.get(2).status());
++        assertEquals("carol@", all.get(2).to());
++    }
+ }
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..daebfb7 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -75,8 +75,11 @@ class HttpApiTest {
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+-        assertEquals(1, messages.size());
++        assertEquals(2, messages.size());
+         assertEquals("carla@example.com", messages.get(0).get("to").asText());
++        assertEquals("SENT", messages.get(0).get("status").asText());
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).get("to").asText());
++        assertEquals("SENT", messages.get(1).get("status").asText());
+ 
+         assertEquals(200, post("/reservations/" + id + "/check-in", "").statusCode());
+         HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");
