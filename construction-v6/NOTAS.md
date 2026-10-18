@@ -701,3 +701,56 @@ ciclo. Corrigido pela IA (Claude Opus 5.5, effort `high`, as 8 dimensões, US$ 3
 State `omissão` no P7, o Adapter `omissão` (gramas, horas e o código do serviço fora do cliente da TransLog); os
 testes `não segue` no T1 (só testam o `PricingUtil`) e `segue` no T2 (as poucas asserções conferem valores exatos);
 a arquitetura `não segue` no A1 (o `HttpStatus` nas recusas e o DTO da API no cálculo).
+
+## O lote batch-1 e a revisão à mão (17 e 18/10/2026)
+
+**O lote.** Haiku 4.5, Sonnet 4.5 e Sonnet 5.5 nos braços N0, N1 e N2 (effort `medium`, uma execução cada, US$ 13,80),
+com o material da correção e a correção por Claude Opus 5.5 nas 8 dimensões (US$ 46,55), em `runs/batch-1/` e
+`analysis/batch-1/`. Os serviços do Haiku no N1 e no N2 não sobem: no N1, a coluna `installments` mapeada duas vezes
+(o mesmo erro do piloto); no N2, o dialeto `PostgreSQL12Dialect`, que o Hibernate 7 não tem mais. O Haiku no N2 não
+abriu a skill, apesar da linha do CLAUDE.md; os dois Sonnet abriram.
+
+**A revisão à mão (18/10).** Li o código dos 9 projetos contra o enunciado e rodei a suíte de referência em cada um
+(`analysis/batch-1/suite/`, ferramenta de conferência, que não entra na correção):
+
+| execução | resumo (437) | ciclo (11) | reinício (3) | concorrência (4) |
+|---|---|---|---|---|
+| Haiku N0 | 179 | 2 | 0 | 0 |
+| Haiku N1 e N2 | não sobem | | | |
+| Sonnet 4.5 N0 | 268 | 8 | 0 | 2 |
+| Sonnet 4.5 N1 | 182 | 4 | 0 | 0 |
+| Sonnet 4.5 N2 | 420 | 8 | 0 | 0 |
+| Sonnet 5.5 N0, N1 e N2 | 437 | 11 | 3 | 4 |
+
+O 0 de 3 no reinício do Sonnet 4.5 é cascata: o serviço aceita um pagamento com `transactionId` vazio, e o pedido que
+a suíte usa no reinício chega pago e enviado. No Haiku N0 é perda de verdade (`ddl-auto: create-drop`).
+
+**Onde a correção da IA bate com a revisão.** O desenho em todos os 9 projetos (Strategy, State, testes) e os
+serviços que não sobem, com a causa achada sem a suíte.
+
+**Onde a régua não chega (limitações; a régua fica como está, decisão do Lucas de 18/10: os critérios e as
+hipóteses são os de antes, para ver se os resultados batem com eles, sem correr de novo).**
+- O C7 e o C8 testam o aviso repetido um depois do outro e a última peça só pelo "só um passa". Não testam o mesmo
+  aviso chegando várias vezes ao mesmo tempo, nem o que acontece com quem perde a disputa. A IA deu `segue` ao
+  Sonnet 4.5 no N0 (C7) e no N1 (C8); a suíte mostra que, no N0, cinco avisos iguais ao mesmo tempo baixam o estoque
+  cinco vezes, e que, no N1, quem perde a última peça fica aguardando pagamento com erro 500.
+- O P6 tem dois níveis (acerto ou omissão): o adaptador quase completo do Sonnet 5.5 (interface, resultado tipado,
+  só a conversão para gramas fora) e o Haiku N0 (o HTTP no meio do cálculo) recebem a mesma `omissão`; a análise
+  escrita mostra a diferença, a linha de conclusão não. O único `acerto` (Haiku N2) é de um adaptador que devolve
+  `null` tanto para o CEP não atendido quanto para a TransLog fora do ar.
+
+**Indícios entre os braços (uma execução por combinação: indício, não conclusão).**
+- O harness muda o desenho de quem não acerta sozinho: o Sonnet 4.5 vai de omissão em tudo (N0) a Strategy nos
+  quatro pontos (N1) e a Strategy com State (N2). O Haiku quase não muda; o Sonnet 5.5 já acerta o Strategy no N0.
+- Desenho melhor não é serviço melhor: o Sonnet 4.5 no N1 tem o desenho bem melhor que o do N0 e passa em menos
+  itens da suíte (182 contra 268), por erros de borda (a TransLog fora do ar vira entrega indisponível, os
+  conflitos da trava viram erro 500).
+- Os testes diminuem do N0 ao N2 nos três modelos: Haiku 10, 6 e 1; Sonnet 4.5 14, 6 e 1 (no N2, só um
+  `contextLoads` vazio, PIT 0%); Sonnet 5.5 20, 14 e 9.
+- Erros de borda comuns nos Sonnet 4.5 e no Haiku N0: valor inválido no JSON (nível, região, cupom, entrega)
+  devolve `400 Bad Request`, e não `422` com o código da tabela.
+
+**Lacunas do enunciado** (o que ele não decide; a correção as trata como dúvida, sem mudar a conclusão; decidir antes
+de congelar o V6): o GOLD com FREESHIPPING quando o frete já é zero (vale com desconto zero ou é recusado?), o fuso
+do servidor, um `price_cents` com casas decimais, um `paidAt` anterior ao registro, e o aviso repetido depois de o
+pedido mudar de situação.
