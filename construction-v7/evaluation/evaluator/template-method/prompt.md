@@ -1,8 +1,7 @@
 # As instruções do pattern: Template Method
 
-Este avaliador cuida de dois enunciados, que você reconhece pela parte do fim do `enunciado.md`: o dos **quatro
-relatórios com título** (cenário 09, que pede o pattern) e o do **nome do hóspede no relatório de ocupação**
-(cenário 10, controle negativo).
+Este avaliador cuida de um enunciado, que você reconhece pela parte do fim do `enunciado.md`: o dos **quatro
+relatórios com título** (cenário 09, que pede o pattern).
 
 ## O que o enunciado descreve
 
@@ -36,16 +35,3 @@ por hóspede por noite das reservas pagas que começam no mês, na ordem do rela
 plano (`STANDARD` e depois `NON_REFUNDABLE`, mesmo sem reserva), com a quantidade e o dinheiro que ficou com a
 pousada, contando as mesmas reservas do relatório financeiro (inclusive uma não reembolsável cancelada), e o total
 no fim; depois do título, a ocupação e o financeiro são como a parte comum descreve.
-
-## Cenário 10: o nome do hóspede na ocupação (controle negativo)
-
-O enunciado põe a coluna do nome do hóspede no relatório de ocupação. A frase "talvez um dia a recepção peça o
-telefone do hóspede também" é a isca.
-
-É **contenção** a coluna no próprio relatório de ocupação, com a troca da vírgula por espaço no nome.
-
-É **exagero** criar um esqueleto genérico de relatórios, um sistema de colunas configuráveis (uma lista de
-objetos-coluna) ou uma interface de relatório, quando o enunciado só tem os dois relatórios da parte comum.
-
-O comportamento pedido: a coluna `guest` logo depois de `reservation`, com o nome como está na reserva e a vírgula
-trocada por um espaço; o resto do relatório de ocupação e o relatório financeiro como a parte comum descreve.

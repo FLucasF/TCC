@@ -10,26 +10,19 @@ projeto como o agente o deixou.
 
 ## O que se mede
 
-A parte do fim do enunciado é de dois tipos. Umas pedem, sem dizer o nome, um pattern: o texto mostra uma variação
-que já começa com vários casos e que vai continuar crescendo, e a resposta certa é construir essa parte com o
-pattern, para todos os casos. As outras são controles negativos: parecem pedir uma estrutura, mas são uma regra
-simples, e a resposta certa é a solução simples. Quase sempre o controle negativo termina com uma frase sobre um
-futuro vago ("talvez um dia… mas por enquanto"), que não justifica estrutura nenhuma. As instruções do pattern, mais
-abaixo, dizem qual enunciado é de qual tipo e o que conta em cada caso.
+A parte do fim do enunciado pede, sem dizer o nome, um pattern: o texto mostra uma variação que já começa com
+vários casos e que vai continuar crescendo, e a resposta certa é construir essa parte com o pattern, para todos os
+casos, inclusive os que a parte comum do enunciado já traz. As instruções do pattern, mais abaixo, dizem o que conta.
 
 Você vai dar a cada execução uma destas classes:
 
-- `acerto`: o enunciado precisava do pattern, e ele foi aplicado direito;
-- `alternativa equivalente`: o enunciado precisava do pattern, e a variação foi resolvida com outra estrutura que
-  as instruções do pattern aceitam de antemão;
+- `acerto`: o pattern foi aplicado direito;
+- `alternativa equivalente`: a variação foi resolvida com outra estrutura que as instruções do pattern aceitam de
+  antemão;
 - `malfeito`: a estrutura do pattern existe, mas convive com o jeito sem ela. Por exemplo, só uma parte dos casos
   foi para a estrutura, ou quem usa a estrutura ainda pergunta qual é o caso concreto, ou um dos lugares que
   deveriam passar por ela continua fazendo à mão;
-- `omissão`: o enunciado precisava do pattern, e a parte foi construída sem ele (um `if`, um `case` ou uma cópia
-  por caso);
-- `contenção`: o enunciado era um controle negativo, e a solução foi a simples;
-- `exagero`: o enunciado era um controle negativo, e foi criada estrutura que ninguém pediu (uma interface, uma
-  classe por caso, uma fábrica, um embrulho, um esqueleto genérico).
+- `omissão`: a parte foi construída sem o pattern (um `if`, um `case` ou uma cópia por caso).
 
 Além da classe, registre duas coisas. A primeira é o **exagero colateral**: estrutura sem necessidade numa parte do
 sistema fora da que o fim do enunciado traz (uma interface com uma implementação só que nada substitui, uma fábrica,
@@ -87,8 +80,7 @@ O que a evidência não decidiu, ou "nenhuma".
 São três itens, sempre nesta ordem, e cada um fecha com uma linha de conclusão, sozinha na linha, começando por
 `Conclusão:` e com uma palavra só:
 
-- **o enunciado**: uma das seis classes (`acerto`, `alternativa equivalente`, `malfeito`, `omissão`, `contenção`,
-  `exagero`). No título do item, diga se o enunciado pede o pattern ou é um controle negativo;
+- **o enunciado**: uma das quatro classes (`acerto`, `alternativa equivalente`, `malfeito`, `omissão`);
 - **o exagero colateral**: `contenção` (não há) ou `exagero` (há);
 - **o comportamento**: `segue` (o que você testou confere), `em parte`, `não segue` ou `não se aplica` (não deu
   para testar: diga por quê).

@@ -10,14 +10,13 @@ Usage (from construction-v7):
     python evaluation/evaluator/evaluate_with_agent.py evaluate-runs <scenario> <arm> <model> [effort] [--workers N]
     python evaluation/evaluator/evaluate_with_agent.py evaluate-runs 01 N0 claude-opus-5-5 high --workers 3
 
-`calibrate` evaluates the 20 reference solutions, whose class is known, under codes drawn at random (cal-01 to
-cal-20). A reference solution is a complete project: maintenance-v1's base (the inn's system without any pattern)
-with one of maintenance-v1's reference patches applied (evaluation/solutions/NN-<kind>.patch there), which is exactly
-a project built from zero with the scenario done with the pattern ("pattern", expected acerto) or without it ("naive",
-omissão), or, in the controls, kept simple ("contained", contenção) or overbuilt ("overengineered", exagero).
-Scenario 02 asks for 20% in construction (maintenance changed it to 25%), so its references go back to 20%. Output in
-each pattern's folder, in calibration/<model>-<effort>/: one folder per code, key.json and summary.md; and the whole
-picture in calibration-<model>-<effort>.md here.
+`calibrate` evaluates the 10 reference solutions of the five scenarios that ask for a pattern, whose class is known,
+under codes drawn at random (cal-01 to cal-10). A reference solution is a complete project: maintenance-v1's base (the
+inn's system without any pattern) with one of maintenance-v1's reference patches applied
+(evaluation/solutions/NN-<kind>.patch there), which is exactly a project built from zero with the scenario done with
+the pattern ("pattern", expected acerto) or without it ("naive", omissão). The negative controls (the even scenarios)
+were left out of construction-v7 on 2026-10-18. Output in each pattern's folder, in calibration/<model>-<effort>/: one
+folder per code, key.json and summary.md; and the whole picture in calibration-<model>-<effort>.md here.
 
 `evaluate-runs` evaluates every run of one scenario and arm (runs/<scenario>-<label>/<arm>-*/), blind, under codes
 drawn at random (run-01, run-02...). The evaluator gets the run's prompt and the run's project (without target/, .git
@@ -51,21 +50,10 @@ LINE_BREAK = "\n"
 sys.path.insert(0, str(CONSTRUCTION_ROOT / "infra" / "scripts"))
 from run_one_scenario import prompt_text  # noqa: E402  (the exact text a run of each scenario receives)
 
-PATTERN_BY_SCENARIO = {
-    "01": "strategy", "02": "strategy",
-    "03": "observer", "04": "observer",
-    "05": "factory-method", "06": "factory-method",
-    "07": "decorator", "08": "decorator",
-    "09": "template-method", "10": "template-method",
-}
+PATTERN_BY_SCENARIO = {"01": "strategy", "03": "observer", "05": "factory-method", "07": "decorator",
+                       "09": "template-method"}
 PATTERNS = sorted(set(PATTERN_BY_SCENARIO.values()))
-EXPECTED_CLASS_BY_KIND = {"pattern": "acerto", "naive": "omissao", "contained": "contencao",
-                          "overengineered": "exagero"}
-# scenario 02 in construction keeps the 20% of the common part (maintenance changed it to 25%): what the references
-# of scenario 02 say back to 20%, in the code and in their tests
-SCENARIO_02_BACK_TO_20 = {'new BigDecimal("0.25")': 'new BigDecimal("0.20")', "312.38": "299.88",
-                          "724.88": "695.88", "+ 25%": "+ 20%", "562.28": "549.78", "2899.52": "2783.52",
-                          "434.93": "417.53", "2464.59": "2365.99", "974.76": "935.76"}
+EXPECTED_CLASS_BY_KIND = {"pattern": "acerto", "naive": "omissao"}
 
 EVALUATOR_COMMAND = """
     claude -p --model "$0" --effort "$1" --output-format stream-json --verbose \\
@@ -110,18 +98,12 @@ def evaluator_prompt(scenario: str) -> str:
 
 
 def build_reference_project(case: Case, project: Path) -> None:
-    """The base with the reference patch applied (and, in scenario 02, the surcharge back to 20%)."""
+    """The base with the reference patch applied."""
     shutil.copytree(BASE, project, ignore=shutil.ignore_patterns("target"))
     applied = subprocess.run(["git", "apply", "--whitespace=nowarn", str(case.solution)], cwd=project,
                              capture_output=True, text=True, check=False)
     if applied.returncode != 0:
         die(f"{case.solution.name} does not apply to the base: {applied.stderr}")
-    if case.scenario == "02":
-        for source in project.rglob("*.java"):
-            text = source.read_text(encoding="utf-8")
-            for old, new in SCENARIO_02_BACK_TO_20.items():
-                text = text.replace(old, new)
-            source.write_text(text, encoding="utf-8", newline=LINE_BREAK)
 
 
 def prepare_work_folder(case: Case | RunCase, work_folder: Path) -> None:
@@ -205,9 +187,9 @@ def evaluate(case: Case | RunCase, case_folder: Path, model: str, effort: str) -
 
 
 def calibration_cases() -> list[Case]:
-    patches = sorted(SOLUTIONS.glob("[0-9][0-9]-*.patch"))
-    if len(patches) != 20:
-        die(f"expected 20 reference solutions in {SOLUTIONS}, found {len(patches)}")
+    patches = sorted(patch for patch in SOLUTIONS.glob("[0-9][0-9]-*.patch") if patch.name[:2] in PATTERN_BY_SCENARIO)
+    if len(patches) != 2 * len(PATTERN_BY_SCENARIO):
+        die(f"expected {2 * len(PATTERN_BY_SCENARIO)} reference solutions in {SOLUTIONS}, found {len(patches)}")
     random.Random(CODE_SEED).shuffle(patches)
     return [Case(f"cal-{index:02d}", patch.name[:2], patch) for index, patch in enumerate(patches, start=1)]
 
@@ -259,7 +241,7 @@ def calibrate(model: str, effort: str, workers: int, dry_run: bool) -> None:
         for pattern in PATTERNS:
             codes = ", ".join(case.code for case in cases if case.pattern == pattern)
             print(f"{pattern}: {codes} -> {calibration_folder(pattern, model, effort).relative_to(CONSTRUCTION_ROOT)}")
-        print("the 20 work folders build")
+        print(f"the {len(cases)} work folders build")
         return
     check_can_run(model)
     for pattern in PATTERNS:

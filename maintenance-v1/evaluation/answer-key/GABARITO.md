@@ -3,6 +3,10 @@
 > Só para a avaliação: o agente nunca vê este arquivo. Cada execução recebe uma cópia limpa da base
 > (`experiment/base/hotel/`) e o texto de **um** cenário dentro da moldura (`experiment/scenarios/frame.md`).
 
+
+
+**Os controles negativos saíram da análise (decisão do Lucas, 18/10/2026).** A pesquisa passa a olhar só os cenários que pedem o pattern (01, 03, 05, 07 e 09), como a `construction-v7`. Os pedidos pares, as execuções deles (02, 04, 06, 08 e 10, dos três modelos) e as avaliações ficam guardados como registro, sem apagar, mas não entram nas tabelas nem nas conclusões.
+
 ## A regra que separa os dois tipos de cenário
 
 | | o cenário que pede o pattern | o controle negativo |

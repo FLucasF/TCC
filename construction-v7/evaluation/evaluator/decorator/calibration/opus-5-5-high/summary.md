@@ -2,9 +2,7 @@
 
 | código | solução | esperado | avaliador | confere |
 |---|---|---|---|---|
-| cal-08 | 07-naive | omissao | omissao | sim |
-| cal-15 | 07-pattern | acerto | acerto | sim |
-| cal-17 | 08-contained | contencao | contencao | sim |
-| cal-14 | 08-overengineered | exagero | exagero | sim |
+| cal-07 | 07-naive | omissao | omissao | sim |
+| cal-01 | 07-pattern | acerto | acerto | sim |
 
-**4 de 4** na classe esperada.
+**2 de 2** na classe esperada.

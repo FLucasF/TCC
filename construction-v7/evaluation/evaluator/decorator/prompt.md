@@ -1,8 +1,7 @@
 # As instruções do pattern: Decorator
 
-Este avaliador cuida de dois enunciados, que você reconhece pela parte do fim do `enunciado.md`: o das **regras
-para as mensagens que a pousada manda** (cenário 07, que pede o pattern) e o da **assinatura nas mensagens**
-(cenário 08, controle negativo).
+Este avaliador cuida de um enunciado, que você reconhece pela parte do fim do `enunciado.md`: o das **regras
+para as mensagens que a pousada manda** (cenário 07, que pede o pattern).
 
 ## O que o enunciado descreve
 
@@ -38,17 +37,3 @@ modo de teste, com o endereço original; toda mensagem enviada gera, logo depois
 `testes@pousadamarealta.com.br`, com "[TESTE] " no assunto e a primeira linha "Destinatário original: …", sem a
 cópia; cada mensagem tem o campo `status` (`SENT` ou `BLOCKED`). Para testar os dois modos, suba o serviço duas
 vezes: uma sem a variável e outra com `HOTEL_TEST_MODE=true PORT=7071 java -jar <o jar> &`.
-
-## Cenário 08: a assinatura nas mensagens (controle negativo)
-
-O enunciado manda toda mensagem terminar com a assinatura da pousada. A frase "talvez a gente troque a assinatura no
-Natal, mas por enquanto é essa o ano todo" é a isca.
-
-É **contenção** a assinatura num lugar só: no envio, por onde passa toda mensagem, ou no texto da confirmação, que é
-a única mensagem.
-
-É **exagero** criar um embrulho (Decorator) só para a assinatura, uma interface de envio para poder embrulhar, um
-"provedor de assinatura" ou uma assinatura por época do ano.
-
-O comportamento pedido: o corpo de toda mensagem termina com uma linha em branco, "--", "Pousada Maré Alta" e
-"(79) 3200-0000 | @pousadamarealta", e a assinatura aparece uma vez só.

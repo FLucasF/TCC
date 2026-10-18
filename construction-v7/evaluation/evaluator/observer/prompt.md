@@ -1,8 +1,7 @@
 # As instruções do pattern: Observer
 
-Este avaliador cuida de dois enunciados, que você reconhece pela parte do fim do `enunciado.md`: o de **avisar a
-equipe quando a reserva é confirmada ou cancelada** (cenário 03, que pede o pattern) e o do **texto do e-mail de
-confirmação** (cenário 04, controle negativo).
+Este avaliador cuida de um enunciado, que você reconhece pela parte do fim do `enunciado.md`: o de **avisar a
+equipe quando a reserva é confirmada ou cancelada** (cenário 03, que pede o pattern).
 
 ## O que o enunciado descreve
 
@@ -35,17 +34,3 @@ hóspedes) e o financeiro (`financeiro@pousadamarealta.com.br`, assunto "Pagamen
 valor pago); no cancelamento de uma reserva confirmada, a governança ("Reserva cancelada - quarto N", com as datas)
 e o financeiro ("Reembolso - reserva N", com o valor), este só quando há algo a devolver; uma reserva pendente
 cancelada não avisa ninguém.
-
-## Cenário 04: o e-mail de confirmação (controle negativo)
-
-O enunciado dá o assunto e o texto do e-mail de confirmação. A frase "talvez um dia a gente mande essa confirmação
-por WhatsApp também" é a isca.
-
-É **contenção** o assunto e o texto montados onde a confirmação manda o e-mail (um método ou um modelo de texto),
-mandando pelo envio de e-mail do sistema.
-
-É **exagero** criar um canal de mensagem abstrato, uma interface de confirmação com uma implementação de e-mail, um
-ouvinte de confirmação, ou um modelo de mensagem com várias implementações.
-
-O comportamento pedido: o assunto "Sua reserva na Pousada Maré Alta está confirmada!"; a saudação, o comprovante,
-as três linhas (entrada e saída, café da manhã, telefone da recepção) e o "Até breve!", como no enunciado.

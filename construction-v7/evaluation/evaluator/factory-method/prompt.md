@@ -1,8 +1,7 @@
 # As instruções do pattern: Factory Method
 
-Este avaliador cuida de dois enunciados, que você reconhece pela parte do fim do `enunciado.md`: o do **documento
-por tipo de hóspede** (cenário 05, que pede o pattern) e o das **crianças na reserva** (cenário 06, controle
-negativo).
+Este avaliador cuida de um enunciado, que você reconhece pela parte do fim do `enunciado.md`: o do **documento
+por tipo de hóspede** (cenário 05, que pede o pattern).
 
 ## O que o enunciado descreve
 
@@ -31,18 +30,3 @@ social; ou o passaporte com o país) e recusa nenhum, dois ou um incompleto; a f
 CPF e o ISS retido de 5% sobre o total (779,80 dá R$ 38,99); o *booking receipt* é em inglês, com `BRL 1,234.56`,
 datas `2027-03-10` e "1 night" ou "N nights"; o documento sai igual no e-mail de confirmação, no check-out e na
 segunda via, e o JSON dele tem o campo `text`; a pessoa com CPF recebe o comprovante da parte comum.
-
-## Cenário 06: as crianças na reserva (controle negativo)
-
-O enunciado acrescenta o número de crianças à reserva. A frase "a gente já pensou em cobrar alguma coisa das
-crianças maiores no futuro, mas por enquanto criança não paga" é a isca.
-
-É **contenção** um campo a mais no pedido de reserva e na reserva, a soma na conferência da capacidade e a linha no
-comprovante; a reserva é criada direto.
-
-É **exagero** criar um *builder* ou uma fábrica para a reserva ou para o pedido de reserva, ou uma "política de
-preço de criança" (uma interface com uma implementação que cobra zero), sem que ninguém tenha pedido preço.
-
-O comportamento pedido: o campo `children` é opcional (zero quando não vem) e não pode ser negativo; adultos e
-crianças juntos não passam da capacidade do quarto; criança não muda o preço; o comprovante tem "Crianças: N" logo
-depois da linha do quarto, só quando há crianças.

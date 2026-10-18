@@ -6,12 +6,12 @@ Usage (from construction-v7):
     python infra/scripts/run_one_scenario.py <scenario> <arm> <model> [effort] [--dry-run]
     python infra/scripts/run_one_scenario.py 01 N0 claude-sonnet-5-5 medium
 
-<scenario> is 01 to 10 (the files in experiment/scenarios/), <arm> is N0, N1 or N2 (experiment/harnesses/),
+<scenario> is 01, 03, 05, 07 or 09 (the files in experiment/scenarios/; the five that ask for a pattern), <arm> is N0, N1 or N2 (experiment/harnesses/),
 <model> is the full model ID. --dry-run does every check and shows the Docker commands without running anything.
 
 The prompt is experiment/scenarios/frame.md with the scenario in {{PEDIDO}}; three passages of the frame
 ({{IDENTIFICACAO}}, {{CAMPOS_IDENTIFICACAO}}, {{EMAIL_CONFIRMACAO}}) come from defaults/, unless the scenario has its
-own (<scenario-file-stem>.<PASSAGE>.md), because scenarios 04 and 05 change what the frame says there.
+own (<scenario-file-stem>.<PASSAGE>.md), because scenario 05 changes what the frame says there.
 
 Output in runs/<scenario>-<pattern>/<arm>-<model>/ (for example runs/01-strategy/N0-sonnet-5-5/):
     workspace/          the project as the agent left it (the build's target/ is not versioned)
@@ -49,14 +49,10 @@ ARMS = ("N0", "N1", "N2")
 PASSAGES = ("IDENTIFICACAO", "CAMPOS_IDENTIFICACAO", "EMAIL_CONFIRMACAO")
 SKILL_NAME = "gof-patterns"
 
-# the scenario number, and the label of its run folder: the pattern it asks for, or the pattern it baits (control)
-SCENARIO_LABELS = {
-    "01": "strategy", "02": "strategy-control",
-    "03": "observer", "04": "observer-control",
-    "05": "factory-method", "06": "factory-method-control",
-    "07": "decorator", "08": "decorator-control",
-    "09": "template-method", "10": "template-method-control",
-}
+# the scenario number, and the label of its run folder: the pattern it asks for (the negative controls of
+# maintenance-v1, the even scenarios, were left out of construction-v7 on 2026-10-18)
+SCENARIO_LABELS = {"01": "strategy", "03": "observer", "05": "factory-method", "07": "decorator",
+                   "09": "template-method"}
 
 # what runs inside the container: the agent, reading the prompt from stdin
 AGENT_COMMAND = """
@@ -126,7 +122,7 @@ def prompt_text(scenario: str) -> str:
 
 def check_before_running(scenario: str, arm: str, model: str, run_folder: Path) -> None:
     if scenario not in SCENARIO_LABELS:
-        die(f"unknown scenario '{scenario}': use 01 to 10")
+        die(f"unknown scenario '{scenario}': use one of {', '.join(SCENARIO_LABELS)}")
     if arm not in ARMS:
         die(f"unknown arm '{arm}': use one of {', '.join(ARMS)}")
     if not re.fullmatch(r"claude-[\w.-]+-[\w.-]+", model):
