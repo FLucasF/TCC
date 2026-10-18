@@ -1,0 +1,9 @@
+package br.com.loja.checkout;
+
+import java.math.BigDecimal;
+
+public record OrderSummary(BigDecimal productsSubtotal, BigDecimal couponDiscount, BigDecimal shippingCost,
+                           int deliveryDays, BigDecimal insurance, BigDecimal paymentAdjustment,
+                           BigDecimal finalTotal, int installments, BigDecimal installmentAmount,
+                           BigDecimal nextPurchaseCredit, boolean gift) {
+}

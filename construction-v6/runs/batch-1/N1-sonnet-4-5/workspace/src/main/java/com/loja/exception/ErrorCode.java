@@ -1,0 +1,41 @@
+package com.loja.exception;
+
+import org.springframework.http.HttpStatus;
+
+public enum ErrorCode {
+    INVALID_ORDER(HttpStatus.UNPROCESSABLE_ENTITY),
+    UNKNOWN_PRODUCT(HttpStatus.UNPROCESSABLE_ENTITY),
+    PRODUCT_DISCONTINUED(HttpStatus.UNPROCESSABLE_ENTITY),
+    INSUFFICIENT_STOCK(HttpStatus.CONFLICT),
+    INVALID_CLUB_TIER(HttpStatus.UNPROCESSABLE_ENTITY),
+    INVALID_REGION(HttpStatus.UNPROCESSABLE_ENTITY),
+    INVALID_ZIP_CODE(HttpStatus.UNPROCESSABLE_ENTITY),
+    INVALID_SHIPPING_METHOD(HttpStatus.UNPROCESSABLE_ENTITY),
+    SHIPPING_METHOD_UNAVAILABLE(HttpStatus.UNPROCESSABLE_ENTITY),
+    CARRIER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+    INVALID_COUPON(HttpStatus.UNPROCESSABLE_ENTITY),
+    COUPON_NOT_APPLICABLE(HttpStatus.UNPROCESSABLE_ENTITY),
+    INVALID_PAYMENT_METHOD(HttpStatus.UNPROCESSABLE_ENTITY),
+    INVALID_INSTALLMENTS(HttpStatus.UNPROCESSABLE_ENTITY),
+    PAYMENT_METHOD_UNAVAILABLE(HttpStatus.UNPROCESSABLE_ENTITY),
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND),
+    OPERATION_NOT_ALLOWED(HttpStatus.CONFLICT),
+    ORDER_EXPIRED(HttpStatus.CONFLICT),
+    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND),
+    CUSTOMER_NOT_FOUND(HttpStatus.NOT_FOUND),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND);
+
+    private final HttpStatus httpStatus;
+
+    ErrorCode(HttpStatus httpStatus) {
+        this.httpStatus = httpStatus;
+    }
+
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
+    }
+
+    public BusinessException asException() {
+        return new BusinessException(this.name(), this.httpStatus);
+    }
+}

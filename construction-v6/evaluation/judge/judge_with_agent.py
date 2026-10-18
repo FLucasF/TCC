@@ -196,12 +196,13 @@ def main() -> None:
     if unknown:
         die(f"unknown dimensions: {unknown}")
     run_folders = sorted(folder for folder in runs_root(batch).iterdir() if (folder / "workspace").is_dir())
+    # the codes are drawn over the whole batch, before --runs filters it: a run keeps its code across calls
+    random.Random(f"{CODE_SEED}-{batch}").shuffle(run_folders)
+    codes = {folder: f"exec-{index:02d}" for index, folder in enumerate(run_folders, start=1)}
     if "--runs" in options:
         run_folders = [folder for folder in run_folders if folder.name in options["--runs"].split(",")]
     if not run_folders:
         die(f"no execution found in {runs_root(batch)}")
-    random.Random(f"{CODE_SEED}-{batch}").shuffle(run_folders)
-    codes = {folder: f"exec-{index:02d}" for index, folder in enumerate(run_folders, start=1)}
     jobs = [Job(codes[folder], folder, dimension) for folder in run_folders for dimension in dimensions]
     output = V6 / "analysis" / batch / "judge" / f"{model.removeprefix('claude-')}-{effort}"
 
@@ -217,6 +218,9 @@ def main() -> None:
     output.mkdir(parents=True, exist_ok=True)
     key_file = output / "key.json"
     key: dict[str, str] = json.loads(key_file.read_text(encoding="utf-8")) if key_file.is_file() else {}
+    for folder in run_folders:
+        if key.get(codes[folder], folder.name) != folder.name:
+            die(f"{codes[folder]} already stands for {key[codes[folder]]} in {key_file.relative_to(V6)}")
     key.update({codes[folder]: folder.name for folder in run_folders})
     key_file.write_text(json.dumps(key, indent=2) + LINE_BREAK, encoding="utf-8")
     for job in jobs:
