@@ -2,58 +2,73 @@
 
 ## Visão geral
 
-O agente montou os avisos de confirmação e de cancelamento como um Observer. O serviço de reservas recebe de fora uma lista de `ReservationListener`, percorre essa lista e não sabe quem está sendo avisado. Cada interessado é uma classe separada: o e-mail do hóspede, a governança e o financeiro. Os três são registrados na montagem do sistema, em `Hotel`. As regras que cabem a cada destino ficam no próprio ouvinte; por exemplo, o financeiro só é avisado quando há reembolso. Fora dessa parte, o desenho é enxuto e não tem estrutura sobrando. Nos testes pela API, todas as regras pedidas conferiram, e o `mvn verify` passou. Não encontrei nenhum problema sério.
+O agente construiu os avisos da equipe como um Observer de verdade. O `ReservationService` recebe pelo construtor uma lista de `ReservationListener` e, na confirmação e no cancelamento de uma reserva que estava confirmada, só percorre essa lista. Ele não sabe quem é avisado nem monta e-mail nenhum. O hóspede, a governança e o financeiro são três ouvintes separados, registrados na montagem, em `Hotel`. O e-mail do hóspede, que vem da parte comum do enunciado, também virou ouvinte. O resto do sistema é enxuto, sem interfaces, fábricas ou camadas que só repassam. O comportamento testado pela API confere com o enunciado, e o `mvn verify` passa com 29 testes. Não encontrei problema sério.
+
+## Como foi implementado, e por que o julgamento
+
+**O projeto.** O pacote `hotel` tem só a classe de montagem, `Hotel`. Ela cria as peças, liga os ouvintes e sobe o Javalin na porta da variável `PORT`, ou na 7070 se ela não vier (`Hotel.java:23-35`, `Hotel.java:47-50`). Os outros pacotes:
+
+- `hotel.web`: `HttpApi` tem as rotas, a leitura e a validação do corpo e o mapeamento de `ErrorCode` para status HTTP (`web/HttpApi.java:61-107`). Os DTOs são `CreateReservationRequest`, `ReservationResponse` e `ErrorResponse`.
+- `hotel.reservations`: `ReservationService` cuida do ciclo de vida da reserva e de suas regras. `PriceCalculator` calcula o preço, com alta temporada, desconto e arredondamento HALF_EVEN. `Reservation` é a entidade com o estado. `ReservationStore` guarda as reservas num `LinkedHashMap` em memória.
+- `hotel.rooms`: os cinco quartos, fixos em `Rooms`.
+- `hotel.documents`: o comprovante, `ReservationReceipt`, e a formatação brasileira de dinheiro e datas, `TextFormat`.
+- `hotel.messages`: `EmailSender` grava as mensagens com o canal EMAIL em `SentMessages`, a lista de mensagens enviadas.
+- `hotel.notifications`: os três ouvintes.
+- `hotel.reports`: `OccupancyReport` e `RevenueReport`, que geram os CSV.
+
+Uma requisição segue este caminho: a rota em `HttpApi` (por exemplo `web/HttpApi.java:70-71`) chama o `ReservationService`, que aplica a regra, altera a `Reservation` guardada no `ReservationStore` e, quando é o caso, avisa os ouvintes. Um `HotelException` vira `{error, message}` com o status certo (`web/HttpApi.java:93-107`). O jar é sombreado (shade), com `hotel.Hotel` no manifesto.
+
+Os testes do agente são cinco classes e 29 testes. Cobrem o preço, o serviço, os relatórios, a API por HTTP e os avisos da equipe (`TeamNoticesTest`). O `ReportsTest` monta o serviço com `List.of()` como lista de ouvintes (`src/test/java/hotel/reports/ReportsTest.java:23`), o que mostra que a lista é trocável de fato.
+
+**A parte do fim do enunciado.**
+
+- **A interface.** `ReservationListener` tem dois eventos, `confirmed(Reservation, Room)` e `cancelled(Reservation, Room)`, com implementação padrão vazia, para cada ouvinte implementar só o que lhe interessa (`reservations/ReservationListener.java:6-15`).
+- **O serviço.** Guarda uma cópia da lista recebida de fora (`reservations/ReservationService.java:15-23`). Na confirmação, muda o estado e faz `listeners.forEach(listener -> listener.confirmed(reservation, room))` (`reservations/ReservationService.java:65-67`). No cancelamento, registra o reembolso e só avisa os ouvintes se a reserva estava confirmada (`reservations/ReservationService.java:81-90`). A regra "reserva pendente cancelada não avisa ninguém" fica, então, no próprio evento: `cancelled` significa que uma reserva confirmada foi cancelada.
+- **Os ouvintes.**
+  - `GuestConfirmationEmail` monta o e-mail do hóspede com o comprovante (`notifications/GuestConfirmationEmail.java:20-32`).
+  - `HousekeepingNotice` manda para a governança o "Reserva confirmada - quarto N", com as datas e os hóspedes, e o "Reserva cancelada - quarto N", com as datas que ficaram livres (`notifications/HousekeepingNotice.java:20-34`).
+  - `FinanceNotice` manda o "Pagamento recebido - reserva N", com o valor pago, e o "Reembolso - reserva N", só quando `refund > 0` (`notifications/FinanceNotice.java:20-34`). A regra "sem nada a devolver, não avisa o financeiro" fica dentro do ouvinte do financeiro, que é onde deve ficar.
+- **O registro.** Os três são registrados em `Hotel.java:28-31`.
+
+**O raciocínio.** As instruções pedem uma interface de ouvinte com uma implementação por interessado, o serviço percorrendo uma lista que recebe de fora, o e-mail do hóspede também como ouvinte e o registro na montagem. Tudo isso está presente. Nenhum dos sinais de `malfeito` aparece:
+
+- o serviço não monta e-mail de ninguém (não há `EmailSender` nem endereço em `ReservationService`);
+- o cancelamento também passa pela lista;
+- o hóspede não tem chamada direta.
+
+Também não há um "notificador" único que conheça todos os destinos. Cada destino mora num ouvinte próprio. Para incluir o restaurante ou o transfer, basta uma classe nova e uma linha em `Hotel`.
+
+O `switch` sobre o plano de tarifa no cálculo do reembolso (`reservations/ReservationService.java:82-85`) e no desconto (`reservations/PriceCalculator.java:26-29`) é da parte comum e não afeta o julgamento.
+
+No exagero colateral, a única peça discutível é o `EmailSender` (`messages/EmailSender.java:4-15`), que é fino e passa a chamada adiante para `SentMessages`. Mesmo assim, ele fixa o canal EMAIL e é o ponto de envio que os três ouvintes dividem. É uma classe concreta, sem interface, e não chega a ser uma camada sem função. Não há interface com uma implementação só, nem fábrica, nem builder. No comportamento, tudo o que testei conferiu.
 
 ## Item a item
 
-**O enunciado (pede o pattern).**
-- **A interface de ouvinte.** `src/main/java/hotel/reservations/ReservationListener.java:6-15` define `confirmed(...)` e `cancelled(...)`, as duas com implementação padrão vazia. Assim, cada ouvinte só implementa os eventos que lhe interessam.
-- **O serviço recebe a lista de fora.** O `ReservationService` recebe a lista no construtor (`src/main/java/hotel/reservations/ReservationService.java:17-23`). Na confirmação, ele só anuncia o evento com `listeners.forEach(listener -> listener.confirmed(reservation, room))` (`ReservationService.java:67`).
-- **O cancelamento passa pela mesma estrutura.** Ele anuncia `cancelled` apenas quando a reserva estava confirmada (`ReservationService.java:81`, `:87-90`). O serviço não monta nenhum e-mail e não pergunta qual é o ouvinte concreto.
-- **O e-mail do hóspede também é um ouvinte.** É a classe `src/main/java/hotel/notifications/GuestConfirmationEmail.java:10`, `:21-24`, e não uma chamada direta do serviço.
-- **Os outros dois ouvintes.** A governança está em `src/main/java/hotel/notifications/HousekeepingNotice.java:10`, `:21-34`. O financeiro está em `src/main/java/hotel/notifications/FinanceNotice.java:10`, `:21-34`, e é ele mesmo que decide não avisar quando não há reembolso (`FinanceNotice.java:29`).
-- **O registro acontece na montagem.** Os três ouvintes são registrados em `src/main/java/hotel/Hotel.java:28-31`.
-- **Novos interessados não exigem mudança no serviço.** Para avisar o restaurante ou o transfer, basta escrever uma classe nova e acrescentá-la à lista em `Hotel`.
-
-Isso é exatamente o pattern que o enunciado pede: todos os casos, inclusive o do hóspede, que vem da parte comum, passam pela mesma estrutura.
+**O enunciado (pede o pattern).** O `ReservationService` recebe a `List<ReservationListener>` pelo construtor (`reservations/ReservationService.java:17-23`). Ele anuncia `confirmed` (`reservations/ReservationService.java:67`) e, só para reserva que estava confirmada, `cancelled` (`reservations/ReservationService.java:87-90`), sem conhecer os destinos. Cada interessado é um ouvinte separado: `GuestConfirmationEmail` (`notifications/GuestConfirmationEmail.java:10`), `HousekeepingNotice` (`notifications/HousekeepingNotice.java:10`) e `FinanceNotice` (`notifications/FinanceNotice.java:10`). Os três são registrados na montagem (`Hotel.java:28-31`). O hóspede também passa pela lista, e a regra do reembolso zero fica dentro do ouvinte do financeiro (`notifications/FinanceNotice.java:29`). É o Observer que o enunciado pedia, aplicado a todos os casos.
 Conclusão: acerto
 
-**O exagero colateral.**
-- Não encontrei interface com uma implementação só, fábrica, builder nem camada que só repassa.
-- `PriceCalculator` (`src/main/java/hotel/reservations/PriceCalculator.java:14`), `ReservationStore` (`src/main/java/hotel/reservations/ReservationStore.java:10`) e os relatórios (`src/main/java/hotel/reports/OccupancyReport.java:13`, `src/main/java/hotel/reports/RevenueReport.java:15`) são classes concretas, cada uma com trabalho próprio.
-- `EmailSender` (`src/main/java/hotel/messages/EmailSender.java:4-15`) é uma classe fina sobre `SentMessages`, mas cumpre um papel real: fixa o canal `EMAIL` e é o ponto único de envio que os ouvintes usam. Não é uma camada vazia.
-- `HttpApi` (`src/main/java/hotel/web/HttpApi.java:61-91`) chama o serviço diretamente.
-
+**O exagero colateral.** Não há. As classes são concretas e cada uma tem função: `Rooms` como catálogo fixo, `ReservationStore` como memória, `PriceCalculator`, os dois relatórios e `HttpApi`. O `EmailSender` (`messages/EmailSender.java:12-14`) é fino, mas fixa o canal EMAIL e é o ponto comum de envio dos ouvintes. Não é uma interface, nem uma fábrica, nem uma camada que só passa a chamada adiante sem motivo.
 Conclusão: contenção
 
-**O comportamento.** Testei numa cópia do projeto, com `mvn -q package -DskipTests`, o servidor `target/hotel.jar` na porta 7070 e chamadas com `curl`.
+**O comportamento.** Testei numa cópia, com o jar `target/hotel.jar` na porta 7070.
 
-- **Preços:**
-  - O STANDARD do quarto 101, de 10/07 a 12/07/2027, deu 2 noites, subtotal 599.76 e total 599.76, como no exemplo do enunciado.
-  - O NON_REFUNDABLE do quarto 301, de 01/07 a 02/07/2027, deu subtotal 695.88, desconto 104.38 e total 591.50, o que confere.
-- **Confirmação da reserva 2** (quarto 201, Carla Dias, 10 a 12/03/2027): saíram três mensagens.
-  - Para `carla@x.com`, com o assunto "Reserva confirmada - Pousada Maré Alta" e o texto e o comprovante exatamente no formato pedido ("2 diárias", "R$ 779,80").
-  - Para `governanca@pousadamarealta.com.br`, com o assunto "Reserva confirmada - quarto 201", as datas 10/03/2027 e 12/03/2027 e "Hóspedes: 2".
-  - Para `financeiro@pousadamarealta.com.br`, com o assunto "Pagamento recebido - reserva 2" e "pagamento de R$ 779,80".
-- **Cancelamento da reserva 2, confirmada, plano STANDARD:** a reserva voltou com refund 779.80. Saíram "Reserva cancelada - quarto 201" para a governança, com as datas, e "Reembolso - reserva 2" para o financeiro, com "Devolver R$ 779,80".
-- **Reserva 3, NON_REFUNDABLE, confirmada e depois cancelada:** a reserva voltou com refund 0.00. Saiu só a mensagem da governança; o financeiro, corretamente, não foi avisado.
-- **Cancelamento da reserva 4, que estava pendente:** o número de mensagens ficou em 9, ou seja, ninguém foi avisado.
-- **Recusas:**
-  - Cancelar uma reserva já cancelada deu 409 `OPERATION_NOT_ALLOWED`, e cancelar uma reserva com check-in feito também.
-  - Reserva inexistente deu 404 `RESERVATION_NOT_FOUND`; quarto inexistente, 404 `ROOM_NOT_FOUND`.
-  - Quarto já ocupado nas noites pedidas deu 409 `ROOM_UNAVAILABLE`.
-  - 3 hóspedes no quarto 102 deram 422 `CAPACITY_EXCEEDED`.
-  - Corpo que não é JSON deu 400 `INVALID_REQUEST`, e o mês `2027-3` também.
-  - Pedir a segunda via de uma reserva pendente deu 409.
-- **Fluxo completo e relatórios:**
-  - Confirmação, check-in e check-out funcionaram, e o check-out e o `/document` devolveram o comprovante com os campos pedidos.
-  - O relatório de ocupação de 10/07/2027 veio com `Content-Type: text/csv; charset=utf-8` e terminou em `total,1/5`.
-  - O financeiro de julho de 2027 listou a reserva 3 (NON_REFUNDABLE cancelada, 591.50) e a reserva 1 (CHECKED_OUT, 599.76), com `total,1191.26`.
-- **Testes do agente:** o `mvn verify` terminou com 29 testes, 0 falhas, 0 erros e BUILD SUCCESS.
-- O serviço foi derrubado no fim.
+- **Confirmação.**
+  - Reserva 2 (201, STANDARD, 10 a 12/03/2027): saiu o e-mail do hóspede idêntico ao modelo do enunciado, com o comprovante, "2 diárias" e R$ 779,80. A governança recebeu "Reserva confirmada - quarto 201", com "Entrada: 10/03/2027 | Saída: 12/03/2027" e "Hóspedes: 2". O financeiro recebeu "Pagamento recebido - reserva 2", com "R$ 779,80".
+  - Reserva 3 (301, NON_REFUNDABLE, julho): subtotal 2087.64, desconto 313.15, total 1774.49. O comprovante traz a linha "Desconto" e o valor "R$ 1.774,49".
+  - Reserva 1 (101 STANDARD, 10 a 12/07/2027): 599.76, como no exemplo do enunciado.
+- **Cancelamento.**
+  - Reserva 4, ainda pendente: refund 0.00, e a lista de mensagens continuou com 9 mensagens, ou seja, ninguém foi avisado.
+  - Reserva 1, confirmada e STANDARD: refund 599.76, governança com "Reserva cancelada - quarto 101" e as datas 10/07/2027 a 12/07/2027, financeiro com "Reembolso - reserva 1" e "R$ 599,76".
+  - Reserva 3, confirmada e NON_REFUNDABLE: refund 0.00, só a governança foi avisada e o financeiro não, como pedido.
+- **Parte comum.**
+  - Recusas: cancelar de novo deu 409 OPERATION_NOT_ALLOWED; reserva 99 deu 404 RESERVATION_NOT_FOUND; noite já reservada deu 409 ROOM_UNAVAILABLE; 3 pessoas no 101 deu 422 CAPACITY_EXCEEDED; corpo que não é JSON, saída igual à entrada, 0 hóspedes e campo faltando deram 400 INVALID_REQUEST; quarto 999 deu 404 ROOM_NOT_FOUND.
+  - Check-in e check-out da reserva 2: o check-out devolveu o comprovante com todos os campos. A segunda via de uma reserva cancelada deu 409.
+  - Relatórios: ocupação de 11/03 deu `201,DELUXE,2,...` e `total,1/5`, com `text/csv; charset=utf-8`. Receita de 2027-07 trouxe a NON_REFUNDABLE cancelada, 1774.49; a de 2027-03 trouxe a reserva com check-out, 779.80. Mês mal formatado deu 400.
+- **Testes do agente.** O `mvn -q verify` passou: 29 testes, 0 falhas.
 
+O serviço foi derrubado no fim.
 Conclusão: segue
 
 ## Dúvidas
 
-Nenhuma sobre a classe. Um detalhe que não muda nada: ao cancelar uma reserva pendente, o campo `refund` volta 0.00 em vez de null (`ReservationService.java:82-86`). O enunciado diz que `refund` é null enquanto a reserva não for cancelada, e que uma reserva pendente não tem nada a devolver, então 0.00 é uma leitura razoável.
+Nenhuma.

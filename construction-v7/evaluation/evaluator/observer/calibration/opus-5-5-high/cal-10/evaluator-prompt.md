@@ -51,7 +51,7 @@ Rode também o `mvn -q verify` da cópia e conte o resultado dos testes do próp
 
 ## A resposta
 
-Responda só com a correção, em markdown, sem texto antes ou depois, neste formato (o mesmo da manutenção):
+Responda só com a correção, em markdown, sem texto antes ou depois, neste formato:
 
 ```markdown
 # Cenário 01
@@ -59,6 +59,16 @@ Responda só com a correção, em markdown, sem texto antes ou depois, neste for
 ## Visão geral
 
 Um parágrafo: o que o agente fez com o desenho, o que está bom e o problema mais sério, se houver.
+
+## Como foi implementado, e por que o julgamento
+
+A explicação, para quem não vai abrir o código, de como o projeto foi construído e de por que você o julgou como
+julgou. Primeiro, o projeto: os pacotes e as classes principais e o que cada um faz; o caminho de uma requisição, da
+rota até a regra e os dados; onde ficam os dados e como o sistema é montado e sobe; os testes que o agente escreveu.
+Depois, com mais detalhe, a parte do fim do enunciado: as classes envolvidas, como cada caso é representado e
+escolhido, e onde mora cada regra dele. E, por fim, o raciocínio do julgamento: o que nesse desenho leva à classe que
+você deu (o que o aproxima do pattern e o que o afasta dele, comparado com o que as instruções do pattern dizem), o
+que pesou no exagero colateral e o que pesou no comportamento. Cite `arquivo:linha` nos pontos principais.
 
 ## Item a item
 

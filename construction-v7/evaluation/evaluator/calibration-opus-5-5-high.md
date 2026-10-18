@@ -13,4 +13,4 @@
 | cal-03 | 09-naive | omissao | omissao | sim |
 | cal-06 | 09-pattern | acerto | acerto | sim |
 
-**10 de 10** na classe esperada. Custo: US$ 4.87.
+**10 de 10** na classe esperada. Custo: US$ 5.50.

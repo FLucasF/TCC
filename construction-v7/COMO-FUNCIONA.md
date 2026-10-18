@@ -123,7 +123,12 @@ fica fora do container. O avaliador recebe só o `enunciado.md` (o texto exato q
    o enunciado descreve, confere as regras do cenário e uma ou duas da parte comum, roda o `mvn verify` e conta os
    testes do agente.
 
-**A resposta** é uma análise escrita em markdown, com três itens, cada um fechado por uma linha de conclusão:
+**A resposta** é uma análise escrita em markdown. Começa com uma visão geral e com a seção **"Como foi implementado,
+e por que o julgamento"**: como o projeto foi construído (os pacotes e as classes principais, o caminho de uma
+requisição, onde ficam os dados, os testes do agente e, com mais detalhe, como a parte do cenário foi feita: as
+classes, como cada caso é representado e escolhido, onde mora cada regra) e o raciocínio que leva às conclusões (o
+que aproxima ou afasta o desenho do pattern, o que pesou no colateral e no comportamento), com `arquivo:linha`.
+Depois vêm três itens, cada um fechado por uma linha de conclusão:
 - **o enunciado**: `acerto`, `alternativa equivalente`, `malfeito` ou `omissão`;
 - **o exagero colateral**: `contenção` (não há) ou `exagero` (há);
 - **o comportamento**: `segue`, `em parte`, `não segue` ou `não se aplica`.
@@ -137,9 +142,10 @@ duas por cenário. Cada uma é um projeto completo: a base da pousada da manuten
 o que é exatamente um sistema construído do zero com o cenário feito **com o pattern** (`pattern`, esperado
 `acerto`) ou **sem ele** (`naive`, esperado `omissão`). As 10 passam no `mvn verify`.
 
-**O avaliador acertou 10 de 10** (US$ 4,87, 18/10/2026), em `evaluation/evaluator/<pattern>/calibration/opus-5-5-high/`.
-Antes, com os 10 cenários e os controles, tinha acertado 20 de 20 (US$ 9,07); essa calibração ficou guardada em
-`opus-5-5-high-com-controles/`.
+**O avaliador acertou 10 de 10** com o texto atual, que tem a seção "Como foi implementado, e por que o julgamento"
+(US$ 5,50, 18/10/2026), em `evaluation/evaluator/<pattern>/calibration/opus-5-5-high/`, e as 10 respostas trazem a
+seção. As calibrações anteriores ficaram guardadas: a sem essa seção (10 de 10, US$ 4,87) em
+`opus-5-5-high-sem-explicacao/`, e a com os controles (20 de 20, US$ 9,07) em `opus-5-5-high-com-controles/`.
 
 ## 8. O que se espera ver
 
