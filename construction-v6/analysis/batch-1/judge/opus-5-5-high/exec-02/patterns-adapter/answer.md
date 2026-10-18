@@ -1,40 +1,55 @@
-Já li o enunciado, o `TransLogClient` e a parte do `CheckoutService` que calcula o frete. Segue a correção.
-
-# padrões: Adapter
+# Padrões: Adapter
 
 ## Visão geral
 
-O agente juntou a chamada HTTP à TransLog numa classe só, `integration/TransLogClient.java`. A URL, a rota `/v2/quote`, os parâmetros e a leitura de `price_cents`/`eta_hours`/`ZIP_NOT_SERVED` ficam ali dentro. Isso é o começo de um Adapter, mas a classe não traduz nada. Ela recebe o peso em gramas e o código de serviço da TransLog, e devolve centavos e horas num tipo com os nomes dela. Por isso o trabalho de tradução foi parar no `CheckoutService`. É lá que a nossa entrega vira `"STD"`/`"EXP"`, os quilos viram gramas, os centavos viram reais e as horas viram dias. Trocar de transportadora obrigaria a mexer no serviço de checkout, que é exatamente o que o ponto P6 quer evitar. O problema mais sério é esse vazamento. Na parte boa, a retirada e o motoboy ficaram com valores fixos e não passam por nenhuma estrutura de transportadora (contenção), e o projeto não criou nenhuma abstração desnecessária perto desse ponto.
+O agente separou a chamada à TransLog numa classe só dela, `integration/TransLogClient.java`. Essa classe monta a URL `/v2/quote`, faz o GET com o limite de 2 segundos e lê o JSON (`price_cents`, `eta_hours`, `ZIP_NOT_SERVED`). O lado da transportadora existe, mas fala só a língua da TransLog, nos dois sentidos. Recebe o peso já em gramas e o código de serviço já como `"STD"` ou `"EXP"`. Devolve um `TransLogQuoteResponse` com `priceCents` e `etaHours`. Por isso o `CheckoutService`, no meio do cálculo do frete, faz todo o trabalho de tradução: escolhe `"STD"`/`"EXP"`, converte quilos em gramas, centavos em reais e horas em dias. Esse é o problema mais sério: trocar de transportadora mexeria no cálculo do frete, e não só numa peça. Há um segundo problema, menor e ligado ao primeiro. O adaptador devolve `Optional.empty()` tanto para "CEP não atendido" quanto para "fora do ar", então a nossa língua perdeu uma distinção que o enunciado faz. No controle negativo, o agente foi contido: a retirada e o motoboy são constantes dentro da regra de entrega, sem porta nem cliente.
 
 ## Item a item
 
-**P6, o vocabulário da transportadora fica do lado dela?** O lado da TransLog é `src/main/java/com/loja/orderservice/integration/TransLogClient.java`, o único arquivo da pasta `integration`. Ali estão, como deve ser, a rota e os parâmetros (`TransLogClient.java:26`, `"%s/v2/quote?zip=%s&weight_g=%d&service=%s"`), a comparação com `"ZIP_NOT_SERVED"` (`:46`), a leitura de `"price_cents"` e `"eta_hours"` (`:52-53`) e o tipo aninhado da resposta com `priceCents`/`etaHours` (`:71-74`). Até aqui não há vazamento: são declarações do lado dela.
+**P6, o vocabulário da transportadora fica do lado dela?**
 
-O vazamento começa pela assinatura pública do cliente. `getQuote(String zipCode, Integer weightGrams, String service)` (`:24`) pede gramas e o código de serviço dela, e devolve `TransLogQuoteResponse` em centavos e horas. Quem chama tem de falar a língua da TransLog. Em `src/main/java/com/loja/orderservice/service/CheckoutService.java` aparecem quatro vazamentos:
-- `CheckoutService.java:273`: `String service = method == ShippingMethod.ECONOMY ? "STD" : "EXP";`. A tradução da nossa entrega para o código de serviço dela é trabalho do adaptador e está fora dele.
-- `CheckoutService.java:274-275`: o peso em quilos convertido em gramas (`multiply(new BigDecimal("1000")).setScale(0, RoundingMode.DOWN)`), na variável `weightGrams`. É conversão de unidade fora do adaptador.
-- `CheckoutService.java:277` e `:284`: o serviço usa diretamente o tipo `TransLogClient.TransLogQuoteResponse`, importado em `:11`, e o campo `transLogClient` em `:35`.
-- `CheckoutService.java:285`: `response.getPriceCents()` dividido por 100, a conversão de centavos em reais. `CheckoutService.java:286`: `Math.ceil(response.getEtaHours() / 24.0)`, a conversão de horas em dias. Esse é o exemplo de vazamento que a régua cita.
+O lado da TransLog é `src/main/java/com/loja/orderservice/integration/TransLogClient.java`, a classe que faz a chamada HTTP. A classe aninhada `TransLogQuoteResponse` (linhas 71–74) está nela. Ali estão, como trabalho legítimo do adaptador:
+- a rota e os parâmetros `"%s/v2/quote?zip=%s&weight_g=%d&service=%s"` (linhas 26–27);
+- o limite de 2 segundos (linhas 30 e 35);
+- a leitura de `ZIP_NOT_SERVED` (linha 46) e de `price_cents`/`eta_hours` (linhas 52–53).
 
-Não existe porta nem interface de transportadora: o `CheckoutService` depende da classe concreta. A régua não cobra isso por si só, mas aqui a falta de porta vem junto com a falta de tradução.
+O vocabulário dela vaza para `src/main/java/com/loja/orderservice/service/CheckoutService.java`, dentro de `calculateShipping`:
+- **a assinatura do adaptador já está na língua dela**: `getQuote(String zipCode, Integer weightGrams, String service)` (`TransLogClient.java:24`) pede gramas e o código de serviço dela, e devolve `priceCents`/`etaHours` (linhas 72–73). Quem chama é obrigado a falar a língua da TransLog;
+- **o código de serviço é escolhido no cálculo do frete**: `String service = method == ShippingMethod.ECONOMY ? "STD" : "EXP";` (`CheckoutService.java:273`). A tradução `ECONOMY -> "STD"` é trabalho do adaptador e ficou fora dele;
+- **a conversão de quilos para gramas fica fora do adaptador**: `totalWeight.multiply(new BigDecimal("1000")).setScale(0, RoundingMode.DOWN)` (`CheckoutService.java:274–275`), guardado numa variável chamada `weightGrams`;
+- **o tipo da resposta da TransLog chega ao serviço**: `Optional<TransLogClient.TransLogQuoteResponse>` (`CheckoutService.java:277` e `284`);
+- **a conversão de centavos para reais fica fora**: `new BigDecimal(response.getPriceCents()).divide(new BigDecimal("100"), 2, RoundingMode.HALF_EVEN)` (`CheckoutService.java:285`);
+- **a conversão de horas para dias fica fora**: `(int) Math.ceil(response.getEtaHours() / 24.0)` (`CheckoutService.java:286`).
 
-Uma observação à parte, que não muda a conclusão: o adaptador junta "CEP não atendido", "resposta estranha" e "fora do ar/timeout" num mesmo `Optional.empty()` (`TransLogClient.java:47`, `:49`, `:61`, `:63`). O `if` da linha 46 nem chega a separar os casos. Assim o cliente não entrega ao resto do código, na nossa língua, a diferença entre indisponibilidade da transportadora e entrega indisponível, e `CheckoutService.java:279-281` trata tudo como `SHIPPING_METHOD_UNAVAILABLE`. Se isso dá a resposta certa é com a dimensão do comportamento; aqui fica só como sinal de uma fronteira que não traduz.
+Há também uma perda de informação na fronteira. O adaptador traduz duas situações diferentes da TransLog para o mesmo `Optional.empty()`: o `ZIP_NOT_SERVED` (`TransLogClient.java:46–47`) e "fora do ar" (outro status, linha 61; exceção ou tempo esgotado, linhas 62–63). O `if` da linha 46 devolve o mesmo que a linha 49, então ele não distingue nada. Do lado de fora, `CheckoutService.java:279–281` só pode transformar as duas situações em `SHIPPING_METHOD_UNAVAILABLE`, e o `CARRIER_UNAVAILABLE` não aparece em lugar nenhum do código (`grep` sem resultado). Se a resposta fica certa é assunto do comportamento. Aqui, isso mostra que a interface do adaptador não foi desenhada na nossa língua.
 
-Resumo: a chamada está isolada, mas o vocabulário vaza por quatro pontos (código de serviço, gramas, centavos e horas), todos dentro do serviço de checkout.
-Conclusão: omissão
+A peça da TransLog existe e é a única que faz HTTP, mas o vocabulário vaza por várias linhas: o código de serviço, as gramas, os centavos, as horas e os nomes `priceCents`/`etaHours`.
 
-**P6-exagero, as entregas sem transportadora.** O motoboy e a retirada são constantes do próprio serviço: `COURIER_COST = 18.00` (`CheckoutService.java:25`), `COURIER_DELIVERY_DAYS = 0` (`:32`), `STORE_PICKUP_DAYS = 1` (`:31`). São devolvidas direto em `calculateShipping`, sem chamada externa (`CheckoutService.java:265-271`; para a retirada também em `:61-62`). Não há interface de transportadora, nem "cliente" do motoboy, e a retirada não passa pelo `TransLogClient`. Que essas regras vivam num `if/else` sobre a entrega é assunto do Strategy (P1), não deste controle negativo. Aqui a resposta é do tamanho do problema.
+Conclusão: malfeito
+
+**P6-exagero, as entregas sem transportadora.** A retirada e o motoboy são valores fixos, declarados como constantes:
+- `COURIER_COST = new BigDecimal("18.00")`, `STORE_PICKUP_DAYS = 1` e `COURIER_DELIVERY_DAYS = 0` (`CheckoutService.java:25`, `31–32`);
+- eles são devolvidos direto na regra da entrega: `return new ShippingInfo(COURIER_COST, COURIER_DELIVERY_DAYS);` (`CheckoutService.java:269`) e `return new ShippingInfo(BigDecimal.ZERO, STORE_PICKUP_DAYS);` (`CheckoutService.java:271`);
+- o limite de 5 kg do motoboy também está ali (`CheckoutService.java:266–268`).
+
+Não há interface de transportadora, nem "cliente" do motoboy. A retirada também não passa pela porta da TransLog: só `ECONOMY`/`EXPRESS` chamam `transLogClient.getQuote` (`CheckoutService.java:272–277`). A cadeia de `if` sobre as entregas é assunto do P1 (Strategy), não deste controle.
+
 Conclusão: contenção
 
-**E, estrutura sem necessidade fora dos pontos (perto do Adapter).** Na pasta `integration` e nas classes que a usam não há interface com uma só implementação, camada de repasse nem fábrica. A única abstração do projeto são os repositórios Spring Data (`repository/*Repository.java`), que são o mecanismo normal do framework. Os `@Builder` do Lombok (nas entidades, nos DTOs e em `TransLogClient.java:70`) são gerados por anotação e não acrescentam nenhuma camada. Não achei estrutura sobrando.
+**E, estrutura sem necessidade fora dos pontos (perto do Adapter).**
+- O `TransLogClient` não tem interface com implementação única. Ele é injetado direto (`CheckoutService.java:35`).
+- `ShippingInfo` é um portador de valor privado de dois campos (`CheckoutService.java:382–386`), não uma camada.
+- `TransLogQuoteResponse` tem `@lombok.Builder` (`TransLogClient.java:70`) e é montado com builder num único lugar (linhas 55–58). É uma anotação da Lombok sobre um record de dois campos: excesso de cerimônia, não estrutura nova.
+
+Não encontrei camada de repasse, fábrica ou interface supérflua em volta da integração.
+
 Conclusão: contenção
 
 ## O que mudaria primeiro
 
-1. Fazer o `TransLogClient` falar a nossa língua. Ele passaria a receber a `ShippingMethod` (ou um "nível de serviço" nosso), o CEP e o peso em quilos (`BigDecimal`), e a devolver uma cotação nossa com o frete em reais e o prazo em dias. A tradução `ECONOMY/EXPRESS -> STD/EXP`, a conversão para gramas, `/100` e `ceil(/24)` sairiam de `CheckoutService.java:273-286` e iriam para dentro do adaptador. O `TransLogQuoteResponse` deixaria de ser público. Assim, trocar de transportadora mexeria numa peça só.
-2. Na mesma fronteira, devolver resultados distintos para "CEP não atendido" e "transportadora fora do ar" (por exemplo, duas exceções nossas), em vez de um `Optional` vazio para tudo. Depois disso, uma interface de transportadora implementada pelo adaptador facilitaria a troca, mas é secundária em relação ao isolamento.
+1. **Levar toda a tradução para dentro do `TransLogClient`.** A interface dele passaria a ser algo como `quote(ShippingMethod, String zip, BigDecimal weightKg)`, devolvendo uma cotação nossa (frete em reais, prazo em dias). A escolha de `"STD"`/`"EXP"`, a conversão para gramas, a divisão por 100 e o `ceil(horas/24)` sairiam de `CheckoutService.java:273–286`. Só assim trocar de transportadora mexe numa peça só, que é o motivo de o enunciado mencionar essa troca.
+2. **Fazer o adaptador distinguir, na nossa língua, "não atende o CEP" de "fora do ar".** Por exemplo, com dois resultados ou duas exceções próprias, em vez do mesmo `Optional.empty()`. Assim o serviço pode responder `SHIPPING_METHOD_UNAVAILABLE` ou `CARRIER_UNAVAILABLE` sem conhecer os códigos da TransLog.
 
 ## Dúvidas
 
-- Considerei o tipo aninhado `TransLogClient.TransLogQuoteResponse` como "declarado do lado dela", porque fica dentro do arquivo do adaptador. O vazamento que contei é o uso desse tipo e dos campos dele no `CheckoutService`, não a declaração.
-- A junção de erros dentro do adaptador (`Optional.empty()` para tudo) entrou como observação no P6, sem pesar na conclusão: a régua do ponto mede o isolamento do vocabulário, e as consequências de comportamento ficam com a outra dimensão.
+O `TransLogQuoteResponse` é uma classe aninhada no próprio `TransLogClient`, com nomes de campo da TransLog (`priceCents`, `etaHours`). Segundo a régua, declarar esses nomes do lado dela não é vazamento. Por isso não contei a declaração (`TransLogClient.java:71–74`). Contei o uso dela e dos getters no `CheckoutService` (linhas 277, 284–286).

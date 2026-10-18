@@ -2,121 +2,135 @@
 
 ## Visão geral
 
-O serviço sobe sozinho com o banco vazio e carrega o catálogo certo. Todas as contas que dão para testar sem a TransLog batem com os exemplos, até o centavo. Os dados persistem. A disputa pela última peça está bem resolvida: o produto fica travado no banco durante o pagamento.
+O serviço sobe sozinho com o banco vazio, carrega o catálogo certo e faz bem a conta do resumo: com a TransLog fora da jogada, os exemplos e as fronteiras conferem campo a campo. O ciclo do pedido funciona no caminho feliz e os dados sobrevivem a um reinício. Os problemas, do mais grave para o menos grave:
 
-Os problemas, do mais grave para o menos grave:
-
-1. **A econômica e a expressa nunca funcionam.** O serviço não lê a resposta da TransLog no formato do anexo (`price_cents`, `eta_hours`). Toda cotação vira `SHIPPING_METHOD_UNAVAILABLE`, e os exemplos 1, 2, 5, 6, 7 e 9 falham. Também não há o tempo limite de 2 segundos, e a TransLog fora do ar dá 422 no lugar do 503.
-2. **As recusas no pagamento são desfeitas.** Quando o pagamento é recusado por prazo vencido ou por falta de estoque, o serviço responde a recusa, mas o banco desfaz o cancelamento. O pedido continua `AWAITING_PAYMENT`, sem aviso, e depois aceita outro pagamento.
-3. **O prazo de 48 horas é contado em horas inteiras.** Um pagamento com 48h30 de atraso passa.
-4. **A lembrança dos avisos repetidos fica na memória.** Ela vive em um processo só: o mesmo aviso, repetido na outra máquina, pode pagar um pedido que tinha sido recusado.
-5. **Algumas recusas saem com o status ou o formato errado.** Valores inválidos em campos de código dão 400 com a página padrão do Spring, e a falta de estoque no resumo dá 409 no lugar de 422.
+1. **A integração com a TransLog não funciona no formato do enunciado.** O cliente lê `priceCents`/`etaHours`, mas a TransLog manda `price_cents`/`eta_hours`. Toda cotação vira `SHIPPING_METHOD_UNAVAILABLE`, e a econômica e a expressa nunca funcionam. A TransLog fora do ar também vira `422`, e não `503`. O tempo limite de 2 s não existe.
+2. **As recusas do pagamento são desfeitas pelo rollback.** O pedido vencido e o que perde o estoque recebem a recusa certa, mas continuam `AWAITING_PAYMENT`, sem o aviso `ORDER_CANCELLED`. O vencido pode até ser pago depois, com outro `transactionId`.
+3. **O prazo de 48 h é contado em horas inteiras.** 48 h 59 min ainda passa.
+4. **A concorrência não corrompe nada, mas responde mal.** Avisos simultâneos resultam em um `200` e quatro `500`. A memória dos avisos repetidos fica só na memória de cada máquina, e por isso a mesma recusa repetida na outra máquina virou aprovação.
+5. **Valores fora da lista recebem um `400` genérico do Spring, sem o código pedido.** Isso vale para nível, região, entrega, cupom (inclusive o vazio) e forma de pagamento. Falta de estoque no resumo sai `409`, e não `422`.
 
 ## Item a item
 
-**C1, o serviço sobe.** Fiz uma cópia em `/tmp/run`, compilei com `mvn -q package -DskipTests` (8 s) e subi com `TRANSLOG_URL=http://localhost:9090 java -jar target/order-service-1.0.0.jar --server.port=8081`. O log mostra `Started OrderServiceApplication in 3.8 seconds`. As tabelas são criadas pelo `spring.jpa.hibernate.ddl-auto=update` (`src/main/resources/application.properties:8`) e o catálogo é carregado pelo `DataInitializer`. A segunda máquina, na 8082, subiu em 3,9 s sem duplicar o catálogo. Segue o que o enunciado pede.
+**C1, o serviço sobe.** Compilei a cópia com `mvn -q package -DskipTests` e subi com `java -jar … --server.port=8081` contra o banco vazio. O log diz `Started OrderServiceApplication in 5.052 seconds`, e o `GET /products/CAM-001` respondeu logo depois. As tabelas foram criadas pelo `ddl-auto=update` (`src/main/resources/application.properties:8`). A segunda máquina, na 8082 e com o mesmo banco, subiu em 4,8 s sem semear o catálogo de novo.
 Conclusão: segue
 
-**C2, o catálogo.** Chamei `GET /products/{sku}` para os oito SKUs. Nome, preço, peso, estoque e `discontinued` saíram iguais ao anexo, e o `REL-001` aparece com `"discontinued":true`. Um SKU inexistente (`XXX-999`) devolveu 404 `PRODUCT_NOT_FOUND`. Pedir o `REL-001` no resumo dá 422 `PRODUCT_DISCONTINUED`.
+**C2, o catálogo.** Fiz `GET /products/{sku}` nos oito produtos. SKU, nome, preço, peso, estoque e `discontinued` vieram iguais ao anexo, por exemplo `{"sku":"BON-001",…,"price":59.90,"weightKg":0.15,"stock":0,"discontinued":false}`. O `REL-001` vem com `"discontinued":true`, e no resumo ele dá `422 PRODUCT_DISCONTINUED`. Um SKU inexistente dá `404 {"error":"PRODUCT_NOT_FOUND"}`.
 Conclusão: segue
 
-**C3, o resumo.**
-- **Os exemplos.** Os exemplos 3, 4 e 8, que não passam pela TransLog, dão exatamente os valores do financeiro, campo a campo. O 3, por exemplo, deu `399.80/50.00/18.00/0/8.00/3.49/379.29/1/379.29/19.99/false`. Os exemplos 1, 2, 5, 6, 7, 9 e 10 dependem da TransLog. Com a TransLog falsa respondendo como o anexo manda (`{"price_cents": 3310, "eta_hours": 41}`), o 1 deu 422 `{"error":"SHIPPING_METHOD_UNAVAILABLE"}`, e o mesmo aconteceu com o 2, o 5, o 6 e o 7.
-- **A causa.** Em `src/main/java/com/loja/integration/TransLogClient.java:44-46`, os campos se chamam `priceCents`/`etaHours`, e não há nenhuma conversão de nomes. Assim o preço chega nulo e `TransLogShipping.isAvailable` devolve `false` (`service/shipping/TransLogShipping.java:28`).
-- **Diagnóstico, fora do anexo.** Para separar o defeito de leitura das contas, fiz a TransLog responder em camelCase (`priceCents`). Nesse caso, os exemplos 1, 2, 5, 6 e 7 dão exatamente os valores do enunciado: o 7, por exemplo, deu `1419.60/0.00/0.00/6/30.00/-72.48/1377.12/…/70.98/true`. As contas estão certas; o que falha é a leitura da resposta.
-- **Exemplo 9.** Com um pedido pago do mesmo CPF, deu `COUPON_NOT_APPLICABLE` tanto no diagnóstico quanto com retirada na loja. No formato do anexo, sai `SHIPPING_METHOD_UNAVAILABLE`, que vem antes na ordem.
-- **Exemplo 10.** Deu 422 `SHIPPING_METHOD_UNAVAILABLE`, como o enunciado pede, mas só porque toda resposta da TransLog dá esse erro.
-- **Fronteiras:**
-  - motoboy com exatamente 5,00 kg (`MEI-001`×50): aceito; com 5,10 kg: 422 `SHIPPING_METHOD_UNAVAILABLE`;
-  - arredondamento meio para o par (`MEI-001`×6, Norte): o seguro de 2,985 virou `2.98`;
-  - teto de 30% no `BUY3PAY2` (`CAM-001`×3): o desconto deu `71.91`, que é 30% de 239,70;
-  - `MINUS50` com 299,10: recusado; com 319,60: aceito. Um subtotal de exatamente 300,00 não existe com este catálogo;
-  - `BUY3PAY2` sem nenhum produto com 3 unidades: desconto 0,00;
-  - GOLD no motoboy: paga o frete de 18,00.
+**C3, o resumo.** Rodei `POST /checkout/summary` com o stub da TransLog respondendo exatamente o JSON de cada exemplo:
+- **Os exemplos 3, 4 e 8, que não passam pela TransLog, conferem.**
+  - Ex3 deu `399.80 / 50.00 / 18.00 / 0 / 8.00 / 3.49 / 379.29 / 1× 379.29 / 19.99 / false`.
+  - Ex4 deu `299.10 / 39.80 / 0.00 / 1 / 2.99 / 0.00 / 262.29 / 3× 87.43 / 5.98`.
+  - Ex8 deu `422 COUPON_NOT_APPLICABLE`.
+  - O `POST /orders` dos exemplos 3 e 4 registrou o mesmo resumo do `/checkout/summary`, campo a campo.
+- **Os exemplos 1, 2, 5, 6, 7 e 9 deram `422 {"error":"SHIPPING_METHOD_UNAVAILABLE"}`.** Era esperado o resumo, ou `COUPON_NOT_APPLICABLE` no Ex9. O exemplo 10 dá o `SHIPPING_METHOD_UNAVAILABLE` esperado, mas por acaso: qualquer resposta da TransLog dá isso (ver C5).
+- **A conta em si está certa.** Para ver o resto da conta, fiz o stub responder com os campos em camelCase, um formato que o enunciado não prevê. Aí os seis exemplos batem todos os campos (Ex1 `412.07`, Ex2 `6× 77.00` com ajuste `30.55`, Ex5 `71.91`, Ex6 `39.72`, Ex7 `-72.48 / 1377.12 / 70.98 / gift true`, Ex9 `COUPON_NOT_APPLICABLE`).
+- **As fronteiras conferem.**
+  - Motoboy com exatamente 5,00 kg (50 `MEI-001`): aceito. Com 5,10 kg: `SHIPPING_METHOD_UNAVAILABLE`.
+  - Limite de 30%: `BUY3PAY2` com 3 `JAQ-001` dá `350.91`, que é 30% de 1169,70.
+  - "Meio para o par": 15 `MEI-001` (298,50) dão seguro `2.98` (o 2,985 do enunciado) e crédito GOLD `14.92` (de 14,925).
+  - `MINUS50`: 299,70 dá `COUPON_NOT_APPLICABLE`, 319,60 dá `50.00`.
+  - Pix com `BUY3PAY2` de desconto zero não dá o desconto do Pix (ajuste `0.00`).
+  - Teto do seguro no Norte em `30.00`, e 12× por `120.91`, conferido pela fórmula.
 
-As fronteiras conferem. O que falha é o principal do item: seis dos dez exemplos dependem da TransLog e não saem.
+Pelo caminho que o site realmente usa, seis dos dez exemplos falham. A causa é uma só, a leitura da TransLog (C5). O cálculo e as fronteiras conferem em tudo o que foi testado.
 Conclusão: em parte
 
-**C4, as recusas.** Testei o `POST /checkout/summary` e conferi alguns casos no `POST /orders`.
-- **O que confere.** Todos os casos de `INVALID_ORDER` saem 422 com esse código: carrinho vazio ou ausente, item sem SKU, SKU repetido, quantidade 0, −1 ou ausente, CPF, e-mail ou cliente ausente. Também conferem:
-  - `UNKNOWN_PRODUCT` e `PRODUCT_DISCONTINUED`;
-  - `INVALID_CLUB_TIER`, `INVALID_REGION`, `INVALID_SHIPPING_METHOD` e `INVALID_PAYMENT_METHOD` quando o campo está ausente;
-  - `INVALID_ZIP_CODE` para `123`, `01310-100` e ausente;
-  - `INVALID_INSTALLMENTS` para Pix 2×, boleto 2×, cartão 0× e 13×;
-  - `PAYMENT_METHOD_UNAVAILABLE` para boleto acima de R$ 1.000;
-  - o motoboy acima de 5 kg.
-- **O que não confere:**
-  - **Falta de estoque** (`BON-001`, ou `MOC-001`×2): sai `{"error":"INSUFFICIENT_STOCK"}` com **409**; a tabela pede 422. A causa é `exception/ErrorCode.java:9`, e vale também para o `POST /orders`.
-  - **Valores inexistentes** (`clubTier:"PLATINUM"`, `region:"MARS"`, `shippingMethod:"DRONE"`, `paymentMethod:"CASH"`, `coupon:"XYZ"`, `coupon:""`, `coupon:"welcome10"`): todos saem **400** com o corpo padrão do Spring (`{"timestamp":…,"status":400,"error":"Bad Request",…}`), e não com o código da tabela. Os campos são enums (`dto/OrderRequest.java:9-16`), então o JSON quebra antes da validação.
-  - **TransLog fora do ar**: sai 422 no lugar de 503 `CARRIER_UNAVAILABLE` (ver o C5).
+**C4, as recusas.** Recebem o código e o status pedidos:
+- todos os casos de `INVALID_ORDER` (carrinho vazio ou ausente, item sem SKU, SKU repetido, quantidade 0, −1 ou ausente, CPF, e-mail ou `customer` ausente);
+- `UNKNOWN_PRODUCT` e `PRODUCT_DISCONTINUED`;
+- nível, região, entrega e pagamento **ausentes**;
+- CEP ausente ou `"123"`;
+- motoboy acima de 5 kg;
+- `INVALID_INSTALLMENTS` (Pix 2×, cartão 0× e 13×);
+- boleto acima de R$ 1.000 (`PAYMENT_METHOD_UNAVAILABLE`).
+
+Não conferem:
+- **Valor que não existe** em `clubTier` (`PLATINUM`), `region` (`XX`), `shippingMethod` (`DRONE`), `coupon` (`XYZ`, `""`, `welcome10`) e `paymentMethod` (`CASH`). Todos dão `400 {"timestamp":…,"status":400,"error":"Bad Request",…}`. Os campos são enums no DTO (`src/main/java/com/loja/dto/OrderRequest.java:10-15`), a desserialização falha antes da regra e o `GlobalExceptionHandler` não trata esse erro.
+- **Falta de estoque no resumo e no registro** (`BON-001` ×1, `TEN-001` ×11) dá `409 INSUFFICIENT_STOCK`, não `422`. O mesmo código serve às duas tabelas (`src/main/java/com/loja/exception/ErrorCode.java:9`).
+- **`CARRIER_UNAVAILABLE` nunca sai** (ver C5).
 - **Dois problemas ao mesmo tempo:**
-  - SKU inexistente + região ausente → `UNKNOWN_PRODUCT` (certo);
-  - fora de linha + sem estoque → `PRODUCT_DISCONTINUED` (certo);
-  - quantidade 0 + SKU inexistente → `INVALID_ORDER` (certo);
-  - cupom não aplicável + Pix 2× → `COUPON_NOT_APPLICABLE` (certo);
-  - fora de linha + `region:"MARS"` → 400 (errado: devia ser `PRODUCT_DISCONTINUED`);
-  - CEP inválido + cupom `XYZ` → 400 (errado: devia ser `INVALID_ZIP_CODE`).
+  - SKU repetido + SKU desconhecido dá `INVALID_ORDER`; certo.
+  - SKU desconhecido + região ausente dá `UNKNOWN_PRODUCT`; certo.
+  - CEP inválido + pagamento ausente dá `INVALID_ZIP_CODE`; certo.
+  - SKU desconhecido + região `XX` dá `400`; esperado `UNKNOWN_PRODUCT`.
+  - Fora de linha + cupom `XYZ` dá `400`; esperado `PRODUCT_DISCONTINUED`.
+  - Motoboy acima de 5 kg + cupom `XYZ` dá `400`; esperado `SHIPPING_METHOD_UNAVAILABLE`.
+  - `BON-001` sem estoque + nível ausente dá `409`; esperado `422 INSUFFICIENT_STOCK`.
 
-A ordem vale quando os campos vêm ausentes, mas qualquer valor inválido num campo de código passa na frente de tudo.
+Nas operações do pedido:
+- `ORDER_NOT_FOUND` (404) funciona no `GET`, no pagamento, na entrega e no cancelamento.
+- A ordem falha com o pedido inexistente e o campo faltando: `POST /orders/999999/payment` com `{}` e `POST /orders/999999/shipment` com `{}` dão `422 INVALID_ORDER`; esperado `404 ORDER_NOT_FOUND`. A causa é que o campo é conferido antes de buscar o pedido (`src/main/java/com/loja/service/OrderService.java:62`, `:144`).
+- Pagamento sem corpo dá `400` genérico.
+
+`CUSTOMER_NOT_FOUND`, inclusive nos avisos de um CPF desconhecido, e `NOTIFICATION_NOT_FOUND` conferem.
+
+A ordem da tabela vale quando os campos vêm ausentes. Mas a regra 4 sai com o status errado, a 10 nunca sai, e as regras 5, 6, 8, 11 e 13 dão `400` genérico com valor inválido.
 Conclusão: em parte
 
-**C5, a TransLog.** A chamada sai certa: a TransLog falsa recebeu `GET /v2/quote?zip=01310100&weight_g=1800&service=EXP`. O resto falha:
-- **Resposta válida** (`price_cents`): 422 `SHIPPING_METHOD_UNAVAILABLE` (ver o C3). Só por isso não dá para conferir a tradução de centavos e horas no formato do anexo. No diagnóstico em camelCase, ela confere: 3310 vira 33,10; 41 h viram 2 dias; 48 h, 2; 49 h, 3; 168 h, 7; e o Norte soma 3 dias.
-- **CEP não atendido** (`ZIP_NOT_SERVED`): 422 `SHIPPING_METHOD_UNAVAILABLE`, como pedido.
-- **TransLog com erro** (resposta 500, corpo que não é JSON, 503 ou porta fechada): sai sempre **422** `SHIPPING_METHOD_UNAVAILABLE`. O esperado é 503 `CARRIER_UNAVAILABLE`. A causa é o `catch (Exception e) { return false; }` em `service/shipping/TransLogShipping.java:30-32`, que esconde a exceção de indisponibilidade.
-- **Tempo limite.** Com a TransLog demorando 5 s, a resposta levou 5,05 s (formato do anexo) e 10,09 s (diagnóstico, que chama a TransLog duas vezes, em `isAvailable` e em `calculateShipping`). O `translog.timeout` é recebido e nunca aplicado (`integration/TransLogClient.java:16-21`). Com 1,5 s de demora, o resumo levou 3,1 s.
-- **Motoboy e retirada com a TransLog fora do ar** (porta fechada e 503): continuam respondendo 200 com os valores certos.
+**C5, a TransLog.** A chamada sai certa: o stub registrou `GET /v2/quote?zip=01310100&weight_g=1800&service=EXP`, e `service=STD` na econômica. Os problemas:
+- **A resposta do enunciado não é lida.** Com `{"price_cents":3310,"eta_hours":41}` vem `422 SHIPPING_METHOD_UNAVAILABLE`. O DTO interno tem `priceCents`/`etaHours` sem mapeamento para os nomes da TransLog (`src/main/java/com/loja/integration/TransLogClient.java:44-45`), então o preço chega nulo.
+- **Fora do ar** (stub devolvendo `500`, ou stub parado) também dá `422 SHIPPING_METHOD_UNAVAILABLE`, não `503 CARRIER_UNAVAILABLE`. O `isAvailable` engole a exceção e devolve `false` (`src/main/java/com/loja/service/shipping/TransLogShipping.java:30`).
+- **Sem tempo limite.** Com o stub atrasando 10 s, o resumo voltou **200 depois de 20 s**: são duas consultas, uma em `isAvailable` e outra em `calculateShipping`, sem limite nenhum. O parâmetro `timeoutMs` é recebido e não é usado (`TransLogClient.java:16`).
+- **O que funciona:** com a resposta em camelCase, a conversão de centavos para reais e de horas para dias, arredondando para cima, mais os dias extras de Norte e Nordeste, confere (Ex1 prazo 5, Ex7 prazo 6). Com a TransLog parada, motoboy e retirada continuam respondendo `200`.
 Conclusão: não segue
 
 **C6, o ciclo do pedido.**
-- **O caminho feliz.** `CPF 50000000001`, `MEI-001`×3, retirada, SILVER. O resumo e o pedido registrado deram os mesmos valores. O estoque continuou 99 depois do registro e foi a 96 depois do pagamento, e o crédito foi a 1,19.
-- **Envio e entrega.** Enviar antes de pagar, entregar antes de enviar, cancelar um pedido enviado ou entregue, e enviar ou entregar de novo: todos dão 409 `OPERATION_NOT_ALLOWED`. O envio sem `trackingCode` dá 422 `INVALID_ORDER`, e o código de rastreio aparece depois do envio.
-- **Os avisos.** Saíram `PAYMENT_APPROVED` e `ORDER_SHIPPED`, nessa ordem. Marcar como lido devolve `READ`, e marcar de novo continua `READ`. Os 404 (`NOTIFICATION_NOT_FOUND`, `CUSTOMER_NOT_FOUND`, `ORDER_NOT_FOUND`) conferem.
-- **Cancelar um pedido pago** (`50000000012`, `CAM-001`×2): o estoque foi de 50 a 48 e voltou a 50; o crédito foi de 3,20 a 0,00; veio o aviso `ORDER_CANCELLED`.
-- **Cancelar um pedido não pago** (`50000000003`): o estoque e o saldo não mudam, e vem o aviso.
-- **Prazo de 48 horas:**
-  - exatamente 48h: aceito (certo);
-  - **48h + 1 s: aceito, e o estoque baixou** (errado);
-  - **48h30: aceito** (errado);
-  - 72h: 409 `ORDER_EXPIRED`, **mas `GET /orders/13` continua `AWAITING_PAYMENT`, sem aviso de cancelamento.** Depois disso, outro `transactionId` dentro do prazo pagou esse mesmo pedido.
-
-  A causa do limite é `elapsed.toHours() > 48`, que joga fora os minutos (`service/OrderService.java:91`). A causa do pedido que não cancela é o `throw` dentro do `@Transactional`, que desfaz o `order.cancel()` e o aviso (`service/OrderService.java:92-101`).
-- **Falta de estoque no pagamento** (`MOC-001`, com uma unidade e dois pedidos): o segundo pagamento deu 409 `INSUFFICIENT_STOCK`, mas o pedido continuou `AWAITING_PAYMENT`, sem aviso. Depois que o estoque voltou, outro `transactionId` pagou o mesmo pedido.
-- **Cancelar de novo um pedido já cancelado:** 200 e um **segundo** aviso `ORDER_CANCELLED` (ver Dúvidas).
-- **Ordem das verificações:** `POST /orders/999999/payment` com `{}` deu 422 `INVALID_ORDER`, quando a tabela pede `ORDER_NOT_FOUND` primeiro. O envio tem a mesma inversão.
-
-O caminho normal funciona, mas dois pontos que o item pede falham: a recusa depois do prazo e o cancelamento automático.
+- **O que confere.**
+  - Registrar não baixa o estoque (CAM 50 → 50). Pagar baixa (50 → 48), põe o crédito no saldo (`3.20`) e gera `PAYMENT_APPROVED`.
+  - Enviar com `trackingCode` gera `ORDER_SHIPPED`. Depois disso, entregar dá `DELIVERED`.
+  - Cancelar um pago devolve o estoque (45 → 48) e o crédito (7,99 → 3,20) e avisa `ORDER_CANCELLED`. Cancelar um não pago não mexe em nada e avisa.
+  - Fora de ordem dá `409 OPERATION_NOT_ALLOWED`: entregar pago, enviar duas vezes, cancelar enviado ou entregue, enviar não pago ou cancelado, pagar cancelado.
+  - Marcar aviso como lido dá `READ`; repetir continua `READ`; a lista sai do mais antigo para o mais novo.
+  - Exatamente 48 h depois do `createdAt` ainda é aceito. `WELCOME10` volta a valer quando o único pedido do CPF foi cancelado.
+- **O prazo é truncado em horas.** `paidAt` em 48 h 1 s e em 48 h 59 min foram **aceitos (`200 PAID`)**, porque a conta é `elapsed.toHours() > 48` (`OrderService.java:97`). Só com 49 h 1 min veio `409 ORDER_EXPIRED`.
+- **A recusa por prazo não fica gravada.** Depois desse `409 ORDER_EXPIRED`, o `GET` mostrou o pedido ainda `AWAITING_PAYMENT`, e nenhum `ORDER_CANCELLED` apareceu: o id do aviso pulou de 10 para 12, sinal do rollback. Um pagamento seguinte com outro `transactionId` foi **aceito** e baixou o estoque. A causa é que o cancelamento e o aviso são gravados e depois a exceção derruba a transação inteira (`OrderService.java:98-106`).
+- **Cancelar um pedido já cancelado** dá `200` e gera um segundo `ORDER_CANCELLED` (avisos 5 e 6 do pedido 3).
 Conclusão: em parte
 
 **C7, o aviso de pagamento repetido.**
-- **O que confere:**
-  - o mesmo aviso repetido num pedido pago (`TX-R1`, pedido 16) devolveu uma resposta byte a byte igual à primeira; o estoque ficou em 4, o crédito em 10,00, e havia um só `PAYMENT_APPROVED`;
-  - depois do envio, e também depois do reinício, a repetição devolve 200 com o pedido como está;
-  - outro `transactionId` num pedido pago dá 409 `OPERATION_NOT_ALLOWED`;
-  - uma recusa repetida na mesma máquina devolve a mesma recusa.
-- **O que falha:** a lembrança das recusas fica num `HashMap` na memória de um processo (`service/OrderService.java:30`). O pedido 101, por exemplo, foi recusado por falta de estoque na 8081 (`TX-X`, 409 `INSUFFICIENT_STOCK`). Liberei o estoque e repeti **o mesmo aviso na 8082**: veio 200 `PAID`, e o estoque baixou de 1 para 0. Com o prazo vencido, a repetição na outra máquina ou depois do reinício devolveu `ORDER_EXPIRED` de novo, mas só porque o pedido nunca chegou a ser cancelado.
+- **Um depois do outro.**
+  - Quando a primeira vez deu certo, o mesmo `TX-…` repetido, na mesma máquina e na outra, devolve `200` com o mesmo corpo. O estoque baixa uma vez só (FON 5 → 4), o crédito fica `10.00` e sai um único `PAYMENT_APPROVED`.
+  - Outro `transactionId` num pedido pago dá `409 OPERATION_NOT_ALLOWED`.
+  - O problema está na recusa repetida. O pedido 14 recebeu `409 INSUFFICIENT_STOCK` na 8081. Depois o estoque voltou (cancelei outro pedido), e **o mesmo aviso, repetido na 8082, deu `200 PAID` e baixou o estoque**. A mesma repetição na 8081 continuou respondendo `409 INSUFFICIENT_STOCK` para um pedido já pago. A memória dos avisos é um `HashMap` em cada processo (`OrderService.java:29`): não é dividida entre as máquinas e some no reinício.
+- **Ao mesmo tempo, mesmo `transactionId`** (5 por rodada, alternando 8081 e 8082, 5 rodadas).
+  - Os efeitos saem certos: em todas as rodadas o estoque baixou uma vez (−2), o crédito entrou uma vez (`7.99`) e saiu um único `PAYMENT_APPROVED`, graças ao `@Version` do pedido (`src/main/java/com/loja/domain/Order.java:42`).
+  - As respostas não: em cada rodada, **1 × `200 PAID` e 4 × `500 Internal Server Error`**, com `ObjectOptimisticLockingFailureException` nos logs. Esperado: as cinco iguais à primeira.
+- **Ao mesmo tempo, `transactionId` diferentes** (5 rodadas): só um foi aceito, como deve, e o estoque e o crédito saíram certos. Os outros quatro deram `500`, e não `409 OPERATION_NOT_ALLOWED`.
 
-O caso mais comum confere, mas a repetição de uma recusa não garante a mesma resposta com duas máquinas, que é como o serviço roda.
+O essencial (não baixar o estoque nem dar o crédito duas vezes) foi atendido em todos os testes. As respostas à concorrência e a repetição de uma recusa não foram.
 Conclusão: em parte
 
-**C8, a última peça.** Fiz 24 rodadas com `MOC-001` em estoque 1, dois pedidos e os dois pagamentos disparados juntos, um em cada máquina, alternando qual saía primeiro. Depois fiz quatro rajadas válidas de 10 pagamentos simultâneos, 5 em cada máquina. Em todas, exatamente **um** passou e os outros deram 409 `INSUFFICIENT_STOCK`, e o estoque nunca ficou abaixo de 0. Os tempos de resposta se sobrepõem (cerca de 10 ms e 13 ms), o que é coerente com uma máquina esperando a trava da outra (`repository/ProductRepository.java:15-17`, `PESSIMISTIC_WRITE`). O vencedor foi sempre a 8081 nos pares, e a 8081 também nas rajadas. Isso não fere o enunciado, mas sugere que a 8082 estava só um pouco mais lenta.
+**C8, a última peça.** Fiz sete rodadas com as duas máquinas: três de 2 pedidos para 1 unidade e quatro de 6 pedidos para 2 unidades (`MEI-001` e `CAM-001`).
+- **O estoque fica certo.** Em todas, passaram exatamente tantos pagamentos quantas unidades havia, o estoque terminou em 0 e nunca ficou negativo (o produto é lido com `PESSIMISTIC_WRITE`).
+- **Quem perde recebe a resposta certa**, `409 INSUFFICIENT_STOCK`.
+- **O pedido de quem perde não é cancelado.** Ele continua `AWAITING_PAYMENT` (por exemplo, `statuses=[PAID AWAI AWAI AWAI PAID AWAI]`), e **nenhum `ORDER_CANCELLED`** foi gerado (`cancel-notifs=0` em todas as rodadas). É o mesmo rollback do C6 (`OrderService.java:111-120`). O mesmo aconteceu num teste em sequência, numa máquina só: o pedido 14 perdeu a `MOC-001` e ficou aguardando, sem aviso.
+Conclusão: em parte
+
+**C9, os dados não se perdem.** Tirei uma foto antes, derrubei as duas máquinas, subi a 8081 de novo e comparei. Bateram:
+- o pedido 2 `DELIVERED`, com `trackingCode` `BR123` e total `153.33`;
+- o pedido 14 `PAID`;
+- os estoques (CAM 28, MOC 0);
+- o saldo do cliente 40000000001 (`3.20`);
+- os seis avisos com os status `READ`/`NEW`.
+
+O `diff` saiu vazio, e o catálogo não foi semeado de novo (MEI continuou 95). Só a memória dos avisos repetidos se perde, e isso está no C7.
 Conclusão: segue
 
-**C9, os dados não se perdem.** Registrei o estado de 115 pedidos (situação, rastreio, valor final), do estoque dos 8 produtos e do saldo e dos avisos de 5 CPFs. Derrubei as duas máquinas, subi a 8081 de novo (4,0 s) e registrei tudo outra vez. O `diff` não mostrou nenhuma diferença, e o catálogo não foi recarregado.
-Conclusão: segue
-
-**C10, os testes do próprio agente.** O `mvn -q verify` na cópia passou (saída 0). Rodam **6 testes**: 3 em `MoneyTest` e 3 em `CheckoutServiceTest`, com 0 falhas e o banco H2 em memória.
+**C10, os testes do próprio agente.** O `mvn -q verify` da cópia saiu com código 0. Rodaram 6 testes, 3 em `MoneyTest` e 3 em `CheckoutServiceTest`, todos passando, com H2 em memória.
 Conclusão: segue
 
 ## O que mudaria primeiro
 
-1. **Ler a TransLog do jeito do anexo.** Os campos precisam ser lidos como `price_cents`/`eta_hours` (com `@JsonProperty` ou uma regra de nomes), com o tempo limite de 2 s aplicado no cliente e a TransLog chamada uma vez só. A indisponibilidade tem de chegar ao controller como 503, sem virar `false`. Com isso, as duas entregas principais da loja voltam a funcionar, e o diagnóstico indica que as contas já estão certas.
-2. **Gravar as recusas do pagamento de verdade.** O cancelamento e o aviso das recusas de prazo e de estoque precisam ser salvos antes de responder com o erro (fora da transação desfeita, ou sem lançar exceção dentro dela). O resultado de cada `transactionId` tem de ficar guardado no banco, não num `HashMap`. Junto com a troca de `toHours()` por uma comparação exata de 48 horas, isso faz um pedido vencido ou sem estoque ser cancelado de fato. A repetição passa a dar a mesma resposta em qualquer máquina, e nada mais é pago por engano.
+1. **Consertar o cliente da TransLog.** Mapear `price_cents`/`eta_hours` (`@JsonProperty`), configurar o tempo limite de 2 s e deixar a falha de comunicação chegar como `CARRIER_UNAVAILABLE`, em vez de engolida no `isAvailable`. É uma correção pequena, que destrava a econômica e a expressa, seis dos dez exemplos do financeiro e a regra 10 da tabela.
+2. **Gravar as recusas do pagamento e a idempotência no banco.** O cancelamento por prazo ou por falta de estoque, e o aviso, precisam ser gravados mesmo quando a resposta é um erro: com `noRollbackFor`, ou devolvendo o resultado em vez de lançar a exceção dentro da transação. O resultado do primeiro aviso de cada `transactionId` deveria ficar numa tabela, e o pedido deveria ser lido com trava. Isso resolve o pedido vencido que continua pagável, o perdedor sem cancelamento e sem aviso, os `500` da concorrência e a repetição que muda de resposta entre as máquinas. A comparação do prazo deveria ser com `Duration` inteira, não com `toHours()`.
 
 ## Dúvidas
 
-- **A TransLog em camelCase** não está no anexo. Usei esse formato só para separar a leitura das contas, e os itens foram decididos pelo formato do anexo.
-- **Cancelar um pedido já cancelado:** o enunciado diz que dá para cancelar "enquanto o pedido não foi enviado", sem tratar esse caso. Li que um pedido cancelado não pode ser cancelado de novo (`OPERATION_NOT_ALLOWED`). O serviço aceita e gera um segundo aviso. Não mudei a conclusão do C6 por isso.
-- **O formato de `createdAt`:** o `POST /orders` devolve `createdAt` com nanossegundos (`…21.177134333Z`) e as consultas seguintes, com microssegundos (`…21.177134Z`). O enunciado mostra `2026-10-14T15:30:00Z`. Considerei a data legível e não contei isso como falha, mas o mesmo pedido aparece com dois textos diferentes.
-- **`MINUS50` exatamente em 300,00:** não dá para montar com este catálogo (todos os preços terminam em ,90). Testei o mais perto possível de cada lado (299,10 e 319,60).
-- **`FREESHIPPING` para um GOLD na econômica ou na expressa**, quando o frete já vem zerado: o enunciado não decide. Pelo código, daria `COUPON_NOT_APPLICABLE`, mas não deu para testar por causa da TransLog.
+- **Cancelar um pedido já cancelado.** O enunciado diz que o cliente pode cancelar "enquanto o pedido não foi enviado" e não fala do pedido já cancelado. Li a repetição como operação fora de ordem (`409`). Seja qual for a leitura, o aviso duplicado contraria o "cada cancelamento gera um aviso". Contei isso no C6, junto com os outros problemas do item.
+- **`MINUS50` com exatamente R$ 300,00.** Não dá para montar esse valor com os preços do catálogo (todos terminam em ,90). Testei 299,70 e 319,60.
+- **Variante em camelCase da TransLog.** Usei essa resposta, que não é o formato do enunciado, só para ver se o resto da conta estava certo. Não a contei como acerto da integração.
+- **GOLD com `FREESHIPPING` na econômica ou na expressa** (frete já zerado pelo clube). O código recusa, porque exige frete positivo (`src/main/java/com/loja/service/coupon/FreeShippingCoupon.java:17`). O enunciado não decide esse caso, e não o testei pela API.
+- **O formato do `createdAt`.** Na resposta do registro ele vem com nanossegundos (`…00.680552443Z`), e nas consultas seguintes com microssegundos (`…00.680552Z`). O enunciado dá o formato sem fração. Não pesou na conclusão.
+- **O teste das 48 h exatas** usou o `createdAt` da resposta truncado em microssegundos. Pode ter ficado até 1 µs antes das 48 h; isso não muda o resultado.

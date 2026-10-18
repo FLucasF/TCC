@@ -70,6 +70,10 @@ Conclusão: em parte
 ## O que mudaria primeiro
 
 Uma ou duas mudanças que mais melhorariam a dimensão, com o motivo.
+
+## Dúvidas
+
+O que o enunciado ou a régua não decidem e você teve de decidir, com a leitura que escolheu (ou "nenhuma").
 ```
 
 **A linha de conclusão** fecha cada item, sozinha na linha, começando por `Conclusão:` e com uma palavra só:
@@ -159,7 +163,7 @@ perto do seu pattern. A conclusão do E é `contenção` (não há) ou `exagero`
 # As instruções do pattern: Adapter
 
 Este pattern cuida de um ponto que pede o padrão (P6, a TransLog) e de um controle negativo (as entregas sem
-transportadora). A correção vai em `correcao/padroes-adapter.md`.
+transportadora).
 
 ## O ponto que pede o padrão: a TransLog (P6)
 
@@ -176,15 +180,22 @@ dela é:
 - os códigos de serviço: `"STD"`, `"EXP"`;
 - **as unidades dela**: centavos, horas e gramas.
 
-É **acerto** nada disso aparecer fora do lado da TransLog: o resto do código pede a cotação com o peso em quilos e
-recebe o frete em reais e o prazo em dias. Com ou sem uma interface (uma porta de transportadora que o adaptador
-implementa): a interface ajuda a trocar de transportadora, mas o que este ponto mede é o isolamento do vocabulário.
+É **vazamento** usar qualquer termo, campo ou unidade da TransLog fora do lado dela. **Converter a unidade fora do
+adaptador é vazamento**: uma estratégia de entrega que faz `etaHours / 24`, ou que converte os quilos em gramas antes
+de chamar a transportadora, trabalhou com a unidade dela, e não com a nossa. Declarar um campo com esse nome do lado
+dela (o record da resposta, um `@JsonProperty`) não é vazamento. A tradução da nossa entrega para o código de serviço
+dela (`EXPRESS -> "EXP"`) dentro do adaptador é trabalho dele.
 
-É **vazamento** (a omissão deste ponto) usar qualquer termo, campo ou unidade da TransLog fora do lado dela.
-**Converter a unidade fora do adaptador é vazamento**: uma estratégia de entrega que faz `etaHours / 24`, ou que
-converte os quilos em gramas antes de chamar a transportadora, trabalhou com a unidade dela, e não com a nossa.
-Declarar um campo com esse nome do lado dela (o record da resposta, um `@JsonProperty`) não é vazamento. A tradução
-da nossa entrega para o código de serviço dela (`EXPRESS -> "EXP"`) dentro do adaptador é trabalho dele.
+O ponto tem três respostas:
+- **acerto**: nada do vocabulário aparece fora do lado da TransLog. O resto do código pede a cotação com o peso em
+  quilos e recebe o frete em reais e o prazo em dias. Com ou sem uma interface (uma porta de transportadora que o
+  adaptador implementa): a interface ajuda a trocar de transportadora, mas o que este ponto mede é o isolamento do
+  vocabulário;
+- **malfeito**: o lado da TransLog existe (uma peça só dela, que faz a chamada e lê a resposta), mas algum termo,
+  campo ou unidade dela vaza para fora (a conversão para gramas ou de horas para dias numa estratégia de entrega, o
+  `"STD"` escolhido no cálculo do frete, o `priceCents` lido fora dela);
+- **omissão**: não há um lado da TransLog. A chamada HTTP ou a leitura da resposta dela fica no meio do cálculo do
+  frete ou da regra de entrega, misturada com o resto.
 
 Diga o que fica do lado da TransLog, o que vaza e por onde, com cada linha. Se o enunciado daquela execução não
 tinha o vocabulário estrangeiro da TransLog (os pilotos mais antigos, que falavam com ela em português), diga que o

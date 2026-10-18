@@ -1,48 +1,44 @@
-Já li o código de entrega e conferi onde aparece o vocabulário da TransLog; agora escrevo a correção.
+Já li o código da entrega e da TransLog; segue a correção.
 
 # Padrões: Adapter
 
 ## Visão geral
 
-O agente isolou a conversa HTTP com a TransLog numa peça só, `TransLogGateway`, que implementa uma porta própria, `CarrierGateway`. A rota `/v2/quote`, os campos `price_cents` e `eta_hours`, o erro `ZIP_NOT_SERVED` e as conversões de centavos para reais e de horas para dias ficam dentro do adaptador. A resposta já sai na nossa língua: `CarrierQuote(BigDecimal price, int days)`, além de duas exceções nossas. É o ponto forte.
-
-O problema mais sério está no caminho de ida. A porta foi desenhada com a entrada da TransLog, `quote(String zipCode, long weightGrams, String service)`. Por isso duas coisas dela ficam fora do adaptador. A estratégia de entrega converte os quilos em gramas antes de chamar, e a configuração das entregas escreve os códigos de serviço `"STD"` e `"EXP"`. Trocar de transportadora exigiria mexer na porta, na estratégia e na configuração, não só no adaptador.
-
-No controle negativo, a retirada e o motoboy são valores fixos na própria regra da entrega, sem passar pela porta da transportadora. Isso é contenção.
+O agente criou um lado da TransLog de verdade. `TransLogGateway` é a única classe que faz a chamada HTTP. Ela lê `price_cents`, `eta_hours` e `ZIP_NOT_SERVED`, converte centavos em reais e horas em dias, e transforma as respostas em exceções próprias, atrás de uma porta (`CarrierGateway`). As entregas sem transportadora ficaram simples, com o valor fixo na própria regra. O problema é que a porta foi desenhada na língua da TransLog: ela recebe o peso em **gramas** e o **código de serviço dela**. Por isso duas coisas vazam para o nosso lado. A estratégia de entrega converte quilos em gramas, e a configuração das entregas escolhe `"STD"`/`"EXP"`. Trocar de transportadora mexeria nessas duas peças além do adaptador.
 
 ## Item a item
 
 **P6, o vocabulário da transportadora fica do lado dela?**
 
-O lado da TransLog é `shipping/TransLogGateway.java`, o único arquivo que faz a chamada HTTP. Dentro dele ficam:
-- a rota e os parâmetros (`TransLogGateway.java:34`): `/v2/quote`, `zip`, `weight_g`, `service`;
-- o erro `ZIP_NOT_SERVED`, traduzido para a nossa `ZipNotServedException` (`TransLogGateway.java:50-52`);
-- os campos `price_cents` e `eta_hours` (`TransLogGateway.java:56-57`);
-- as conversões das unidades da resposta: centavos para reais em `BigDecimal.valueOf(cents.longValue(), 2)` (`TransLogGateway.java:62`) e horas para dias, arredondando para cima, em `(hours + 23) / 24` (`TransLogGateway.java:63`).
+O que fica do lado da TransLog, em `src/main/java/br/com/loja/shipping/TransLogGateway.java`:
+- a rota `/v2/quote` e os parâmetros `zip`/`weight_g`/`service` (`:34`);
+- o timeout de 2 s (`:19`, `:22`, `:36`);
+- a leitura de `error`/`ZIP_NOT_SERVED` (`:50-54`) e de `price_cents`/`eta_hours` (`:56-61`);
+- a conversão de centavos em reais (`:62`) e de horas em dias, arredondando para cima (`:63`).
 
-Nada disso aparece fora do adaptador no código de produção. O `grep` por `price_cents`, `eta_hours`, `ZIP_NOT_SERVED`, `v2/quote` e `weight_g` só encontra esse arquivo e os testes. O `CheckoutService` fala só a nossa língua: soma o peso em quilos (`checkout/CheckoutService.java:67-68`), pede `ShippingRequest(zip, region, weight)` (`checkout/CheckoutService.java:70`) e recebe `ShippingQuote(cost, days)`. Os dias a mais do Norte e do Nordeste são somados sobre dias já nossos (`shipping/CarrierShipping.java:31`). A volta está bem isolada.
+O que sai dali para o resto do código é `CarrierQuote(BigDecimal price, int days)` (`CarrierGateway.java:14`), em reais e em dias. Até aqui, segue o padrão.
 
-A ida vaza, por dois lugares:
-- **Gramas.** A porta pede o peso na unidade da TransLog, `long weightGrams` (`shipping/CarrierGateway.java:12`). Quem converte é a estratégia de entrega, `CarrierShipping`, uma `ShippingOption` do nosso lado: `request.weightKg().movePointRight(3).setScale(0, RoundingMode.HALF_UP)` (`shipping/CarrierShipping.java:28`). Esse é o caso que a régua dá como vazamento: converter os quilos em gramas antes de chamar a transportadora. A regra de arredondamento para gramas inteiros, que é exigência da TransLog, também ficou fora do adaptador.
-- **Códigos de serviço.** `"STD"` e `"EXP"` são escritos na configuração das nossas entregas, `new CarrierShipping("ECONOMY", "STD", gateway)` e `new CarrierShipping("EXPRESS", "EXP", gateway)` (`shipping/ShippingConfig.java:11,16`). Esse arquivo conhece os nossos casos e guarda o código num campo da estratégia, `carrierService` (`shipping/CarrierShipping.java:12,30`). A tradução `ECONOMY -> "STD"` / `EXPRESS -> "EXP"` deveria morar no adaptador. Lá só sobrou um repasse que não traduz nada: `service.equals("STD") ? "STD" : "EXP"` (`TransLogGateway.java:35`), que ainda transforma qualquer outro texto em `EXP`.
+O que vaza, e por onde:
+- **A unidade do peso.** A porta pede `long weightGrams` (`CarrierGateway.java:12`). Por isso `CarrierShipping`, a estratégia de ECONOMY/EXPRESS (ela implementa `ShippingOption` e soma os dias da região), converte quilos em gramas antes de chamar a transportadora: `request.weightKg().movePointRight(3)...` (`CarrierShipping.java:28`). Esse é o caso que a régua dá como exemplo de vazamento.
+- **Os códigos de serviço.** A tradução da nossa entrega para o código dela fica fora do adaptador, na configuração que conhece os nossos casos: `new CarrierShipping("ECONOMY", "STD", gateway)` e `new CarrierShipping("EXPRESS", "EXP", gateway)` (`ShippingConfig.java:11`, `:16`). A porta recebe esse `String service` pronto (`CarrierGateway.java:12`). Dentro do adaptador só sobra uma falsa tradução, `service.equals("STD") ? "STD" : "EXP"` (`TransLogGateway.java:35`). Ela devolve o mesmo código e manda como `EXP` qualquer valor que não seja `STD`.
 
-Fica uma dúvida de fronteira. Pela definição da régua, `CarrierGateway.java` está na mesma pasta e não conhece os nossos casos, então poderia contar como lado da TransLog. Mas ela é a porta que a estratégia usa: é o "nosso lado" da conversa. Contando de um jeito ou de outro, a conclusão é a mesma, porque a conversão para gramas (`CarrierShipping.java:28`) e os códigos `STD`/`EXP` (`ShippingConfig.java:11,16`) estão em arquivos que são claramente do nosso lado.
+O tratamento de erro está do lado certo. `ZipNotServedException` e `CarrierDownException` são declaradas na porta (`CarrierGateway.java:17-24`), e a estratégia só as traduz para os nossos códigos de erro (`CarrierShipping.java:32-35`).
 
-A parte da resposta é acerto: preço em reais, prazo em dias e erros traduzidos. Mas a régua mede se *qualquer* termo ou unidade da TransLog aparece fora do lado dela, e dois aparecem. Por isso o ponto fica como vazamento (a omissão do ponto), mesmo com metade bem feita.
-Conclusão: omissão
+O lado da TransLog existe e está bem delimitado, mas a unidade (gramas) e os códigos de serviço dela vazam para a estratégia e para a configuração.
+Conclusão: malfeito
 
-**P6-exagero, as entregas sem transportadora.** A retirada devolve o valor fixo na própria classe, `new ShippingQuote(Money.ZERO, 1)` (`shipping/StorePickupShipping.java:17`). O motoboy faz o mesmo com `new ShippingQuote(Money.of("18.00"), 0)` e confere ali mesmo o limite de 5 kg (`shipping/CourierShipping.java:14,23-26`). Nenhuma das duas recebe nem chama `CarrierGateway`, e não há "cliente" do motoboy nem adaptador que devolva um número fixo. A porta de transportadora só é injetada nas duas `CarrierShipping` (`shipping/ShippingConfig.java:10-16`). É a resposta do tamanho do problema.
+**P6-exagero, as entregas sem transportadora.** A retirada devolve `new ShippingQuote(Money.ZERO, 1)` direto na própria regra (`StorePickupShipping.java:16-18`). O motoboy confere o limite de 5 kg e devolve `new ShippingQuote(Money.of("18.00"), 0)` (`CourierShipping.java:22-27`). Nenhum dos dois recebe nem usa `CarrierGateway`. Os dois implementam só `ShippingOption`, que é a estratégia das entregas (P1), e não uma porta de transportadora. Não há "cliente" do motoboy, e a retirada não passa pela porta da TransLog.
 Conclusão: contenção
 
-**E, estrutura sem necessidade fora dos pontos (perto do Adapter).** `CarrierGateway` tem uma implementação só (`TransLogGateway`), mas é justamente o que o P6 pede ("Pode ser que um dia a gente troque de transportadora"), então não conta aqui. `ShippingConfig` só cria dois beans da mesma classe com parâmetros diferentes (`shipping/ShippingConfig.java:9-17`), o que é configuração e não camada extra. Não achei, perto do Adapter, interface, camada de repasse ou fábrica que nenhum ponto peça.
+**E, estrutura sem necessidade perto do Adapter.** `CarrierGateway` tem uma implementação só (`TransLogGateway.java:17`; nos testes há um stub em `LojaIntegrationTest.java:36`). Mesmo assim, ela é a porta que o próprio P6 justifica ("pode ser que um dia a gente troque de transportadora"), então não é estrutura sem necessidade. `ShippingConfig` (`ShippingConfig.java:9-17`) só cria os dois beans que reaproveitam `CarrierShipping`, e não é uma camada que só repassa. `CarrierQuote` (`CarrierGateway.java:14`) e `ShippingQuote` (`ShippingQuote.java:5`) quase se repetem (valor e dias), mas cada um fica de um lado da porta. Não achei builder, fábrica ou camada sem necessidade perto deste pattern.
 Conclusão: contenção
 
 ## O que mudaria primeiro
 
-1. **Mudar a porta para a nossa língua:** `quote(String zipCode, BigDecimal weightKg, <a nossa entrega, ECONOMY ou EXPRESS>)`. A conversão para gramas inteiros e a tradução para `STD`/`EXP` passariam para dentro do `TransLogGateway`. Com isso, `CarrierShipping.java:28` e `ShippingConfig.java:11,16` deixariam de saber como a TransLog quer o peso e o serviço. Trocar de transportadora passaria a ser só escrever outro adaptador, que é a promessa da própria interface.
-2. Na mesma mudança, trocar o repasse `service.equals("STD") ? "STD" : "EXP"` (`TransLogGateway.java:35`) por uma tradução de verdade, que recuse um caso desconhecido em vez de mandá-lo como `EXP`.
+1. **Fazer a porta falar a nossa língua.** A assinatura passaria a ser algo como `quote(String zipCode, BigDecimal weightKg, Region/ShippingMethod ou um enum nosso de nível de serviço)`. A conversão para gramas (`CarrierShipping.java:28`) e a tradução `ECONOMY → "STD"`, `EXPRESS → "EXP"` (`ShippingConfig.java:11,16`) iriam para dentro do `TransLogGateway`. Assim, trocar de transportadora mexe só no adaptador, que é o que o enunciado pede.
+2. **Tirar a falsa tradução** de `TransLogGateway.java:35`. Com a tradução de verdade dentro do adaptador, um serviço desconhecido deixa de virar `EXP` sem ninguém perceber.
 
 ## Dúvidas
 
-- **Onde fica a fronteira de `CarrierGateway.java`:** a definição da régua ("mesma pasta, não conhece os nossos casos") a põe do lado da TransLog, e o papel dela no código a põe do nosso. Tratei a interface como a porta, do nosso lado. Isso não muda a conclusão, porque o vazamento também aparece em `CarrierShipping` e `ShippingConfig`.
-- **Os testes:** `LojaIntegrationTest.java:70-71` monta o stub com `cents`/`hours` e refaz a conta `(hours + 23) / 24`. É código de teste, não do serviço, e não contei como vazamento.
+- **De que lado fica cada arquivo.** O código da TransLog divide a pasta `shipping` com as estratégias, e a regra da pasta ("os da mesma pasta que não conhecem os nossos casos") não decide sozinha. `CarrierShipping` não escreve `ECONOMY`/`EXPRESS`, porque recebe o código por parâmetro. Mesmo assim, contei a classe do nosso lado: ela implementa `ShippingOption`, aplica os dias extras da região, e é a "estratégia de entrega" do exemplo da régua. `CarrierGateway` também não cita os nossos casos. Tratei a porta como a fronteira, e a assinatura dela (`weightGrams`, `service`) como a origem do vazamento. Se ela contasse como lado da TransLog, os vazamentos de `CarrierShipping.java:28` e `ShippingConfig.java:11,16` continuariam, e a conclusão seria a mesma.
+- **O nome `ZipNotServedException`** (`CarrierGateway.java:17`) lembra o código `ZIP_NOT_SERVED` da TransLog. Não contei como vazamento: "CEP não atendido" é um conceito que o próprio enunciado usa como nosso (o erro `SHIPPING_METHOD_UNAVAILABLE`), e o texto do código dela só é lido dentro do adaptador.

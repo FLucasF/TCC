@@ -133,13 +133,24 @@ só no pagamento; o cancelamento de um pedido pago devolve o estoque e o crédit
 nada; o pagamento depois do prazo de 48 horas é recusado (mande um `paidAt` além do prazo); as operações fora de
 ordem são recusadas; os avisos aparecem e podem ser marcados como lidos.
 
-**C7, o aviso de pagamento repetido.** O mesmo aviso, repetido, devolve exatamente a mesma resposta da primeira vez
-e não faz nada de novo (o estoque não baixa duas vezes)? E outro `transactionId`, num pedido que já não aguarda
-pagamento, é recusado?
+**C7, o aviso de pagamento repetido.** O enunciado diz que o banco às vezes avisa o mesmo pagamento duas vezes, que
+o aviso repetido não pode baixar o estoque nem dar o crédito duas vezes, e que o serviço roda em duas máquinas ao
+mesmo tempo: o aviso repetido pode chegar depois do primeiro ou junto com ele. Teste os dois jeitos:
+- **um depois do outro**: o mesmo aviso, repetido, devolve exatamente a mesma resposta da primeira vez e não faz
+  nada de novo (o estoque não baixa duas vezes)? E outro `transactionId`, num pedido que já não aguarda pagamento, é
+  recusado?
+- **ao mesmo tempo**: dispare o mesmo aviso umas cinco vezes juntas, divididas entre as duas máquinas. O estoque
+  baixa uma vez só, o crédito entra uma vez só, sai um aviso `PAYMENT_APPROVED` só, e todas as respostas são a da
+  primeira vez? E cinco avisos com `transactionId` diferentes, juntos, no mesmo pedido: só um é aceito, e os outros
+  são `409 OPERATION_NOT_ALLOWED`?
 
-**C8, a última peça.** Com o serviço em duas máquinas e o mesmo banco, dois pagamentos da última unidade de um
-produto ao mesmo tempo (dispare-os juntos, um em cada máquina, várias vezes): só um passa, e o estoque nunca fica
-negativo?
+**C8, a última peça.** O enunciado diz que dois clientes já pagaram a última peça quase no mesmo segundo, que isso
+não pode acontecer, que o estoque nunca fica negativo e que, sem estoque na hora do pagamento, o pedido é cancelado
+e o cliente é avisado. Com o serviço em duas máquinas e o mesmo banco, dispare juntos, um em cada máquina, vários
+pagamentos de pedidos que disputam as mesmas unidades (dois pedidos para a última unidade, e mais pedidos que
+unidades, como seis pedidos para duas), várias vezes:
+- só passam tantos pagamentos quantas unidades havia, e o estoque nunca fica negativo?
+- quem perde recebe `409 INSUFFICIENT_STOCK`, o pedido dele fica `CANCELLED` e sai o aviso `ORDER_CANCELLED`?
 
 **C9, os dados não se perdem.** Derrube o serviço e suba de novo: os pedidos, o estoque e os avisos continuam lá?
 

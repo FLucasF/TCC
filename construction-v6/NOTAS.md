@@ -728,8 +728,7 @@ a suíte usa no reinício chega pago e enviado. No Haiku N0 é perda de verdade 
 **Onde a correção da IA bate com a revisão.** O desenho em todos os 9 projetos (Strategy, State, testes) e os
 serviços que não sobem, com a causa achada sem a suíte.
 
-**Onde a régua não chega (limitações; a régua fica como está, decisão do Lucas de 18/10: os critérios e as
-hipóteses são os de antes, para ver se os resultados batem com eles, sem correr de novo).**
+**Onde a régua não chegava** (as duas limitações abaixo levaram à régua nova do mesmo dia, na seção seguinte).
 - O C7 e o C8 testam o aviso repetido um depois do outro e a última peça só pelo "só um passa". Não testam o mesmo
   aviso chegando várias vezes ao mesmo tempo, nem o que acontece com quem perde a disputa. A IA deu `segue` ao
   Sonnet 4.5 no N0 (C7) e no N1 (C8); a suíte mostra que, no N0, cinco avisos iguais ao mesmo tempo baixam o estoque
@@ -754,3 +753,32 @@ hipóteses são os de antes, para ver se os resultados batem com eles, sem corre
 de congelar o V6): o GOLD com FREESHIPPING quando o frete já é zero (vale com desconto zero ou é recusado?), o fuso
 do servidor, um `price_cents` com casas decimais, um `paidAt` anterior ao registro, e o aviso repetido depois de o
 pedido mudar de situação.
+
+## A régua nova: o P6, o C7 e o C8 (18/10/2026)
+
+Decisão do Lucas: uma régua nova para esta pesquisa, com os mesmos critérios e hipóteses (a análise escrita é a
+correção; a linha de conclusão é só o resumo dela), sem rodar os agentes de novo; só a correção dos itens que
+mudaram roda outra vez. Mudaram três itens, e o resto da régua (e o `common.md`) ficou com o texto idêntico, então as
+conclusões de 17/10 desses itens continuam valendo:
+- **P6** (`rubric/patterns/adapter.md`): três respostas. `acerto` (nada da TransLog fora do lado dela), `malfeito`
+  (o lado dela existe, mas um termo, campo ou unidade vaza), `omissão` (não há lado dela: a chamada fica no meio do
+  frete). O critério "converter a unidade fora do adaptador é vazamento" é o mesmo; muda o nível que ele recebe.
+- **C7** (`rubric/behavior.md`): o aviso repetido também ao mesmo tempo (cinco vezes juntas, nas duas máquinas), e
+  cinco avisos de `transactionId` diferentes juntos no mesmo pedido.
+- **C8**: mais pedidos que unidades (seis para duas), e quem perde tem de receber `409 INSUFFICIENT_STOCK`, ficar
+  `CANCELLED` e ganhar o aviso.
+
+As respostas antigas desses itens estão guardadas em `analysis/batch-1/judge/opus-5-5-high-regua-1/` e
+`analysis/planted/judge/opus-5-5-high-regua-1/` (e a correção antiga do comportamento do OPUS55-N0-03 em
+`analysis/pilots/judge/opus-5-5-high-regua-1/`). O `planted/esperado.md` passou o P6 para `malfeito`, e a correção nova
+do serviço plantado deu `malfeito` (US$ 0,46). No batch-1 (Adapter e comportamento de novo, US$ 25 aprox.):
+- o P6 saiu `malfeito` em 8 execuções (todas têm um cliente da TransLog, com a conversão para gramas fora dele) e
+  `acerto` no Haiku N2;
+- o C7 do Sonnet 4.5 N0 passou de `em parte` para `não segue` (cinco avisos iguais juntos baixam o estoque cinco
+  vezes, como a suíte mostrou);
+- o C8 dos Sonnet 4.5 N0 e N1 passou de `segue` para `em parte`. No N0 a correção achou dois defeitos que a suíte não
+  pega: com pedidos de vários itens, o perdedor fica cancelado mas a baixa parcial do estoque é gravada
+  (`noRollbackFor`), e pedidos com os itens em ordem diferente dão `deadlock` no PostgreSQL (erro 500, pedido preso
+  aguardando pagamento);
+- os Sonnet 5.5 seguem `segue` em tudo, nos três braços.
+

@@ -2,58 +2,47 @@
 
 ## Visão geral
 
-O agente juntou toda a conversa com a TransLog numa classe só, `application/service/TransLogService.java`. Ela monta a rota `/v2/quote`, traduz `ECONOMY`/`EXPRESS` em `STD`/`EXP`, passa os quilos para gramas, lê `price_cents` e `eta_hours` e devolve um `ShippingQuote` com o frete em reais e o prazo em dias. Nenhum termo, campo ou unidade da TransLog aparece fora dessa classe, e é isso que o ponto mede. As entregas sem transportadora (retirada e motoboy) ficaram como valores fixos dentro da regra de frete, sem porta nem "cliente" falso: é contenção.
+O agente isolou toda a conversa com a TransLog numa classe só, `TransLogService` (`src/main/java/com/example/application/service/TransLogService.java`). Ela recebe o CEP, o peso em quilos e a nossa `ShippingMethod`. Dentro dela ficam a tradução para `STD`/`EXP`, a conversão para gramas, a montagem da rota `/v2/quote`, a leitura de `price_cents`/`eta_hours`, a detecção do `error` e a conversão de volta para reais e dias. O que ela devolve é um valor nosso, `OrderSummaryCalculator.ShippingQuote(cost, days)`. Nenhum termo, campo ou unidade da TransLog aparece fora dessa classe, e nisso o desenho acerta.
 
-O isolamento do vocabulário está certo, mas a peça tem três defeitos de desenho, do mais grave ao mais leve:
+Os pontos fracos não vazam vocabulário, mas tocam a fronteira:
+- Não há uma porta (interface) de transportadora. O enunciado permite isso, mas trocar de transportadora vai obrigar a mexer nos dois lugares que chamam a classe concreta.
+- O adaptador devolve `null` para três falhas diferentes: o CEP não atendido, a resposta inesperada e a queda. Com isso ele não entrega ao nosso lado a distinção que o enunciado pede. A `CarrierUnavailableException` existe e nunca é lançada.
 
-1. **As duas falhas da TransLog viram uma só.** O adaptador devolve `null` tanto para "CEP não atendido" quanto para "site fora do ar", e quem chama transforma isso sempre em `SHIPPING_METHOD_UNAVAILABLE`. A `CarrierUnavailableException` existe, mas nada a lança.
-2. **Não há interface de transportadora.** As duas classes que chamam dependem direto da classe concreta da TransLog.
-3. **A dependência está invertida.** O tipo que o adaptador devolve é uma classe aninhada da calculadora, `OrderSummaryCalculator.ShippingQuote`. Ou seja, o adaptador depende de quem o usa.
+A retirada e o motoboy ficaram como valores fixos na própria regra de entrega, sem nenhuma peça de transportadora.
 
 ## Item a item
 
-**P6, o vocabulário da transportadora fica do lado dela?** O enunciado desta execução traz o vocabulário em inglês da TransLog (`prompt.md`, seção "A TransLog"), então o ponto se aplica. O lado da TransLog é o arquivo `application/service/TransLogService.java`, o único que faz a chamada HTTP. Os outros arquivos da pasta são serviços nossos. Tudo o que é dela fica ali dentro:
+**P6, o vocabulário da transportadora fica do lado dela?** O lado da TransLog é só o `TransLogService.java`. Os outros arquivos da pasta `application/service` conhecem os nossos casos, e não há records da resposta: ela é lida num `Map`. Tudo o que é dela está dentro dessa classe:
+- a tradução da nossa entrega para o código de serviço, `method == ShippingMethod.ECONOMY ? "STD" : "EXP"` (`TransLogService.java:31`);
+- quilos para gramas (`:32`);
+- a rota e os parâmetros, `"%s/v2/quote?zip=%s&weight_g=%d&service=%s"` (`:34`);
+- o tempo limite de 2 s (`:24`, `:39`);
+- a detecção de `error` (`:52`);
+- a leitura de `price_cents` e `eta_hours` (`:56-57`);
+- centavos para reais (`:59`) e horas para dias, arredondando para cima (`:60`).
 
-- **O código de serviço:** `"STD"`/`"EXP"` a partir da nossa entrega, na linha 31. Essa tradução é trabalho do adaptador.
-- **A unidade de peso:** a conversão para gramas, `Math.round(weightKg.doubleValue() * 1000)`, na linha 32.
-- **A rota e os parâmetros:** `/v2/quote?zip=…&weight_g=…&service=…`, na linha 34.
-- **A resposta de erro:** a leitura de `error` (o `ZIP_NOT_SERVED`), na linha 52.
-- **Os campos da resposta:** `price_cents` e `eta_hours`, e as variáveis `priceCents`/`etaHours`, nas linhas 56 e 57.
-- **As outras unidades:** a conversão de centavos para reais (linha 59) e de horas para dias com arredondamento para cima (linha 60).
+A saída é `new OrderSummaryCalculator.ShippingQuote(price, days)` (`:62`), em reais e dias. Os dois lugares que chamam a classe passam o peso em quilos e recebem esse valor: `OrderSummaryCalculator.java:148` e `OrderService.java:173-177`. O peso vem de `calculateTotalWeight`, em `BigDecimal` de quilos (`OrderSummaryCalculator.java:186-194`, `OrderService.java:224-231`). Procurei `price_cents`, `priceCents`, `eta_hours`, `etaHours`, `ZIP_NOT_SERVED`, `v2/quote`, `weight_g`, `"STD"`, `"EXP"`, `cents`, `hours`, `grams`, `1000` e `/ 24` fora do adaptador. Achei só o `1000` do limite do boleto (`OrderService.java:188`) e o `PAYMENT_TIMEOUT` em milissegundos (`OrderService.java:25`), que não são da TransLog. Não há vazamento.
 
-Quem chama fala só a nossa língua:
-
-- `OrderSummaryCalculator.java:148` e `OrderService.java:173-177` chamam `getQuote(zipCode, peso em kg, ShippingMethod)` e recebem `cost`/`days` (`OrderSummaryCalculator.java:308-316`).
-- Os dias a mais do Norte e do Nordeste são somados sobre os dias já traduzidos (`OrderSummaryCalculator.java:165, 172-184`). Essa é uma regra nossa, não da TransLog.
-- Um `grep` por `cents`, `hours`, `weight_g`, `"STD"`, `"EXP"`, `ZIP_NOT_SERVED`, `/ 24` e `* 1000` no código principal, fora do adaptador, só encontra `48 * 60 * 60 * 1000` (`OrderService.java:25`). Esse é o prazo de 48 horas do pagamento, em milissegundos, e não tem relação com a TransLog.
-
-Não há vazamento. Ficam três ressalvas, que não mudam a conclusão porque o ponto mede o isolamento do vocabulário:
-
-1. **A tradução das falhas perde informação.** As duas respostas de falha da TransLog (o `ZIP_NOT_SERVED` na linha 52 e o "fora do ar" nas linhas 45 e 63) viram o mesmo `null`. Quem chama converte esse `null` sempre em `ShippingMethodUnavailableException` (`OrderService.java:178-179`), e a `CarrierUnavailableException` (`application/exception/CarrierUnavailableException.java`) não é lançada em lugar nenhum. O adaptador não traduz "fora do ar" para a nossa língua.
-2. **A peça não tem uma porta (interface) própria.** `OrderSummaryCalculator.java:16` e `OrderService.java:23` dependem da classe concreta. Além disso, o tipo de retorno mora dentro da calculadora (`TransLogService.java:29`, `OrderSummaryCalculator.java:308`). Trocar de transportadora mexeria nessas duas classes, embora só no nome do tipo, não no vocabulário.
-3. **Uma entrega desconhecida vira `EXP` sem aviso.** O ternário da linha 31 manda para `EXP` qualquer entrega que não seja `ECONOMY`.
+Duas ressalvas, que não mudam o que este ponto mede (o isolamento do vocabulário):
+1. **Não há interface de transportadora.** `OrderSummaryCalculator` e `OrderService` dependem da classe concreta (`OrderSummaryCalculator.java:16`, `OrderService.java:23`).
+2. **O contrato de saída é pobre.** O adaptador devolve `null` para o CEP não atendido (`:52-53`), para um status diferente de 200 (`:45-46`) e para exceções de rede ou de tempo limite (`:63-64`). O nosso lado não consegue distinguir "não atende" de "fora do ar". O chamador transforma todo `null` em `ShippingMethodUnavailableException` (`OrderService.java:178-179`), e a `CarrierUnavailableException` nunca é lançada (só aparece na própria declaração). Uma resposta 200 sem `price_cents` gera uma `NullPointerException` em `:56`, que o `catch` de `:63` não pega. A tradução das falhas fica incompleta, mas nada da língua dela sai para fora. A consequência visível (o 503 que nunca sai) é assunto do comportamento.
 
 Conclusão: acerto
 
-**P6-exagero, as entregas sem transportadora.** A retirada e o motoboy são valores fixos dentro da própria regra de frete:
-
-- **A retirada:** `new ShippingQuote(BigDecimal.ZERO, 1)` em `OrderSummaryCalculator.java:151`.
-- **O motoboy:** `new ShippingQuote(new BigDecimal("18"), 0)` em `OrderSummaryCalculator.java:158`, com o limite de 5 kg na linha 155. O mesmo limite aparece repetido em `ValidationService.java:89-92`.
-
-Nenhuma das duas passa pela `TransLogService`. Também não existe interface de transportadora, "cliente" do motoboy nem adaptador para devolver um número fixo. O `ShippingQuote` reaproveitado é só um par valor/prazo, não uma porta de transportadora. A forma como essas entregas são escolhidas (um `switch` sobre `ShippingMethod`, nas linhas 145-161) é assunto do Strategy (P1), não deste ponto.
+**P6-exagero, as entregas sem transportadora.** A retirada e o motoboy são valores fixos dentro do próprio cálculo do frete: `case STORE_PICKUP: baseQuote = new ShippingQuote(BigDecimal.ZERO, 1)` (`OrderSummaryCalculator.java:150-152`) e `case COURIER: ... new ShippingQuote(new BigDecimal("18"), 0)`, com o limite de 5 kg (`OrderSummaryCalculator.java:153-159`). O limite também é conferido na validação (`ValidationService.java:89-94`). Não há interface de transportadora, nem cliente do motoboy, e a retirada não passa pela `TransLogService`. A busca por `interface` em `src/main` só acha os quatro repositórios JPA. O `ShippingQuote` usado nesses dois casos é um valor nosso (custo e dias), não uma porta de transportadora. O fato de o valor fixo morar num `switch` sobre as entregas é assunto do Strategy (P1), não deste controle.
 
 Conclusão: contenção
 
-**E, estrutura sem necessidade fora dos pontos (perto do Adapter).** Perto da integração com a TransLog não há estrutura que ninguém pediu: nenhuma interface com uma implementação só, nenhuma camada que só repassa, nenhuma fábrica de clientes HTTP. As únicas interfaces do projeto são os repositórios do Spring Data (`domain/repository/*.java`). `ValidationService` e `CouponValidator` são criados com `new` dentro de `OrderService.java:39-40`, sem nenhuma camada extra. O problema aqui é o contrário: falta uma porta. Isso está registrado no P6, não aqui.
+**E, estrutura sem necessidade fora dos pontos (perto do Adapter).** Perto da integração não há estrutura sobrando: nenhuma interface de implementação única, nenhuma camada que só repassa, nenhuma fábrica de clientes HTTP. O `HttpClient` e o `ObjectMapper` são campos da própria classe (`TransLogService.java:23-27`). A URL vem de uma propriedade simples, `translog.url=${TRANSLOG_URL:...}` (`application.properties:14`, lida em `TransLogService.java:20`). As únicas interfaces do projeto são os repositórios do Spring Data (`domain/repository/*.java`), que o framework exige.
 
 Conclusão: contenção
 
 ## O que mudaria primeiro
 
-1. **Fazer o adaptador devolver um resultado nosso que separe as falhas.** Por exemplo, uma cotação, um "não atende este CEP" e um "transportadora indisponível", ou exceções do nosso domínio, no lugar de `null`. Hoje a falha de rede e o CEP não atendido chegam iguais a quem chama, e o `CARRIER_UNAVAILABLE` nunca sai.
-2. **Dar uma porta própria à transportadora.** Uma interface com uma operação de cotar (CEP, peso em kg, entrega) que devolve frete em reais e prazo em dias, num tipo que pertença a essa porta e não à calculadora. Assim a `TransLogService` passa a ser só uma implementação, e trocar de transportadora deixa de mexer em `OrderSummaryCalculator` e `OrderService`.
+1. **Fazer o adaptador devolver o resultado na nossa língua, sem `null`.** Por exemplo, uma cotação, "não atende" e "fora do ar" como resultados distintos, ou duas exceções nossas, com a resposta 200 sem `price_cents` tratada como "fora do ar". Hoje o adaptador entende a TransLog e depois joga fora a diferença entre os dois erros. Assim o chamador não consegue aplicar a regra de negócio que depende dela.
+2. **Colocar uma porta de transportadora entre o cálculo do frete e o `TransLogService`.** Com ela, `OrderSummaryCalculator` e `OrderService` dependem da porta e não da classe concreta, e a troca de transportadora, que o enunciado prevê, mexe só no adaptador. Também convém tirar o `ShippingQuote` de dentro do `OrderSummaryCalculator`, para que o adaptador não dependa da classe que o usa.
 
 ## Dúvidas
 
-- **Até onde vai o "lado da TransLog".** Ele não tem pasta própria: a `TransLogService` divide `application/service/` com os serviços nossos. Considerei como lado da TransLog só esse arquivo, que é o único que faz a chamada HTTP e o único que conhece o formato dela.
-- **Como tratar a perda da distinção entre as falhas.** Contei isso como ressalva, não como vazamento, porque nenhum termo da TransLog sai do adaptador. Se a régua entendesse que uma tradução incompleta das falhas é cobertura parcial da peça, a leitura poderia pender para `malfeito`. Fiquei com `acerto` porque a régua diz explicitamente que este ponto mede o isolamento do vocabulário.
+- **O que conta como o lado da TransLog.** O `TransLogService` fica na mesma pasta que todos os serviços de aplicação. Considerei como lado dela só esse arquivo: é o único que faz a chamada HTTP, e os outros da pasta conhecem os nossos casos.
+- **O `null` que mistura "não atende" e "fora do ar".** Pela régua, P6 mede o isolamento do vocabulário, então registrei isso como ressalva, não como vazamento, e mantive `acerto`. Quem ler P6 como "o adaptador traduz por inteiro a resposta da TransLog" poderia concluir `malfeito`.
