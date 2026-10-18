@@ -12,8 +12,9 @@ conferidos pelo financeiro, a tabela "Quando dá erro"); não há outro gabarito
   começa vazio. Não há como apagá-lo entre um teste e outro: use CPFs e quantidades novas em cada teste e confira
   o estoque pela diferença.
 - **O serviço.** Copie o `workspace/` para outro lugar (nunca mude a pasta de trabalho), compile com
-  `mvn -q package -DskipTests` e suba o jar com `java -jar <jar> --server.port=8081 &`. Para duas máquinas, suba
-  um segundo na 8082, com o mesmo banco.
+  `mvn -q package -DskipTests` e suba o jar com a porta na variável `PORT`, como o enunciado pede
+  (`PORT=8081 java -jar <jar> &`; um serviço Spring Boot dos lotes antigos lê a porta de `SERVER_PORT`). Para duas
+  máquinas, suba um segundo na 8082, com o mesmo banco.
 - **A TransLog.** É você quem a imita: escreva um servidor pequeno com o `HttpServer` do JDK (um `Stub.java` que se
   roda com `java Stub.java`), que responda como o anexo "A TransLog" descreve, e passe o endereço na variável
   `TRANSLOG_URL` ao subir o serviço. Faça-o responder do jeito que cada teste pede (um preço com mais de duas

@@ -286,7 +286,9 @@ Nos exemplos, o CEP é sempre `01310100`, e o cliente está fazendo a primeira c
 
 ## O que pesquisei da parte técnica
 
-- Use Java 21 e Spring Boot 4.1.1.
+- Use Java 21 e Javalin 6.7.0, sem Spring.
+- O serviço atende na porta que chega pela variável de ambiente `PORT` (se ela não vier, na 8080).
+- O `mvn package` precisa gerar um jar que sobe sozinho com `java -jar`.
 - Use PostgreSQL 18 para guardar os dados. O endereço, o usuário e a senha do banco chegam pelas variáveis de ambiente `DB_URL`, `DB_USER` e `DB_PASSWORD`. O banco começa vazio: o serviço precisa criar o que precisa ao subir.
 - Em produção, o serviço roda em duas máquinas ao mesmo tempo, atrás de um balanceador, as duas usando o mesmo banco.
 - O projeto precisa funcionar com `mvn verify`. O computador que roda o `mvn verify` não tem banco de dados nem Docker; as dependências do Maven são baixadas normalmente.

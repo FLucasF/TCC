@@ -37,6 +37,9 @@ public final class AgentService {
     public boolean start(Duration timeout) throws Exception {
         ProcessBuilder builder = new ProcessBuilder("java", "-jar", jar.getAbsolutePath());
         builder.environment().putAll(environment);
+        // the prompt asks for PORT (Javalin, since 18/10/2026); SERVER_PORT is what a Spring Boot service of the older
+        // batches reads
+        builder.environment().put("PORT", String.valueOf(port));
         builder.environment().put("SERVER_PORT", String.valueOf(port));
         builder.redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(log));
         process = builder.start();

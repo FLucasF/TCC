@@ -1,8 +1,8 @@
 # A correção de um serviço
 
 Este guia é para a IA que corrige **uma dimensão de uma execução** da construção: o serviço de pedidos de uma loja
-online, em Java com Spring Boot e PostgreSQL, que um agente de programação escreveu do zero a partir de um
-enunciado. A régua da dimensão vem logo depois deste guia: `architecture.md`, `tests.md`, `database.md` ou
+online, em Java e PostgreSQL, com o framework web que o enunciado daquela execução pede (Javalin; Spring Boot nos
+lotes até 18/10/2026), que um agente de programação escreveu do zero a partir de um enunciado. A régua da dimensão vem logo depois deste guia: `architecture.md`, `tests.md`, `database.md` ou
 `behavior.md`; os padrões têm uma régua por pattern, como na manutenção (`patterns/common.md` e depois
 `patterns/strategy.md`, `patterns/adapter.md`, `patterns/state.md` ou `patterns/factory.md`). Leia tudo inteiro
 antes de abrir o código.

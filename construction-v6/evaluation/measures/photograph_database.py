@@ -60,12 +60,15 @@ def photograph(workspace: Path, output_folder: Path) -> bool:
     output_folder.mkdir(parents=True, exist_ok=True)
     start_clean_database()
     try:
+        # the port goes in PORT (what the prompt asks, Javalin) and in SERVER_PORT (a Spring Boot service of the older
+        # batches)
         environment = {**os.environ, "DB_URL": f"jdbc:postgresql://localhost:{DATABASE_PORT}/{DATABASE_NAME}",
                        "DB_USER": DATABASE_USER, "DB_PASSWORD": DATABASE_PASSWORD,
-                       "TRANSLOG_URL": "http://localhost:9"}
+                       "TRANSLOG_URL": "http://localhost:9",
+                       "PORT": str(SERVICE_PORT), "SERVER_PORT": str(SERVICE_PORT)}
         with (output_folder / "service.log").open("wb") as log:
-            service = subprocess.Popen(["java", "-jar", str(jar), f"--server.port={SERVICE_PORT}"], env=environment,
-                                       stdout=log, stderr=subprocess.STDOUT)
+            service = subprocess.Popen(["java", "-jar", str(jar)], env=environment, stdout=log,
+                                       stderr=subprocess.STDOUT)
             try:
                 started = wait_until_answering(service)
                 save_database_schema(output_folder)

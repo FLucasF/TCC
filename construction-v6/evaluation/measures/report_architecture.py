@@ -62,6 +62,7 @@ class ArchitectureFacts:
     cycles: list[Cycle]
     controller_dependents: list[ClassUses]
     incoming_web_users: list[ClassUses]
+    javalin_users: list[ClassUses]    # every class that uses Javalin, the web layer included (none in older reports)
 
     @staticmethod
     def from_json(raw: Any) -> "ArchitectureFacts":
@@ -93,7 +94,9 @@ class ArchitectureFacts:
             cycles=[Cycle(texts(item, "packages"), [dependency(edge) for edge in value(item, "dependencies", list)])
                     for item in value(raw, "cycles", list)],
             controller_dependents=[class_uses(item) for item in value(raw, "controllerDependents", list)],
-            incoming_web_users=[class_uses(item) for item in value(raw, "incomingWebUsers", list)])
+            incoming_web_users=[class_uses(item) for item in value(raw, "incomingWebUsers", list)],
+            javalin_users=[class_uses(item)
+                           for item in (raw.get("javalinUsers") or [] if isinstance(raw, dict) else [])])
 
 
 @dataclass
@@ -178,6 +181,11 @@ def as_text(report: ArchitectureReport) -> str:
                            ("Classes outside the web layer that use the incoming web", facts.incoming_web_users)):
         lines.append(f"{title}: {len(entries) or 'none'}")
         lines += [f"  {entry.class_name} uses {', '.join(entry.uses)}" for entry in entries]
+    if facts.javalin_users:
+        lines.append(f"Classes that use Javalin ({len(facts.javalin_users)}; Javalin has no annotation that marks "
+                     "the web layer, so the web layer is in this list too: telling it apart from the business classes "
+                     "is the corrector's call):")
+        lines += [f"  {entry.class_name} uses {', '.join(entry.uses)}" for entry in facts.javalin_users]
     return "\n".join(lines) + "\n"
 
 

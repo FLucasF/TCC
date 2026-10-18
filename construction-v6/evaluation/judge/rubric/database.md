@@ -75,8 +75,9 @@ colunas repetidas e diga por que não são uma foto do momento.
 
 **B9, como o esquema é criado?** Fonte: documentação do Spring Boot, *Database Initialization* ("é recomendado usar
 um mecanismo só para gerar o esquema"; o Flyway e o Liquibase são as "ferramentas de migração de mais alto nível").
-Veja o `pom.xml`, o `application.properties`/`.yml` (`spring.jpa.hibernate.ddl-auto`), os arquivos `schema.sql` e
-as pastas de migração (`db/migration`). Diga qual mecanismo cria o esquema: uma ferramenta de migração versionada
+A recomendação vale para qualquer framework. Veja o `pom.xml`, a configuração (no Spring, o
+`application.properties`/`.yml` e o `spring.jpa.hibernate.ddl-auto`; no Javalin, o código que sobe o serviço), os
+arquivos `schema.sql` e as pastas de migração (`db/migration`). Diga qual mecanismo cria o esquema: uma ferramenta de migração versionada
 (o Flyway ou o Liquibase), o Hibernate a partir das entidades (`ddl-auto`), ou um `schema.sql`/script próprio. Dois
 mecanismos ao mesmo tempo (o Flyway e o `ddl-auto=update`, por exemplo) é o que a documentação desaconselha.
 

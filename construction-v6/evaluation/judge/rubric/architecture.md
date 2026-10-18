@@ -9,7 +9,10 @@ Ele traz fatos, não notas:
   pacote `a` usa a classe `Y` do pacote `b`);
 - os ciclos: cada grupo de pacotes que dependem uns dos outros em círculo, com as dependências de dentro do grupo;
 - as classes de fora da camada web que dependem de um controller, e as que usam a API da web de entrada (as
-  anotações e os tipos do Spring MVC, o `ResponseEntity`).
+  anotações e os tipos do Spring MVC, o `ResponseEntity`);
+- num projeto Javalin, as classes que usam o Javalin (o `Context`, o `Handler`, o próprio `Javalin`). O Javalin não
+  tem anotação que marque a camada web, então essa lista traz a camada web junto: é você quem separa os handlers e a
+  montagem das rotas das classes de negócio.
 
 O relatório é confiável no que diz (é lido do código compilado) e é a fonte para as dependências. O que ele **não**
 diz é se uma dependência é um problema: isso é o que você julga, abrindo as classes que ele cita.
@@ -17,10 +20,10 @@ diz é se uma dependência é um problema: isso é o que você julga, abrindo as
 ## Os itens
 
 **A1, a regra de negócio não conhece a web?** A regra de negócio (o cálculo, o ciclo do pedido, o estoque) não
-deveria depender de nada que só existe porque o serviço é chamado por HTTP: os tipos do Spring MVC, o
-`ResponseEntity`, os códigos HTTP, **e os objetos de entrada e saída da própria API do projeto** (os records do
+deveria depender de nada que só existe porque o serviço é chamado por HTTP: os tipos do framework web (o
+`Context` do Javalin; no Spring, os tipos do Spring MVC e o `ResponseEntity`), os códigos HTTP, **e os objetos de entrada e saída da própria API do projeto** (os records do
 corpo da requisição e da resposta, quando moram com os controllers). O certo é a regra de negócio receber e devolver
-tipos próprios, com a tradução de e para HTTP na camada web. O relatório pega os tipos do Spring; os objetos da API
+tipos próprios, com a tradução de e para HTTP na camada web. O relatório pega os tipos do framework; os objetos da API
 do projeto você acha nas dependências entre pacotes (por exemplo, um serviço que recebe o `PedidoRequest` do pacote
 dos controllers). Cite cada classe de negócio que conhece a web. A pergunta é de sim ou não: **uma classe de
 negócio que conhece a web já basta para `não segue`**, mesmo que todo o resto esteja limpo.
@@ -39,7 +42,7 @@ resultado (ou a recusa) para HTTP, sem decidir nada do negócio. É problema um 
 recusa do negócio, mudar a situação do pedido ou mexer no estoque. Cite onde.
 
 **A4, o acesso ao banco está isolado?** A regra de negócio deveria falar com os dados por repositórios (Spring Data,
-um DAO, uma interface própria), com o SQL e o JDBC, quando existem, em classes de acesso a dados. É problema uma
+um DAO, uma interface própria, um repositório com JDBC ou JDBI), com o SQL e o JDBC, quando existem, em classes de acesso a dados. É problema uma
 classe de regra de negócio montar SQL ou usar JDBC direto. Cite onde.
 
 **A5, um cálculo só para o resumo e para o pedido?** O enunciado pede que o resumo antes de confirmar e o do pedido

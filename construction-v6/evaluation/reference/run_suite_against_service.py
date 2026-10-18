@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 REFERENCE = Path(__file__).resolve().parent
@@ -31,11 +32,26 @@ DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD = "shop", "postgres", "suite"
 DATABASE_START_TIMEOUT_SECONDS = 60
 
 
+def has_main_class(jar: Path) -> bool:
+    """Whether the jar's manifest says which class to run (a jar that `java -jar` can start)."""
+    try:
+        with zipfile.ZipFile(jar) as archive:
+            manifest = archive.read("META-INF/MANIFEST.MF").decode("utf-8", errors="replace")
+    except (KeyError, OSError, zipfile.BadZipFile):
+        return False
+    return any(line.startswith("Main-Class:") for line in manifest.splitlines())
+
+
 def find_agent_jar(workspace: Path) -> Path | None:
-    """The shallowest target/*.jar that is not the ".original" Spring Boot leaves behind."""
+    """The jar `java -jar` starts: under the shallowest target/, one with a Main-Class, the biggest (the one with the
+    dependencies inside). Left out: what the build tools leave next to it (Spring Boot's ".original", the shade
+    plugin's "original-*.jar") and the sources, javadoc and test jars."""
+    leftovers = ("-sources.jar", "-javadoc.jar", "-tests.jar")
     jars = [jar for jar in workspace.rglob("*.jar")
-            if jar.parent.name == "target" and not jar.name.endswith(".original")]
-    jars.sort(key=lambda jar: (len(jar.relative_to(workspace).parts), jar.as_posix()))
+            if jar.parent.name == "target" and not jar.name.startswith("original-")
+            and not jar.name.endswith(leftovers)]
+    jars.sort(key=lambda jar: (len(jar.relative_to(workspace).parts), not has_main_class(jar), -jar.stat().st_size,
+                               jar.as_posix()))
     return jars[0] if jars else None
 
 

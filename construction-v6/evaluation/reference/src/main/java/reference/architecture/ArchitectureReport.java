@@ -33,7 +33,10 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
  *   - outside the web layer, the classes that depend on a controller, and the classes that use the API of the
  *     INCOMING web (Spring's web.bind / web.servlet / web.server, jakarta.servlet, ResponseEntity): the business code
  *     knows it is being called over HTTP. The OUTGOING web (RestClient, to call the TransLog) and HttpStatus are not
- *     counted: an adapter uses them legitimately.
+ *     counted: an adapter uses them legitimately;
+ *   - every class that uses Javalin (io.javalin.*), with the types it uses. Javalin has no annotation that marks the
+ *     web layer, so the list includes the web layer itself, and the corrector separates the handlers and the route
+ *     setup from the business classes.
  *
  * The web layer is the classes annotated as controllers or controller advice, the servlet filters, the Spring MVC
  * configuration, and the classes nested in them. Annotations are compared by name, so Spring does not need to be on
@@ -59,6 +62,8 @@ public final class ArchitectureReport {
             "org.springframework.web.bind", "org.springframework.web.servlet", "org.springframework.web.server",
             "org.springframework.web.method", "org.springframework.web.context.request", "jakarta.servlet");
     static final Set<String> INCOMING_WEB_CLASSES = Set.of("org.springframework.http.ResponseEntity");
+    /** Javalin has no annotation that marks a web layer, so every class that uses it is listed, the web layer included. */
+    static final String JAVALIN_PACKAGE = "io.javalin";
 
     public static void main(String[] args) throws Exception {
         Map<String, String> options = new LinkedHashMap<>();
@@ -81,6 +86,8 @@ public final class ArchitectureReport {
         // class -> the controllers / the incoming-web types it uses
         Map<String, Set<String>> controllerDependents = new TreeMap<>();
         Map<String, Set<String>> incomingWebUsers = new TreeMap<>();
+        // class -> the Javalin types it uses (every class, the web layer included)
+        Map<String, Set<String>> javalinUsers = new TreeMap<>();
 
         for (JavaClass javaClass : classes) {
             String source = outermost(javaClass).getName();
@@ -97,6 +104,9 @@ public final class ArchitectureReport {
                     dependencies.computeIfAbsent(sourcePackage, name -> new TreeMap<>())
                             .computeIfAbsent(targetPackage, name -> new TreeSet<>())
                             .add(relative(source, rootPackage) + " -> " + relative(targetName, rootPackage));
+                }
+                if (targetName.startsWith(JAVALIN_PACKAGE + ".")) {
+                    javalinUsers.computeIfAbsent(relative(source, rootPackage), name -> new TreeSet<>()).add(targetName);
                 }
                 if (inWebLayer) continue;
                 if (isController(target)) {
@@ -124,6 +134,7 @@ public final class ArchitectureReport {
         result.put("cycles", cycles);
         result.put("controllerDependents", uses(controllerDependents));
         result.put("incomingWebUsers", uses(incomingWebUsers));
+        result.put("javalinUsers", uses(javalinUsers));
         return result;
     }
 

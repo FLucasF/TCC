@@ -782,3 +782,22 @@ do serviço plantado deu `malfeito` (US$ 0,46). No batch-1 (Adapter e comportame
   aguardando pagamento);
 - os Sonnet 5.5 seguem `segue` em tudo, nos três braços.
 
+
+## A construção passa para Javalin (18/10/2026)
+
+Decisão do Lucas: a construção usa Javalin, como a manutenção ("era para ambos serem em javalin"). O enunciado até
+aqui pedia Spring Boot 4.1.1 (herdado do V5); o batch-1, os pilotos e o relatório de 18/10 ficam como o registro de
+uma rodada em Spring Boot, e as execuções em Javalin começam no batch-2.
+- **O enunciado** (`experiment/prompt/prompt.md`; o anterior em `history/prompt.antes-javalin.md`): "Use Java 21 e
+  Javalin 6.7.0, sem Spring", a porta pela variável `PORT` (8080 se ela não vier) e um `mvn package` que gera um jar
+  que sobe sozinho com `java -jar`. Sem o Spring, a porta e o jar executável precisam estar no enunciado, para a
+  correção e a suíte conseguirem subir o serviço.
+- **A régua** ficou neutra ao framework (vale para o Javalin das execuções novas e para o Spring do serviço plantado e
+  do batch-1): o `common.md`, o A1, o A4, o B9, o Factory e o jeito de subir o serviço no comportamento.
+- **As ferramentas**: o relatório de arquitetura lista as classes que usam o Javalin (o Javalin não tem anotação que
+  marque a camada web, então a lista traz a camada web junto); a escolha do jar passa a pegar o que tem `Main-Class`
+  e deixa de fora o `original-*.jar` do plugin shade; a suíte e a foto do banco passam a porta em `PORT` e em
+  `SERVER_PORT`. Conferido: no Spring, a foto do batch-1 saiu idêntica e a escolha do jar não mudou.
+- **O piloto** (`runs/pilots-javalin/N0-sonnet-5-5`, US$ 1,16): o serviço em Javalin 6.7.0 sobe, a suíte passa em 463
+  de 463, o PIT dá 85%, e a correção nas 8 dimensões funcionou (US$ 5,91; a IA subiu o serviço com `PORT`).
+- **O serviço plantado continua em Spring**: a régua neutra vale para ele, mas não há um serviço plantado em Javalin.
