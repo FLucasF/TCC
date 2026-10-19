@@ -1379,3 +1379,7 @@ entrega como mensagem do usuário, e ele respondeu e parou.
 `09-template-method-…`). *Por quê:* facilitar a leitura do Lucas. O nome não chega ao agente (o texto vai pela
 entrada padrão, e ele trabalha em `/workspace`), e o texto montado continua idêntico ao que as execuções receberam; os
 `meta.json` antigos guardam o nome anterior.
+
+**19/10: os pedidos da maintenance-v1 também passam a ter o pattern no nome** (`01-strategy-…`, e os controles com
+`-control`, como `02-strategy-control-…`). *Por quê:* a mesma leitura da construção, e as duas pesquisas seguem a
+mesma estrutura. O nome não chega ao agente, e o texto continua idêntico ao que as execuções receberam.

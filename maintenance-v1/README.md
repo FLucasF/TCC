@@ -37,6 +37,11 @@ consultor e encerrou a execução sem mudar nenhuma linha (o `changes.patch` est
 [`docs/relatorio-construction-v7.md`](../docs/relatorio-construction-v7.md), na seção "O erro da skill aberta com uma
 pergunta".
 
+**Os nomes dos pedidos trazem o pattern** (`01-strategy-novos-planos-de-tarifa.md`, e os controles com `-control`,
+como `02-strategy-control-temporada-e-pascoa.md`), para a leitura do Lucas (19/10/2026), como na `construction-v7`. O
+agente nunca vê esse nome: o texto vai para o `prompt.md` da execução e entra pela entrada padrão. O texto continua o
+mesmo, byte a byte, que as execuções receberam (o `prompt_sha256` confere).
+
 ## O que fica onde
 
 | pasta | o que tem |
