@@ -1383,3 +1383,35 @@ entrada padrão, e ele trabalha em `/workspace`), e o texto montado continua id�
 **19/10: os pedidos da maintenance-v1 também passam a ter o pattern no nome** (`01-strategy-…`, e os controles com
 `-control`, como `02-strategy-control-…`). *Por quê:* a mesma leitura da construção, e as duas pesquisas seguem a
 mesma estrutura. O nome não chega ao agente, e o texto continua idêntico ao que as execuções receberam.
+
+**19/10: nasce o `TCC_V1`, com uma pasta `construction` e uma `maintenance`, copiadas da `construction-v7` e da
+`maintenance-v1` com os resultados; as pastas antigas ficam como registro.** A construção continua do zero (pasta
+vazia e o enunciado inteiro) e a manutenção continua com o projeto base. *Por quê:* deixar as duas pesquisas juntas
+e organizadas num lugar só.
+
+**19/10: a correção das duas pesquisas é unificada num avaliador só (`TCC_V1/evaluation`), e recalibrada nas 10
+soluções de referência nos dois contextos antes de valer; as correções antigas ficam como estão.** Um texto comum,
+uma instrução por pattern com os mesmos critérios, e um bloco de contexto por pesquisa (o que o avaliador recebe, o
+ponto de partida de cada pattern, o alcance do comportamento). O vocabulário é o da construção: as quatro classes, o
+exagero colateral, o comportamento `segue`/`em parte`/`não segue`/`não se aplica` e a seção "Como foi implementado,
+e por que o julgamento". *Por quê:* os critérios já eram os mesmos; o que mudava era só o contexto e restos da época
+dos controles negativos (`contenção`/`exagero` como classe, `certo`/`errado` no comportamento).
+
+**19/10: o TCC_V1 ganha uma skill de patterns escrita por nós (`TCC_V1/skills/design-patterns`), para um braço
+novo; a `gof-patterns` continua no N2.** Segue as boas práticas de skills do Claude (a descrição dizendo o que faz e
+quando usar, o `SKILL.md` curto com o processo de decisão, uma referência por pattern lida sob demanda, o porquê de
+cada regra). Cobre os 5 patterns do estudo e os vizinhos com que eles se confundem, com a mesma profundidade; os
+exemplos ficam fora do domínio da pousada; os erros comuns vêm da literatura, sem as frases da régua; e ela diz que é
+referência, e não um lugar para fazer perguntas. *Por quê:* a `gof-patterns` é um catálogo de 896 KB que não separa
+os patterns vizinhos nem diz quando não usar, e não há no GitHub uma skill de patterns bem avaliada por si (as
+estrelas são das coleções, que não têm uma). *O que se aceita:* escrita por quem conhece as tarefas e a régua, ela
+tende a favorecer o braço que a recebe; o viés fica declarado, e o N2 com a skill pública continua sendo a medida
+principal.
+
+**19/10: o `TCC_V1` é refeito do zero, pronto para rodar: só os enunciados (os 5 cenários ímpares), a base da
+manutenção, os harnesses, os scripts, a correção unificada (já calibrada) e as 10 soluções de referência dos ímpares;
+sem execuções, sem correções antigas, sem o N2u e sem os controles.** O N2 passa a usar a skill `design-patterns`,
+escrita para o TCC, no lugar da `gof-patterns`, e a linha do `CLAUDE.md` passa a ser "use a skill `design-patterns`"
+(antes, "consulte a skill `gof-patterns`"). *Por quê:* o Lucas vai rodar tudo de novo no TCC_V1 (na quarta, 21/10);
+a ideia do N2 é o agente usar a skill, e não consultá-la. As execuções com a `gof-patterns` ficam na `construction-v7`
+e na `maintenance-v1`, como registro e como comparação.
