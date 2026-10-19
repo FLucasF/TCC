@@ -191,10 +191,11 @@ só pede ao plano, sem perguntar qual ele é.
   ("Para seu caso de planos de tarifa, o padrão ideal é Strategy"). Depois disso, ele parou. Foram 3 turnos, 51
   segundos e US$ 0,10.
 - **Por que não segue:** não há sistema para testar. A própria IA da correção desconfiou de uma falha na cópia da
-  pasta, mas eu conferi o registro da execução: a pasta veio vazia mesmo, e o problema foi do agente.
-- **Como o `CLAUDE.md` e a skill influenciaram:** a linha do N2 levou a uma consulta, e o modelo tratou a consulta
-  como a tarefa inteira. O mesmo aconteceu no cenário 07, abaixo. A causa é a skill aberta com uma pergunta, e não o
-  `CLAUDE.md`.
+  pasta, mas eu conferi o registro da execução: a pasta veio vazia mesmo. Não foi falha da infraestrutura, e
+  também não foi só o modelo (veja "O erro da skill aberta com uma pergunta", no fim).
+- **Como o `CLAUDE.md` e a skill influenciaram:** a linha do N2 ("consulte a skill") levou a uma consulta. A
+  pergunta que o modelo passou para a skill voltou como se fosse uma mensagem do dono, e ele a respondeu e parou. O
+  mesmo aconteceu no cenário 07, abaixo.
 
 ### Sonnet 5.5
 
@@ -752,6 +753,81 @@ contam contra os modelos de forma igual:
 - **as linhas de total dos CSV:** saíram com ou sem vírgulas de preenchimento, e a correção não contou isso como
   erro.
 
+## O erro da skill aberta com uma pergunta
+
+Este é o achado mais importante sobre o N2. Ele afeta a construção e a manutenção.
+
+**Como a skill é aberta no experimento.** O agente roda sozinho, com `claude -p`, e ninguém digita `/gof-patterns`.
+A skill só abre se o próprio modelo chamar a ferramenta `Skill`. Até lá, ele vê só o nome e a descrição dela. Ao
+chamar, o corpo do `SKILL.md` entra na conversa. A ferramenta aceita um texto opcional, os `args`.
+
+**O que dá errado.** Quando o modelo passa uma pergunta nos `args`, o Claude Code entrega o texto da skill com
+`ARGUMENTS: <a pergunta>` no fim, numa mensagem com o papel de **usuário**. O modelo lê aquilo como se o dono tivesse
+acabado de perguntar "Qual padrão usar?". Ele responde como consultor, com a explicação do pattern e um código de
+exemplo, e encerra o turno. No modo `-p`, encerrar o turno encerra a execução: não há ninguém para dizer "agora
+construa".
+
+**Onde aconteceu.**
+
+| pesquisa | modelo e braço | cenário | o que ele passou para a skill | o resultado |
+|---|---|---|---|---|
+| construção (v7) | Sonnet 4.5 N2 | 01 | "(…) Qual padrão usar?" | parou; pasta vazia |
+| construção (v7) | Sonnet 4.5 N2 | 07 | "(…) Como organizar isso?" | parou; pasta vazia |
+| construção (v7) | Sonnet 4.5 N2 | 09 | a lista dos relatórios e das variações | seguiu, mas com o pattern errado (Strategy) |
+| manutenção (v1) | Sonnet 4.5 N2 | 02 | "Como determinar se uma data está em alta temporada? (…)" | parou; nenhuma linha mudada |
+| manutenção (v1) | Sonnet 4.5 N2 | 09 | "Preciso adicionar dois novos relatórios (…)" | parou; nenhuma linha mudada |
+
+- **O Sonnet 4.5 parou em 4 das 5 vezes** em que passou uma pergunta para a skill.
+- **Quem abriu sem pergunta seguiu trabalhando:** o Sonnet 5.5, todas as vezes, e o Sonnet 4.5 no 03 e no 05.
+- **Outros modelos também passaram uma pergunta e não pararam:** o Haiku 4.5 (manutenção 01 e 03) e o Opus 5
+  (manutenção 01).
+
+**De quem é o erro.**
+- **Não é da infraestrutura:** o enunciado chegou inteiro, a pasta estava certa e a skill carregou.
+- **Não é só do modelo:** três coisas do nosso N2 armam a situação:
+  - o verbo "consulte", que convida a fazer uma pergunta;
+  - a skill, que é um texto de referência e não diz como deve ser aberta;
+  - a execução de uma vez só, sem segunda chance.
+
+  O Sonnet 4.5 é o modelo que cai nela. É um efeito do harness com esse modelo.
+
+**Como isso pesa nos números.**
+- **Na construção,** as duas pastas vazias (01 e 07) entram como `omissão`, mas o certo é lê-las como "nada
+  entregue".
+- **Na manutenção,** as duas execuções sem mudança foram corrigidas como se o agente tivesse decidido não mexer:
+  - o 02 recebeu `contenção`, como se fosse um acerto do controle negativo; os controles já saíram da análise;
+  - o 09 recebeu `omissão`.
+
+  Os dois são "nada entregue".
+
+**O teste.** O braço N2u troca a linha por "use a skill `gof-patterns` e aplique no código o que ela indicar para
+este projeto". Ele roda o Sonnet 4.5 nos três cenários da construção em que o N2 dele deu errado (01, 07 e 09), à
+parte das 45 execuções, com o mesmo avaliador às cegas.
+
+| cenário | N0 | N1 | N2 ("consulte") | N2u ("use… e aplique") |
+|---|---|---|---|---|
+| 01 Strategy | malfeito | acerto | pasta vazia | malfeito, contenção, em parte |
+| 07 Decorator | omissão | omissão | pasta vazia | malfeito, contenção, em parte |
+| 09 Template Method | omissão | omissão | omissão, contenção | omissão, **exagero**, em parte |
+
+- **A parada sumiu.** As três execuções entregaram o projeto inteiro, com o build ok, em 9 a 12 minutos. No 01, o
+  agente abriu a skill sem pergunta e leu o `strategy.md`. No 07 e no 09, ainda passou texto nos `args`, mas desta
+  vez não tratou a resposta como o fim do trabalho: leu os arquivos dos patterns e seguiu construindo.
+- **01:** o Strategy existe, mas a interface não leva o código da empresa, e o serviço pergunta "é `CORPORATE`?" e
+  faz `instanceof` para chamar um método que só o convênio tem. É o mesmo furo do N0 do Sonnet 4.5.
+- **07:** escolheu uma corrente de regras, que as instruções aceitam, mas a escolha do modo ficou dentro das regras
+  (a cópia e o desvio perguntam pelo `testMode`), e a montagem instala sempre as três. Ficou melhor que o N0 e o N1
+  (omissão), no mesmo ponto em que o Sonnet 5.5 também tropeçou no N0 e no N1.
+- **09:** escolheu de novo o Strategy para os relatórios, como no N2. Cada relatório escreve tudo sozinho, o título
+  inclusive, e por isso a classe continua `omissão`. E, seguindo o "aplique o que ela indicar", espalhou patterns que
+  o enunciado não pede: um State de cinco classes para a situação da reserva e uma Strategy de plano de tarifa
+  paralela ao enum. É o primeiro exagero do Sonnet 4.5 na construção.
+
+**O que o teste mostra.** O verbo resolve a parada: com "use", o Sonnet 4.5 entregou nas três vezes. Não resolve a
+escolha do pattern: no 09 a skill continuou levando ao Strategy. E "aplique o que ela indicar" tem um custo: no 09,
+virou licença para pôr patterns onde ninguém pediu, contra o segundo princípio do `CLAUDE.md`. Com uma execução por
+cenário, isso é um indício, e não uma medida.
+
 ## Observações sobre a correção
 
 - **O registro dos ouvintes no 03.** O mesmo problema, a lista criada no construtor de quem distribui, recebeu
@@ -762,7 +838,7 @@ contam contra os modelos de forma igual:
   `alternativa equivalente`. Escolheu `malfeito` pela regra escrita nas instruções: no 07, a combinação por modo
   decidida na montagem; no 09, as partes que variam entregues como funções, e não como valores prontos.
 - **As pastas vazias.** O 01 recebeu `não segue` e o 07 recebeu `não se aplica`, para a mesma situação. As duas
-  valem como "nada entregue".
+  valem como "nada entregue" (veja "O erro da skill aberta com uma pergunta").
 - **O título das correções.** Quase todas começam com "# Cenário 01", porque o exemplo de formato do `common.md`
   traz esse número fixo. É só o título: a pasta de cada correção diz o cenário, e o conteúdo está certo. Uma correção
   veio dentro de um bloco de código. Nada disso muda as conclusões.

@@ -30,6 +30,13 @@ pattern, e é o pedido de mudança que passa a justificá-lo. Os detalhes estão
 
 **Os controles negativos saíram da análise (decisão do Lucas, 18/10/2026).** A pesquisa passa a olhar só os cenários que pedem o pattern (01, 03, 05, 07 e 09), como a `construction-v7`. Os pedidos pares, as execuções deles (02, 04, 06, 08 e 10, dos três modelos) e as avaliações ficam guardados como registro, sem apagar, mas não entram nas tabelas nem nas conclusões.
 
+**Duas execuções do N2 não entregaram nada (achado de 19/10/2026).** O Sonnet 4.5 N2 do 02 e do 09 abriu a skill
+passando uma pergunta nos `args`; o Claude Code entrega isso como mensagem do usuário, e o modelo respondeu como
+consultor e encerrou a execução sem mudar nenhuma linha (o `changes.patch` está vazio). A correção as contou como
+`contenção` (02) e `omissão` (09), mas as duas são "nada entregue". O mecanismo e os casos da construção estão em
+[`docs/relatorio-construction-v7.md`](../docs/relatorio-construction-v7.md), na seção "O erro da skill aberta com uma
+pergunta".
+
 ## O que fica onde
 
 | pasta | o que tem |
