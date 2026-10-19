@@ -1367,3 +1367,9 @@ que o Lucas entende o motivo de cada nota.
 o texto não decide (o corpo da confirmação, o e-mail válido, o formato do "R$", a linha de total) ficam como
 limitação declarada, sem mudar a régua nem refazer avaliações. *Por quê:* é o pedido do orientador ("mais escrito e
 menos técnico"); interpretar o que o dono quis dizer é parte do que se mede.
+
+**19/10: um teste à parte, o N2u: a linha do N2 passa a dizer "use a skill `gof-patterns` e aplique no código o que
+ela indicar para este projeto", em vez de "consulte".** Roda só o Sonnet 4.5, nos três cenários em que o N2 dele deu
+errado (01, 07 e 09), numa pasta à parte, sem mexer nas 45 execuções. *Por quê:* a ideia do N2 é o agente usar a
+skill, e não consultá-la; o "consulte" levou o Sonnet 4.5 a passar uma pergunta para a skill, que o Claude Code
+entrega como mensagem do usuário, e ele respondeu e parou.

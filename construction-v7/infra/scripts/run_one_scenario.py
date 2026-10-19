@@ -45,7 +45,8 @@ HARNESSES = CONSTRUCTION_ROOT / "experiment" / "harnesses"
 RUNS = CONSTRUCTION_ROOT / "runs"
 ENV_FILE = REPOSITORY_ROOT / "construction-v5" / ".env"   # the same subscription token as the other studies (never printed)
 IMAGE = "experimento-harness:v5"
-ARMS = ("N0", "N1", "N2")
+# N2u: the N2 with the skill line saying "use" instead of "consult" (a side test, 2026-10-19; not in the 45)
+ARMS = ("N0", "N1", "N2", "N2u")
 PASSAGES = ("IDENTIFICACAO", "CAMPOS_IDENTIFICACAO", "EMAIL_CONFIRMACAO")
 SKILL_NAME = "gof-patterns"
 

@@ -8,10 +8,17 @@ como na manutenção:
 | **N0** | só o enunciado | nenhuma |
 | **N1** | o `CLAUDE.md` | `N1/` |
 | **N2** | o `CLAUDE.md` do N1 com uma linha a mais, mandando consultar a skill, e a skill `gof-patterns` | `N2/` |
+| **N2u** | o N2 com a linha da skill dizendo "use" em vez de "consulte" (teste à parte, fora das 45) | `N2u/` |
 
 O `CLAUDE.md` do N2 é o do N1, intacto, com um item a mais no fim: "Antes de decidir a estrutura, consulte a skill
 `gof-patterns`." A diferença entre o N1 e o N2 é, então, a skill **e** a instrução de consultá-la: sem a instrução,
 nenhum agente abria a skill (0 de 110 no construction-v5; 0 de 11 na manutenção antes da linha, 10 de 11 depois).
+
+**O N2u** (teste à parte, 19/10/2026) é o N2 com a última linha trocada por "Antes de decidir a estrutura, use a
+skill `gof-patterns` e aplique no código o que ela indicar para este projeto." A skill é a mesma. Motivo: no N2, o
+Sonnet 4.5 abriu a skill passando uma pergunta ("Qual padrão usar?"); o Claude Code entrega essa pergunta como
+mensagem do usuário, e ele respondeu como consultor e encerrou a execução sem código (01 e 07), ou saiu com o pattern
+errado (09). O N2u roda só o Sonnet 4.5 nesses três cenários, para ver se o verbo muda isso.
 
 ## O `CLAUDE.md`
 
