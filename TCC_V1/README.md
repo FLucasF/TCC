@@ -8,7 +8,7 @@ aplica certo? E o harness muda isso?
 |---|---|
 | [`construction/`](construction/) | a **construção**: o agente recebe uma pasta vazia e o enunciado do sistema inteiro da pousada, com a parte do cenário no fim, e constrói do zero |
 | [`maintenance/`](maintenance/) | a **manutenção**: o agente recebe o sistema pronto da pousada, sem nenhum pattern (a base), e um pedido de mudança |
-| [`evaluation/`](evaluation/) | só o `common.md`: o guia das palavras da correção (as classes, o exagero colateral, o comportamento) e do formato de uma análise, para ler os projetos |
+| [`evaluation/`](evaluation/) | só o `common.md`: o que olhar num projeto e o formato de uma correção em texto, sem classes |
 | [`skills/`](skills/) | a skill `design-patterns`, escrita para o TCC, e o README dela (origem, cuidados e o viés declarado) |
 
 As duas usam o mesmo domínio (a Pousada Maré Alta), a mesma pilha (Java 21 e Javalin 6.7.0, sem Spring), os mesmos 5

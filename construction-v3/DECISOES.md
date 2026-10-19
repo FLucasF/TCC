@@ -1425,3 +1425,9 @@ só servem para calibrar o avaliador (e a calibração já feita, 10 de 10 nos d
 Lucas vai rodar e olhar os projetos com os próprios olhos, sem correção por IA; o `common.md` fica porque explica as
 palavras (as classes, o exagero colateral, o comportamento) e o formato de uma análise. A correção unificada inteira
 está no histórico do git (commit `cc934ab5`), se voltar a fazer falta.
+
+**19/10: o `common.md` do TCC_V1 deixa de pedir uma classe; a correção é só em texto.** Saem a lista das classes
+(acerto, alternativa equivalente, malfeito, omissão), as palavras do exagero e do comportamento e as linhas
+"Conclusão:". Fica o que olhar (como a variação foi resolvida, a estrutura sem necessidade, o comportamento testado)
+e o formato da resposta (visão geral, como foi implementado, a correção, dúvidas). *Por quê:* "ele vai apenas
+corrigir, não precisa deixar uma palavra assim".
