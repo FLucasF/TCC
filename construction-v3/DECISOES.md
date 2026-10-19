@@ -1373,3 +1373,9 @@ ela indicar para este projeto", em vez de "consulte".** Roda só o Sonnet 4.5, n
 errado (01, 07 e 09), numa pasta à parte, sem mexer nas 45 execuções. *Por quê:* a ideia do N2 é o agente usar a
 skill, e não consultá-la; o "consulte" levou o Sonnet 4.5 a passar uma pergunta para a skill, que o Claude Code
 entrega como mensagem do usuário, e ele respondeu e parou.
+
+**19/10: os arquivos dos cenários da construction-v7 passam a ter o pattern esperado no nome**
+(`01-strategy-planos-de-tarifa.md`, `03-observer-…`, `05-factory-method-…`, `07-decorator-…`,
+`09-template-method-…`). *Por quê:* facilitar a leitura do Lucas. O nome não chega ao agente (o texto vai pela
+entrada padrão, e ele trabalha em `/workspace`), e o texto montado continua idêntico ao que as execuções receberam; os
+`meta.json` antigos guardam o nome anterior.

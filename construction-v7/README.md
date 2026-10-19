@@ -34,6 +34,12 @@ padrão; o batch-1 em Spring e o batch-2 em Javalin) e as versões de antes.
 | [`evaluation/answer-key/GABARITO.md`](evaluation/answer-key/GABARITO.md) | o gabarito |
 | `runs/` | as execuções, uma pasta por cenário e uma por braço e modelo |
 
+**Os nomes dos cenários trazem o pattern esperado** (`01-strategy-planos-de-tarifa.md`, por exemplo), para a
+leitura do Lucas (19/10/2026). O agente nunca vê esse nome: o script monta o texto e o entrega pela entrada padrão,
+e o agente trabalha em `/workspace`. O texto montado é o mesmo, byte a byte, que as 48 execuções receberam (o
+`prompt_sha256` confere); só o `scenario_file` dos `meta.json` dessas execuções guarda o nome antigo
+(`01-planos-de-tarifa.md`, sem o pattern).
+
 **As soluções de referência** são as da manutenção: a base da pousada com o patch de cada solução aplicado é,
 exatamente, um projeto construído do zero com o cenário feito com o pattern (ou sem ele). São 10: duas por cenário.
 
