@@ -1,6 +1,8 @@
 # A avaliação de uma execução
 
-{{INTRODUCAO}}
+Você vai avaliar o desenho de um sistema pequeno, o de reservas de uma pousada, escrito em Java com Javalin, que um
+agente de programação construiu do zero (na construção) ou mudou a partir de uma base sem nenhum pattern (na
+manutenção), a partir de um texto escrito pelo dono da pousada.
 
 Você não sabe qual agente ou modelo fez o trabalho, e não deve tentar adivinhar.
 
@@ -28,7 +30,8 @@ pattern correto com o comportamento errado continua com a classe do desenho, mas
 
 ## Como avaliar
 
-{{LEITURA}}
+Leia o texto que o agente recebeu inteiro antes de olhar o código; depois leia o código que trata da parte que pede
+o pattern, e o resto quando precisar.
 
 Julgue pelo código, nunca pelo que o agente diz na resposta final, nos comentários, no README ou nos nomes das
 classes: uma classe chamada `Strategy` que esconde um `switch` não é um Strategy.
@@ -36,7 +39,8 @@ classes: uma classe chamada `Strategy` que esconde um `switch` não é um Strate
 Toda afirmação precisa de evidência no formato `arquivo:linha`. Se ficar em dúvida entre duas classes, escolha a que
 a evidência sustenta melhor e conte a dúvida na seção "Dúvidas"; não invente uma classe nova.
 
-Para o comportamento, não confie só na leitura: teste. {{COMPORTAMENTO}} Rode também o `mvn -q verify` da cópia e
+Para o comportamento, não confie só na leitura: teste. Suba o serviço (`PORT=7070 java -jar <o jar> &`), chame a API com `curl` do jeito que o
+texto diz que o site chama, e confira as regras pedidas e uma ou duas coisas do resto do sistema. Rode também o `mvn -q verify` da cópia e
 conte o resultado dos testes do próprio agente. No fim, derrube o serviço.
 
 ## A resposta

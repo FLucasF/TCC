@@ -1415,3 +1415,13 @@ escrita para o TCC, no lugar da `gof-patterns`, e a linha do `CLAUDE.md` passa a
 (antes, "consulte a skill `gof-patterns`"). *Por quê:* o Lucas vai rodar tudo de novo no TCC_V1 (na quarta, 21/10);
 a ideia do N2 é o agente usar a skill, e não consultá-la. As execuções com a `gof-patterns` ficam na `construction-v7`
 e na `maintenance-v1`, como registro e como comparação.
+
+**19/10: as 10 soluções de referência saem do `TCC_V1`; ficam só na `maintenance-v1/evaluation/solutions/`, e o
+`calibrate` do avaliador unificado passa a lê-las de lá.** *Por quê:* o Lucas não quer as soluções no TCC_V1; elas
+só servem para calibrar o avaliador (e a calibração já feita, 10 de 10 nos dois contextos, fica guardada).
+
+**19/10: a correção sai do `TCC_V1`; fica só o `common.md`, como guia de leitura.** Saem o script
+(`evaluate_with_agent.py`), os contextos, os critérios por pattern e as duas calibrações. *Por quê:* por enquanto o
+Lucas vai rodar e olhar os projetos com os próprios olhos, sem correção por IA; o `common.md` fica porque explica as
+palavras (as classes, o exagero colateral, o comportamento) e o formato de uma análise. A correção unificada inteira
+está no histórico do git (commit `cc934ab5`), se voltar a fazer falta.

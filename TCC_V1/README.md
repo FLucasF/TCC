@@ -8,7 +8,7 @@ aplica certo? E o harness muda isso?
 |---|---|
 | [`construction/`](construction/) | a **construção**: o agente recebe uma pasta vazia e o enunciado do sistema inteiro da pousada, com a parte do cenário no fim, e constrói do zero |
 | [`maintenance/`](maintenance/) | a **manutenção**: o agente recebe o sistema pronto da pousada, sem nenhum pattern (a base), e um pedido de mudança |
-| [`evaluation/`](evaluation/) | a **correção**, a mesma para as duas, já calibrada (10 de 10 nos dois contextos) |
+| [`evaluation/`](evaluation/) | só o `common.md`: o guia das palavras da correção (as classes, o exagero colateral, o comportamento) e do formato de uma análise, para ler os projetos |
 | [`skills/`](skills/) | a skill `design-patterns`, escrita para o TCC, e o README dela (origem, cuidados e o viés declarado) |
 
 As duas usam o mesmo domínio (a Pousada Maré Alta), a mesma pilha (Java 21 e Javalin 6.7.0, sem Spring), os mesmos 5
@@ -34,14 +34,6 @@ python construction/infra/scripts/run_one_scenario.py 01 N0 claude-sonnet-5-5 me
 
 ```bash
 python maintenance/infra/scripts/run_one_scenario.py 01 N0 claude-sonnet-5-5 medium
-```
-
-```bash
-python evaluation/evaluate_with_agent.py construction evaluate-runs 01 N0 claude-opus-5-5 high --workers 3
-```
-
-```bash
-python evaluation/evaluate_with_agent.py maintenance evaluate-runs 01 N0 claude-opus-5-5 high --workers 3
 ```
 
 Os scripts de execução só rodam com as pastas do experimento commitadas (o `meta.json` guarda o hash delas). O token
