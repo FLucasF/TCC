@@ -121,12 +121,18 @@ def prepare_work_folder(case: Case | RunCase, work_folder: Path) -> None:
 def evaluator_docker_command(case: Case | RunCase, work_folder: Path, prompt_file: Path, model: str,
                              effort: str) -> list[str]:
     return [
-        "docker", "run", "--rm", "--name", f"evaluator-v7-{case.scenario}-{case.code}",
+        # the arm is in the name: two batches of the same scenario (N0 and N1, say) run at the same time
+        "docker", "run", "--rm", "--name", f"evaluator-v7-{case.scenario}-{container_arm(case)}-{case.code}",
         "--env-file", str(ENV_FILE),
         "--mount", f"type=bind,source={work_folder},target=/workspace",
         "--mount", f"type=bind,source={prompt_file},target=/experimento/prompt.md,readonly",
         IMAGE, "bash", "-c", EVALUATOR_COMMAND, model, effort,
     ]
+
+
+def container_arm(case: Case | RunCase) -> str:
+    """The arm of a run (N0, N1, N2), or "cal" for a calibration case: only to keep container names apart."""
+    return case.run_folder.name.split("-", 1)[0] if isinstance(case, RunCase) else "cal"
 
 
 def final_answer(transcript: Path) -> tuple[str, float | None]:
@@ -269,7 +275,8 @@ def run_cases(scenario: str, arm: str) -> list[RunCase]:
     return [RunCase(f"run-{index:02d}", scenario, folder) for index, folder in enumerate(run_folders, start=1)]
 
 
-def evaluate_runs(scenario: str, arm: str, model: str, effort: str, workers: int, dry_run: bool) -> None:
+def evaluate_runs(scenario: str, arm: str, model: str, effort: str, workers: int, dry_run: bool,
+                  resume: bool = False) -> None:
     cases = run_cases(scenario, arm)
     batch_folder = EVALUATOR / PATTERN_BY_SCENARIO[scenario] / "runs" / f"{scenario}-{arm}"
     output_folder = batch_folder / f"{model.removeprefix('claude-')}-{effort}"
@@ -280,13 +287,27 @@ def evaluate_runs(scenario: str, arm: str, model: str, effort: str, workers: int
         print(f"{len(cases)} work folders build; output would go to {output_folder.relative_to(CONSTRUCTION_ROOT)}")
         return
     check_can_run(model)
-    if output_folder.exists():
-        die(f"{output_folder} already exists: evaluations are never reused")
-    output_folder.mkdir(parents=True)
-    (output_folder / "key.json").write_text(json.dumps({case.code: case.run_folder.name for case in cases},
-                                                       indent=2) + LINE_BREAK, encoding="utf-8")
+    key = {case.code: case.run_folder.name for case in cases}
+    if output_folder.exists() and not resume:
+        die(f"{output_folder} already exists: evaluations are never reused (--resume evaluates only the missing ones)")
+    if resume:
+        saved_key = json.loads((output_folder / "key.json").read_text(encoding="utf-8"))
+        if saved_key != key:
+            die(f"{output_folder}/key.json does not match the runs of {scenario}-{arm}: not resuming")
+    else:
+        output_folder.mkdir(parents=True)
+        (output_folder / "key.json").write_text(json.dumps(key, indent=2) + LINE_BREAK, encoding="utf-8")
+    # with --resume, an evaluation with an answer stays; one without (it failed) is done again from scratch
+    done = {case.code for case in cases if (output_folder / case.code / "answer.md").is_file()} if resume else set()
+    missing = [case for case in cases if case.code not in done]
+    for case in missing:
+        if (output_folder / case.code).exists():
+            shutil.rmtree(output_folder / case.code)
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(lambda case: evaluate(case, output_folder / case.code, model, effort), cases))
+        results = list(pool.map(lambda case: evaluate(case, output_folder / case.code, model, effort), missing))
+    for code in sorted(done):
+        given, cost = read_answer(output_folder / code)
+        results.append({"code": code, "exit_code": None, "class": given, "cost_usd": cost})
     by_code = {result["code"]: result for result in results}
     lines = [f"# O avaliador nas runs do cenário {scenario}, braço {arm}: {model}, effort {effort}", "",
              "| código | run | avaliador |", "|---|---|---|"]
@@ -311,9 +332,11 @@ def main() -> None:
     if arguments[:1] == ["calibrate"] and len(arguments) in (2, 3):
         calibrate(arguments[1], arguments[2] if len(arguments) == 3 else "high", workers, dry_run)
         return
+    resume = "--resume" in arguments
+    arguments = [argument for argument in arguments if argument != "--resume"]
     if arguments[:1] == ["evaluate-runs"] and len(arguments) in (4, 5):
         evaluate_runs(arguments[1], arguments[2], arguments[3], arguments[4] if len(arguments) == 5 else "high",
-                      workers, dry_run)
+                      workers, dry_run, resume)
         return
     die(__doc__ or "")
 

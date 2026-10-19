@@ -1271,3 +1271,99 @@ sendo o diário; este arquivo é o índice dele, legível sem `git log`.
 
 **07/10: o `MINIPLANO.md` resume o que falta antes do V4.** *Por quê:* o plano é
 longo; o miniplano é a lista do dia, com quem faz cada item.
+
+## 11. A pesquisa nova: construção (v6, v7) e manutenção (v1)
+
+**14/10: a pesquisa nova de construção vive na `construction-v6`, uma pasta de trabalho sem nada congelado.** As
+ferramentas são em Python, só com a biblioteca padrão. *Por quê:* "crie o V6, para irmos mexendo nele, não precisa
+travar nada".
+
+**15/10: a nova fase mede a manutenibilidade com patterns, numa pesquisa separada (`maintenance-v1`).** O agente
+recebe um sistema que já existe, escrito sem nenhum pattern, e um pedido de mudança. *Por quê:* a construção cria do
+zero; esta mede o que o agente faz ao mudar um serviço pronto.
+
+**15/10: o domínio é uma pousada (sugerido pela IA) e a pilha é Javalin, sem Spring Boot.** *Por quê:* o orientador
+pediu um tema sugerido pela IA; o Spring entrega pronto parte do que se mede ("spring boot automatiza bastante
+coisa").
+
+**15/10: a base não tem nenhum pattern, e cada execução é uma cópia limpa dela com um cenário só.** A base fica
+intacta. *Por quê:* a pergunta é se o pedido de mudança leva o agente ao pattern; uma base com patterns misturaria o
+que o agente fez com o que já estava lá.
+
+**15/10: os patterns medidos são Strategy, Observer, Factory Method, Decorator e Template Method.** O Factory Method,
+e não o Abstract Factory. *Por quê:* o pedido do comprovante por tipo de hóspede justifica o Factory Method sem
+precisar falar de família de objetos.
+
+**15/10: uma execução por modelo em cada cenário.** *Por quê:* o custo; o resultado fica exploratório por modelo, e
+as conclusões mais firmes ficam no agregado.
+
+**15/10: os pedidos são escritos como conversa, na voz do dono, sem tabela, lista nem título, e sem nomear pattern.**
+*Por quê:* o orientador pediu um prompt "mais escrito e menos técnico".
+
+**16/10: as pastas passam a se chamar `construction-v2` a `construction-v6` e `maintenance-v1`, e o código, os
+comentários e os scripts da pesquisa nova são em inglês** (o enunciado e os READMEs continuam em português). *Por
+quê:* as versões anteriores criaram do zero (construção); a nova pega um projeto pronto (manutenção).
+
+**16/10: a manutenção não tem suíte de testes própria; quem confere o comportamento é a IA da avaliação.** *Por quê:*
+"essa suíte não precisa, ta só atrapalhando"; as ferramentas novas vêm depois, se fizerem falta.
+
+**16/10: os braços são N0 (sem harness), N1 (um `CLAUDE.md` curto, sem nomear pattern) e N2 (o mesmo `CLAUDE.md` e a
+skill `gof-patterns` da construção).** *Por quê:* comparar sem harness, com regras e com regras e skill, sem
+complicar o `CLAUDE.md` além do que a Anthropic recomenda.
+
+**16/10: a avaliação é feita por uma IA, às cegas, com um prompt por pattern, e só vale depois de calibrada nas
+soluções de referência** (o pattern e a ingênua de cada cenário). *Por quê:* o orientador pediu avaliação por
+agente; a calibração mostra que ela separa as classes antes de avaliar execuções de verdade.
+
+**17/10: o `CLAUDE.md` do N2 ganha uma linha no fim: "Antes de decidir a estrutura da mudança, consulte a skill
+`gof-patterns`".** *Por quê:* sem a instrução, nenhum agente abria a skill (0 de 110 no V5, 0 de 11 no primeiro N2).
+
+**17/10: na avaliação da manutenção, a IA sobe o serviço e testa ela mesma pela API.** *Por quê:* o Lucas quis que a
+IA investigasse do zero, sem script que diga certo ou errado.
+
+**17/10: a correção da construção e a da manutenção são feitas do mesmo jeito.** A IA investiga do zero, sem script
+que diga certo ou errado; o PIT, o relatório de arquitetura e a foto do banco ficam como material; ela mesma sobe o
+serviço e testa pela API; a resposta é um texto com uma linha de conclusão por item. *Por quê:* cada pesquisa
+corrigia de um jeito, e o Lucas quis "o melhor dos dois mundos", sem depender de um juiz determinístico.
+
+**17/10: o comportamento é a 5ª dimensão da correção da construção.** *Por quê:* as outras quatro olham o desenho, e
+faltava perguntar se o serviço faz o que o enunciado pede.
+
+**17/10: os modelos da rodada são o Haiku 4.5, o Sonnet 4.5 e o Sonnet 5.5, uma execução por combinação, effort
+`medium`.** *Por quê:* rodar a construção e a manutenção cabendo na cota; uma réplica, como na manutenção.
+
+**17/10: no A1, no B4 e no B5, um único ponto errado já é `não segue`; no comportamento, o que o enunciado não decide
+vai para as "Dúvidas" sem mudar a conclusão.** *Por quê:* as três perguntas são de sim ou não, e o "em parte"
+escondia o defeito.
+
+**18/10: os harnesses da construção são o `CLAUDE.md` da manutenção adaptado, só com os dois princípios (o próximo
+caso num lugar só; nada de estrutura para o que ninguém pediu); o N2 acrescenta a linha que manda consultar a skill
+`gof-patterns`.** Os itens do sistema de fora e dos testes saíram antes de qualquer execução. *Por quê:* eram quase
+as perguntas da régua (P6 e T2), e a régua não pode estar no harness.
+
+**18/10: a régua nova da construção: o P6 com três níveis (acerto, malfeito, omissão) e o C7 e o C8 testando
+avisos e pagamentos ao mesmo tempo.** Os critérios e as hipóteses são os de antes; só a correção dos itens que mudaram
+roda de novo, e as execuções dos agentes não. *Por quê:* o P6 juntava "adaptador quase completo" e "nenhum adaptador",
+e o C7 e o C8 não testavam a simultaneidade que o enunciado descreve.
+
+**18/10: a construção passa para Javalin, como a manutenção.** *Por quê:* "era para ambos serem em javalin"; o
+Spring entrega pronto parte do que se mede (eventos, contêiner, AOP).
+
+**18/10: a construção é refeita no molde da manutenção, na `construction-v7`.** Um enunciado por cenário (e não um
+enunciado com todos os pontos), os mesmos 5 patterns da manutenção (Strategy, Observer, Factory Method, Decorator,
+Template Method), a pousada como domínio e a mesma avaliação (a classe do cenário, o exagero colateral, o
+comportamento). A `construction-v6` (a loja) fica como registro. *Por quê:* "ambos devem seguir a mesma maneira de
+estruturar o teste".
+
+**18/10: os controles negativos saem da construção e da manutenção.** Ficam só os cenários que pedem o pattern (01,
+03, 05, 07 e 09); na manutenção, as execuções e avaliações dos controles ficam guardadas, fora da análise. *Por quê:*
+"deixe apenas os testes que têm que dar certo".
+
+**18/10: a correção da construção explica como o projeto foi feito e por que o julgamento.** Uma seção entre a visão
+geral e os itens: o projeto, a parte do cenário em detalhe e o raciocínio de cada conclusão. *Por quê:* é por ela
+que o Lucas entende o motivo de cada nota.
+
+**18/10: o enunciado da construction-v7 fica não técnico, na voz do dono, mesmo com pontos ambíguos.** Os pontos que
+o texto não decide (o corpo da confirmação, o e-mail válido, o formato do "R$", a linha de total) ficam como
+limitação declarada, sem mudar a régua nem refazer avaliações. *Por quê:* é o pedido do orientador ("mais escrito e
+menos técnico"); interpretar o que o dono quis dizer é parte do que se mede.
