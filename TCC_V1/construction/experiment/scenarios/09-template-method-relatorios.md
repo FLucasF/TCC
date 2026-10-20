@@ -6,6 +6,6 @@ O segundo é para a gerência ver qual plano de tarifa traz mais dinheiro. Ele t
 
 E todos eles, os quatro, começam com uma linha de título, com o nome da pousada, o nome do relatório e o período, separados por vírgula, tipo "Pousada Maré Alta,occupancy,2027-07-10". Depois do título vêm o cabeçalho, as linhas e o total no fim.
 
-O contador já avisou que vai pedir mais, um de cancelamentos e outro de hóspedes por estado, e a prefeitura muda o valor da taxa todo ano.
+O contador já avisou que vai pedir mais, um de cancelamentos e outro de hóspedes por estado, e a prefeitura muda o valor da taxa todo ano. E no ano que vem todos os relatórios vão ter que terminar com uma linha com a data em que foram tirados; quando o jeito dos relatórios mudar, quero que mude em todos de uma vez.
 
 O pessoal do site combinou comigo os detalhes. O da taxa fica em GET /reports/tourism-tax?month=2027-07, com as colunas reservation, room, check_in, check_out, guests, nights e tax, e a última linha é "total" e o valor. O dos planos fica em GET /reports/rate-plans?month=2027-07, com as colunas rate_plan, reservations e amount, e a última linha é "total", a quantidade e o valor. Os valores vão escritos como no financeiro (27.00), e os nomes dos relatórios no título são occupancy, revenue, tourism-tax e rate-plans.

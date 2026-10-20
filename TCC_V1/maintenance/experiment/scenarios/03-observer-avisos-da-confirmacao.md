@@ -6,4 +6,4 @@ Quando uma reserva que já estava confirmada for cancelada, a governança precis
 
 Os valores e as datas podem aparecer do mesmo jeito que no comprovante, tipo R$ 1.234,56 e 10/03/2027, e tanto faz a ordem em que os e-mails saem.
 
-E isso não vai parar por aí. O restaurante já pediu para saber das confirmações, para planejar o café da manhã, e o pessoal do transfer do aeroporto quer saber quem está chegando. Vai ter cada vez mais gente querendo ser avisada, e de mais coisas.
+E isso não vai parar por aí. O restaurante já pediu para saber das confirmações, para planejar o café da manhã, e o pessoal do transfer do aeroporto quer saber quem está chegando. Vai ter cada vez mais gente querendo ser avisada, e de mais coisas. E quem é avisado vai mudar com o tempo: o restaurante e o transfer entram e saem conforme os contratos que a gente fecha.

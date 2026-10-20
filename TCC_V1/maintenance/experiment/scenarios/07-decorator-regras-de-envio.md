@@ -6,6 +6,6 @@ O segundo é o arquivo. O contador quer cópia de tudo o que a pousada manda, en
 
 O terceiro é o mais grave: quando o pessoal do site testa o sistema, os e-mails estão indo para hóspedes de verdade! Quando o sistema estiver rodando em modo de teste, nenhuma mensagem pode sair para o endereço real. Ela vai para testes@pousadamarealta.com.br, com o assunto começando com "[TESTE] " e com uma primeira linha a mais no texto, "Destinatário original: " seguido do endereço que seria o certo. No modo de teste não precisa fazer a cópia para o arquivo, e o endereço inválido continua sendo bloqueado do mesmo jeito (a mensagem bloqueada fica com o endereço original).
 
-E não acaba aí. Já pediram para não mandar mensagem de madrugada e para ter um limite de mensagens por hóspede por dia, e cada regra dessas pode valer sempre, só no modo de teste ou só fora dele.
+E não acaba aí. Já pediram para não mandar mensagem de madrugada e para ter um limite de mensagens por hóspede por dia, e cada regra dessas pode valer sempre, só no modo de teste ou só fora dele. E cada instalação do sistema pode querer outra combinação: a segunda pousada que a gente vai abrir, por exemplo, não quer a cópia para o arquivo.
 
 O pessoal do site pediu três detalhes. Cada mensagem da lista (o GET /messages) ganha um campo `status`, que é SENT ou BLOCKED. A cópia para o arquivo aparece na lista como outra mensagem, logo depois da original. E o modo de teste é ligado pela variável de ambiente HOTEL_TEST_MODE=true; sem ela, o sistema funciona normalmente.

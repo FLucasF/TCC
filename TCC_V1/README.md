@@ -16,6 +16,20 @@ cenários (Strategy no 01, Observer no 03, Factory Method no 05, Decorator no 07
 negativos ficaram de fora) e a mesma imagem do experimento (`experimento-harness:v5`). O nome de cada cenário traz o
 pattern esperado; o agente nunca vê esse nome.
 
+**O que mudou nos enunciados em relação à `construction-v7` e à `maintenance-v1`** (20/10/2026): três cenários
+ganharam uma frase a mais na voz do dono, no parágrafo do que vem pela frente, para reforçar a variação sem dizer
+como organizar o código. O 01 e o 05 ficaram iguais.
+
+- **03 (avisar a equipe):** "E quem é avisado vai mudar com o tempo: o restaurante e o transfer entram e saem
+  conforme os contratos que a gente fecha."
+- **07 (regras de envio):** "E cada instalação do sistema pode querer outra combinação: a segunda pousada que a gente
+  vai abrir, por exemplo, não quer a cópia para o arquivo."
+- **09 (relatórios):** "E no ano que vem todos os relatórios vão ter que terminar com uma linha com a data em que
+  foram tirados; quando o jeito dos relatórios mudar, quero que mude em todos de uma vez."
+
+Por isso, só no 01 e no 05 o N0 daqui repete o N0 das execuções antigas (o mesmo texto, sem harness) e serve de
+segunda execução para medir quanto o resultado varia sozinho.
+
 **Os braços,** nas duas pesquisas:
 
 - **N0**: só o texto (o enunciado ou o pedido);

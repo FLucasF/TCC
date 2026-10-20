@@ -1442,3 +1442,14 @@ resultados com o `CLAUDE.md` antigo, "num lugar só" foi lido como "num método 
 Method), e vários `malfeito` deixaram os primeiros casos fora da estrutura. *O que se aceita:* as duas precisões
 chegam mais perto de dois cenários (o 07 e o 09) do que os princípios antigos; continuam princípios gerais (não
 crescer por condições, não repetir passos), e isso fica declarado no texto do TCC.
+
+**20/10: no TCC_V1, os enunciados do 03, do 07 e do 09 (nas duas pesquisas) ganham uma frase a mais na voz do dono,
+sem termo técnico e sem dizer como organizar o código.** No 03, quem é avisado muda com o tempo (o restaurante e o
+transfer entram e saem conforme os contratos); no 07, cada instalação pode querer outra combinação de regras (a
+segunda pousada não quer a cópia para o arquivo); no 09, todos os relatórios vão ganhar uma linha final com a data, e
+o que mudar no jeito dos relatórios tem de mudar em todos de uma vez. O 01 e o 05 ficam iguais. *Por quê:* nos
+resultados anteriores, o 09 não deixava claro por que os passos comuns deviam ficar num lugar só (copiar uma linha
+de título custava pouco, e "vão pedir mais relatórios" empurrava para uma classe por relatório); no 07 e no 03, os
+casos de fronteira eram sobre quem decide a combinação e quem monta a lista de avisados. Fica pronto para a revisão
+do professor e para rodar na quarta. *O que se perde:* o N0 do 03, do 07 e do 09 deixa de repetir o das execuções
+antigas; só o 01 e o 05 dão a segunda execução do N0.
