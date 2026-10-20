@@ -1431,3 +1431,14 @@ está no histórico do git (commit `cc934ab5`), se voltar a fazer falta.
 "Conclusão:". Fica o que olhar (como a variação foi resolvida, a estrutura sem necessidade, o comportamento testado)
 e o formato da resposta (visão geral, como foi implementado, a correção, dúvidas). *Por quê:* "ele vai apenas
 corrigir, não precisa deixar uma palavra assim".
+
+**19/10: o `CLAUDE.md` do TCC_V1 (N1 e N2, nas duas pesquisas) ganha duas precisões, sem nomear pattern nem
+estrutura.** No primeiro princípio: "acrescentar mais uma condição num método que já existe é mexer no que já
+funciona" e, na construção, "os primeiros casos entram nessa organização do mesmo jeito que os próximos" (a
+manutenção já dizia "isso vale também para os casos que já existem"). E um item novo: "quando vários casos repetem a
+mesma sequência de passos, a sequência fica escrita uma vez só, e cada caso muda apenas o que é dele". *Por quê:* nos
+resultados com o `CLAUDE.md` antigo, "num lugar só" foi lido como "num método só" (o Sonnet 4.5 no Decorator citou o
+`CLAUDE.md` para justificar o `if/else`) e como "uma classe nova por caso, com os passos copiados" (o Template
+Method), e vários `malfeito` deixaram os primeiros casos fora da estrutura. *O que se aceita:* as duas precisões
+chegam mais perto de dois cenários (o 07 e o 09) do que os princípios antigos; continuam princípios gerais (não
+crescer por condições, não repetir passos), e isso fica declarado no texto do TCC.
