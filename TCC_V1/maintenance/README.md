@@ -9,5 +9,6 @@ o harness do braço e o pedido de mudança de **um** cenário, na voz do dono. A
 | `experiment/scenarios/` | a moldura comum (`frame.md`) e os 5 pedidos |
 | `experiment/harnesses/` | o `N1/` (o `CLAUDE.md`) e o `N2/` (o `CLAUDE.md` com a linha da skill, e a skill `design-patterns`) |
 | `infra/scripts/run_one_scenario.py` | roda uma execução, com um PostgreSQL só dela; a saída vai para `runs/<cenário>-<pattern>/<braço>-<modelo>/`, com o `changes.patch` contra a base e a foto do esquema (`database-schema.sql`) |
+| `runs-2026-10-21-sem-banco/` | as 45 execuções da rodada de 21/10/2026, ainda sem banco (os dados em memória), como registro |
 
 Uma execução por modelo, cenário e braço: com 3 modelos, 5 × 3 × 3 = 45.

@@ -39,8 +39,9 @@ segunda execução para medir quanto o resultado varia sozinho.
 - **N2**: o mesmo `CLAUDE.md` com uma linha a mais, "use a skill `design-patterns`", e a skill na pasta.
 
 **De onde veio.** Os enunciados, a base, os harnesses e os scripts vêm da `construction-v7` e da `maintenance-v1`, que
-ficam no repositório como registro, com as execuções de antes (que usaram a skill pública `gof-patterns` no N2). Aqui
-não há execução nenhuma: as pastas `runs/` nascem quando se roda.
+ficam no repositório como registro, com as execuções de antes (que usaram a skill pública `gof-patterns` no N2). As
+pastas `runs/` nascem quando se roda. As 90 execuções da rodada de 21/10/2026, ainda sem banco (os dados em memória),
+ficam como registro em `<pesquisa>/runs-2026-10-21-sem-banco/`, e o relatório delas é o `../docs/relatorio-tcc-v1.md`.
 
 ## Comandos (a partir desta pasta)
 

@@ -1519,3 +1519,7 @@ que o texto descreve, a partir de um banco vazio.** Um defeito do banco que o re
 com dado de fora, uma migração que quebra um banco que já tinha dados) pesa na coluna do banco e só é citado no
 comportamento. *Por quê:* na calibração, o revisor deu `ruim` no comportamento de um exemplo de banco ruim com o
 roteiro passando inteiro, e a mesma falha contaria duas vezes na tabela do TCC.
+
+**21/10: as 90 execuções da rodada de 21/10 no TCC_V1 (sem banco) vão para `TCC_V1/<pesquisa>/runs-2026-10-21-sem-banco/`,
+com `git mv`; as pastas `runs/` ficam livres para o piloto com banco.** *Por quê:* os scripts recusam uma pasta de
+execução que já existe, e a rodada sem banco fica como registro, com o histórico do git.
