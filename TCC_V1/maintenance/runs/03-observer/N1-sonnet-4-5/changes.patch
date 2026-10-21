@@ -1,0 +1,482 @@
+diff --git a/src/main/java/hotel/Hotel.java b/src/main/java/hotel/Hotel.java
+index b75a525..cbba915 100644
+--- a/src/main/java/hotel/Hotel.java
++++ b/src/main/java/hotel/Hotel.java
+@@ -2,6 +2,10 @@ package hotel;
+ 
+ import hotel.messages.EmailSender;
+ import hotel.messages.SentMessages;
++import hotel.notifications.FinanceNotifier;
++import hotel.notifications.GuestNotifier;
++import hotel.notifications.HousekeepingNotifier;
++import hotel.notifications.ReservationEventNotifier;
+ import hotel.reports.OccupancyReport;
+ import hotel.reports.RevenueReport;
+ import hotel.reservations.PriceCalculator;
+@@ -20,8 +24,13 @@ public final class Hotel {
+         Rooms rooms = new Rooms();
+         ReservationStore store = new ReservationStore();
+         SentMessages sentMessages = new SentMessages();
++        EmailSender emailSender = new EmailSender(sentMessages);
++        ReservationEventNotifier eventNotifier = new ReservationEventNotifier();
++        eventNotifier.addListener(new GuestNotifier(emailSender));
++        eventNotifier.addListener(new HousekeepingNotifier(emailSender, "governanca@pousadamarealta.com.br"));
++        eventNotifier.addListener(new FinanceNotifier(emailSender, "financeiro@pousadamarealta.com.br"));
+         ReservationService reservations =
+-                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages));
++                new ReservationService(rooms, store, new PriceCalculator(), eventNotifier);
+         HttpApi api = new HttpApi(
+                 rooms, reservations, sentMessages, new OccupancyReport(rooms, store), new RevenueReport(store));
+         this.server = api.server();
+diff --git a/src/main/java/hotel/notifications/FinanceNotifier.java b/src/main/java/hotel/notifications/FinanceNotifier.java
+new file mode 100644
+index 0000000..e82f91e
+--- /dev/null
++++ b/src/main/java/hotel/notifications/FinanceNotifier.java
+@@ -0,0 +1,38 @@
++package hotel.notifications;
++
++import hotel.documents.TextFormat;
++import hotel.messages.EmailSender;
++import hotel.reservations.Reservation;
++import hotel.rooms.Room;
++import java.math.BigDecimal;
++
++public final class FinanceNotifier implements ReservationEventListener {
++
++    private final EmailSender emailSender;
++    private final String email;
++
++    public FinanceNotifier(EmailSender emailSender, String email) {
++        this.emailSender = emailSender;
++        this.email = email;
++    }
++
++    @Override
++    public void onReservationConfirmed(Reservation reservation, Room room) {
++        String subject = "Pagamento recebido - reserva " + reservation.id();
++        String body = "Pagamento recebido:\n\n"
++                + "Reserva: " + reservation.id() + "\n"
++                + "Valor: " + TextFormat.money(reservation.amountPaid()) + "\n";
++        emailSender.send(email, subject, body);
++    }
++
++    @Override
++    public void onReservationCancelled(Reservation reservation, Room room, BigDecimal refund) {
++        if (refund.signum() > 0) {
++            String subject = "Reembolso - reserva " + reservation.id();
++            String body = "Reembolso necessário:\n\n"
++                    + "Reserva: " + reservation.id() + "\n"
++                    + "Valor: " + TextFormat.money(refund) + "\n";
++            emailSender.send(email, subject, body);
++        }
++    }
++}
+diff --git a/src/main/java/hotel/notifications/GuestNotifier.java b/src/main/java/hotel/notifications/GuestNotifier.java
+new file mode 100644
+index 0000000..1bb63b1
+--- /dev/null
++++ b/src/main/java/hotel/notifications/GuestNotifier.java
+@@ -0,0 +1,40 @@
++package hotel.notifications;
++
++import hotel.documents.ReservationReceipt;
++import hotel.messages.EmailSender;
++import hotel.reservations.Reservation;
++import hotel.rooms.Room;
++import java.math.BigDecimal;
++
++public final class GuestNotifier implements ReservationEventListener {
++
++    private static final String HOTEL_NAME = "Pousada Maré Alta";
++
++    private final EmailSender emailSender;
++
++    public GuestNotifier(EmailSender emailSender) {
++        this.emailSender = emailSender;
++    }
++
++    @Override
++    public void onReservationConfirmed(Reservation reservation, Room room) {
++        ReservationReceipt receipt = new ReservationReceipt(reservation, room);
++        emailSender.send(
++                reservation.guest().email(),
++                "Reserva confirmada - " + HOTEL_NAME,
++                confirmationEmailBody(reservation, receipt));
++    }
++
++    @Override
++    public void onReservationCancelled(Reservation reservation, Room room, BigDecimal refund) {
++        // O hóspede não recebe e-mail de cancelamento
++    }
++
++    private static String confirmationEmailBody(Reservation reservation, ReservationReceipt receipt) {
++        return "Olá, " + reservation.guest().name() + "!\n\n"
++                + "Sua reserva na " + HOTEL_NAME + " está confirmada. Estes são os dados dela:\n\n"
++                + receipt.text() + "\n"
++                + "A entrada é a partir das 14h, e a saída, até as 12h.\n"
++                + "Até breve!\n";
++    }
++}
+diff --git a/src/main/java/hotel/notifications/HousekeepingNotifier.java b/src/main/java/hotel/notifications/HousekeepingNotifier.java
+new file mode 100644
+index 0000000..1ada8f9
+--- /dev/null
++++ b/src/main/java/hotel/notifications/HousekeepingNotifier.java
+@@ -0,0 +1,41 @@
++package hotel.notifications;
++
++import hotel.documents.TextFormat;
++import hotel.messages.EmailSender;
++import hotel.reservations.Reservation;
++import hotel.rooms.Room;
++import java.math.BigDecimal;
++
++public final class HousekeepingNotifier implements ReservationEventListener {
++
++    private final EmailSender emailSender;
++    private final String email;
++
++    public HousekeepingNotifier(EmailSender emailSender, String email) {
++        this.emailSender = emailSender;
++        this.email = email;
++    }
++
++    @Override
++    public void onReservationConfirmed(Reservation reservation, Room room) {
++        String subject = "Reserva confirmada - quarto " + reservation.roomNumber();
++        String body = "Nova reserva confirmada:\n\n"
++                + "Quarto: " + reservation.roomNumber() + "\n"
++                + "Entrada: " + TextFormat.date(reservation.checkIn()) + "\n"
++                + "Saída: " + TextFormat.date(reservation.checkOut()) + "\n"
++                + "Hóspedes: " + reservation.guests() + "\n";
++        emailSender.send(email, subject, body);
++    }
++
++    @Override
++    public void onReservationCancelled(Reservation reservation, Room room, BigDecimal refund) {
++        if (reservation.amountPaid().signum() > 0) {
++            String subject = "Reserva cancelada - quarto " + reservation.roomNumber();
++            String body = "Reserva cancelada:\n\n"
++                    + "Quarto: " + reservation.roomNumber() + "\n"
++                    + "Entrada: " + TextFormat.date(reservation.checkIn()) + "\n"
++                    + "Saída: " + TextFormat.date(reservation.checkOut()) + "\n";
++            emailSender.send(email, subject, body);
++        }
++    }
++}
+diff --git a/src/main/java/hotel/notifications/ReservationEventListener.java b/src/main/java/hotel/notifications/ReservationEventListener.java
+new file mode 100644
+index 0000000..27da658
+--- /dev/null
++++ b/src/main/java/hotel/notifications/ReservationEventListener.java
+@@ -0,0 +1,12 @@
++package hotel.notifications;
++
++import hotel.reservations.Reservation;
++import hotel.rooms.Room;
++import java.math.BigDecimal;
++
++public interface ReservationEventListener {
++
++    void onReservationConfirmed(Reservation reservation, Room room);
++
++    void onReservationCancelled(Reservation reservation, Room room, BigDecimal refund);
++}
+diff --git a/src/main/java/hotel/notifications/ReservationEventNotifier.java b/src/main/java/hotel/notifications/ReservationEventNotifier.java
+new file mode 100644
+index 0000000..d945ae6
+--- /dev/null
++++ b/src/main/java/hotel/notifications/ReservationEventNotifier.java
+@@ -0,0 +1,28 @@
++package hotel.notifications;
++
++import hotel.reservations.Reservation;
++import hotel.rooms.Room;
++import java.math.BigDecimal;
++import java.util.ArrayList;
++import java.util.List;
++
++public final class ReservationEventNotifier {
++
++    private final List<ReservationEventListener> listeners = new ArrayList<>();
++
++    public void addListener(ReservationEventListener listener) {
++        listeners.add(listener);
++    }
++
++    public void notifyConfirmed(Reservation reservation, Room room) {
++        for (ReservationEventListener listener : listeners) {
++            listener.onReservationConfirmed(reservation, room);
++        }
++    }
++
++    public void notifyCancelled(Reservation reservation, Room room, BigDecimal refund) {
++        for (ReservationEventListener listener : listeners) {
++            listener.onReservationCancelled(reservation, room, refund);
++        }
++    }
++}
+diff --git a/src/main/java/hotel/reservations/ReservationService.java b/src/main/java/hotel/reservations/ReservationService.java
+index b40212b..7b79730 100644
+--- a/src/main/java/hotel/reservations/ReservationService.java
++++ b/src/main/java/hotel/reservations/ReservationService.java
+@@ -1,7 +1,7 @@
+ package hotel.reservations;
+ 
+ import hotel.documents.ReservationReceipt;
+-import hotel.messages.EmailSender;
++import hotel.notifications.ReservationEventNotifier;
+ import hotel.rooms.Room;
+ import hotel.rooms.Rooms;
+ import java.math.BigDecimal;
+@@ -9,19 +9,18 @@ import java.math.BigDecimal;
+ /** The life of a reservation: created, confirmed (paid), checked in, checked out, or cancelled. */
+ public final class ReservationService {
+ 
+-    static final String HOTEL_NAME = "Pousada Maré Alta";
+-
+     private final Rooms rooms;
+     private final ReservationStore store;
+     private final PriceCalculator priceCalculator;
+-    private final EmailSender emailSender;
++    private final ReservationEventNotifier eventNotifier;
+ 
+     public ReservationService(
+-            Rooms rooms, ReservationStore store, PriceCalculator priceCalculator, EmailSender emailSender) {
++            Rooms rooms, ReservationStore store, PriceCalculator priceCalculator,
++            ReservationEventNotifier eventNotifier) {
+         this.rooms = rooms;
+         this.store = store;
+         this.priceCalculator = priceCalculator;
+-        this.emailSender = emailSender;
++        this.eventNotifier = eventNotifier;
+     }
+ 
+     public synchronized Reservation create(NewReservation request) {
+@@ -65,11 +64,7 @@ public final class ReservationService {
+             throw notAllowed(reservation, "confirm");
+         }
+         reservation.confirmPayment();
+-        ReservationReceipt receipt = new ReservationReceipt(reservation, roomOf(reservation));
+-        emailSender.send(
+-                reservation.guest().email(),
+-                "Reserva confirmada - " + HOTEL_NAME,
+-                confirmationEmailBody(reservation, receipt));
++        eventNotifier.notifyConfirmed(reservation, roomOf(reservation));
+         return reservation;
+     }
+ 
+@@ -88,6 +83,7 @@ public final class ReservationService {
+             case NON_REFUNDABLE -> PriceCalculator.cents(BigDecimal.ZERO);
+         };
+         reservation.cancel(refund);
++        eventNotifier.notifyCancelled(reservation, roomOf(reservation), refund);
+         return reservation;
+     }
+ 
+@@ -123,14 +119,6 @@ public final class ReservationService {
+         return rooms.find(reservation.roomNumber()).orElseThrow();
+     }
+ 
+-    private static String confirmationEmailBody(Reservation reservation, ReservationReceipt receipt) {
+-        return "Olá, " + reservation.guest().name() + "!\n\n"
+-                + "Sua reserva na " + HOTEL_NAME + " está confirmada. Estes são os dados dela:\n\n"
+-                + receipt.text() + "\n"
+-                + "A entrada é a partir das 14h, e a saída, até as 12h.\n"
+-                + "Até breve!\n";
+-    }
+-
+     private static HotelException notAllowed(Reservation reservation, String operation) {
+         return new HotelException(
+                 ErrorCode.OPERATION_NOT_ALLOWED,
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index 967cabb..8973437 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+ import hotel.messages.EmailSender;
+ import hotel.messages.SentMessages;
++import hotel.notifications.FinanceNotifier;
++import hotel.notifications.GuestNotifier;
++import hotel.notifications.HousekeepingNotifier;
++import hotel.notifications.ReservationEventNotifier;
+ import hotel.reservations.Guest;
+ import hotel.reservations.NewReservation;
+ import hotel.reservations.PriceCalculator;
+@@ -21,8 +25,16 @@ class ReportsTest {
+ 
+     private final Rooms rooms = new Rooms();
+     private final ReservationStore store = new ReservationStore();
+-    private final ReservationService service =
+-            new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(new SentMessages()));
++    private final ReservationService service = createReservationService();
++
++    private ReservationService createReservationService() {
++        EmailSender emailSender = new EmailSender(new SentMessages());
++        ReservationEventNotifier eventNotifier = new ReservationEventNotifier();
++        eventNotifier.addListener(new GuestNotifier(emailSender));
++        eventNotifier.addListener(new HousekeepingNotifier(emailSender, "governanca@pousadamarealta.com.br"));
++        eventNotifier.addListener(new FinanceNotifier(emailSender, "financeiro@pousadamarealta.com.br"));
++        return new ReservationService(rooms, store, new PriceCalculator(), eventNotifier);
++    }
+ 
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+         Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..ba3887d 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -9,6 +9,10 @@ import hotel.documents.ReservationReceipt;
+ import hotel.messages.EmailSender;
+ import hotel.messages.Message;
+ import hotel.messages.SentMessages;
++import hotel.notifications.FinanceNotifier;
++import hotel.notifications.GuestNotifier;
++import hotel.notifications.HousekeepingNotifier;
++import hotel.notifications.ReservationEventNotifier;
+ import hotel.rooms.Rooms;
+ import java.math.BigDecimal;
+ import java.time.LocalDate;
+@@ -18,8 +22,18 @@ import org.junit.jupiter.api.Test;
+ class ReservationServiceTest {
+ 
+     private final SentMessages sentMessages = new SentMessages();
++    private final EmailSender emailSender = new EmailSender(sentMessages);
++    private final ReservationEventNotifier eventNotifier = createEventNotifier();
+     private final ReservationService service = new ReservationService(
+-            new Rooms(), new ReservationStore(), new PriceCalculator(), new EmailSender(sentMessages));
++            new Rooms(), new ReservationStore(), new PriceCalculator(), eventNotifier);
++
++    private ReservationEventNotifier createEventNotifier() {
++        ReservationEventNotifier notifier = new ReservationEventNotifier();
++        notifier.addListener(new GuestNotifier(emailSender));
++        notifier.addListener(new HousekeepingNotifier(emailSender, "governanca@pousadamarealta.com.br"));
++        notifier.addListener(new FinanceNotifier(emailSender, "financeiro@pousadamarealta.com.br"));
++        return notifier;
++    }
+ 
+     private static NewReservation stay(int roomNumber, String checkIn, String checkOut, int guests, RatePlan plan) {
+         Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
+@@ -79,12 +93,25 @@ class ReservationServiceTest {
+ 
+         assertEquals(ReservationStatus.CONFIRMED, reservation.status());
+         List<Message> sent = sentMessages.all();
+-        assertEquals(1, sent.size());
+-        assertEquals("EMAIL", sent.get(0).channel());
+-        assertEquals("ana@example.com", sent.get(0).to());
+-        assertEquals("Reserva confirmada - Pousada Maré Alta", sent.get(0).subject());
+-        assertTrue(sent.get(0).body().contains("Desconto: R$ 37,48"));
+-        assertTrue(sent.get(0).body().contains("Total: R$ 212,42"));
++        assertEquals(3, sent.size());
++        Message guestEmail = sent.stream()
++                .filter(m -> m.to().equals("ana@example.com"))
++                .findFirst()
++                .orElseThrow();
++        assertEquals("EMAIL", guestEmail.channel());
++        assertEquals("Reserva confirmada - Pousada Maré Alta", guestEmail.subject());
++        assertTrue(guestEmail.body().contains("Desconto: R$ 37,48"));
++        assertTrue(guestEmail.body().contains("Total: R$ 212,42"));
++        Message housekeepingEmail = sent.stream()
++                .filter(m -> m.to().equals("governanca@pousadamarealta.com.br"))
++                .findFirst()
++                .orElseThrow();
++        assertEquals("Reserva confirmada - quarto 101", housekeepingEmail.subject());
++        Message financeEmail = sent.stream()
++                .filter(m -> m.to().equals("financeiro@pousadamarealta.com.br"))
++                .findFirst()
++                .orElseThrow();
++        assertEquals("Pagamento recebido - reserva " + reservation.id(), financeEmail.subject());
+     }
+ 
+     @Test
+@@ -93,7 +120,7 @@ class ReservationServiceTest {
+         service.confirm(reservation.id());
+ 
+         assertEquals(ErrorCode.OPERATION_NOT_ALLOWED, errorOf(() -> service.confirm(reservation.id())));
+-        assertEquals(1, sentMessages.all().size());
++        assertEquals(3, sentMessages.all().size());
+     }
+ 
+     @Test
+@@ -146,6 +173,57 @@ class ReservationServiceTest {
+         assertEquals("Comprovante de reserva", service.receiptCopy(reservation.id()).title());
+     }
+ 
++    @Test
++    void cancellingConfirmedReservationNotifiesHousekeepingAndFinance() {
++        Reservation reservation = service.create(stay(201, "2027-03-10", "2027-03-12", 2, RatePlan.STANDARD));
++        service.confirm(reservation.id());
++        int emailsBeforeCancel = sentMessages.all().size();
++
++        service.cancel(reservation.id());
++
++        List<Message> allEmails = sentMessages.all();
++        assertEquals(emailsBeforeCancel + 2, allEmails.size());
++        List<Message> cancelEmails = allEmails.subList(emailsBeforeCancel, allEmails.size());
++        Message housekeepingEmail = cancelEmails.stream()
++                .filter(m -> m.to().equals("governanca@pousadamarealta.com.br"))
++                .findFirst()
++                .orElseThrow();
++        assertEquals("Reserva cancelada - quarto 201", housekeepingEmail.subject());
++        assertTrue(housekeepingEmail.body().contains("10/03/2027"));
++        assertTrue(housekeepingEmail.body().contains("12/03/2027"));
++        Message financeEmail = cancelEmails.stream()
++                .filter(m -> m.to().equals("financeiro@pousadamarealta.com.br"))
++                .findFirst()
++                .orElseThrow();
++        assertEquals("Reembolso - reserva " + reservation.id(), financeEmail.subject());
++        assertTrue(financeEmail.body().contains("R$ 779,80"));
++    }
++
++    @Test
++    void cancellingNonRefundableReservationNotifiesOnlyHousekeeping() {
++        Reservation reservation = service.create(stay(202, "2027-03-10", "2027-03-12", 2, RatePlan.NON_REFUNDABLE));
++        service.confirm(reservation.id());
++        int emailsBeforeCancel = sentMessages.all().size();
++
++        service.cancel(reservation.id());
++
++        List<Message> allEmails = sentMessages.all();
++        assertEquals(emailsBeforeCancel + 1, allEmails.size());
++        List<Message> cancelEmails = allEmails.subList(emailsBeforeCancel, allEmails.size());
++        assertEquals("governanca@pousadamarealta.com.br", cancelEmails.get(0).to());
++        assertEquals("Reserva cancelada - quarto 202", cancelEmails.get(0).subject());
++    }
++
++    @Test
++    void cancellingPendingReservationDoesNotNotifyAnyone() {
++        Reservation reservation = service.create(stay(301, "2027-03-10", "2027-03-12", 2, RatePlan.STANDARD));
++
++        service.cancel(reservation.id());
++
++        List<Message> sent = sentMessages.all();
++        assertEquals(0, sent.size());
++    }
++
+     @Test
+     void anUnknownReservationIsNotFound() {
+         assertEquals(ErrorCode.RESERVATION_NOT_FOUND, errorOf(() -> service.find(42)));
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..86d49c0 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -75,8 +75,15 @@ class HttpApiTest {
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+-        assertEquals(1, messages.size());
+-        assertEquals("carla@example.com", messages.get(0).get("to").asText());
++        assertEquals(3, messages.size());
++        boolean guestEmailSent = false;
++        for (int i = 0; i < messages.size(); i++) {
++            if ("carla@example.com".equals(messages.get(i).get("to").asText())) {
++                guestEmailSent = true;
++                break;
++            }
++        }
++        assertTrue(guestEmailSent, "Guest email should be sent");
+ 
+         assertEquals(200, post("/reservations/" + id + "/check-in", "").statusCode());
+         HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");

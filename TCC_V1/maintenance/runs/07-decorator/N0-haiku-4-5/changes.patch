@@ -1,0 +1,296 @@
+diff --git a/src/main/java/hotel/messages/EmailSender.java b/src/main/java/hotel/messages/EmailSender.java
+index 3eee255..2b62aad 100644
+--- a/src/main/java/hotel/messages/EmailSender.java
++++ b/src/main/java/hotel/messages/EmailSender.java
+@@ -3,13 +3,35 @@ package hotel.messages;
+ /** Sends e-mails to guests. Every e-mail sent is kept in the list of sent messages. */
+ public final class EmailSender {
+ 
++    private static final String ARCHIVE_EMAIL = "arquivo@pousadamarealta.com.br";
++    private static final String TEST_EMAIL = "testes@pousadamarealta.com.br";
++
+     private final SentMessages sentMessages;
++    private final TestModeProvider testModeProvider;
+ 
+     public EmailSender(SentMessages sentMessages) {
++        this(sentMessages, TestModeProvider.create());
++    }
++
++    public EmailSender(SentMessages sentMessages, TestModeProvider testModeProvider) {
+         this.sentMessages = sentMessages;
++        this.testModeProvider = testModeProvider;
+     }
+ 
+     public Message send(String to, String subject, String body) {
+-        return sentMessages.add("EMAIL", to, subject, body);
++        if (!EmailValidator.isValid(to)) {
++            return sentMessages.add("EMAIL", to, subject, body, "BLOCKED");
++        }
++
++        if (testModeProvider.isTestMode()) {
++            String testSubject = "[TESTE] " + subject;
++            String testBody = "Destinatário original: " + to + "\n" + body;
++            return sentMessages.add("EMAIL", TEST_EMAIL, testSubject, testBody, "SENT");
++        }
++
++        Message sent = sentMessages.add("EMAIL", to, subject, body, "SENT");
++        String archiveSubject = "[Cópia] " + subject;
++        sentMessages.add("EMAIL", ARCHIVE_EMAIL, archiveSubject, body, "SENT");
++        return sent;
+     }
+ }
+diff --git a/src/main/java/hotel/messages/EmailValidator.java b/src/main/java/hotel/messages/EmailValidator.java
+new file mode 100644
+index 0000000..c0109da
+--- /dev/null
++++ b/src/main/java/hotel/messages/EmailValidator.java
+@@ -0,0 +1,17 @@
++package hotel.messages;
++
++public final class EmailValidator {
++
++    public static boolean isValid(String email) {
++        if (email == null || email.isBlank()) {
++            return false;
++        }
++        int atIndex = email.indexOf('@');
++        if (atIndex < 1 || email.lastIndexOf('@') != atIndex) {
++            return false;
++        }
++        String localPart = email.substring(0, atIndex);
++        String domain = email.substring(atIndex + 1);
++        return !domain.isBlank() && domain.contains(".");
++    }
++}
+diff --git a/src/main/java/hotel/messages/Message.java b/src/main/java/hotel/messages/Message.java
+index 0ba10b3..0456061 100644
+--- a/src/main/java/hotel/messages/Message.java
++++ b/src/main/java/hotel/messages/Message.java
+@@ -1,4 +1,4 @@
+ package hotel.messages;
+ 
+-public record Message(long id, String channel, String to, String subject, String body) {
++public record Message(long id, String channel, String to, String subject, String body, String status) {
+ }
+diff --git a/src/main/java/hotel/messages/SentMessages.java b/src/main/java/hotel/messages/SentMessages.java
+index 7c0e9fa..c770149 100644
+--- a/src/main/java/hotel/messages/SentMessages.java
++++ b/src/main/java/hotel/messages/SentMessages.java
+@@ -8,8 +8,8 @@ public final class SentMessages {
+ 
+     private final List<Message> messages = new ArrayList<>();
+ 
+-    synchronized Message add(String channel, String to, String subject, String body) {
+-        Message message = new Message(messages.size() + 1L, channel, to, subject, body);
++    synchronized Message add(String channel, String to, String subject, String body, String status) {
++        Message message = new Message(messages.size() + 1L, channel, to, subject, body, status);
+         messages.add(message);
+         return message;
+     }
+diff --git a/src/main/java/hotel/messages/TestModeProvider.java b/src/main/java/hotel/messages/TestModeProvider.java
+new file mode 100644
+index 0000000..477db7e
+--- /dev/null
++++ b/src/main/java/hotel/messages/TestModeProvider.java
+@@ -0,0 +1,9 @@
++package hotel.messages;
++
++public interface TestModeProvider {
++    boolean isTestMode();
++
++    static TestModeProvider create() {
++        return () -> "true".equalsIgnoreCase(System.getenv("HOTEL_TEST_MODE"));
++    }
++}
+diff --git a/src/test/java/hotel/messages/EmailSenderTest.java b/src/test/java/hotel/messages/EmailSenderTest.java
+new file mode 100644
+index 0000000..3cd2b13
+--- /dev/null
++++ b/src/test/java/hotel/messages/EmailSenderTest.java
+@@ -0,0 +1,85 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++
++import java.util.List;
++import org.junit.jupiter.api.Test;
++
++class EmailSenderTest {
++
++    private final SentMessages sentMessages = new SentMessages();
++    private final EmailSender emailSender = new EmailSender(sentMessages);
++
++    @Test
++    void sendsValidEmailsWithArchiveCopy() {
++        emailSender.send("guest@example.com", "Subject", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(2, messages.size());
++        assertEquals("guest@example.com", messages.get(0).to());
++        assertEquals("SENT", messages.get(0).status());
++        assertEquals("Subject", messages.get(0).subject());
++        assertEquals("Body", messages.get(0).body());
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).to());
++        assertEquals("SENT", messages.get(1).status());
++        assertEquals("[Cópia] Subject", messages.get(1).subject());
++        assertEquals("Body", messages.get(1).body());
++    }
++
++    @Test
++    void blocksInvalidEmails() {
++        emailSender.send("invalid-email", "Subject", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("invalid-email", messages.get(0).to());
++        assertEquals("BLOCKED", messages.get(0).status());
++        assertEquals("Subject", messages.get(0).subject());
++    }
++
++    @Test
++    void blocksEmailsWithoutDot() {
++        emailSender.send("test@example", "Subject", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("BLOCKED", messages.get(0).status());
++    }
++
++    @Test
++    void blocksEmailsWithoutAt() {
++        emailSender.send("test.example.com", "Subject", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("BLOCKED", messages.get(0).status());
++    }
++
++    @Test
++    void sendsToTestEmailInTestMode() {
++        SentMessages testMessages = new SentMessages();
++        EmailSender testSender = new EmailSender(testMessages, () -> true);
++
++        testSender.send("guest@example.com", "Subject", "Body");
++
++        List<Message> messages = testMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("testes@pousadamarealta.com.br", messages.get(0).to());
++        assertEquals("SENT", messages.get(0).status());
++        assertEquals("[TESTE] Subject", messages.get(0).subject());
++        assertEquals("Destinatário original: guest@example.com\nBody", messages.get(0).body());
++    }
++
++    @Test
++    void blocksInvalidEmailsInTestMode() {
++        SentMessages testMessages = new SentMessages();
++        EmailSender testSender = new EmailSender(testMessages, () -> true);
++
++        testSender.send("invalid-email", "Subject", "Body");
++
++        List<Message> messages = testMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("invalid-email", messages.get(0).to());
++        assertEquals("BLOCKED", messages.get(0).status());
++    }
++}
+diff --git a/src/test/java/hotel/messages/EmailValidatorTest.java b/src/test/java/hotel/messages/EmailValidatorTest.java
+new file mode 100644
+index 0000000..0983ec6
+--- /dev/null
++++ b/src/test/java/hotel/messages/EmailValidatorTest.java
+@@ -0,0 +1,28 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++import org.junit.jupiter.api.Test;
++
++class EmailValidatorTest {
++
++    @Test
++    void validatesCorrectEmails() {
++        assertTrue(EmailValidator.isValid("ana@gmail.com"));
++        assertTrue(EmailValidator.isValid("john.doe@example.co.uk"));
++        assertTrue(EmailValidator.isValid("test+tag@domain.org"));
++    }
++
++    @Test
++    void rejectsInvalidEmails() {
++        assertFalse(EmailValidator.isValid(null));
++        assertFalse(EmailValidator.isValid(""));
++        assertFalse(EmailValidator.isValid("   "));
++        assertFalse(EmailValidator.isValid("ana.gmail.com"));
++        assertFalse(EmailValidator.isValid("ana@gmail"));
++        assertFalse(EmailValidator.isValid("@gmail.com"));
++        assertFalse(EmailValidator.isValid("ana@@gmail.com"));
++        assertFalse(EmailValidator.isValid("ana@gmail.com@extra"));
++    }
++}
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..8fbeb26 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -79,12 +79,17 @@ class ReservationServiceTest {
+ 
+         assertEquals(ReservationStatus.CONFIRMED, reservation.status());
+         List<Message> sent = sentMessages.all();
+-        assertEquals(1, sent.size());
++        assertEquals(2, sent.size());
+         assertEquals("EMAIL", sent.get(0).channel());
+         assertEquals("ana@example.com", sent.get(0).to());
+         assertEquals("Reserva confirmada - Pousada Maré Alta", sent.get(0).subject());
++        assertEquals("SENT", sent.get(0).status());
+         assertTrue(sent.get(0).body().contains("Desconto: R$ 37,48"));
+         assertTrue(sent.get(0).body().contains("Total: R$ 212,42"));
++        assertEquals("EMAIL", sent.get(1).channel());
++        assertEquals("arquivo@pousadamarealta.com.br", sent.get(1).to());
++        assertEquals("[Cópia] Reserva confirmada - Pousada Maré Alta", sent.get(1).subject());
++        assertEquals("SENT", sent.get(1).status());
+     }
+ 
+     @Test
+@@ -93,7 +98,7 @@ class ReservationServiceTest {
+         service.confirm(reservation.id());
+ 
+         assertEquals(ErrorCode.OPERATION_NOT_ALLOWED, errorOf(() -> service.confirm(reservation.id())));
+-        assertEquals(1, sentMessages.all().size());
++        assertEquals(2, sentMessages.all().size());
+     }
+ 
+     @Test
+@@ -150,4 +155,19 @@ class ReservationServiceTest {
+     void anUnknownReservationIsNotFound() {
+         assertEquals(ErrorCode.RESERVATION_NOT_FOUND, errorOf(() -> service.find(42)));
+     }
++
++    @Test
++    void blocksInvalidEmails() {
++        Guest invalid = new Guest("Bad Email", "ana@invalid", "123.456.789-09");
++        NewReservation request = new NewReservation(
++                101, invalid, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 1, RatePlan.STANDARD);
++        Reservation reservation = service.create(request);
++
++        service.confirm(reservation.id());
++
++        List<Message> sent = sentMessages.all();
++        assertEquals(1, sent.size());
++        assertEquals("BLOCKED", sent.get(0).status());
++        assertEquals("ana@invalid", sent.get(0).to());
++    }
+ }
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..98ea974 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -75,8 +75,9 @@ class HttpApiTest {
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+-        assertEquals(1, messages.size());
++        assertEquals(2, messages.size());
+         assertEquals("carla@example.com", messages.get(0).get("to").asText());
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).get("to").asText());
+ 
+         assertEquals(200, post("/reservations/" + id + "/check-in", "").statusCode());
+         HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");

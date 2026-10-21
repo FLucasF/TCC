@@ -1,0 +1,522 @@
+diff --git a/src/main/java/hotel/documents/ReservationReceipt.java b/src/main/java/hotel/documents/ReservationReceipt.java
+index baabf93..d8564e9 100644
+--- a/src/main/java/hotel/documents/ReservationReceipt.java
++++ b/src/main/java/hotel/documents/ReservationReceipt.java
+@@ -1,9 +1,11 @@
+ package hotel.documents;
+ 
++import hotel.reservations.Guest;
+ import hotel.reservations.Reservation;
+ import hotel.rooms.Room;
+ import hotel.rooms.RoomType;
+ import java.math.BigDecimal;
++import java.math.RoundingMode;
+ import java.time.LocalDate;
+ 
+ /** The receipt the guest gets when the reservation is confirmed, at check-out, and on request. */
+@@ -12,6 +14,10 @@ public record ReservationReceipt(
+         long reservationId,
+         String guestName,
+         String guestCpf,
++        String companyCnpj,
++        String companyName,
++        String guestPassport,
++        String guestCountry,
+         int roomNumber,
+         RoomType roomType,
+         LocalDate checkIn,
+@@ -19,14 +25,19 @@ public record ReservationReceipt(
+         int nights,
+         BigDecimal subtotal,
+         BigDecimal discount,
+-        BigDecimal total) {
++        BigDecimal total,
++        String text) {
+ 
+     public ReservationReceipt(Reservation reservation, Room room) {
+         this(
+-                "Comprovante de reserva",
++                titleFor(reservation.guest()),
+                 reservation.id(),
+                 reservation.guest().name(),
+                 reservation.guest().cpf(),
++                reservation.guest().companyCnpj(),
++                reservation.guest().companyName(),
++                reservation.guest().passport(),
++                reservation.guest().country(),
+                 room.number(),
+                 room.type(),
+                 reservation.checkIn(),
+@@ -34,22 +45,85 @@ public record ReservationReceipt(
+                 reservation.price().nights(),
+                 reservation.price().subtotal(),
+                 reservation.price().discount(),
+-                reservation.price().total());
++                reservation.price().total(),
++                generateText(reservation, room));
+     }
+ 
+-    public String text() {
++    private static String titleFor(Guest guest) {
++        return switch (guest.type()) {
++            case INDIVIDUAL -> "Comprovante de reserva";
++            case COMPANY -> "Fatura de hospedagem";
++            case FOREIGNER -> "Booking receipt";
++        };
++    }
++
++    private static String generateText(Reservation reservation, Room room) {
++        Guest guest = reservation.guest();
++        return switch (guest.type()) {
++            case INDIVIDUAL -> generateIndividualReceipt(reservation, room);
++            case COMPANY -> generateCompanyInvoice(reservation, room);
++            case FOREIGNER -> generateForeignerReceipt(reservation, room);
++        };
++    }
++
++    private static String generateIndividualReceipt(Reservation reservation, Room room) {
++        StringBuilder text = new StringBuilder();
++        text.append("Comprovante de reserva nº ").append(reservation.id()).append('\n');
++        text.append("Hóspede: ").append(reservation.guest().name())
++                .append(" (CPF ").append(reservation.guest().cpf()).append(")\n");
++        text.append("Quarto: ").append(room.number()).append(" (").append(room.type()).append(")\n");
++        text.append("Entrada: ").append(TextFormat.date(reservation.checkIn()))
++                .append(" | Saída: ").append(TextFormat.date(reservation.checkOut()))
++                .append(" | ").append(reservation.price().nights())
++                .append(reservation.price().nights() == 1 ? " diária" : " diárias").append('\n');
++        text.append("Diárias: ").append(TextFormat.money(reservation.price().subtotal())).append('\n');
++        if (reservation.price().discount().signum() > 0) {
++            text.append("Desconto: ").append(TextFormat.money(reservation.price().discount())).append('\n');
++        }
++        text.append("Total: ").append(TextFormat.money(reservation.price().total())).append('\n');
++        return text.toString();
++    }
++
++    private static String generateCompanyInvoice(Reservation reservation, Room room) {
++        BigDecimal issRetained = reservation.price().total()
++                .multiply(new BigDecimal("0.05"))
++                .setScale(2, RoundingMode.HALF_EVEN);
++
++        StringBuilder text = new StringBuilder();
++        text.append("Fatura de hospedagem nº ").append(reservation.id()).append('\n');
++        text.append("Empresa: ").append(reservation.guest().companyName())
++                .append(" (CNPJ ").append(reservation.guest().companyCnpj()).append(")\n");
++        text.append("Hóspede: ").append(reservation.guest().name()).append('\n');
++        text.append("Quarto: ").append(room.number()).append(" (").append(room.type()).append(")\n");
++        text.append("Entrada: ").append(TextFormat.date(reservation.checkIn()))
++                .append(" | Saída: ").append(TextFormat.date(reservation.checkOut()))
++                .append(" | ").append(reservation.price().nights())
++                .append(reservation.price().nights() == 1 ? " diária" : " diárias").append('\n');
++        text.append("Diárias: ").append(TextFormat.money(reservation.price().subtotal())).append('\n');
++        if (reservation.price().discount().signum() > 0) {
++            text.append("Desconto: ").append(TextFormat.money(reservation.price().discount())).append('\n');
++        }
++        text.append("Total: ").append(TextFormat.money(reservation.price().total())).append('\n');
++        text.append("ISS retido (5%): ").append(TextFormat.money(issRetained)).append('\n');
++        return text.toString();
++    }
++
++    private static String generateForeignerReceipt(Reservation reservation, Room room) {
+         StringBuilder text = new StringBuilder();
+-        text.append(title).append(" nº ").append(reservationId).append('\n');
+-        text.append("Hóspede: ").append(guestName).append(" (CPF ").append(guestCpf).append(")\n");
+-        text.append("Quarto: ").append(roomNumber).append(" (").append(roomType).append(")\n");
+-        text.append("Entrada: ").append(TextFormat.date(checkIn))
+-                .append(" | Saída: ").append(TextFormat.date(checkOut))
+-                .append(" | ").append(nights).append(nights == 1 ? " diária" : " diárias").append('\n');
+-        text.append("Diárias: ").append(TextFormat.money(subtotal)).append('\n');
+-        if (discount.signum() > 0) {
+-            text.append("Desconto: ").append(TextFormat.money(discount)).append('\n');
++        text.append("Booking receipt no. ").append(reservation.id()).append('\n');
++        text.append("Guest: ").append(reservation.guest().name())
++                .append(" (passport ").append(reservation.guest().passport())
++                .append(", ").append(reservation.guest().country()).append(")\n");
++        text.append("Room: ").append(room.number()).append(" (").append(room.type()).append(")\n");
++        text.append("Check-in: ").append(TextFormat.dateIso(reservation.checkIn()))
++                .append(" | Check-out: ").append(TextFormat.dateIso(reservation.checkOut()))
++                .append(" | ").append(reservation.price().nights())
++                .append(reservation.price().nights() == 1 ? " night" : " nights").append('\n');
++        text.append("Nights: ").append(TextFormat.moneyEnglish(reservation.price().subtotal())).append('\n');
++        if (reservation.price().discount().signum() > 0) {
++            text.append("Discount: ").append(TextFormat.moneyEnglish(reservation.price().discount())).append('\n');
+         }
+-        text.append("Total: ").append(TextFormat.money(total)).append('\n');
++        text.append("Total: ").append(TextFormat.moneyEnglish(reservation.price().total())).append('\n');
+         return text.toString();
+     }
+ }
+diff --git a/src/main/java/hotel/documents/TextFormat.java b/src/main/java/hotel/documents/TextFormat.java
+index 356aa50..8fe13b2 100644
+--- a/src/main/java/hotel/documents/TextFormat.java
++++ b/src/main/java/hotel/documents/TextFormat.java
+@@ -5,11 +5,13 @@ import java.time.LocalDate;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Locale;
+ 
+-/** How money and dates are written in the texts the guest reads (Brazilian Portuguese). */
++/** How money and dates are written in the texts the guest reads. */
+ public final class TextFormat {
+ 
+     private static final Locale BRAZIL = Locale.forLanguageTag("pt-BR");
++    private static final Locale US = Locale.US;
+     private static final DateTimeFormatter BRAZILIAN_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
++    private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
+ 
+     private TextFormat() {
+     }
+@@ -21,4 +23,12 @@ public final class TextFormat {
+     public static String date(LocalDate date) {
+         return BRAZILIAN_DATE.format(date);
+     }
++
++    public static String moneyEnglish(BigDecimal amount) {
++        return "BRL " + String.format(US, "%,.2f", amount);
++    }
++
++    public static String dateIso(LocalDate date) {
++        return ISO_DATE.format(date);
++    }
+ }
+diff --git a/src/main/java/hotel/reservations/Guest.java b/src/main/java/hotel/reservations/Guest.java
+index d2c3f9d..1cf9461 100644
+--- a/src/main/java/hotel/reservations/Guest.java
++++ b/src/main/java/hotel/reservations/Guest.java
+@@ -1,4 +1,33 @@
+ package hotel.reservations;
+ 
+-public record Guest(String name, String email, String cpf) {
++public record Guest(
++        String name,
++        String email,
++        String cpf,
++        String companyCnpj,
++        String companyName,
++        String passport,
++        String country) {
++
++    public static Guest withCpf(String name, String email, String cpf) {
++        return new Guest(name, email, cpf, null, null, null, null);
++    }
++
++    public static Guest withCompany(String name, String email, String cnpj, String companyName) {
++        return new Guest(name, email, null, cnpj, companyName, null, null);
++    }
++
++    public static Guest withPassport(String name, String email, String passport, String country) {
++        return new Guest(name, email, null, null, null, passport, country);
++    }
++
++    public GuestType type() {
++        if (cpf != null) return GuestType.INDIVIDUAL;
++        if (companyCnpj != null) return GuestType.COMPANY;
++        return GuestType.FOREIGNER;
++    }
++
++    public enum GuestType {
++        INDIVIDUAL, COMPANY, FOREIGNER
++    }
+ }
+diff --git a/src/main/java/hotel/web/CreateReservationRequest.java b/src/main/java/hotel/web/CreateReservationRequest.java
+index 8849daf..0ca67a3 100644
+--- a/src/main/java/hotel/web/CreateReservationRequest.java
++++ b/src/main/java/hotel/web/CreateReservationRequest.java
+@@ -3,12 +3,15 @@ package hotel.web;
+ import hotel.reservations.RatePlan;
+ import java.time.LocalDate;
+ 
+-/** The JSON body of POST /reservations. Every field is required. */
+ public record CreateReservationRequest(
+         Integer roomNumber,
+         String guestName,
+         String guestEmail,
+         String guestCpf,
++        String companyCnpj,
++        String companyName,
++        String guestPassport,
++        String guestCountry,
+         LocalDate checkIn,
+         LocalDate checkOut,
+         Integer guests,
+diff --git a/src/main/java/hotel/web/HttpApi.java b/src/main/java/hotel/web/HttpApi.java
+index f2a3b77..95e0881 100644
+--- a/src/main/java/hotel/web/HttpApi.java
++++ b/src/main/java/hotel/web/HttpApi.java
+@@ -117,14 +117,32 @@ public final class HttpApi {
+                 || body.roomNumber() == null
+                 || isBlank(body.guestName())
+                 || isBlank(body.guestEmail())
+-                || isBlank(body.guestCpf())
+                 || body.checkIn() == null
+                 || body.checkOut() == null
+                 || body.guests() == null
+                 || body.ratePlan() == null) {
+             throw new HotelException(ErrorCode.INVALID_REQUEST, "every field of the reservation is required");
+         }
+-        Guest guest = new Guest(body.guestName(), body.guestEmail(), body.guestCpf());
++
++        boolean hasCpf = !isBlank(body.guestCpf());
++        boolean hasCompany = !isBlank(body.companyCnpj()) && !isBlank(body.companyName());
++        boolean hasPassport = !isBlank(body.guestPassport()) && !isBlank(body.guestCountry());
++
++        int identificationCount = (hasCpf ? 1 : 0) + (hasCompany ? 1 : 0) + (hasPassport ? 1 : 0);
++        if (identificationCount != 1) {
++            throw new HotelException(ErrorCode.INVALID_REQUEST,
++                    "exactly one identification type is required: guestCpf, or companyCnpj with companyName, or guestPassport with guestCountry");
++        }
++
++        Guest guest;
++        if (hasCpf) {
++            guest = Guest.withCpf(body.guestName(), body.guestEmail(), body.guestCpf());
++        } else if (hasCompany) {
++            guest = Guest.withCompany(body.guestName(), body.guestEmail(), body.companyCnpj(), body.companyName());
++        } else {
++            guest = Guest.withPassport(body.guestName(), body.guestEmail(), body.guestPassport(), body.guestCountry());
++        }
++
+         return new NewReservation(
+                 body.roomNumber(), guest, body.checkIn(), body.checkOut(), body.guests(), body.ratePlan());
+     }
+diff --git a/src/main/java/hotel/web/ReservationResponse.java b/src/main/java/hotel/web/ReservationResponse.java
+index 2cba4b5..9fc4ee2 100644
+--- a/src/main/java/hotel/web/ReservationResponse.java
++++ b/src/main/java/hotel/web/ReservationResponse.java
+@@ -12,6 +12,10 @@ public record ReservationResponse(
+         String guestName,
+         String guestEmail,
+         String guestCpf,
++        String companyCnpj,
++        String companyName,
++        String guestPassport,
++        String guestCountry,
+         LocalDate checkIn,
+         LocalDate checkOut,
+         int guests,
+@@ -31,6 +35,10 @@ public record ReservationResponse(
+                 reservation.guest().name(),
+                 reservation.guest().email(),
+                 reservation.guest().cpf(),
++                reservation.guest().companyCnpj(),
++                reservation.guest().companyName(),
++                reservation.guest().passport(),
++                reservation.guest().country(),
+                 reservation.checkIn(),
+                 reservation.checkOut(),
+                 reservation.guests(),
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index 967cabb..879ac01 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -25,7 +25,7 @@ class ReportsTest {
+             new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(new SentMessages()));
+ 
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+-        Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
++        Guest guest = Guest.withCpf("Bruno Lima", "bruno@example.com", "987.654.321-00");
+         return service.create(new NewReservation(
+                 roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan));
+     }
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index 835c973..7e42b54 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -22,7 +22,7 @@ class ReservationServiceTest {
+             new Rooms(), new ReservationStore(), new PriceCalculator(), new EmailSender(sentMessages));
+ 
+     private static NewReservation stay(int roomNumber, String checkIn, String checkOut, int guests, RatePlan plan) {
+-        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++        Guest guest = Guest.withCpf("Ana Souza", "ana@example.com", "123.456.789-09");
+         return new NewReservation(
+                 roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), guests, plan);
+     }
+@@ -150,4 +150,76 @@ class ReservationServiceTest {
+     void anUnknownReservationIsNotFound() {
+         assertEquals(ErrorCode.RESERVATION_NOT_FOUND, errorOf(() -> service.find(42)));
+     }
++
++    @Test
++    void companyReservationGeneratesInvoiceWithIss() {
++        Guest companyGuest = Guest.withCompany("Ana Souza", "ana@example.com", "12.345.678/0001-90", "Tecnosul Ltda");
++        NewReservation request = new NewReservation(
++                201, companyGuest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 2, RatePlan.STANDARD);
++        Reservation reservation = service.create(request);
++        service.confirm(reservation.id());
++        service.checkIn(reservation.id());
++
++        ReservationReceipt receipt = service.checkOut(reservation.id());
++
++        assertEquals("Fatura de hospedagem", receipt.title());
++        assertTrue(receipt.text().contains("Empresa: Tecnosul Ltda"));
++        assertTrue(receipt.text().contains("CNPJ 12.345.678/0001-90"));
++        assertTrue(receipt.text().contains("ISS retido (5%)"));
++        assertTrue(receipt.text().contains("Hóspede: Ana Souza"));
++
++        List<Message> sent = sentMessages.all();
++        assertTrue(sent.get(0).body().contains("Fatura de hospedagem"));
++        assertTrue(sent.get(0).body().contains("ISS retido (5%)"));
++    }
++
++    @Test
++    void foreignerReservationGeneratesEnglishReceipt() {
++        Guest foreignerGuest = Guest.withPassport("John Smith", "john@example.com", "X1234567", "United Kingdom");
++        NewReservation request = new NewReservation(
++                101, foreignerGuest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD);
++        Reservation reservation = service.create(request);
++        service.confirm(reservation.id());
++        service.checkIn(reservation.id());
++
++        ReservationReceipt receipt = service.checkOut(reservation.id());
++
++        assertEquals("Booking receipt", receipt.title());
++        assertTrue(receipt.text().contains("Booking receipt no."));
++        assertTrue(receipt.text().contains("Guest: John Smith"));
++        assertTrue(receipt.text().contains("passport X1234567"));
++        assertTrue(receipt.text().contains("United Kingdom"));
++        assertTrue(receipt.text().contains("Check-in: 2027-03-10"));
++        assertTrue(receipt.text().contains("Check-out: 2027-03-12"));
++        assertTrue(receipt.text().contains("BRL"));
++        assertTrue(receipt.text().contains("nights"));
++
++        List<Message> sent = sentMessages.all();
++        assertTrue(sent.get(0).body().contains("Booking receipt"));
++        assertTrue(sent.get(0).body().contains("BRL"));
++    }
++
++    @Test
++    void individualReservationStillWorksAsExpected() {
++        Guest individual = Guest.withCpf("Carla Dias", "carla@example.com", "111.222.333-44");
++        NewReservation request = new NewReservation(
++                102, individual, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-12"), 1, RatePlan.STANDARD);
++        Reservation reservation = service.create(request);
++        service.confirm(reservation.id());
++        service.checkIn(reservation.id());
++
++        ReservationReceipt receipt = service.checkOut(reservation.id());
++
++        assertEquals("Comprovante de reserva", receipt.title());
++        assertTrue(receipt.text().contains("Hóspede: Carla Dias"));
++        assertTrue(receipt.text().contains("CPF 111.222.333-44"));
++        assertTrue(receipt.text().contains("Entrada: 10/03/2027"));
++        assertTrue(receipt.text().contains("Saída: 12/03/2027"));
++        assertTrue(receipt.text().contains("R$"));
++        assertTrue(receipt.text().contains("diárias"));
++
++        List<Message> sent = sentMessages.all();
++        assertTrue(sent.get(0).body().contains("Comprovante de reserva"));
++        assertTrue(sent.get(0).body().contains("R$"));
++    }
+ }
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index e95e6d1..59bba26 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -116,4 +116,110 @@ class HttpApiTest {
+         assertEquals(400, get("/reports/revenue?month=july").statusCode());
+         assertEquals(400, get("/reports/occupancy").statusCode());
+     }
++
++    @Test
++    void acceptsCompanyReservationWithCnpj() throws Exception {
++        String companyJson = """
++                {"roomNumber": 101, "guestName": "Ana Souza", "guestEmail": "ana@example.com",
++                 "companyCnpj": "12.345.678/0001-90", "companyName": "Tecnosul Ltda",
++                 "checkIn": "2027-03-10", "checkOut": "2027-03-12", "guests": 2, "ratePlan": "STANDARD"}
++                """;
++        HttpResponse<String> created = post("/reservations", companyJson);
++        assertEquals(201, created.statusCode());
++        JsonNode reservation = json.readTree(created.body());
++
++        assertEquals("12.345.678/0001-90", reservation.get("companyCnpj").asText());
++        assertEquals("Tecnosul Ltda", reservation.get("companyName").asText());
++        assertTrue(reservation.get("guestCpf").isNull());
++        assertTrue(reservation.get("guestPassport").isNull());
++
++        long id = reservation.get("id").asLong();
++        post("/reservations/" + id + "/confirmation", "");
++        post("/reservations/" + id + "/check-in", "");
++        HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");
++        JsonNode document = json.readTree(checkedOut.body());
++
++        assertEquals("Fatura de hospedagem", document.get("title").asText());
++        assertTrue(document.get("text").asText().contains("Empresa: Tecnosul Ltda"));
++        assertTrue(document.get("text").asText().contains("CNPJ 12.345.678/0001-90"));
++        assertTrue(document.get("text").asText().contains("ISS retido (5%)"));
++    }
++
++    @Test
++    void acceptsForeignerReservationWithPassport() throws Exception {
++        String foreignerJson = """
++                {"roomNumber": 102, "guestName": "John Smith", "guestEmail": "john@example.com",
++                 "guestPassport": "X1234567", "guestCountry": "United Kingdom",
++                 "checkIn": "2027-03-10", "checkOut": "2027-03-12", "guests": 1, "ratePlan": "STANDARD"}
++                """;
++        HttpResponse<String> created = post("/reservations", foreignerJson);
++        assertEquals(201, created.statusCode());
++        JsonNode reservation = json.readTree(created.body());
++
++        assertEquals("X1234567", reservation.get("guestPassport").asText());
++        assertEquals("United Kingdom", reservation.get("guestCountry").asText());
++        assertTrue(reservation.get("guestCpf").isNull());
++        assertTrue(reservation.get("companyCnpj").isNull());
++
++        long id = reservation.get("id").asLong();
++        post("/reservations/" + id + "/confirmation", "");
++        post("/reservations/" + id + "/check-in", "");
++        HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");
++        JsonNode document = json.readTree(checkedOut.body());
++
++        assertEquals("Booking receipt", document.get("title").asText());
++        assertTrue(document.get("text").asText().contains("Booking receipt no."));
++        assertTrue(document.get("text").asText().contains("passport X1234567"));
++        assertTrue(document.get("text").asText().contains("United Kingdom"));
++        assertTrue(document.get("text").asText().contains("Check-in: 2027-03-10"));
++        assertTrue(document.get("text").asText().contains("BRL"));
++    }
++
++    @Test
++    void rejectsReservationWithNoIdentification() throws Exception {
++        String noIdJson = """
++                {"roomNumber": 101, "guestName": "Test", "guestEmail": "test@example.com",
++                 "checkIn": "2027-04-10", "checkOut": "2027-04-12", "guests": 1, "ratePlan": "STANDARD"}
++                """;
++        HttpResponse<String> response = post("/reservations", noIdJson);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
++
++    @Test
++    void rejectsReservationWithMultipleIdentifications() throws Exception {
++        String multipleIdJson = """
++                {"roomNumber": 101, "guestName": "Test", "guestEmail": "test@example.com",
++                 "guestCpf": "111.222.333-44", "companyCnpj": "12.345.678/0001-90",
++                 "companyName": "Tecnosul Ltda", "checkIn": "2027-05-10", "checkOut": "2027-05-12",
++                 "guests": 1, "ratePlan": "STANDARD"}
++                """;
++        HttpResponse<String> response = post("/reservations", multipleIdJson);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
++
++    @Test
++    void rejectsCompanyReservationWithOnlyCnpj() throws Exception {
++        String onlyCnpjJson = """
++                {"roomNumber": 101, "guestName": "Test", "guestEmail": "test@example.com",
++                 "companyCnpj": "12.345.678/0001-90", "checkIn": "2027-05-10", "checkOut": "2027-05-12",
++                 "guests": 1, "ratePlan": "STANDARD"}
++                """;
++        HttpResponse<String> response = post("/reservations", onlyCnpjJson);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
++
++    @Test
++    void rejectsForeignerReservationWithOnlyPassport() throws Exception {
++        String onlyPassportJson = """
++                {"roomNumber": 101, "guestName": "Test", "guestEmail": "test@example.com",
++                 "guestPassport": "X1234567", "checkIn": "2027-05-10", "checkOut": "2027-05-12",
++                 "guests": 1, "ratePlan": "STANDARD"}
++                """;
++        HttpResponse<String> response = post("/reservations", onlyPassportJson);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
+ }
