@@ -1453,3 +1453,27 @@ de título custava pouco, e "vão pedir mais relatórios" empurrava para uma cla
 casos de fronteira eram sobre quem decide a combinação e quem monta a lista de avisados. Fica pronto para a revisão
 do professor e para rodar na quarta. *O que se perde:* o N0 do 03, do 07 e do 09 deixa de repetir o das execuções
 antigas; só o 01 e o 05 dão a segunda execução do N0.
+
+**21/10: no N2 da manutenção do TCC_V1, a linha da skill passa para o primeiro item do `CLAUDE.md`: "Antes de mudar,
+use a skill `design-patterns` e leia o código que a mudança toca…", e sai a última linha.** O N1 e a construção não
+mudam. *Por quê:* no piloto de 21/10, o Haiku seguiu o primeiro item ("leia o código"), passou a editar e não chegou
+à última linha: abriu a skill em 1 das 5 manutenções do N2 (contra 4 de 5 na construção, onde não há código para
+ler); os dois Sonnet abriram em todas.
+
+**21/10: o piloto do verificador de qualidade fica o mais perto possível da versão final.** (1) O banco PostgreSQL
+entra já no piloto: na construção, a moldura do enunciado diz que os dados ficam num PostgreSQL; na manutenção, a
+base é reescrita para PostgreSQL, com o esquema em migrações. (2) Os testes continuam sem ser pedidos no enunciado da
+construção. (3) A verificação dá uma nota curta por coluna (bom / com problemas / ruim) e, nos patterns, as classes
+de sempre. O piloto roda uma execução por combinação; a versão final repete com três. *Por quê:* (1) o banco é a
+coluna que hoje está vazia na tabela do TCC (construir e manter × arquitetura, design de baixo nível, testes, banco ×
+com e sem harness); (2) pedir os testes mediria a obediência ao pedido, e não a iniciativa do modelo; (3) a nota
+permite montar a tabela e comparar com e sem harness.
+
+**21/10: o verificador de qualidade é só da avaliação e nunca entra no experimento.** Um agente revisor
+(`quality-reviewer`) com uma skill por coluna (`review-architecture`, `review-design`, `review-tests`,
+`review-database`, `review-behavior`); cada skill traz o seu script de medição (JaCoCo e a contagem de testes, jdeps,
+o `pg_dump` do esquema, um roteiro de chamadas à API por cenário), e o revisor roda os scripts e julga. Ele trabalha
+numa cópia de cada projeto, com o próprio contêiner e o próprio banco, depois que as execuções terminam; os agentes
+testados nunca veem nada disso. Os nomes ficam em inglês; o conteúdo pode ser em português. *Por quê:* as
+ferramentas fazem o mecânico (contar, medir, testar a API) e a IA fica só com o julgamento, o que barateia e firma a
+correção.
