@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import hotel.EmptyDatabase;
 import hotel.documents.ReservationReceipt;
 import hotel.messages.EmailSender;
 import hotel.messages.Message;
@@ -13,13 +14,21 @@ import hotel.rooms.Rooms;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class ReservationServiceTest {
 
-    private final SentMessages sentMessages = new SentMessages();
+    private final EmptyDatabase database = new EmptyDatabase();
+    private final SentMessages sentMessages = new SentMessages(database.dataSource());
     private final ReservationService service = new ReservationService(
-            new Rooms(), new ReservationStore(), new PriceCalculator(), new EmailSender(sentMessages));
+            new Rooms(database.dataSource()), new ReservationStore(database.dataSource()), new PriceCalculator(),
+            new EmailSender(sentMessages));
+
+    @AfterEach
+    void closeDatabase() {
+        database.close();
+    }
 
     private static NewReservation stay(int roomNumber, String checkIn, String checkOut, int guests, RatePlan plan) {
         Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
@@ -77,7 +86,7 @@ class ReservationServiceTest {
 
         service.confirm(reservation.id());
 
-        assertEquals(ReservationStatus.CONFIRMED, reservation.status());
+        assertEquals(ReservationStatus.CONFIRMED, service.find(reservation.id()).status());
         List<Message> sent = sentMessages.all();
         assertEquals(1, sent.size());
         assertEquals("EMAIL", sent.get(0).channel());
@@ -107,9 +116,9 @@ class ReservationServiceTest {
         assertEquals(new BigDecimal("0.00"), service.cancel(pending.id()).refund());
         assertEquals(new BigDecimal("249.90"), service.cancel(standard.id()).refund());
         assertEquals(new BigDecimal("0.00"), service.cancel(nonRefundable.id()).refund());
-        assertEquals(ReservationStatus.CANCELLED, standard.status());
-        assertEquals(new BigDecimal("0.00"), standard.amountKept());
-        assertEquals(new BigDecimal("331.42"), nonRefundable.amountKept());
+        assertEquals(ReservationStatus.CANCELLED, service.find(standard.id()).status());
+        assertEquals(new BigDecimal("0.00"), service.find(standard.id()).amountKept());
+        assertEquals(new BigDecimal("331.42"), service.find(nonRefundable.id()).amountKept());
     }
 
     @Test
@@ -131,7 +140,7 @@ class ReservationServiceTest {
         service.checkIn(reservation.id());
         ReservationReceipt receipt = service.checkOut(reservation.id());
 
-        assertEquals(ReservationStatus.CHECKED_OUT, reservation.status());
+        assertEquals(ReservationStatus.CHECKED_OUT, service.find(reservation.id()).status());
         assertEquals(reservation.id(), receipt.reservationId());
         assertEquals(new BigDecimal("779.80"), receipt.total());
     }

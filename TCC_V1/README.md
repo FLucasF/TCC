@@ -8,10 +8,12 @@ aplica certo? E o harness muda isso?
 |---|---|
 | [`construction/`](construction/) | a **construção**: o agente recebe uma pasta vazia e o enunciado do sistema inteiro da pousada, com a parte do cenário no fim, e constrói do zero |
 | [`maintenance/`](maintenance/) | a **manutenção**: o agente recebe o sistema pronto da pousada, sem nenhum pattern (a base), e um pedido de mudança |
-| [`evaluation/`](evaluation/) | só o `common.md`: o que olhar num projeto e o formato de uma correção em texto, sem classes |
+| [`evaluation/`](evaluation/) | o `common.md` (o que olhar num projeto e o formato de uma correção em texto) e o [verificador de qualidade](evaluation/quality/), só da avaliação |
+| [`infra/`](infra/) | o que as duas pesquisas dividem para rodar: o PostgreSQL de cada execução (`run_database.py`) |
 | [`skills/`](skills/) | a skill `design-patterns`, escrita para o TCC, e o README dela (origem, cuidados e o viés declarado) |
 
-As duas usam o mesmo domínio (a Pousada Maré Alta), a mesma pilha (Java 21 e Javalin 6.7.0, sem Spring), os mesmos 5
+As duas usam o mesmo domínio (a Pousada Maré Alta), a mesma pilha (Java 21 e Javalin 6.7.0, sem Spring, com os
+dados num PostgreSQL 18 desde 21/10/2026), os mesmos 5
 cenários (Strategy no 01, Observer no 03, Factory Method no 05, Decorator no 07, Template Method no 09; os controles
 negativos ficaram de fora) e a mesma imagem do experimento (`experimento-harness:v5`). O nome de cada cenário traz o
 pattern esperado; o agente nunca vê esse nome.
@@ -50,6 +52,8 @@ python construction/infra/scripts/run_one_scenario.py 01 N0 claude-sonnet-5-5 me
 python maintenance/infra/scripts/run_one_scenario.py 01 N0 claude-sonnet-5-5 medium
 ```
 
-Os scripts de execução só rodam com as pastas do experimento commitadas (o `meta.json` guarda o hash delas). O token
+Cada execução sobe um PostgreSQL só dela, numa rede Docker separada; o agente e o build recebem o endereço em
+`DB_URL`, `DB_USER` e `DB_PASSWORD`, e no fim a foto do esquema (`pg_dump --schema-only`) fica em
+`database-schema.sql`, na pasta da execução. Os scripts de execução só rodam com as pastas do experimento commitadas (o `meta.json` guarda o hash delas). O token
 da assinatura é o mesmo das outras pesquisas (`../construction-v5/.env`), que o Docker lê pelo `--env-file`; os
 scripts só conferem se ele existe, sem imprimir o valor. As verificações: `python -m mypy` e `python -m ruff check`.

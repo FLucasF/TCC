@@ -5,6 +5,9 @@ check-in e o check-out, e o contador tira os relatórios.
 
 ## Como rodar
 
+Os dados ficam num PostgreSQL. O endereço vem na variável `DB_URL`
+(`jdbc:postgresql://<máquina>:<porta>/<banco>`), o usuário em `DB_USER` e a senha em `DB_PASSWORD`.
+
 ```bash
 mvn verify
 ```
@@ -13,13 +16,18 @@ mvn verify
 java -jar target/hotel.jar
 ```
 
-O serviço sobe na porta 7070 (ou na que estiver em `PORT`). Os dados ficam em memória: quando o
-serviço reinicia, as reservas se perdem.
+O serviço sobe na porta 7070 (ou na que estiver em `PORT`). Ao subir, ele cria e atualiza as tabelas
+com as migrações do Flyway, em `src/main/resources/db/migration` (uma mudança no esquema é uma
+migração nova, `V2__...sql`, e as que já existem não mudam). Os testes usam o mesmo banco, pelas
+mesmas variáveis, e o esvaziam antes de cada teste (`EmptyDatabase`): as reservas e as mensagens
+somem, e a numeração volta a 1.
 
 ## Como funciona
 
 - **Quartos:** cinco, de três tipos (`STANDARD`, `DELUXE`, `SUITE`), cada um com a sua capacidade e a
-  sua diária.
+  sua diária. Vêm com o esquema do banco.
+- **Dados:** as tabelas `rooms`, `reservations` e `messages`. O banco também não deixa um quarto ter
+  duas reservas (não canceladas) na mesma noite, mesmo com dois pedidos chegando juntos.
 - **Preço:** cada noite custa a diária do quarto. Na alta temporada (de 15 de dezembro ao fim de
   fevereiro, e o mês de julho inteiro), a noite custa 20% a mais. O plano `NON_REFUNDABLE` dá 15% de
   desconto sobre a soma das noites. O dinheiro é arredondado para centavos, meio para o par, a cada passo.

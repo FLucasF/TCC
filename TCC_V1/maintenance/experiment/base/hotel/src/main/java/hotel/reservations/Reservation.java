@@ -18,6 +18,16 @@ public final class Reservation {
     private BigDecimal refund;
 
     Reservation(long id, NewReservation request, Price price) {
+        this(id, request, price, ReservationStatus.PENDING, PriceCalculator.cents(BigDecimal.ZERO), null);
+    }
+
+    Reservation(
+            long id,
+            NewReservation request,
+            Price price,
+            ReservationStatus status,
+            BigDecimal amountPaid,
+            BigDecimal refund) {
         this.id = id;
         this.roomNumber = request.roomNumber();
         this.guest = request.guest();
@@ -26,8 +36,9 @@ public final class Reservation {
         this.guests = request.guests();
         this.ratePlan = request.ratePlan();
         this.price = price;
-        this.status = ReservationStatus.PENDING;
-        this.amountPaid = PriceCalculator.cents(BigDecimal.ZERO);
+        this.status = status;
+        this.amountPaid = amountPaid;
+        this.refund = refund;
     }
 
     public long id() {
@@ -100,11 +111,5 @@ public final class Reservation {
     void cancel(BigDecimal refundAmount) {
         this.status = ReservationStatus.CANCELLED;
         this.refund = refundAmount;
-    }
-
-    boolean overlaps(int otherRoomNumber, LocalDate otherCheckIn, LocalDate otherCheckOut) {
-        return roomNumber == otherRoomNumber
-                && checkIn.isBefore(otherCheckOut)
-                && otherCheckIn.isBefore(checkOut);
     }
 }

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hotel.rooms.Room;
-import hotel.rooms.Rooms;
+import hotel.rooms.RoomType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 class PriceCalculatorTest {
 
     private final PriceCalculator calculator = new PriceCalculator();
-    private final Room standardRoom = new Rooms().find(101).orElseThrow();
-    private final Room suite = new Rooms().find(301).orElseThrow();
+    private final Room standardRoom = new Room(101, RoomType.STANDARD, 2, new BigDecimal("249.90"));
+    private final Room suite = new Room(301, RoomType.SUITE, 4, new BigDecimal("579.90"));
 
     @Test
     void lowSeasonNightsCostTheNightlyRate() {

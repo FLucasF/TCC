@@ -2,6 +2,7 @@ package hotel.reports;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import hotel.EmptyDatabase;
 import hotel.messages.EmailSender;
 import hotel.messages.SentMessages;
 import hotel.reservations.Guest;
@@ -14,20 +15,27 @@ import hotel.reservations.ReservationStore;
 import hotel.rooms.Rooms;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class ReportsTest {
 
-    private final Rooms rooms = new Rooms();
-    private final ReservationStore store = new ReservationStore();
-    private final ReservationService service =
-            new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(new SentMessages()));
+    private final EmptyDatabase database = new EmptyDatabase();
+    private final Rooms rooms = new Rooms(database.dataSource());
+    private final ReservationStore store = new ReservationStore(database.dataSource());
+    private final ReservationService service = new ReservationService(
+            rooms, store, new PriceCalculator(), new EmailSender(new SentMessages(database.dataSource())));
 
     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
         Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
         return service.create(new NewReservation(
                 roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan));
+    }
+
+    @AfterEach
+    void closeDatabase() {
+        database.close();
     }
 
     @BeforeEach

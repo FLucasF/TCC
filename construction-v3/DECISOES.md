@@ -1477,3 +1477,45 @@ numa cópia de cada projeto, com o próprio contêiner e o próprio banco, depoi
 testados nunca veem nada disso. Os nomes ficam em inglês; o conteúdo pode ser em português. *Por quê:* as
 ferramentas fazem o mecânico (contar, medir, testar a API) e a IA fica só com o julgamento, o que barateia e firma a
 correção.
+
+**21/10: a base da manutenção do TCC_V1 passa a guardar os dados num PostgreSQL 18, por JDBC puro com o HikariCP, com
+o esquema em migrações do Flyway (`V1__create_tables.sql`) e o endereço em `DB_URL`, `DB_USER` e `DB_PASSWORD`; os
+cinco quartos vêm com o esquema, uma restrição de exclusão impede duas reservas no mesmo quarto e na mesma noite, e os
+26 testes rodam contra o banco, esvaziado antes de cada teste.** As sementes dos cinco patterns ficam iguais; o
+serviço grava cada mudança da reserva logo depois de mudá-la, e os relatórios continuam lendo todas as reservas e
+filtrando em Java. *Por quê:* o banco é a coluna que faltava na tabela do TCC, e a API tinha de responder igual à da
+base em memória (conferido: a mesma saída, byte a byte, num passeio de 28 chamadas); nos pedidos 01, 05 e 07, o dado
+novo pede uma migração nova, e é isso que a coluna do banco mede na manutenção.
+
+**21/10: na construção do TCC_V1, a moldura troca "por enquanto os dados podem ficar só na memória" por: os dados
+ficam num banco PostgreSQL 18, o endereço chega em `DB_URL` (no formato `jdbc:postgresql://...`) e o usuário e a senha
+em `DB_USER` e `DB_PASSWORD`, e o banco começa vazio.** Não diz como criar o esquema nem pede testes. *Por quê:* o
+mínimo para o agente conseguir usar o banco; migração, chaves e tipos ficam por conta dele, e é isso que se mede.
+
+**21/10: cada execução das duas pesquisas sobe um PostgreSQL só dela (a imagem `postgres:18.6-alpine` pelo digest),
+numa rede Docker só dela e sem porta no computador; o contêiner do agente e o do build entram nessa rede, e no fim a
+foto do esquema (`pg_dump --schema-only`) fica em `database-schema.sql`, na pasta da execução, e tudo é derrubado.**
+O código fica em `TCC_V1/infra/run_database.py`, usado pelos dois `run_one_scenario.py`. *Por quê:* nenhuma execução
+vê os dados de outra, e o banco que o agente deixou fica registrado mesmo depois de apagado.
+
+**21/10: o verificador de qualidade roda numa imagem própria, `tcc-v1-reviewer:1` (a do experimento mais o cliente do
+PostgreSQL 18 e o JaCoCo), com o agente `quality-reviewer` chamado por `claude -p --agent`, e as notas saem de linhas
+fixas do `review.md` (`**Nota:**`, `**Classe:**`, `**Exagero:**`).** Na coluna do design, a classe mede o pattern e a
+nota mede o design de baixo nível do resto do código. O comportamento é um roteiro fixo por cenário pela API, sempre
+com a parte comum do enunciado, os dados depois de reiniciar o serviço e dez rodadas de duas reservas simultâneas para
+o mesmo quarto. *Por quê:* o `pg_dump` precisa ser da mesma versão do servidor, e a imagem do experimento não pode
+mudar; as linhas fixas deixam o pipeline montar a tabela sem ler o texto.
+
+**21/10: a calibração do verificador usa as 10 soluções de referência refeitas sobre a base com banco, em
+`maintenance-v1/evaluation/solutions-postgres/` (fora do TCC_V1, como as de antes), revisadas nas duas pesquisas, e 6
+exemplos estragados de propósito (dois de arquitetura, dois de testes, dois de banco), revisados só na manutenção, com
+a 01-pattern e a 05-pattern como os exemplos bons dessas colunas.** O gabarito é o `cases.json` de lá. *Por quê:* na
+manutenção, um defeito que a base já tem (o ciclo entre `documents` e `reservations`) não conta contra o agente, e o
+exemplo mede só o que foi estragado; um dos exemplos de testes tem a cobertura alta e nenhuma asserção, para ver se o
+revisor precisa do PIT.
+
+**21/10: no verificador, cada defeito pesa numa coluna só; o comportamento mede o que o sistema faz pela API, do jeito
+que o texto descreve, a partir de um banco vazio.** Um defeito do banco que o revisor ache fora do roteiro (SQL montado
+com dado de fora, uma migração que quebra um banco que já tinha dados) pesa na coluna do banco e só é citado no
+comportamento. *Por quê:* na calibração, o revisor deu `ruim` no comportamento de um exemplo de banco ruim com o
+roteiro passando inteiro, e a mesma falha contaria duas vezes na tabela do TCC.

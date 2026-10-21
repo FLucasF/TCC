@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hotel.EmptyDatabase;
 import hotel.Hotel;
 import java.io.IOException;
 import java.net.URI;
@@ -25,18 +26,20 @@ class HttpApiTest {
 
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
+    private final EmptyDatabase database = new EmptyDatabase();
     private Hotel hotel;
     private String baseUrl;
 
     @BeforeEach
     void startHotel() {
-        hotel = new Hotel();
+        hotel = new Hotel(database.dataSource());
         baseUrl = "http://localhost:" + hotel.start(0);
     }
 
     @AfterEach
     void stopHotel() {
         hotel.stop();
+        database.close();
     }
 
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {

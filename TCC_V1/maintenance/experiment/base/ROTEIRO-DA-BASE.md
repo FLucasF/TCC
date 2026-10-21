@@ -34,7 +34,7 @@ das sementes. Se a base for ruim em tudo, todo modelo refatora tudo, e o exagero
 | JSON | Jackson (o que o Javalin usa) |
 | build | Maven |
 | testes | JUnit 5 |
-| armazenamento | em memória (a recomendação, adotada para escrever a base; ver as decisões em aberto) |
+| armazenamento | PostgreSQL 18 (desde 21/10/2026), por JDBC puro com o HikariCP; o esquema em migrações do Flyway; o endereço em `DB_URL` (o usuário em `DB_USER`, a senha em `DB_PASSWORD`) |
 | montagem das peças | à mão, numa classe `App`, sem contêiner de injeção |
 
 **Por que Javalin e não Spring Boot.** O Spring entrega pronto parte do que se quer medir: os eventos
@@ -98,7 +98,7 @@ funcionalidade real (a recepção confere o que foi mandado) e é por ela que se
 - nenhuma `interface` com uma implementação só (seria meio caminho andado);
 - nenhum comentário, `TODO` ou nome que aponte para o pattern ("por enquanto", "extensível", `Strategy`, `Handler`);
 - nenhuma duplicação fora das sementes (senão o agente refatora outra coisa e o escopo fica sujo);
-- nada que dependa de rede, banco ou Docker para o `mvn verify`.
+- nada que dependa de rede ou Docker para o `mvn verify`, além do PostgreSQL de `DB_URL` (desde 21/10/2026: cada execução recebe um banco só dela).
 
 ## Tamanho e testes
 
@@ -128,9 +128,9 @@ o domínio também foi sugerido por ele.
 1. **Factory Method ou Abstract Factory** — qual dos dois é a resposta certa **do cenário** (o que o
    agente deveria criar); a base não tem nenhum dos dois. **Decidido (Lucas, 15/10): o Factory Method.** O
    pedido do comprovante por tipo de hóspede justifica sem precisar dizer "família de objetos".
-2. **Armazenamento.** Adotado **em memória** para escrever a base (falta o OK do Lucas), porque os patterns medidos são de domínio, e
-   um banco traz trabalho e ruído sem medir nada a mais. O custo é o realismo: "se reiniciar, perde
-   tudo" precisa estar dito no texto da base. A alternativa é JDBC puro com H2 ou PostgreSQL.
+2. **Armazenamento.** Adotado **em memória** para escrever a base. **Decidido (Lucas, 21/10/2026): PostgreSQL**,
+   porque o banco é uma das quatro colunas da tabela do TCC (arquitetura, design de baixo nível, testes, banco).
+   Veja "A base com banco (21/10/2026)", no fim.
 3. **O pattern diferente que também resolve** (ex.: Strategy por passo no lugar de Template Method): o
    gabarito lista antes as alternativas aceitas, e o resultado ganha a classe "alternativa equivalente".
 4. **O número de execuções.** São 10 cenários (5 que pedem o pattern + 5 controles negativos; os
@@ -169,3 +169,32 @@ nada sobre patterns). Conferências já feitas:
 Os pacotes: `rooms` (os quartos), `reservations` (o preço, a reserva, o ciclo dela), `documents` (o
 comprovante), `messages` (o e-mail e as mensagens enviadas), `reports` (os dois relatórios), `web` (a API) e
 a classe `Hotel`, que monta as peças à mão e sobe o servidor.
+
+## A base com banco (21/10/2026)
+
+A base passou da memória para o PostgreSQL, sem mudar o comportamento da API nem as sementes:
+
+- **O esquema** fica numa migração do Flyway (`src/main/resources/db/migration/V1__create_tables.sql`): `rooms` (os
+  cinco quartos vêm com o esquema), `reservations` (com a chave estrangeira para o quarto, o dinheiro em
+  `numeric(10, 2)`, as datas em `date` e as conferências simples: hóspedes ≥ 1, saída depois da entrada) e
+  `messages`. Uma restrição de exclusão (`btree_gist`) impede duas reservas não canceladas no mesmo quarto e na
+  mesma noite, mesmo com dois pedidos simultâneos; quando ela barra, a resposta é o mesmo `409 ROOM_UNAVAILABLE`.
+- **O acesso** é JDBC puro com o HikariCP, em três classes que antes guardavam em memória: `Rooms`,
+  `ReservationStore` e `SentMessages`. A classe `Database` abre a conexão a partir de `DB_URL`, `DB_USER` e
+  `DB_PASSWORD` e roda as migrações; o `Hotel` recebe o `DataSource`. O serviço grava cada mudança da reserva
+  (`store.update`) logo depois de mudá-la; a conferência de quarto ocupado virou uma consulta
+  (`isRoomTaken`). Os relatórios continuam lendo todas as reservas e filtrando em Java, como antes, para a semente
+  do Template Method ficar igual.
+- **As sementes não mudaram:** os dois `switch` do plano de tarifa, a chamada direta ao `EmailSender`, os três `new
+  ReservationReceipt`, o `EmailSender` sem nada em volta e os dois relatórios com os mesmos passos estão como eram.
+- **Os testes** (os mesmos 26) rodam contra o banco de `DB_URL`; a classe de teste `EmptyDatabase` esvazia as reservas
+  e as mensagens e volta a numeração a 1 antes de cada teste. Três conferências passaram a reler a reserva do banco
+  (`service.find`), porque o objeto devolvido antes não muda mais sozinho; o `PriceCalculatorTest` monta os dois
+  quartos à mão, sem banco.
+- **Conferido:** o `mvn verify` passa (26 testes) contra um PostgreSQL 18.6, e um passeio de 28 chamadas pela API
+  (criar, recusar, confirmar, cancelar, check-in, check-out, segunda via, mensagens, os dois relatórios e os erros)
+  deu a mesma saída, byte a byte, na base antiga (em memória) e na nova.
+- **Tamanho:** 1.147 linhas de Java em 27 arquivos de código (antes, 922 em 26), mais a migração.
+- **O que o agente vai encontrar de novo nos pedidos:** o 01 (o `companyCode`), o 05 (CNPJ, razão social, passaporte e
+  país) e o 07 (o `status` da mensagem) pedem coluna nova, e portanto uma migração nova; é isso que a coluna do
+  banco mede na manutenção.

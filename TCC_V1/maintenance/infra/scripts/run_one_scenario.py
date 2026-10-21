@@ -14,7 +14,12 @@ Output in runs/<scenario>-<pattern>/<arm>-<model>/ (for example runs/01-strategy
     prompt.md           the exact text the agent received (the frame with the request inside)
     changes.patch       what the agent changed, against the copy it received (harness files left out)
     claude-output.jsonl the transcript; stderr.txt; build.txt (mvn verify, in a container without the token)
+    database-schema.sql the schema of the execution's database at the end (pg_dump --schema-only)
     meta.json           the run's identity (base, harness and prompt hashes, model, effort) and its summary
+
+The database: every execution gets a PostgreSQL of its own, in a Docker network of its own (../../../infra/
+run_database.py); the agent's and the build's containers join it and receive DB_URL, DB_USER and DB_PASSWORD. At the
+end the schema is photographed and the database and the network are removed.
 
 Isolation: the agent's container sees only its workspace and the prompt, never the answer key, the reference
 solutions or other runs. The subscription token is read by Docker from construction-v5's .env (--env-file); this
@@ -33,6 +38,10 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "infra"))
+
+import run_database  # noqa: E402  (TCC_V1/infra: the execution's PostgreSQL, shared by the two studies)
 
 MAINTENANCE_ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY_ROOT = MAINTENANCE_ROOT.parents[1]   # J:\TCC (TCC_V1/maintenance is two levels down)
@@ -139,19 +148,19 @@ def prepare_workspace(arm: str, workspace: Path) -> None:
         shutil.copytree(HARNESSES / arm, workspace, dirs_exist_ok=True)
 
 
-def agent_docker_command(run_name: str, run_folder: Path, workspace: Path, model: str, effort: str) -> list[str]:
+def agent_docker_command(run_id: str, run_folder: Path, workspace: Path, model: str, effort: str) -> list[str]:
     return [
-        "docker", "run", "--rm", "--name", f"tcc-v1-maintenance-{run_name}",
-        "--env-file", str(ENV_FILE),
+        "docker", "run", "--rm", "--name", run_id,
+        "--env-file", str(ENV_FILE), *run_database.docker_arguments(run_id),
         "--mount", f"type=bind,source={workspace},target=/workspace",
         "--mount", f"type=bind,source={run_folder / 'prompt.md'},target=/experimento/prompt.md,readonly",
         IMAGE, "bash", "-c", AGENT_COMMAND, model, effort,
     ]
 
 
-def build_docker_command(workspace: Path) -> list[str]:
-    return ["docker", "run", "--rm", "--mount", f"type=bind,source={workspace},target=/workspace",
-            IMAGE, "bash", "-c", BUILD_COMMAND]
+def build_docker_command(run_id: str, workspace: Path) -> list[str]:
+    return ["docker", "run", "--rm", "--name", f"{run_id}-build", *run_database.docker_arguments(run_id),
+            "--mount", f"type=bind,source={workspace},target=/workspace", IMAGE, "bash", "-c", BUILD_COMMAND]
 
 
 def run_logged(command: list[str], output_file: Path, errors_file: Path | None = None) -> int:
@@ -270,11 +279,12 @@ def main() -> None:
     run_name = f"{arm}-{model_short_name(model)}"
     run_folder = RUNS / f"{scenario}-{SCENARIO_LABELS.get(scenario, 'unknown')}" / run_name
     workspace = run_folder / "workspace"
+    run_id = f"tcc-v1-maintenance-{scenario}-{run_name}"   # the containers and the network of this execution
 
     check_before_running(scenario, arm, model, run_folder)
     identity = {
         "scenario": scenario, "scenario_file": scenario_file(scenario).name, "arm": arm,
-        "requested_model": model, "effort": effort, "image": IMAGE,
+        "requested_model": model, "effort": effort, "image": IMAGE, "database_image": run_database.IMAGE,
         "base_tree": committed_tree_hash(BASE),
         "scenarios_tree": committed_tree_hash(SCENARIOS),
         "harness_tree": committed_tree_hash(HARNESSES / arm) if arm != "N0" else None,
@@ -282,8 +292,9 @@ def main() -> None:
     if dry_run:
         print("checks passed; it would run", json.dumps(identity, ensure_ascii=False))
         print(f"  into {run_folder.relative_to(MAINTENANCE_ROOT)}")
-        for command in (agent_docker_command(f"{scenario}-{run_name}", run_folder, workspace, model, effort),
-                        build_docker_command(workspace)):
+        for command in (*run_database.start_commands(run_id),
+                        agent_docker_command(run_id, run_folder, workspace, model, effort),
+                        build_docker_command(run_id, workspace)):
             print("  " + " ".join(part if " " not in part else "<bash script>" for part in command))
         return
 
@@ -292,20 +303,30 @@ def main() -> None:
     prepare_workspace(arm, workspace)
 
     print(f"\033[36m=== {scenario} {arm} {model} effort {effort} ===\033[0m", flush=True)
-    start, started_at = datetime.now().astimezone(), time.monotonic()
-    run_exit_code = run_logged(agent_docker_command(f"{scenario}-{run_name}", run_folder, workspace, model, effort),
-                               run_folder / "claude-output.jsonl", run_folder / "stderr.txt")
-    end, seconds = datetime.now().astimezone(), int(time.monotonic() - started_at)
-    print(f"run finished: exit code {run_exit_code} in {seconds}s", flush=True)
+    try:
+        run_database.start(run_id)
+    except RuntimeError as failure:
+        die(str(failure))
+    try:
+        start, started_at = datetime.now().astimezone(), time.monotonic()
+        run_exit_code = run_logged(agent_docker_command(run_id, run_folder, workspace, model, effort),
+                                   run_folder / "claude-output.jsonl", run_folder / "stderr.txt")
+        end, seconds = datetime.now().astimezone(), int(time.monotonic() - started_at)
+        print(f"run finished: exit code {run_exit_code} in {seconds}s", flush=True)
 
-    changed_files = write_changes(arm, workspace, run_folder)
-    build_exit_code = run_logged(build_docker_command(workspace), run_folder / "build.txt")
-    print(f"changed files: {changed_files}; build: exit code {build_exit_code}", flush=True)
+        changed_files = write_changes(arm, workspace, run_folder)
+        build_exit_code = run_logged(build_docker_command(run_id, workspace), run_folder / "build.txt")
+        schema_photographed = run_database.photograph(run_id, run_folder)
+    finally:
+        run_database.remove(run_id)
+    print(f"changed files: {changed_files}; build: exit code {build_exit_code}; "
+          f"schema photographed: {schema_photographed}", flush=True)
 
     meta = summarize(run_folder, {
         **identity, "start": start.isoformat(timespec="seconds"), "end": end.isoformat(timespec="seconds"),
         "seconds": seconds, "run_exit_code": run_exit_code, "build_exit_code": build_exit_code,
-        "changed_files": changed_files, "agent_git_bundled": move_agent_git_out(run_folder),
+        "changed_files": changed_files, "schema_photographed": schema_photographed,
+        "agent_git_bundled": move_agent_git_out(run_folder),
     })
     (run_folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: meta[key] for key in ("seconds", "turns", "cost_usd", "build_exit_code", "changed_files",

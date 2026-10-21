@@ -39,17 +39,12 @@ public final class ReservationService {
                     ErrorCode.CAPACITY_EXCEEDED,
                     "room " + room.number() + " takes at most " + room.capacity() + " guests");
         }
-        boolean roomTaken = store.all().stream()
-                .filter(existing -> existing.status() != ReservationStatus.CANCELLED)
-                .anyMatch(existing -> existing.overlaps(room.number(), request.checkIn(), request.checkOut()));
-        if (roomTaken) {
+        if (store.isRoomTaken(room.number(), request.checkIn(), request.checkOut())) {
             throw new HotelException(
                     ErrorCode.ROOM_UNAVAILABLE, "room " + room.number() + " is taken on some of those nights");
         }
         Price price = priceCalculator.calculate(room, request.checkIn(), request.checkOut(), request.ratePlan());
-        Reservation reservation = new Reservation(store.nextId(), request, price);
-        store.save(reservation);
-        return reservation;
+        return store.add(request, price);
     }
 
     public Reservation find(long reservationId) {
@@ -65,6 +60,7 @@ public final class ReservationService {
             throw notAllowed(reservation, "confirm");
         }
         reservation.confirmPayment();
+        store.update(reservation);
         ReservationReceipt receipt = new ReservationReceipt(reservation, roomOf(reservation));
         emailSender.send(
                 reservation.guest().email(),
@@ -88,6 +84,7 @@ public final class ReservationService {
             case NON_REFUNDABLE -> PriceCalculator.cents(BigDecimal.ZERO);
         };
         reservation.cancel(refund);
+        store.update(reservation);
         return reservation;
     }
 
@@ -97,6 +94,7 @@ public final class ReservationService {
             throw notAllowed(reservation, "check in");
         }
         reservation.changeStatus(ReservationStatus.CHECKED_IN);
+        store.update(reservation);
         return reservation;
     }
 
@@ -107,6 +105,7 @@ public final class ReservationService {
             throw notAllowed(reservation, "check out");
         }
         reservation.changeStatus(ReservationStatus.CHECKED_OUT);
+        store.update(reservation);
         return new ReservationReceipt(reservation, roomOf(reservation));
     }
 

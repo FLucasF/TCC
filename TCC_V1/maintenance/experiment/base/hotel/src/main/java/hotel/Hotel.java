@@ -10,16 +10,17 @@ import hotel.reservations.ReservationStore;
 import hotel.rooms.Rooms;
 import hotel.web.HttpApi;
 import io.javalin.Javalin;
+import javax.sql.DataSource;
 
 /** Puts the inn's pieces together and runs the HTTP server. */
 public final class Hotel {
 
     private final Javalin server;
 
-    public Hotel() {
-        Rooms rooms = new Rooms();
-        ReservationStore store = new ReservationStore();
-        SentMessages sentMessages = new SentMessages();
+    public Hotel(DataSource dataSource) {
+        Rooms rooms = new Rooms(dataSource);
+        ReservationStore store = new ReservationStore(dataSource);
+        SentMessages sentMessages = new SentMessages(dataSource);
         ReservationService reservations =
                 new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages));
         HttpApi api = new HttpApi(
@@ -39,6 +40,7 @@ public final class Hotel {
 
     public static void main(String[] args) {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "7070"));
-        new Hotel().start(port);
+        Database database = new Database(System.getenv());
+        new Hotel(database.dataSource()).start(port);
     }
 }
