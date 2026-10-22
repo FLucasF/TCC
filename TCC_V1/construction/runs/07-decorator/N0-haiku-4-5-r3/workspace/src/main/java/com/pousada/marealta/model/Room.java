@@ -1,0 +1,17 @@
+package com.pousada.marealta.model;
+
+import java.math.BigDecimal;
+
+public class Room {
+    public int number;
+    public String type;
+    public int capacity;
+    public BigDecimal nightlyRate;
+
+    public Room(int number, String type, int capacity, BigDecimal nightlyRate) {
+        this.number = number;
+        this.type = type;
+        this.capacity = capacity;
+        this.nightlyRate = nightlyRate;
+    }
+}

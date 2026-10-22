@@ -1,0 +1,574 @@
+diff --git a/README.md b/README.md
+index 4b51a4f..bb5f05a 100644
+--- a/README.md
++++ b/README.md
+@@ -81,3 +81,27 @@ Os erros vêm como `{"error": "<código>", "message": "..."}`:
+ | `ROOM_UNAVAILABLE` | 409 | o quarto já está reservado em alguma das noites |
+ | `OPERATION_NOT_ALLOWED` | 409 | a reserva não está na situação que a operação pede |
+ | `CAPACITY_EXCEEDED` | 422 | mais hóspedes do que o quarto comporta |
++
++## Regras das mensagens
++
++Toda mensagem aparece em `GET /messages` com `status`: `SENT` ou `BLOCKED` (nada saiu; a recepção liga
++para o hóspede).
++
++- **Endereço inválido** (sem um único `@`, sem nada antes dele, ou sem um ponto no meio do nome depois
++  dele): a mensagem fica `BLOCKED`, com o endereço original, e não gera cópia.
++- **Cópia para o arquivo:** cada mensagem enviada gera outra, logo depois, para
++  `arquivo@pousadamarealta.com.br`, com o mesmo texto e o assunto começando com `[Cópia] `.
++- **Modo de teste** (`HOTEL_TEST_MODE=true`): nada sai para o endereço real. A mensagem vai para
++  `testes@pousadamarealta.com.br`, com o assunto começando com `[TESTE] ` e a primeira linha
++  `Destinatário original: <endereço>`. Endereço inválido continua bloqueado; a cópia para o arquivo não é feita.
++- **Horário de silêncio** e **limite diário por hóspede:** mensagens bloqueadas nesses casos. Desligados por padrão.
++
++Cada instalação escolhe quando cada regra vale, com `OFF`, `ALWAYS`, `TEST_MODE_ONLY` ou `NORMAL_MODE_ONLY`:
++
++| variável | padrão |
++|---|---|
++| `HOTEL_RULE_ADDRESS_CHECK` | `ALWAYS` |
++| `HOTEL_RULE_ARCHIVE_COPY` | `NORMAL_MODE_ONLY` (a segunda pousada usa `OFF`) |
++| `HOTEL_RULE_QUIET_HOURS` | `OFF` (`HOTEL_QUIET_FROM=22:00`, `HOTEL_QUIET_TO=07:00`) |
++| `HOTEL_RULE_DAILY_LIMIT` | `OFF` (`HOTEL_DAILY_LIMIT=5`) |
++| `HOTEL_TIMEZONE` | `America/Sao_Paulo` |
+diff --git a/src/main/java/hotel/Hotel.java b/src/main/java/hotel/Hotel.java
+index d7fc1a7..6fce796 100644
+--- a/src/main/java/hotel/Hotel.java
++++ b/src/main/java/hotel/Hotel.java
+@@ -1,6 +1,7 @@
+ package hotel;
+ 
+ import hotel.messages.EmailSender;
++import hotel.messages.MessagingConfig;
+ import hotel.messages.SentMessages;
+ import hotel.reports.OccupancyReport;
+ import hotel.reports.RevenueReport;
+@@ -10,6 +11,7 @@ import hotel.reservations.ReservationStore;
+ import hotel.rooms.Rooms;
+ import hotel.web.HttpApi;
+ import io.javalin.Javalin;
++import java.time.Clock;
+ import javax.sql.DataSource;
+ 
+ /** Puts the inn's pieces together and runs the HTTP server. */
+@@ -18,11 +20,15 @@ public final class Hotel {
+     private final Javalin server;
+ 
+     public Hotel(DataSource dataSource) {
++        this(dataSource, MessagingConfig.defaults());
++    }
++
++    public Hotel(DataSource dataSource, MessagingConfig messaging) {
+         Rooms rooms = new Rooms(dataSource);
+         ReservationStore store = new ReservationStore(dataSource);
+         SentMessages sentMessages = new SentMessages(dataSource);
+         ReservationService reservations =
+-                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages));
++                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages, messaging, Clock.systemUTC()));
+         HttpApi api = new HttpApi(
+                 rooms, reservations, sentMessages, new OccupancyReport(rooms, store), new RevenueReport(store));
+         this.server = api.server();
+@@ -41,6 +47,6 @@ public final class Hotel {
+     public static void main(String[] args) {
+         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "7070"));
+         Database database = new Database(System.getenv());
+-        new Hotel(database.dataSource()).start(port);
++        new Hotel(database.dataSource(), MessagingConfig.fromEnvironment(System.getenv())).start(port);
+     }
+ }
+diff --git a/src/main/java/hotel/messages/EmailSender.java b/src/main/java/hotel/messages/EmailSender.java
+index 3eee255..8871902 100644
+--- a/src/main/java/hotel/messages/EmailSender.java
++++ b/src/main/java/hotel/messages/EmailSender.java
+@@ -1,15 +1,88 @@
+ package hotel.messages;
+ 
+-/** Sends e-mails to guests. Every e-mail sent is kept in the list of sent messages. */
++import java.time.Clock;
++import java.time.LocalTime;
++import java.time.OffsetDateTime;
++import java.time.ZonedDateTime;
++
++/**
++ * Sends e-mails to guests, following the installation's {@link MessagingConfig}. Every message is kept in the list of
++ * sent messages: either SENT, or BLOCKED when a rule stopped it (nothing goes out, the front desk calls the guest).
++ */
+ public final class EmailSender {
+ 
+     private final SentMessages sentMessages;
++    private final MessagingConfig config;
++    private final Clock clock;
+ 
+     public EmailSender(SentMessages sentMessages) {
++        this(sentMessages, MessagingConfig.defaults(), Clock.systemUTC());
++    }
++
++    public EmailSender(SentMessages sentMessages, MessagingConfig config, Clock clock) {
+         this.sentMessages = sentMessages;
++        this.config = config;
++        this.clock = clock;
++    }
++
++    public synchronized Message send(String to, String subject, String body) {
++        boolean test = config.testMode();
++        ZonedDateTime now = ZonedDateTime.now(clock.withZone(config.zone()));
++        OffsetDateTime at = now.toOffsetDateTime();
++
++        if (config.addressCheck().applies(test) && !isValidAddress(to)) {
++            return sentMessages.add("EMAIL", to, to, subject, body, MessageStatus.BLOCKED, false, at);
++        }
++        if (config.quietHours().applies(test) && isQuiet(now.toLocalTime())) {
++            return sentMessages.add("EMAIL", to, to, subject, body, MessageStatus.BLOCKED, false, at);
++        }
++        if (config.dailyLimit().applies(test)
++                && sentMessages.countSentToGuestOn(to, now.toLocalDate(), config.zone()) >= config.maxPerGuestPerDay()) {
++            return sentMessages.add("EMAIL", to, to, subject, body, MessageStatus.BLOCKED, false, at);
++        }
++
++        String actualTo = to;
++        String actualSubject = subject;
++        String actualBody = body;
++        if (test) {
++            actualTo = MessagingConfig.TEST_ADDRESS;
++            actualSubject = "[TESTE] " + subject;
++            actualBody = "Destinatário original: " + to + "\n" + body;
++        }
++        Message sent = sentMessages.add("EMAIL", actualTo, to, actualSubject, actualBody, MessageStatus.SENT, false, at);
++        if (config.archiveCopy().applies(test)) {
++            sentMessages.add("EMAIL", MessagingConfig.ARCHIVE_ADDRESS, to, "[Cópia] " + actualSubject, actualBody,
++                    MessageStatus.SENT, true, at);
++        }
++        return sent;
++    }
++
++    /** One single @, something before it, and after it a name with a dot in the middle. */
++    static boolean isValidAddress(String address) {
++        if (address == null) {
++            return false;
++        }
++        int at = address.indexOf('@');
++        if (at <= 0 || at != address.lastIndexOf('@')) {
++            return false;
++        }
++        String domain = address.substring(at + 1);
++        for (int i = 1; i < domain.length() - 1; i++) {
++            if (domain.charAt(i) == '.') {
++                return true;
++            }
++        }
++        return false;
+     }
+ 
+-    public Message send(String to, String subject, String body) {
+-        return sentMessages.add("EMAIL", to, subject, body);
++    private boolean isQuiet(LocalTime time) {
++        LocalTime from = config.quietFrom();
++        LocalTime to = config.quietTo();
++        if (from.equals(to)) {
++            return false;
++        }
++        return from.isBefore(to)
++                ? !time.isBefore(from) && time.isBefore(to)
++                : !time.isBefore(from) || time.isBefore(to);
+     }
+ }
+diff --git a/src/main/java/hotel/messages/Message.java b/src/main/java/hotel/messages/Message.java
+index 0ba10b3..00b3c9e 100644
+--- a/src/main/java/hotel/messages/Message.java
++++ b/src/main/java/hotel/messages/Message.java
+@@ -1,4 +1,4 @@
+ package hotel.messages;
+ 
+-public record Message(long id, String channel, String to, String subject, String body) {
++public record Message(long id, String channel, String to, String subject, String body, MessageStatus status) {
+ }
+diff --git a/src/main/java/hotel/messages/MessageStatus.java b/src/main/java/hotel/messages/MessageStatus.java
+new file mode 100644
+index 0000000..1685627
+--- /dev/null
++++ b/src/main/java/hotel/messages/MessageStatus.java
+@@ -0,0 +1,6 @@
++package hotel.messages;
++
++public enum MessageStatus {
++    SENT,
++    BLOCKED
++}
+diff --git a/src/main/java/hotel/messages/MessagingConfig.java b/src/main/java/hotel/messages/MessagingConfig.java
+new file mode 100644
+index 0000000..bba31e4
+--- /dev/null
++++ b/src/main/java/hotel/messages/MessagingConfig.java
+@@ -0,0 +1,75 @@
++package hotel.messages;
++
++import java.time.LocalTime;
++import java.time.ZoneId;
++import java.util.Map;
++
++/**
++ * Which rules one installation of the system applies to the e-mails. In test mode no message ever goes to the real
++ * address (that is not optional); the other rules each have a {@link RuleScope}.
++ *
++ * <p>Environment: HOTEL_TEST_MODE=true; HOTEL_RULE_ADDRESS_CHECK, HOTEL_RULE_ARCHIVE_COPY, HOTEL_RULE_QUIET_HOURS and
++ * HOTEL_RULE_DAILY_LIMIT, each OFF, ALWAYS, TEST_MODE_ONLY or NORMAL_MODE_ONLY; HOTEL_QUIET_FROM / HOTEL_QUIET_TO
++ * (HH:mm), HOTEL_DAILY_LIMIT (messages per guest per day) and HOTEL_TIMEZONE.
++ */
++public record MessagingConfig(
++        boolean testMode,
++        RuleScope addressCheck,
++        RuleScope archiveCopy,
++        RuleScope quietHours,
++        LocalTime quietFrom,
++        LocalTime quietTo,
++        RuleScope dailyLimit,
++        int maxPerGuestPerDay,
++        ZoneId zone) {
++
++    public static final String ARCHIVE_ADDRESS = "arquivo@pousadamarealta.com.br";
++    public static final String TEST_ADDRESS = "testes@pousadamarealta.com.br";
++
++    /** Normal mode, address check and archive copy on; quiet hours and daily limit off until an installation asks. */
++    public static MessagingConfig defaults() {
++        return fromEnvironment(Map.of());
++    }
++
++    public MessagingConfig withTestMode(boolean value) {
++        return new MessagingConfig(value, addressCheck, archiveCopy, quietHours, quietFrom, quietTo, dailyLimit,
++                maxPerGuestPerDay, zone);
++    }
++
++    public MessagingConfig withArchiveCopy(RuleScope scope) {
++        return new MessagingConfig(testMode, addressCheck, scope, quietHours, quietFrom, quietTo, dailyLimit,
++                maxPerGuestPerDay, zone);
++    }
++
++    public MessagingConfig withQuietHours(RuleScope scope, LocalTime from, LocalTime to) {
++        return new MessagingConfig(testMode, addressCheck, archiveCopy, scope, from, to, dailyLimit,
++                maxPerGuestPerDay, zone);
++    }
++
++    public MessagingConfig withDailyLimit(RuleScope scope, int max) {
++        return new MessagingConfig(testMode, addressCheck, archiveCopy, quietHours, quietFrom, quietTo, scope, max,
++                zone);
++    }
++
++    public static MessagingConfig fromEnvironment(Map<String, String> env) {
++        return new MessagingConfig(
++                "true".equalsIgnoreCase(value(env, "HOTEL_TEST_MODE", "false")),
++                scope(env, "HOTEL_RULE_ADDRESS_CHECK", RuleScope.ALWAYS),
++                scope(env, "HOTEL_RULE_ARCHIVE_COPY", RuleScope.NORMAL_MODE_ONLY),
++                scope(env, "HOTEL_RULE_QUIET_HOURS", RuleScope.OFF),
++                LocalTime.parse(value(env, "HOTEL_QUIET_FROM", "22:00")),
++                LocalTime.parse(value(env, "HOTEL_QUIET_TO", "07:00")),
++                scope(env, "HOTEL_RULE_DAILY_LIMIT", RuleScope.OFF),
++                Integer.parseInt(value(env, "HOTEL_DAILY_LIMIT", "5")),
++                ZoneId.of(value(env, "HOTEL_TIMEZONE", "America/Sao_Paulo")));
++    }
++
++    private static String value(Map<String, String> env, String name, String fallback) {
++        String value = env.get(name);
++        return value == null || value.isBlank() ? fallback : value.trim();
++    }
++
++    private static RuleScope scope(Map<String, String> env, String name, RuleScope fallback) {
++        return RuleScope.valueOf(value(env, name, fallback.name()).toUpperCase());
++    }
++}
+diff --git a/src/main/java/hotel/messages/RuleScope.java b/src/main/java/hotel/messages/RuleScope.java
+new file mode 100644
+index 0000000..a579b7e
+--- /dev/null
++++ b/src/main/java/hotel/messages/RuleScope.java
+@@ -0,0 +1,18 @@
++package hotel.messages;
++
++/** When a messaging rule applies. */
++public enum RuleScope {
++    OFF,
++    ALWAYS,
++    TEST_MODE_ONLY,
++    NORMAL_MODE_ONLY;
++
++    boolean applies(boolean testMode) {
++        return switch (this) {
++            case OFF -> false;
++            case ALWAYS -> true;
++            case TEST_MODE_ONLY -> testMode;
++            case NORMAL_MODE_ONLY -> !testMode;
++        };
++    }
++}
+diff --git a/src/main/java/hotel/messages/SentMessages.java b/src/main/java/hotel/messages/SentMessages.java
+index 9961147..337668f 100644
+--- a/src/main/java/hotel/messages/SentMessages.java
++++ b/src/main/java/hotel/messages/SentMessages.java
+@@ -4,11 +4,14 @@ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
++import java.time.LocalDate;
++import java.time.OffsetDateTime;
++import java.time.ZoneId;
+ import java.util.ArrayList;
+ import java.util.List;
+ import javax.sql.DataSource;
+ 
+-/** Every message the inn sent, so the front desk can check what each guest received. */
++/** Every message the inn sent or blocked, so the front desk can check what each guest received. */
+ public final class SentMessages {
+ 
+     private final DataSource dataSource;
+@@ -17,27 +20,51 @@ public final class SentMessages {
+         this.dataSource = dataSource;
+     }
+ 
+-    Message add(String channel, String to, String subject, String body) {
++    Message add(String channel, String to, String guestAddress, String subject, String body, MessageStatus status,
++            boolean archiveCopy, OffsetDateTime at) {
+         try (Connection connection = dataSource.getConnection();
+                 PreparedStatement insert = connection.prepareStatement(
+-                        "INSERT INTO messages (channel, recipient, subject, body) VALUES (?, ?, ?, ?) RETURNING id")) {
++                        "INSERT INTO messages (channel, recipient, subject, body, status, guest_address, "
++                                + "archive_copy, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id")) {
+             insert.setString(1, channel);
+             insert.setString(2, to);
+             insert.setString(3, subject);
+             insert.setString(4, body);
++            insert.setString(5, status.name());
++            insert.setString(6, guestAddress);
++            insert.setBoolean(7, archiveCopy);
++            insert.setObject(8, at);
+             try (ResultSet generated = insert.executeQuery()) {
+                 generated.next();
+-                return new Message(generated.getLong("id"), channel, to, subject, body);
++                return new Message(generated.getLong("id"), channel, to, subject, body, status);
+             }
+         } catch (SQLException failure) {
+             throw new IllegalStateException("could not keep the message to " + to, failure);
+         }
+     }
+ 
++    /** How many messages actually went to this guest on that day (archive copies and blocked ones do not count). */
++    int countSentToGuestOn(String guestAddress, LocalDate day, ZoneId zone) {
++        try (Connection connection = dataSource.getConnection();
++                PreparedStatement count = connection.prepareStatement(
++                        "SELECT count(*) FROM messages WHERE guest_address = ? AND status = 'SENT' "
++                                + "AND NOT archive_copy AND sent_at >= ? AND sent_at < ?")) {
++            count.setString(1, guestAddress);
++            count.setObject(2, day.atStartOfDay(zone).toOffsetDateTime());
++            count.setObject(3, day.plusDays(1).atStartOfDay(zone).toOffsetDateTime());
++            try (ResultSet result = count.executeQuery()) {
++                result.next();
++                return result.getInt(1);
++            }
++        } catch (SQLException failure) {
++            throw new IllegalStateException("could not count the messages to " + guestAddress, failure);
++        }
++    }
++
+     public List<Message> all() {
+         try (Connection connection = dataSource.getConnection();
+                 PreparedStatement select = connection.prepareStatement(
+-                        "SELECT id, channel, recipient, subject, body FROM messages ORDER BY id");
++                        "SELECT id, channel, recipient, subject, body, status FROM messages ORDER BY id");
+                 ResultSet rows = select.executeQuery()) {
+             List<Message> messages = new ArrayList<>();
+             while (rows.next()) {
+@@ -46,7 +73,8 @@ public final class SentMessages {
+                         rows.getString("channel"),
+                         rows.getString("recipient"),
+                         rows.getString("subject"),
+-                        rows.getString("body")));
++                        rows.getString("body"),
++                        MessageStatus.valueOf(rows.getString("status"))));
+             }
+             return messages;
+         } catch (SQLException failure) {
+diff --git a/src/main/resources/db/migration/V2__message_status.sql b/src/main/resources/db/migration/V2__message_status.sql
+new file mode 100644
+index 0000000..c3efa1c
+--- /dev/null
++++ b/src/main/resources/db/migration/V2__message_status.sql
+@@ -0,0 +1,9 @@
++-- BLOCKED messages were never sent (the front desk calls the guest instead).
++ALTER TABLE messages ADD COLUMN status text NOT NULL DEFAULT 'SENT';
++-- the address the guest gave us (recipient may be the test mailbox), used by the daily limit
++ALTER TABLE messages ADD COLUMN guest_address text;
++UPDATE messages SET guest_address = recipient;
++-- archive copies are not messages "to the guest"
++ALTER TABLE messages ADD COLUMN archive_copy boolean NOT NULL DEFAULT false;
++-- when the message was handled, used by the daily limit
++ALTER TABLE messages ADD COLUMN sent_at timestamptz NOT NULL DEFAULT now();
+diff --git a/src/test/java/hotel/messages/EmailSenderTest.java b/src/test/java/hotel/messages/EmailSenderTest.java
+new file mode 100644
+index 0000000..be9cf32
+--- /dev/null
++++ b/src/test/java/hotel/messages/EmailSenderTest.java
+@@ -0,0 +1,130 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++import hotel.EmptyDatabase;
++import java.time.Clock;
++import java.time.Instant;
++import java.time.LocalTime;
++import java.time.ZoneOffset;
++import java.util.List;
++import java.util.Map;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.Test;
++
++class EmailSenderTest {
++
++    private final EmptyDatabase database = new EmptyDatabase();
++    private final SentMessages sentMessages = new SentMessages(database.dataSource());
++
++    @AfterEach
++    void closeDatabase() {
++        database.close();
++    }
++
++    private static MessagingConfig utc() {
++        return MessagingConfig.fromEnvironment(Map.of("HOTEL_TIMEZONE", "UTC"));
++    }
++
++    private EmailSender sender(MessagingConfig config, String instant) {
++        return new EmailSender(sentMessages, config, Clock.fixed(Instant.parse(instant), ZoneOffset.UTC));
++    }
++
++    private EmailSender sender(MessagingConfig config) {
++        return sender(config, "2027-03-10T15:00:00Z");
++    }
++
++    @Test
++    void validAddresses() {
++        assertTrue(EmailSender.isValidAddress("ana@gmail.com"));
++        assertTrue(EmailSender.isValidAddress("a@b.c.d"));
++        for (String bad : new String[] {"ana@gmail", "ana.gmail.com", "@gmail.com", "a@@b.com", "a@b@c.com",
++                "a@.com", "a@com.", "", null}) {
++            assertFalse(EmailSender.isValidAddress(bad), String.valueOf(bad));
++        }
++    }
++
++    @Test
++    void invalidAddressIsBlockedWithoutCopy() {
++        Message message = sender(utc()).send("ana@gmail", "Oi", "texto");
++
++        assertEquals(MessageStatus.BLOCKED, message.status());
++        List<Message> all = sentMessages.all();
++        assertEquals(1, all.size());
++        assertEquals("ana@gmail", all.get(0).to());
++    }
++
++    @Test
++    void sentMessageGetsArchiveCopyRightAfter() {
++        sender(utc()).send("ana@gmail.com", "Oi", "texto");
++
++        List<Message> all = sentMessages.all();
++        assertEquals(2, all.size());
++        assertEquals("ana@gmail.com", all.get(0).to());
++        assertEquals("arquivo@pousadamarealta.com.br", all.get(1).to());
++        assertEquals("[Cópia] Oi", all.get(1).subject());
++        assertEquals("texto", all.get(1).body());
++        assertEquals(MessageStatus.SENT, all.get(1).status());
++    }
++
++    @Test
++    void installationCanTurnTheArchiveCopyOff() {
++        sender(utc().withArchiveCopy(RuleScope.OFF)).send("ana@gmail.com", "Oi", "t");
++
++        assertEquals(1, sentMessages.all().size());
++    }
++
++    @Test
++    void testModeRedirectsAndHasNoCopy() {
++        sender(utc().withTestMode(true)).send("ana@gmail.com", "Oi", "texto");
++
++        List<Message> all = sentMessages.all();
++        assertEquals(1, all.size());
++        assertEquals("testes@pousadamarealta.com.br", all.get(0).to());
++        assertEquals("[TESTE] Oi", all.get(0).subject());
++        assertEquals("Destinatário original: ana@gmail.com\ntexto", all.get(0).body());
++    }
++
++    @Test
++    void testModeStillBlocksInvalidAddressKeepingTheOriginal() {
++        sender(utc().withTestMode(true)).send("ana.gmail.com", "Oi", "texto");
++
++        List<Message> all = sentMessages.all();
++        assertEquals(1, all.size());
++        assertEquals(MessageStatus.BLOCKED, all.get(0).status());
++        assertEquals("ana.gmail.com", all.get(0).to());
++        assertEquals("Oi", all.get(0).subject());
++    }
++
++    @Test
++    void quietHoursBlockAtNightOnly() {
++        MessagingConfig config = utc().withQuietHours(RuleScope.ALWAYS, LocalTime.of(22, 0), LocalTime.of(7, 0));
++
++        assertEquals(MessageStatus.BLOCKED, sender(config, "2027-03-10T02:00:00Z").send("a@b.com", "s", "b").status());
++        assertEquals(MessageStatus.BLOCKED, sender(config, "2027-03-10T23:00:00Z").send("a@b.com", "s", "b").status());
++        assertEquals(MessageStatus.SENT, sender(config, "2027-03-10T07:00:00Z").send("a@b.com", "s", "b").status());
++    }
++
++    @Test
++    void ruleScopeDecidesTheMode() {
++        MessagingConfig config = utc().withQuietHours(RuleScope.TEST_MODE_ONLY, LocalTime.of(22, 0), LocalTime.of(7, 0));
++
++        assertEquals(MessageStatus.SENT, sender(config, "2027-03-10T02:00:00Z").send("a@b.com", "s", "b").status());
++        assertEquals(MessageStatus.BLOCKED,
++                sender(config.withTestMode(true), "2027-03-10T02:00:00Z").send("a@b.com", "s", "b").status());
++    }
++
++    @Test
++    void dailyLimitPerGuestCountsOnlyRealMessages() {
++        MessagingConfig config = utc().withDailyLimit(RuleScope.ALWAYS, 2);
++        EmailSender sender = sender(config);
++
++        assertEquals(MessageStatus.SENT, sender.send("a@b.com", "1", "b").status());
++        assertEquals(MessageStatus.SENT, sender.send("a@b.com", "2", "b").status());
++        assertEquals(MessageStatus.BLOCKED, sender.send("a@b.com", "3", "b").status());
++        assertEquals(MessageStatus.SENT, sender.send("c@d.com", "1", "b").status());
++        assertEquals(MessageStatus.SENT, sender(config, "2027-03-11T10:00:00Z").send("a@b.com", "4", "b").status());
++    }
++}
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index ec517d7..3bb2c9f 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -88,7 +88,7 @@ class ReservationServiceTest {
+ 
+         assertEquals(ReservationStatus.CONFIRMED, service.find(reservation.id()).status());
+         List<Message> sent = sentMessages.all();
+-        assertEquals(1, sent.size());
++        assertEquals(2, sent.size()); // the e-mail and its archive copy
+         assertEquals("EMAIL", sent.get(0).channel());
+         assertEquals("ana@example.com", sent.get(0).to());
+         assertEquals("Reserva confirmada - Pousada Maré Alta", sent.get(0).subject());
+@@ -102,7 +102,7 @@ class ReservationServiceTest {
+         service.confirm(reservation.id());
+ 
+         assertEquals(ErrorCode.OPERATION_NOT_ALLOWED, errorOf(() -> service.confirm(reservation.id())));
+-        assertEquals(1, sentMessages.all().size());
++        assertEquals(2, sentMessages.all().size());
+     }
+ 
+     @Test
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index f9a3f6f..dde7b78 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -78,7 +78,9 @@ class HttpApiTest {
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+-        assertEquals(1, messages.size());
++        assertEquals(2, messages.size());
++        assertEquals("SENT", messages.get(0).get("status").asText());
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).get("to").asText());
+         assertEquals("carla@example.com", messages.get(0).get("to").asText());
+ 
+         assertEquals(200, post("/reservations/" + id + "/check-in", "").statusCode());
