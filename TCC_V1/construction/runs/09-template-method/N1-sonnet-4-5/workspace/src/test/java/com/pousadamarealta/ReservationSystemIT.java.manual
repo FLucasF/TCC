@@ -1,0 +1,313 @@
+package com.pousadamarealta;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.pousadamarealta.api.ApiHandlers;
+import com.pousadamarealta.infrastructure.Database;
+import com.pousadamarealta.infrastructure.MessageRepository;
+import com.pousadamarealta.infrastructure.ReservationRepository;
+import com.pousadamarealta.infrastructure.RoomRepository;
+import com.pousadamarealta.service.NotificationService;
+import com.pousadamarealta.service.ReportService;
+import com.pousadamarealta.service.ReservationService;
+import io.javalin.Javalin;
+import io.javalin.json.JavalinJackson;
+import kong.unirest.core.HttpResponse;
+import kong.unirest.core.Unirest;
+import org.junit.jupiter.api.*;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class ReservationSystemIT {
+    private static Javalin app;
+    private static final int PORT = 7071;
+    private static final String BASE_URL = "http://localhost:" + PORT;
+
+    @BeforeAll
+    public static void setUp() {
+        String dbUrl = "jdbc:postgresql://localhost:5432/pousada_test";
+        String dbUser = System.getenv().getOrDefault("DB_USER", "postgres");
+        String dbPassword = System.getenv().getOrDefault("DB_PASSWORD", "postgres");
+
+        Database database = new Database(dbUrl, dbUser, dbPassword);
+
+        try {
+            var conn = database.getConnection();
+            var stmt = conn.createStatement();
+            stmt.execute("DROP TABLE IF EXISTS messages");
+            stmt.execute("DROP TABLE IF EXISTS reservations");
+            stmt.execute("DROP TABLE IF EXISTS rooms");
+            conn.close();
+        } catch (Exception e) {
+        }
+
+        database.initialize();
+
+        RoomRepository roomRepository = new RoomRepository(database);
+        ReservationRepository reservationRepository = new ReservationRepository(database);
+        MessageRepository messageRepository = new MessageRepository(database);
+
+        NotificationService notificationService = new NotificationService(messageRepository);
+        ReservationService reservationService = new ReservationService(
+                reservationRepository, roomRepository, notificationService);
+        ReportService reportService = new ReportService(reservationRepository);
+
+        ApiHandlers handlers = new ApiHandlers(
+                roomRepository, reservationService, messageRepository,
+                notificationService, reportService);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        app = Javalin.create(config -> {
+            config.jsonMapper(new JavalinJackson(objectMapper, true));
+        });
+
+        app.get("/rooms", handlers::getRooms);
+        app.post("/reservations", handlers::createReservation);
+        app.get("/reservations/{id}", handlers::getReservation);
+        app.post("/reservations/{id}/confirmation", handlers::confirmReservation);
+        app.post("/reservations/{id}/cancellation", handlers::cancelReservation);
+        app.post("/reservations/{id}/check-in", handlers::checkInReservation);
+        app.post("/reservations/{id}/check-out", handlers::checkOutReservation);
+        app.get("/reservations/{id}/document", handlers::getDocument);
+        app.get("/messages", handlers::getMessages);
+        app.get("/reports/occupancy", handlers::getOccupancyReport);
+        app.get("/reports/revenue", handlers::getRevenueReport);
+        app.get("/reports/tourism-tax", handlers::getTourismTaxReport);
+        app.get("/reports/rate-plans", handlers::getRatePlansReport);
+
+        app.start(PORT);
+    }
+
+    @AfterAll
+    public static void tearDown() {
+        if (app != null) {
+            app.stop();
+        }
+        Unirest.shutDown();
+    }
+
+    @Test
+    @Order(1)
+    public void testGetRooms() {
+        HttpResponse<String> response = Unirest.get(BASE_URL + "/rooms").asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("\"number\":\"101\""));
+        assertTrue(response.getBody().contains("\"type\":\"STANDARD\""));
+        assertTrue(response.getBody().contains("\"capacity\":2"));
+        assertTrue(response.getBody().contains("\"nightlyRate\":249.90"));
+    }
+
+    @Test
+    @Order(2)
+    public void testCreateReservation() {
+        Map<String, Object> request = Map.of(
+                "roomNumber", "101",
+                "guestName", "João Silva",
+                "guestEmail", "joao@example.com",
+                "guestCpf", "12345678901",
+                "checkIn", "2027-07-10",
+                "checkOut", "2027-07-12",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<String> response = Unirest.post(BASE_URL + "/reservations")
+                .header("Content-Type", "application/json")
+                .body(request)
+                .asString();
+
+        assertEquals(201, response.getStatus());
+        assertTrue(response.getBody().contains("\"id\":1"));
+        assertTrue(response.getBody().contains("\"status\":\"PENDING\""));
+        assertTrue(response.getBody().contains("\"nights\":2"));
+        assertTrue(response.getBody().contains("\"subtotal\":599.76"));
+        assertTrue(response.getBody().contains("\"total\":599.76"));
+    }
+
+    @Test
+    @Order(3)
+    public void testConfirmReservation() {
+        HttpResponse<String> response = Unirest.post(BASE_URL + "/reservations/1/confirmation")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("\"status\":\"CONFIRMED\""));
+        assertTrue(response.getBody().contains("\"amountPaid\":599.76"));
+    }
+
+    @Test
+    @Order(4)
+    public void testGetMessages() {
+        HttpResponse<String> response = Unirest.get(BASE_URL + "/messages").asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("\"channel\":\"EMAIL\""));
+        assertTrue(response.getBody().contains("\"to\":\"joao@example.com\""));
+        assertTrue(response.getBody().contains("Reserva confirmada - Pousada Maré Alta"));
+    }
+
+    @Test
+    @Order(5)
+    public void testCheckIn() {
+        HttpResponse<String> response = Unirest.post(BASE_URL + "/reservations/1/check-in")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("\"status\":\"CHECKED_IN\""));
+    }
+
+    @Test
+    @Order(6)
+    public void testCheckOut() {
+        HttpResponse<String> response = Unirest.post(BASE_URL + "/reservations/1/check-out")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("\"title\":\"Comprovante de reserva\""));
+        assertTrue(response.getBody().contains("\"reservationId\":1"));
+    }
+
+    @Test
+    @Order(7)
+    public void testGetDocument() {
+        HttpResponse<String> response = Unirest.get(BASE_URL + "/reservations/1/document")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("\"title\":\"Comprovante de reserva\""));
+    }
+
+    @Test
+    @Order(8)
+    public void testCreateNonRefundableReservation() {
+        Map<String, Object> request = Map.of(
+                "roomNumber", "201",
+                "guestName", "Maria Santos",
+                "guestEmail", "maria@example.com",
+                "guestCpf", "98765432100",
+                "checkIn", "2027-07-15",
+                "checkOut", "2027-07-17",
+                "guests", 2,
+                "ratePlan", "NON_REFUNDABLE"
+        );
+
+        HttpResponse<String> response = Unirest.post(BASE_URL + "/reservations")
+                .header("Content-Type", "application/json")
+                .body(request)
+                .asString();
+
+        assertEquals(201, response.getStatus());
+        assertTrue(response.getBody().contains("\"discount\":"));
+
+        BigDecimal subtotal = new BigDecimal("935.76");
+        BigDecimal discount = subtotal.multiply(new BigDecimal("0.15")).setScale(2, java.math.RoundingMode.HALF_EVEN);
+        BigDecimal total = subtotal.subtract(discount);
+
+        assertTrue(response.getBody().contains("\"total\":" + total));
+    }
+
+    @Test
+    @Order(9)
+    public void testRoomUnavailable() {
+        Map<String, Object> request = Map.of(
+                "roomNumber", "101",
+                "guestName", "Pedro Souza",
+                "guestEmail", "pedro@example.com",
+                "guestCpf", "11122233344",
+                "checkIn", "2027-07-10",
+                "checkOut", "2027-07-12",
+                "guests", 1,
+                "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<String> response = Unirest.post(BASE_URL + "/reservations")
+                .header("Content-Type", "application/json")
+                .body(request)
+                .asString();
+
+        assertEquals(409, response.getStatus());
+        assertTrue(response.getBody().contains("\"error\":\"ROOM_UNAVAILABLE\""));
+    }
+
+    @Test
+    @Order(10)
+    public void testCapacityExceeded() {
+        Map<String, Object> request = Map.of(
+                "roomNumber", "102",
+                "guestName", "Ana Costa",
+                "guestEmail", "ana@example.com",
+                "guestCpf", "55566677788",
+                "checkIn", "2027-08-01",
+                "checkOut", "2027-08-03",
+                "guests", 3,
+                "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<String> response = Unirest.post(BASE_URL + "/reservations")
+                .header("Content-Type", "application/json")
+                .body(request)
+                .asString();
+
+        assertEquals(422, response.getStatus());
+        assertTrue(response.getBody().contains("\"error\":\"CAPACITY_EXCEEDED\""));
+    }
+
+    @Test
+    @Order(11)
+    public void testOccupancyReport() {
+        HttpResponse<String> response = Unirest.get(BASE_URL + "/reports/occupancy?date=2027-07-10")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("Pousada Maré Alta,occupancy,2027-07-10"));
+        assertTrue(response.getBody().contains("room,type,reservation,check_in,check_out"));
+        assertTrue(response.getBody().contains("101,STANDARD,1,2027-07-10,2027-07-12"));
+        assertTrue(response.getBody().contains("total,1/5"));
+    }
+
+    @Test
+    @Order(12)
+    public void testRevenueReport() {
+        HttpResponse<String> response = Unirest.get(BASE_URL + "/reports/revenue?month=2027-07")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("Pousada Maré Alta,revenue,2027-07"));
+        assertTrue(response.getBody().contains("reservation,room,check_in,check_out,status,amount"));
+        assertTrue(response.getBody().contains("1,101,2027-07-10,2027-07-12,CHECKED_OUT,599.76"));
+    }
+
+    @Test
+    @Order(13)
+    public void testTourismTaxReport() {
+        HttpResponse<String> response = Unirest.get(BASE_URL + "/reports/tourism-tax?month=2027-07")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("Pousada Maré Alta,tourism-tax,2027-07"));
+        assertTrue(response.getBody().contains("reservation,room,check_in,check_out,guests,nights,tax"));
+        assertTrue(response.getBody().contains("1,101,2027-07-10,2027-07-12,2,2,18.00"));
+    }
+
+    @Test
+    @Order(14)
+    public void testRatePlansReport() {
+        HttpResponse<String> response = Unirest.get(BASE_URL + "/reports/rate-plans?month=2027-07")
+                .asString();
+
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getBody().contains("Pousada Maré Alta,rate-plans,2027-07"));
+        assertTrue(response.getBody().contains("rate_plan,reservations,amount"));
+        assertTrue(response.getBody().contains("STANDARD,1,599.76"));
+        assertTrue(response.getBody().contains("NON_REFUNDABLE,1,"));
+    }
+}

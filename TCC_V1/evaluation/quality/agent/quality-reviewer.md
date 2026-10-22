@@ -39,6 +39,9 @@ banco vazio para cada medição. Você pode rodar comandos para entender o proje
    agente não piorou não é do agente; diga que veio da base.
 5. Escreva a revisão em `review.md`, na pasta de trabalho, no formato abaixo. A sua resposta final é só "pronto".
 
+Esta sessão não tem ninguém do outro lado: quando você responde, ela acaba. Por isso, rode os scripts em primeiro
+plano e espere cada um terminar (nunca em segundo plano), e só dê a resposta final depois de escrever o `review.md`.
+
 ## As notas
 
 Em cada coluna, uma nota curta:
