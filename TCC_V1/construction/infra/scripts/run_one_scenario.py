@@ -7,7 +7,8 @@ Usage (from TCC_V1/construction):
     python infra/scripts/run_one_scenario.py 01 N0 claude-sonnet-5-5 medium
 
 <scenario> is 01, 03, 05, 07 or 09 (the files in experiment/scenarios/; the five that ask for a pattern), <arm> is N0, N1 or N2 (experiment/harnesses/),
-<model> is the full model ID. --dry-run does every check and shows the Docker commands without running anything.
+<model> is the full model ID. --replica N (2 or more) runs the same combination again, into
+<arm>-<model>-rN/ (the first round is the folder without a suffix). --dry-run does every check and shows the Docker commands without running anything.
 
 The prompt is experiment/scenarios/frame.md with the scenario in {{PEDIDO}}; three passages of the frame
 ({{IDENTIFICACAO}}, {{CAMPOS_IDENTIFICACAO}}, {{EMAIL_CONFIRMACAO}}) come from defaults/, unless the scenario has its
@@ -245,11 +246,20 @@ def main() -> None:
     arguments = sys.argv[1:]
     dry_run = "--dry-run" in arguments
     arguments = [argument for argument in arguments if argument != "--dry-run"]
+    replica = 1
+    if "--replica" in arguments:
+        position = arguments.index("--replica")
+        replica = int(arguments[position + 1])
+        del arguments[position:position + 2]
+        if replica < 2:
+            die("--replica is 2 or more: the first round is the folder without a suffix")
     if len(arguments) not in (3, 4):
-        die("usage: python infra/scripts/run_one_scenario.py <scenario> <arm> <model> [effort] [--dry-run]")
+        die("usage: python infra/scripts/run_one_scenario.py <scenario> <arm> <model> [effort] [--replica N] "
+            "[--dry-run]")
     scenario, arm, model = arguments[0], arguments[1], arguments[2]
     effort = arguments[3] if len(arguments) == 4 else "medium"
-    run_name = f"{arm}-{model_short_name(model)}"
+    # a repeated round of the same combination goes to its own folder: <arm>-<model>-r<N>
+    run_name = f"{arm}-{model_short_name(model)}" + (f"-r{replica}" if replica > 1 else "")
     run_folder = RUNS / f"{scenario}-{SCENARIO_LABELS.get(scenario, 'unknown')}" / run_name
     workspace = run_folder / "workspace"
     run_id = f"tcc-v1-construction-{scenario}-{run_name}"   # the containers and the network of this execution
@@ -257,7 +267,7 @@ def main() -> None:
     check_before_running(scenario, arm, model, run_folder)
     prompt = prompt_text(scenario)
     identity = {
-        "scenario": scenario, "scenario_file": scenario_file(scenario).name, "arm": arm,
+        "scenario": scenario, "scenario_file": scenario_file(scenario).name, "arm": arm, "replica": replica,
         "requested_model": model, "effort": effort, "image": IMAGE, "database_image": run_database.IMAGE,
         "scenarios_tree": committed_tree_hash(SCENARIOS),
         "harness_tree": committed_tree_hash(HARNESSES / arm) if arm != "N0" else None,

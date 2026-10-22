@@ -6,7 +6,8 @@ Usage (from TCC_V1/maintenance):
     python infra/scripts/run_one_scenario.py 01 N0 claude-opus-5-5 medium
 
 <scenario> is 01 to 10 (the files in experiment/scenarios/), <arm> is N0, N1 or N2 (experiment/harnesses/),
-<model> is the full model ID. --dry-run does every check and shows the Docker commands without running anything.
+<model> is the full model ID. --replica N (2 or more) runs the same combination again, into
+<arm>-<model>-rN/ (the first round is the folder without a suffix). --dry-run does every check and shows the Docker commands without running anything.
 
 Output in runs/<scenario>-<pattern>/<arm>-<model>/ (for example runs/01-strategy/N0-opus-5-5/):
     workspace/          the project as the agent left it (the build's target/ is not versioned)
@@ -272,18 +273,27 @@ def main() -> None:
     arguments = sys.argv[1:]
     dry_run = "--dry-run" in arguments
     arguments = [argument for argument in arguments if argument != "--dry-run"]
+    replica = 1
+    if "--replica" in arguments:
+        position = arguments.index("--replica")
+        replica = int(arguments[position + 1])
+        del arguments[position:position + 2]
+        if replica < 2:
+            die("--replica is 2 or more: the first round is the folder without a suffix")
     if len(arguments) not in (3, 4):
-        die("usage: python infra/scripts/run_one_scenario.py <scenario> <arm> <model> [effort] [--dry-run]")
+        die("usage: python infra/scripts/run_one_scenario.py <scenario> <arm> <model> [effort] [--replica N] "
+            "[--dry-run]")
     scenario, arm, model = arguments[0], arguments[1], arguments[2]
     effort = arguments[3] if len(arguments) == 4 else "medium"
-    run_name = f"{arm}-{model_short_name(model)}"
+    # a repeated round of the same combination goes to its own folder: <arm>-<model>-r<N>
+    run_name = f"{arm}-{model_short_name(model)}" + (f"-r{replica}" if replica > 1 else "")
     run_folder = RUNS / f"{scenario}-{SCENARIO_LABELS.get(scenario, 'unknown')}" / run_name
     workspace = run_folder / "workspace"
     run_id = f"tcc-v1-maintenance-{scenario}-{run_name}"   # the containers and the network of this execution
 
     check_before_running(scenario, arm, model, run_folder)
     identity = {
-        "scenario": scenario, "scenario_file": scenario_file(scenario).name, "arm": arm,
+        "scenario": scenario, "scenario_file": scenario_file(scenario).name, "arm": arm, "replica": replica,
         "requested_model": model, "effort": effort, "image": IMAGE, "database_image": run_database.IMAGE,
         "base_tree": committed_tree_hash(BASE),
         "scenarios_tree": committed_tree_hash(SCENARIOS),

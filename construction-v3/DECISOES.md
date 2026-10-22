@@ -14,7 +14,8 @@ Para acrescentar: uma entrada na seção do tema, no mesmo formato.
 
 **Sumário:** [1. Pergunta e recorte](#1-pergunta-e-recorte) ·
 [2. Desenho do experimento](#2-desenho-do-experimento) ·
-[3. Níveis de harness](#3-níveis-de-harness) · [4. Enunciado](#4-enunciado) ·
+[3. Níveis de harness](#3-níveis-de-harness) · 
+[4. Enunciado](#4-enunciado) ·
 [5. Correção](#5-correção-a-suíte-de-aceitação) ·
 [6. Leitura de desenho](#6-leitura-de-desenho-a-régua) ·
 [7. Métricas automáticas](#7-métricas-automáticas) ·
@@ -1523,3 +1524,10 @@ roteiro passando inteiro, e a mesma falha contaria duas vezes na tabela do TCC.
 **21/10: as 90 execuções da rodada de 21/10 no TCC_V1 (sem banco) vão para `TCC_V1/<pesquisa>/runs-2026-10-21-sem-banco/`,
 com `git mv`; as pastas `runs/` ficam livres para o piloto com banco.** *Por quê:* os scripts recusam uma pasta de
 execução que já existe, e a rodada sem banco fica como registro, com o histórico do git.
+
+**22/10: o piloto com banco do TCC_V1 repete o pattern que mais errou (Decorator, cenário 07: 7 acertos em 18) e o que
+mais acertou (Factory Method, cenário 05: 16 em 18) até 5 rodadas por combinação, nas duas pesquisas, com os 3 modelos
+e os 3 braços: 4 rodadas novas (144 execuções), revisadas pelo mesmo verificador.** Os scripts de execução ganham o
+`--replica N`, que grava a rodada repetida em `<braço>-<modelo>-rN/`; a primeira rodada é a pasta sem sufixo. *Por
+quê:* com uma execução por combinação, não dá para saber se o erro é constante ou acaso; os dois extremos mostram as
+duas pontas da variação com o custo de 2 cenários em vez de 5.
