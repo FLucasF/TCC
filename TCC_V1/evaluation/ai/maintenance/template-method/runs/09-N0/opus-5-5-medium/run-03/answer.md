@@ -1,0 +1,43 @@
+# Cenário 09
+
+## Visão geral
+
+O agente juntou o formato de saída dos quatro relatórios num só lugar, a função `CsvLayout.render` (`final/src/main/java/hotel/reports/CsvLayout.java:16-25`). Ela recebe o nome, o período, o cabeçalho, as linhas já montadas e a linha do total, e escreve tudo nessa ordem: título, cabeçalho, linhas, total. Os quatro relatórios passam por ela, inclusive os dois que já existiam. A seleção e a ordenação das reservas mensais também ficaram juntas, em `MonthlyReservations` (`final/src/main/java/hotel/reports/MonthlyReservations.java:16-22`). Não há classe abstrata nem método-modelo. O desenho é composição: as partes que variam entram como dados. A linha de data que o dono vai pedir no ano que vem seria colocada uma vez só, dentro de `render`. O ponto mais fraco é que cada relatório ainda monta à mão o próprio laço de linhas e soma o próprio total antes de chamar `render`, e as partes passam como valores prontos, não como funções. Isso deixa o desenho perto da fronteira com o "esqueleto que é só uma função utilitária". Pela leitura, o comportamento confere com o pedido.
+
+## Como foi implementado, e por que o julgamento
+
+**O projeto.** É um serviço Javalin. `Hotel` (`final/src/main/java/hotel/Hotel.java:25-35`) monta as peças: `Rooms`, `ReservationStore` (memória), `ReservationService`, os quatro relatórios e `HttpApi`, que registra as rotas. Uma requisição de relatório, por exemplo `GET /reports/tourism-tax?month=2027-07`, chega em `HttpApi` (`final/src/main/java/hotel/web/HttpApi.java:99-106`). Ali o mês é lido com `readMonth` e o `generate(month)` do relatório devolve o CSV como `text/csv`. Os dados ficam só em memória, no `ReservationStore`. O valor da taxa (4,50) é uma constante em `Hotel` (`final/src/main/java/hotel/Hotel.java:21`) e entra no construtor de `TourismTaxReport`, porque a prefeitura muda esse valor todo ano. Nos testes, o agente pôs a linha de título nos testes que já existiam em `ReportsTest`, criou dois testes novos (taxa de turismo com 2 hóspedes × 3 noites = 27,00; planos com `NON_REFUNDABLE` zerado) e acrescentou duas verificações em `HttpApiTest` para as rotas novas.
+
+**A parte que pede o pattern.** Estas são as classes envolvidas, todas no pacote `hotel.reports`:
+- `CsvLayout` (`CsvLayout.java:9-26`) guarda o nome da pousada (`:11`) e o esqueleto (`:16-25`): título `Pousada Maré Alta,<nome>,<período>` (`:18`), cabeçalho (`:19`), uma linha para cada item recebido (`:20-22`) e a linha do total (`:23`).
+- `MonthlyReservations` (`MonthlyReservations.java:16-26`) escolhe as reservas que começam no mês, aplica um filtro recebido como `Predicate` e ordena por check-in e depois por id. Também tem o filtro `keptMoney` (`:24-26`).
+- `OccupancyReport` (`OccupancyReport.java:23-41`) mantém a seleção por noite e a ordenação por quarto (`:24-31`), monta as linhas (`:33-38`) e chama `render("occupancy", ...)` (`:39-40`).
+- `RevenueReport` (`RevenueReport.java:22-33`) usa `MonthlyReservations.startingIn(..., keptMoney)` (`:25`), monta as linhas e o total e chama `render("revenue", ...)` (`:31-32`).
+- `TourismTaxReport` (`TourismTaxReport.java:23-36`) usa `startingIn(..., Reservation::isPaid)` (`:26`), calcula noites × hóspedes × taxa (`:27-28`) e chama `render("tourism-tax", ...)` (`:34-35`).
+- `RatePlanReport` (`RatePlanReport.java:22-42`) percorre a lista fixa `PLANS` (`:14`), conta e soma por plano sobre as mesmas reservas do financeiro (`:23`) e chama `render("rate-plans", ...)` (`:40-41`).
+
+Cada caso é uma classe com o seu `generate`. A escolha entre eles é feita pela rota, sem nenhum `if` sobre o tipo de relatório. Cada regra fica dentro do seu relatório, e o formato comum fica em `CsvLayout`.
+
+**O raciocínio.** O que aproxima o desenho do pattern: o esqueleto da saída (título → cabeçalho → linhas → total) existe num lugar só e os quatro relatórios passam por ele, sem nenhum relatório escrito inteiro e sem a linha de título copiada em nenhum deles. As instruções aceitam como alternativa equivalente um escritor genérico que recebe as partes que variam, desde que os quatro passem por ele. É o caso aqui. O que afasta do pattern: não há classe abstrata nem método `final`. As partes chegam como valores prontos (a lista de linhas e a string do total), não como funções de seleção e de linha. Por isso cada `generate` ainda repete o mesmo pequeno roteiro: selecionar, percorrer montando as linhas, somar o total e chamar `render`. Mesmo assim, não é o caso de malfeito descrito nas instruções ("só uma função utilitária de CSV"), porque a ordem e a forma das partes do relatório não se repetem em lugar nenhum fora de `CsvLayout.render`, e uma mudança de forma em todos os relatórios se faz num só lugar. Por isso a classe é alternativa equivalente. No exagero, só há dois auxiliares estáticos, e cada um é usado de fato: `CsvLayout` pelos quatro relatórios e `MonthlyReservations` por três. No comportamento, conferi por leitura os títulos, os filtros, a ordem, as colunas e os totais.
+
+## Item a item
+
+**O pattern pedido.** O esqueleto comum está em `final/src/main/java/hotel/reports/CsvLayout.java:16-25`. Os quatro relatórios chamam esse esqueleto: `OccupancyReport.java:39`, `RevenueReport.java:31`, `TourismTaxReport.java:34` e `RatePlanReport.java:40`. Os dois relatórios antigos foram migrados, e o diff tira deles o `StringBuilder` próprio. Não há Template Method com classe abstrata. O que existe é composição, com um escritor genérico que recebe nome, período, colunas, linhas e total, e isso as instruções aceitam de antemão. A ressalva: as linhas e o total chegam já calculados, então o laço de montagem continua em cada relatório (por exemplo `TourismTaxReport.java:26-33`). Essa parte é a que varia de fato entre os relatórios, e a ordem da saída não se repete fora de `render`.
+Conclusão: alternativa equivalente
+
+**O exagero colateral.** Não há. `MonthlyReservations` (`MonthlyReservations.java:11-27`) é um auxiliar estático usado por três relatórios. A taxa entra no construtor de `TourismTaxReport` (`TourismTaxReport.java:18-21`) por um motivo explícito do pedido: o valor muda todo ano. Não há interfaces com uma implementação só, fábricas, builders nem camadas que só repassam.
+Conclusão: contenção
+
+**O comportamento.** A conferência foi por leitura do código, sem subir o serviço nem rodar testes.
+- **Título.** A linha `Pousada Maré Alta,<nome>,<período>` está em `CsvLayout.java:18`, com os nomes `occupancy`, `revenue`, `tourism-tax` e `rate-plans`. O período é a data da chamada na ocupação (`OccupancyReport.java:39`) e o mês nos outros três.
+- **Taxa de turismo.** Entram as reservas pagas: `isPaid` é CONFIRMED, CHECKED_IN ou CHECKED_OUT (`final/src/main/java/hotel/reservations/Reservation.java:80-84`), e só as que começam no mês. A ordem é a do financeiro, por check-in e depois id (`MonthlyReservations.java:18-21`). A taxa é 4,50 × hóspedes × noites com duas casas decimais (`TourismTaxReport.java:27-28, 38-40`). As colunas são `reservation,room,check_in,check_out,guests,nights,tax` e a última linha é `total,<valor>` (`:35`). Assim, 2 hóspedes por 3 noites dão 27.00.
+- **Planos de tarifa.** Há uma linha para `STANDARD` e depois uma para `NON_REFUNDABLE`, mesmo vazia (`RatePlanReport.java:14, 27-39`). As reservas contadas são as mesmas do financeiro, as que deixaram dinheiro (`amountKept > 0`), o que inclui a não reembolsável cancelada (`:23`, `MonthlyReservations.java:24-26`). A última linha é `total,<quantidade>,<valor>` (`:41`).
+- **Ocupação e financeiro depois do título.** Na ocupação, a seleção e a ordem estão iguais às da base (`OccupancyReport.java:24-31`), e o cabeçalho, as linhas e `total,n/m` também. No financeiro, o filtro, a ordem, as colunas e o `total,<valor>` são os mesmos da base (`base/src/main/java/hotel/reports/RevenueReport.java`, comparado no patch).
+- **Rotas novas.** As duas rotas foram registradas e usam o mesmo `readMonth`, então um mês inválido continua dando 400 (`HttpApi.java:99-106`).
+
+Tudo o que conferi bate com o pedido.
+Conclusão: segue
+
+## Dúvidas
+
+Fiquei entre alternativa equivalente e malfeito. `CsvLayout.render` é uma função estática que recebe linhas já montadas, não funções de seleção e de linha. Por isso cada relatório ainda faz o laço e soma o total antes de chamá-la, e isso lembra o caso "o esqueleto é só uma função utilitária de CSV". Fiquei com alternativa equivalente porque a sequência da saída (título, cabeçalho, linhas, total) está inteira num lugar só, nenhum dos quatro relatórios a repete, e a mudança "em todos de uma vez" que o dono anuncia se faz só em `CsvLayout.java:16-25`.
