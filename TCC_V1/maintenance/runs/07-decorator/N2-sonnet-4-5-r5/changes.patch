@@ -1,0 +1,797 @@
+diff --git a/src/main/java/hotel/Hotel.java b/src/main/java/hotel/Hotel.java
+index d7fc1a7..c15cfdd 100644
+--- a/src/main/java/hotel/Hotel.java
++++ b/src/main/java/hotel/Hotel.java
+@@ -1,7 +1,12 @@
+ package hotel;
+ 
++import hotel.messages.ArchiveCopyFilter;
++import hotel.messages.EmailFilter;
+ import hotel.messages.EmailSender;
++import hotel.messages.EmailValidator;
++import hotel.messages.FilterChain;
+ import hotel.messages.SentMessages;
++import hotel.messages.TestModeFilter;
+ import hotel.reports.OccupancyReport;
+ import hotel.reports.RevenueReport;
+ import hotel.reservations.PriceCalculator;
+@@ -10,6 +15,8 @@ import hotel.reservations.ReservationStore;
+ import hotel.rooms.Rooms;
+ import hotel.web.HttpApi;
+ import io.javalin.Javalin;
++import java.util.ArrayList;
++import java.util.List;
+ import javax.sql.DataSource;
+ 
+ /** Puts the inn's pieces together and runs the HTTP server. */
+@@ -18,11 +25,25 @@ public final class Hotel {
+     private final Javalin server;
+ 
+     public Hotel(DataSource dataSource) {
++        this(dataSource, System.getenv().getOrDefault("HOTEL_TEST_MODE", "false").equals("true"));
++    }
++
++    public Hotel(DataSource dataSource, boolean testMode) {
+         Rooms rooms = new Rooms(dataSource);
+         ReservationStore store = new ReservationStore(dataSource);
+         SentMessages sentMessages = new SentMessages(dataSource);
++
++        List<EmailFilter> filters = new ArrayList<>();
++        filters.add(new EmailValidator());
++        if (testMode) {
++            filters.add(new TestModeFilter());
++        } else {
++            filters.add(new ArchiveCopyFilter());
++        }
++        FilterChain filterChain = new FilterChain(filters);
++
+         ReservationService reservations =
+-                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages));
++                new ReservationService(rooms, store, new PriceCalculator(), new EmailSender(sentMessages, filterChain));
+         HttpApi api = new HttpApi(
+                 rooms, reservations, sentMessages, new OccupancyReport(rooms, store), new RevenueReport(store));
+         this.server = api.server();
+diff --git a/src/main/java/hotel/messages/ArchiveCopyFilter.java b/src/main/java/hotel/messages/ArchiveCopyFilter.java
+new file mode 100644
+index 0000000..9964c36
+--- /dev/null
++++ b/src/main/java/hotel/messages/ArchiveCopyFilter.java
+@@ -0,0 +1,14 @@
++package hotel.messages;
++
++/** Generates a copy of every sent message for the accountant's archive. */
++public final class ArchiveCopyFilter implements EmailFilter {
++
++    private static final String ARCHIVE_ADDRESS = "arquivo@pousadamarealta.com.br";
++
++    @Override
++    public FilterResult apply(OutgoingMessage message) {
++        String copySubject = "[Cópia] " + message.subject();
++        OutgoingMessage copy = new OutgoingMessage(ARCHIVE_ADDRESS, copySubject, message.body());
++        return FilterResult.allowWithExtra(message, copy);
++    }
++}
+diff --git a/src/main/java/hotel/messages/EmailFilter.java b/src/main/java/hotel/messages/EmailFilter.java
+new file mode 100644
+index 0000000..a4d5754
+--- /dev/null
++++ b/src/main/java/hotel/messages/EmailFilter.java
+@@ -0,0 +1,9 @@
++package hotel.messages;
++
++/**
++ * A rule that decides what happens to an outgoing message: it can go through (unchanged or transformed),
++ * be blocked, or generate extra messages.
++ */
++public interface EmailFilter {
++    FilterResult apply(OutgoingMessage message);
++}
+diff --git a/src/main/java/hotel/messages/EmailSender.java b/src/main/java/hotel/messages/EmailSender.java
+index 3eee255..771cb17 100644
+--- a/src/main/java/hotel/messages/EmailSender.java
++++ b/src/main/java/hotel/messages/EmailSender.java
+@@ -1,15 +1,32 @@
+ package hotel.messages;
+ 
++import java.util.ArrayList;
++import java.util.List;
++
+ /** Sends e-mails to guests. Every e-mail sent is kept in the list of sent messages. */
+ public final class EmailSender {
+ 
+     private final SentMessages sentMessages;
++    private final FilterChain filterChain;
+ 
+-    public EmailSender(SentMessages sentMessages) {
++    public EmailSender(SentMessages sentMessages, FilterChain filterChain) {
+         this.sentMessages = sentMessages;
++        this.filterChain = filterChain;
+     }
+ 
+     public Message send(String to, String subject, String body) {
+-        return sentMessages.add("EMAIL", to, subject, body);
++        OutgoingMessage outgoing = new OutgoingMessage(to, subject, body);
++        FilterResult result = filterChain.apply(outgoing);
++
++        // save the original message (sent or blocked)
++        Message saved = sentMessages.add(
++                "EMAIL", result.message().to(), result.message().subject(), result.message().body(), result.status());
++
++        // save extra messages (like archive copies) - they are always sent
++        for (OutgoingMessage extra : result.extraMessages()) {
++            sentMessages.add("EMAIL", extra.to(), extra.subject(), extra.body(), MessageStatus.SENT);
++        }
++
++        return saved;
+     }
+ }
+diff --git a/src/main/java/hotel/messages/EmailValidator.java b/src/main/java/hotel/messages/EmailValidator.java
+new file mode 100644
+index 0000000..9c582b5
+--- /dev/null
++++ b/src/main/java/hotel/messages/EmailValidator.java
+@@ -0,0 +1,28 @@
++package hotel.messages;
++
++/**
++ * Blocks messages sent to invalid e-mail addresses, so the front desk can call the guest instead.
++ * Valid means one @, something before it, and a name with at least one dot after it.
++ */
++public final class EmailValidator implements EmailFilter {
++
++    @Override
++    public FilterResult apply(OutgoingMessage message) {
++        if (isValid(message.to())) {
++            return FilterResult.allow(message);
++        }
++        return FilterResult.block(message);
++    }
++
++    private boolean isValid(String email) {
++        int atIndex = email.indexOf('@');
++        if (atIndex == -1 || atIndex != email.lastIndexOf('@')) {
++            return false; // no @ or more than one
++        }
++        if (atIndex == 0) {
++            return false; // nothing before @
++        }
++        String domain = email.substring(atIndex + 1);
++        return domain.contains(".") && !domain.startsWith(".") && !domain.endsWith(".");
++    }
++}
+diff --git a/src/main/java/hotel/messages/FilterChain.java b/src/main/java/hotel/messages/FilterChain.java
+new file mode 100644
+index 0000000..c21baa9
+--- /dev/null
++++ b/src/main/java/hotel/messages/FilterChain.java
+@@ -0,0 +1,27 @@
++package hotel.messages;
++
++import java.util.List;
++
++/**
++ * Applies a sequence of filters to decide what happens to each message: it can go through
++ * (unchanged or transformed), be blocked, or generate extra messages.
++ */
++public final class FilterChain {
++
++    private final List<EmailFilter> filters;
++
++    public FilterChain(List<EmailFilter> filters) {
++        this.filters = List.copyOf(filters);
++    }
++
++    public FilterResult apply(OutgoingMessage message) {
++        FilterResult result = FilterResult.allow(message);
++        for (EmailFilter filter : filters) {
++            if (result.isBlocked()) {
++                break;
++            }
++            result = filter.apply(result.message());
++        }
++        return result;
++    }
++}
+diff --git a/src/main/java/hotel/messages/FilterResult.java b/src/main/java/hotel/messages/FilterResult.java
+new file mode 100644
+index 0000000..09b8b0c
+--- /dev/null
++++ b/src/main/java/hotel/messages/FilterResult.java
+@@ -0,0 +1,52 @@
++package hotel.messages;
++
++import java.util.ArrayList;
++import java.util.List;
++
++/**
++ * What happened to a message after the filters processed it: it can go through (possibly transformed),
++ * be blocked, or generate extra messages.
++ */
++public final class FilterResult {
++
++    private final OutgoingMessage message;
++    private final MessageStatus status;
++    private final List<OutgoingMessage> extraMessages;
++
++    private FilterResult(OutgoingMessage message, MessageStatus status, List<OutgoingMessage> extraMessages) {
++        this.message = message;
++        this.status = status;
++        this.extraMessages = List.copyOf(extraMessages);
++    }
++
++    /** The message goes through, unchanged or transformed. */
++    public static FilterResult allow(OutgoingMessage message) {
++        return new FilterResult(message, MessageStatus.SENT, List.of());
++    }
++
++    /** The message goes through and generates extra messages (like a copy for archiving). */
++    public static FilterResult allowWithExtra(OutgoingMessage message, OutgoingMessage... extra) {
++        return new FilterResult(message, MessageStatus.SENT, List.of(extra));
++    }
++
++    /** The message is blocked. */
++    public static FilterResult block(OutgoingMessage message) {
++        return new FilterResult(message, MessageStatus.BLOCKED, List.of());
++    }
++
++    public OutgoingMessage message() {
++        return message;
++    }
++
++    public MessageStatus status() {
++        return status;
++    }
++
++    public List<OutgoingMessage> extraMessages() {
++        return extraMessages;
++    }
++
++    public boolean isBlocked() {
++        return status == MessageStatus.BLOCKED;
++    }
++}
+diff --git a/src/main/java/hotel/messages/Message.java b/src/main/java/hotel/messages/Message.java
+index 0ba10b3..00b3c9e 100644
+--- a/src/main/java/hotel/messages/Message.java
++++ b/src/main/java/hotel/messages/Message.java
+@@ -1,4 +1,4 @@
+ package hotel.messages;
+ 
+-public record Message(long id, String channel, String to, String subject, String body) {
++public record Message(long id, String channel, String to, String subject, String body, MessageStatus status) {
+ }
+diff --git a/src/main/java/hotel/messages/MessageStatus.java b/src/main/java/hotel/messages/MessageStatus.java
+new file mode 100644
+index 0000000..1685627
+--- /dev/null
++++ b/src/main/java/hotel/messages/MessageStatus.java
+@@ -0,0 +1,6 @@
++package hotel.messages;
++
++public enum MessageStatus {
++    SENT,
++    BLOCKED
++}
+diff --git a/src/main/java/hotel/messages/OutgoingMessage.java b/src/main/java/hotel/messages/OutgoingMessage.java
+new file mode 100644
+index 0000000..835b4b2
+--- /dev/null
++++ b/src/main/java/hotel/messages/OutgoingMessage.java
+@@ -0,0 +1,5 @@
++package hotel.messages;
++
++/** A message to send, before the filters decide what happens to it. */
++public record OutgoingMessage(String to, String subject, String body) {
++}
+diff --git a/src/main/java/hotel/messages/SentMessages.java b/src/main/java/hotel/messages/SentMessages.java
+index 9961147..3517691 100644
+--- a/src/main/java/hotel/messages/SentMessages.java
++++ b/src/main/java/hotel/messages/SentMessages.java
+@@ -17,17 +17,18 @@ public final class SentMessages {
+         this.dataSource = dataSource;
+     }
+ 
+-    Message add(String channel, String to, String subject, String body) {
++    Message add(String channel, String to, String subject, String body, MessageStatus status) {
+         try (Connection connection = dataSource.getConnection();
+                 PreparedStatement insert = connection.prepareStatement(
+-                        "INSERT INTO messages (channel, recipient, subject, body) VALUES (?, ?, ?, ?) RETURNING id")) {
++                        "INSERT INTO messages (channel, recipient, subject, body, status) VALUES (?, ?, ?, ?, ?) RETURNING id")) {
+             insert.setString(1, channel);
+             insert.setString(2, to);
+             insert.setString(3, subject);
+             insert.setString(4, body);
++            insert.setString(5, status.name());
+             try (ResultSet generated = insert.executeQuery()) {
+                 generated.next();
+-                return new Message(generated.getLong("id"), channel, to, subject, body);
++                return new Message(generated.getLong("id"), channel, to, subject, body, status);
+             }
+         } catch (SQLException failure) {
+             throw new IllegalStateException("could not keep the message to " + to, failure);
+@@ -37,7 +38,7 @@ public final class SentMessages {
+     public List<Message> all() {
+         try (Connection connection = dataSource.getConnection();
+                 PreparedStatement select = connection.prepareStatement(
+-                        "SELECT id, channel, recipient, subject, body FROM messages ORDER BY id");
++                        "SELECT id, channel, recipient, subject, body, status FROM messages ORDER BY id");
+                 ResultSet rows = select.executeQuery()) {
+             List<Message> messages = new ArrayList<>();
+             while (rows.next()) {
+@@ -46,7 +47,8 @@ public final class SentMessages {
+                         rows.getString("channel"),
+                         rows.getString("recipient"),
+                         rows.getString("subject"),
+-                        rows.getString("body")));
++                        rows.getString("body"),
++                        MessageStatus.valueOf(rows.getString("status"))));
+             }
+             return messages;
+         } catch (SQLException failure) {
+diff --git a/src/main/java/hotel/messages/TestModeFilter.java b/src/main/java/hotel/messages/TestModeFilter.java
+new file mode 100644
+index 0000000..30f2f54
+--- /dev/null
++++ b/src/main/java/hotel/messages/TestModeFilter.java
+@@ -0,0 +1,18 @@
++package hotel.messages;
++
++/**
++ * In test mode, redirects messages to a test address instead of the real recipient, so guests
++ * never get e-mails sent while the system is being tested.
++ */
++public final class TestModeFilter implements EmailFilter {
++
++    private static final String TEST_ADDRESS = "testes@pousadamarealta.com.br";
++
++    @Override
++    public FilterResult apply(OutgoingMessage message) {
++        String newSubject = "[TESTE] " + message.subject();
++        String newBody = "Destinatário original: " + message.to() + "\n" + message.body();
++        OutgoingMessage redirected = new OutgoingMessage(TEST_ADDRESS, newSubject, newBody);
++        return FilterResult.allow(redirected);
++    }
++}
+diff --git a/src/main/resources/db/migration/V2__add_message_status.sql b/src/main/resources/db/migration/V2__add_message_status.sql
+new file mode 100644
+index 0000000..2550e1e
+--- /dev/null
++++ b/src/main/resources/db/migration/V2__add_message_status.sql
+@@ -0,0 +1,2 @@
++-- add status to messages so the front desk knows which were blocked
++ALTER TABLE messages ADD COLUMN status text NOT NULL DEFAULT 'SENT';
+diff --git a/src/test/java/hotel/messages/EmailFiltersTest.java b/src/test/java/hotel/messages/EmailFiltersTest.java
+new file mode 100644
+index 0000000..74e5f40
+--- /dev/null
++++ b/src/test/java/hotel/messages/EmailFiltersTest.java
+@@ -0,0 +1,129 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++import hotel.EmptyDatabase;
++import java.util.List;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.Test;
++
++class EmailFiltersTest {
++
++    private final EmptyDatabase database = new EmptyDatabase();
++    private final SentMessages sentMessages = new SentMessages(database.dataSource());
++
++    @AfterEach
++    void closeDatabase() {
++        database.close();
++    }
++
++    @Test
++    void invalidEmailAddressIsBlocked() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        // invalid addresses: no @, more than one @, nothing before @, no dot in domain
++        sender.send("ana", "Test", "Body");
++        sender.send("ana@", "Test", "Body");
++        sender.send("@example.com", "Test", "Body");
++        sender.send("ana@@example.com", "Test", "Body");
++        sender.send("ana@example", "Test", "Body");
++        sender.send("ana.gmail.com", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(6, messages.size());
++        for (Message message : messages) {
++            assertEquals(MessageStatus.BLOCKED, message.status());
++        }
++    }
++
++    @Test
++    void validEmailAddressIsAllowed() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("ana@gmail.com", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++        assertEquals("ana@gmail.com", messages.get(0).to());
++    }
++
++    @Test
++    void blockedMessagesDoNotGenerateArchiveCopy() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("invalid", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals(MessageStatus.BLOCKED, messages.get(0).status());
++        assertEquals("invalid", messages.get(0).to());
++    }
++
++    @Test
++    void sentMessagesGenerateArchiveCopy() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("ana@gmail.com", "Reserva confirmada", "Corpo da mensagem");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(2, messages.size());
++        // original
++        assertEquals("ana@gmail.com", messages.get(0).to());
++        assertEquals("Reserva confirmada", messages.get(0).subject());
++        assertEquals("Corpo da mensagem", messages.get(0).body());
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++        // archive copy
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).to());
++        assertEquals("[Cópia] Reserva confirmada", messages.get(1).subject());
++        assertEquals("Corpo da mensagem", messages.get(1).body());
++        assertEquals(MessageStatus.SENT, messages.get(1).status());
++    }
++
++    @Test
++    void testModeRedirectsToTestAddress() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new TestModeFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("ana@gmail.com", "Reserva confirmada", "Olá, Ana!");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("testes@pousadamarealta.com.br", messages.get(0).to());
++        assertEquals("[TESTE] Reserva confirmada", messages.get(0).subject());
++        assertTrue(messages.get(0).body().startsWith("Destinatário original: ana@gmail.com\n"));
++        assertTrue(messages.get(0).body().contains("Olá, Ana!"));
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++    }
++
++    @Test
++    void testModeDoesNotGenerateArchiveCopy() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new TestModeFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("ana@gmail.com", "Reserva confirmada", "Corpo");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("testes@pousadamarealta.com.br", messages.get(0).to());
++    }
++
++    @Test
++    void testModeBlocksInvalidEmails() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new TestModeFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("invalid", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals(MessageStatus.BLOCKED, messages.get(0).status());
++        assertEquals("invalid", messages.get(0).to()); // keeps the original invalid address
++    }
++}
+diff --git a/src/test/java/hotel/messages/EmailRulesTest.java b/src/test/java/hotel/messages/EmailRulesTest.java
+new file mode 100644
+index 0000000..88fda6e
+--- /dev/null
++++ b/src/test/java/hotel/messages/EmailRulesTest.java
+@@ -0,0 +1,96 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++
++import hotel.EmptyDatabase;
++import java.util.List;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.Test;
++
++/**
++ * Tests for the three e-mail rules:
++ * 1. Invalid addresses are blocked (shown as BLOCKED in the message list)
++ * 2. Archive copy is generated for every sent message (not for blocked ones)
++ * 3. Test mode redirects to test address (no archive copy in test mode)
++ */
++class EmailRulesTest {
++
++    private final EmptyDatabase database = new EmptyDatabase();
++    private final SentMessages sentMessages = new SentMessages(database.dataSource());
++
++    @AfterEach
++    void closeDatabase() {
++        database.close();
++    }
++
++    @Test
++    void invalidEmailsAreBlockedAndShownInTheList() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("ana@gmail", "Subject", "Body");       // no dot in domain
++        sender.send("ana.gmail.com", "Subject", "Body");   // no @
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(2, messages.size());
++        assertEquals(MessageStatus.BLOCKED, messages.get(0).status());
++        assertEquals("ana@gmail", messages.get(0).to());
++        assertEquals(MessageStatus.BLOCKED, messages.get(1).status());
++        assertEquals("ana.gmail.com", messages.get(1).to());
++    }
++
++    @Test
++    void archiveCopyIsGeneratedForSentMessagesOnly() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("ana@gmail.com", "Confirmação", "Sua reserva foi confirmada");
++        sender.send("invalid", "Erro", "Este será bloqueado");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(3, messages.size());
++
++        // message 1: sent to ana@gmail.com
++        assertEquals("ana@gmail.com", messages.get(0).to());
++        assertEquals("Confirmação", messages.get(0).subject());
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++
++        // message 2: archive copy
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).to());
++        assertEquals("[Cópia] Confirmação", messages.get(1).subject());
++        assertEquals("Sua reserva foi confirmada", messages.get(1).body());
++        assertEquals(MessageStatus.SENT, messages.get(1).status());
++
++        // message 3: blocked, no archive copy
++        assertEquals("invalid", messages.get(2).to());
++        assertEquals(MessageStatus.BLOCKED, messages.get(2).status());
++    }
++
++    @Test
++    void testModeRedirectsAndDoesNotGenerateArchiveCopy() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new TestModeFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("ana@gmail.com", "Confirmação", "Olá, Ana!");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("testes@pousadamarealta.com.br", messages.get(0).to());
++        assertEquals("[TESTE] Confirmação", messages.get(0).subject());
++        assertEquals("Destinatário original: ana@gmail.com\nOlá, Ana!", messages.get(0).body());
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++    }
++
++    @Test
++    void testModeStillBlocksInvalidEmails() {
++        FilterChain chain = new FilterChain(List.of(new EmailValidator(), new TestModeFilter()));
++        EmailSender sender = new EmailSender(sentMessages, chain);
++
++        sender.send("invalid", "Test", "Body");
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals(MessageStatus.BLOCKED, messages.get(0).status());
++        assertEquals("invalid", messages.get(0).to());
++    }
++}
+diff --git a/src/test/java/hotel/messages/TestModeIntegrationTest.java b/src/test/java/hotel/messages/TestModeIntegrationTest.java
+new file mode 100644
+index 0000000..587c1eb
+--- /dev/null
++++ b/src/test/java/hotel/messages/TestModeIntegrationTest.java
+@@ -0,0 +1,83 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++import hotel.EmptyDatabase;
++import hotel.Hotel;
++import hotel.reservations.Guest;
++import hotel.reservations.NewReservation;
++import hotel.reservations.PriceCalculator;
++import hotel.reservations.RatePlan;
++import hotel.reservations.Reservation;
++import hotel.reservations.ReservationService;
++import hotel.reservations.ReservationStore;
++import hotel.rooms.Rooms;
++import java.time.LocalDate;
++import java.util.List;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.Test;
++
++class TestModeIntegrationTest {
++
++    private final EmptyDatabase database = new EmptyDatabase();
++
++    @AfterEach
++    void closeDatabase() {
++        database.close();
++    }
++
++    @Test
++    void testModeRedirectsMessagesToTestAddress() {
++        Hotel hotel = new Hotel(database.dataSource(), true); // test mode ON
++        Rooms rooms = new Rooms(database.dataSource());
++        ReservationStore store = new ReservationStore(database.dataSource());
++        SentMessages sentMessages = new SentMessages(database.dataSource());
++        FilterChain filterChain = new FilterChain(List.of(new EmailValidator(), new TestModeFilter()));
++        ReservationService service = new ReservationService(
++                rooms, store, new PriceCalculator(), new EmailSender(sentMessages, filterChain));
++
++        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++        NewReservation request = new NewReservation(
++                101, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 1, RatePlan.STANDARD);
++        Reservation reservation = service.create(request);
++        service.confirm(reservation.id());
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(1, messages.size());
++        assertEquals("testes@pousadamarealta.com.br", messages.get(0).to());
++        assertEquals("[TESTE] Reserva confirmada - Pousada Maré Alta", messages.get(0).subject());
++        assertTrue(messages.get(0).body().startsWith("Destinatário original: ana@example.com\n"));
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++
++        hotel.stop();
++    }
++
++    @Test
++    void normalModeGeneratesArchiveCopy() {
++        Hotel hotel = new Hotel(database.dataSource(), false); // test mode OFF
++        Rooms rooms = new Rooms(database.dataSource());
++        ReservationStore store = new ReservationStore(database.dataSource());
++        SentMessages sentMessages = new SentMessages(database.dataSource());
++        FilterChain filterChain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
++        ReservationService service = new ReservationService(
++                rooms, store, new PriceCalculator(), new EmailSender(sentMessages, filterChain));
++
++        Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
++        NewReservation request = new NewReservation(
++                101, guest, LocalDate.parse("2027-03-10"), LocalDate.parse("2027-03-11"), 1, RatePlan.STANDARD);
++        Reservation reservation = service.create(request);
++        service.confirm(reservation.id());
++
++        List<Message> messages = sentMessages.all();
++        assertEquals(2, messages.size());
++        assertEquals("ana@example.com", messages.get(0).to());
++        assertEquals("Reserva confirmada - Pousada Maré Alta", messages.get(0).subject());
++        assertEquals(MessageStatus.SENT, messages.get(0).status());
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).to());
++        assertEquals("[Cópia] Reserva confirmada - Pousada Maré Alta", messages.get(1).subject());
++        assertEquals(MessageStatus.SENT, messages.get(1).status());
++
++        hotel.stop();
++    }
++}
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index c5b419f..83b2aee 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -3,7 +3,10 @@ package hotel.reports;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+ import hotel.EmptyDatabase;
++import hotel.messages.ArchiveCopyFilter;
+ import hotel.messages.EmailSender;
++import hotel.messages.EmailValidator;
++import hotel.messages.FilterChain;
+ import hotel.messages.SentMessages;
+ import hotel.reservations.Guest;
+ import hotel.reservations.NewReservation;
+@@ -15,6 +18,7 @@ import hotel.reservations.ReservationStore;
+ import hotel.rooms.Rooms;
+ import java.time.LocalDate;
+ import java.time.YearMonth;
++import java.util.List;
+ import org.junit.jupiter.api.AfterEach;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+@@ -24,8 +28,9 @@ class ReportsTest {
+     private final EmptyDatabase database = new EmptyDatabase();
+     private final Rooms rooms = new Rooms(database.dataSource());
+     private final ReservationStore store = new ReservationStore(database.dataSource());
++    private final FilterChain filterChain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
+     private final ReservationService service = new ReservationService(
+-            rooms, store, new PriceCalculator(), new EmailSender(new SentMessages(database.dataSource())));
++            rooms, store, new PriceCalculator(), new EmailSender(new SentMessages(database.dataSource()), filterChain));
+ 
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+         Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index ec517d7..7071ad0 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -7,8 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ import hotel.EmptyDatabase;
+ import hotel.documents.ReservationReceipt;
++import hotel.messages.ArchiveCopyFilter;
+ import hotel.messages.EmailSender;
++import hotel.messages.EmailValidator;
++import hotel.messages.FilterChain;
+ import hotel.messages.Message;
++import hotel.messages.MessageStatus;
+ import hotel.messages.SentMessages;
+ import hotel.rooms.Rooms;
+ import java.math.BigDecimal;
+@@ -21,9 +25,10 @@ class ReservationServiceTest {
+ 
+     private final EmptyDatabase database = new EmptyDatabase();
+     private final SentMessages sentMessages = new SentMessages(database.dataSource());
++    private final FilterChain filterChain = new FilterChain(List.of(new EmailValidator(), new ArchiveCopyFilter()));
+     private final ReservationService service = new ReservationService(
+             new Rooms(database.dataSource()), new ReservationStore(database.dataSource()), new PriceCalculator(),
+-            new EmailSender(sentMessages));
++            new EmailSender(sentMessages, filterChain));
+ 
+     @AfterEach
+     void closeDatabase() {
+@@ -88,12 +93,18 @@ class ReservationServiceTest {
+ 
+         assertEquals(ReservationStatus.CONFIRMED, service.find(reservation.id()).status());
+         List<Message> sent = sentMessages.all();
+-        assertEquals(1, sent.size());
++        assertEquals(2, sent.size());
++        // the message to the guest
+         assertEquals("EMAIL", sent.get(0).channel());
+         assertEquals("ana@example.com", sent.get(0).to());
+         assertEquals("Reserva confirmada - Pousada Maré Alta", sent.get(0).subject());
+         assertTrue(sent.get(0).body().contains("Desconto: R$ 37,48"));
+         assertTrue(sent.get(0).body().contains("Total: R$ 212,42"));
++        assertEquals(MessageStatus.SENT, sent.get(0).status());
++        // the archive copy
++        assertEquals("arquivo@pousadamarealta.com.br", sent.get(1).to());
++        assertEquals("[Cópia] Reserva confirmada - Pousada Maré Alta", sent.get(1).subject());
++        assertEquals(MessageStatus.SENT, sent.get(1).status());
+     }
+ 
+     @Test
+@@ -102,7 +113,7 @@ class ReservationServiceTest {
+         service.confirm(reservation.id());
+ 
+         assertEquals(ErrorCode.OPERATION_NOT_ALLOWED, errorOf(() -> service.confirm(reservation.id())));
+-        assertEquals(1, sentMessages.all().size());
++        assertEquals(2, sentMessages.all().size()); // original + archive copy
+     }
+ 
+     @Test
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index f9a3f6f..8ff3149 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -78,8 +78,11 @@ class HttpApiTest {
+ 
+         assertEquals(200, post("/reservations/" + id + "/confirmation", "").statusCode());
+         JsonNode messages = json.readTree(get("/messages").body());
+-        assertEquals(1, messages.size());
++        assertEquals(2, messages.size()); // original + archive copy
+         assertEquals("carla@example.com", messages.get(0).get("to").asText());
++        assertEquals("SENT", messages.get(0).get("status").asText());
++        assertEquals("arquivo@pousadamarealta.com.br", messages.get(1).get("to").asText());
++        assertEquals("SENT", messages.get(1).get("status").asText());
+ 
+         assertEquals(200, post("/reservations/" + id + "/check-in", "").statusCode());
+         HttpResponse<String> checkedOut = post("/reservations/" + id + "/check-out", "");

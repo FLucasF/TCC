@@ -1,0 +1,270 @@
+package com.pousadamarealta;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.pousadamarealta.config.Configuration;
+import io.javalin.Javalin;
+import kong.unirest.core.HttpResponse;
+import kong.unirest.core.JsonNode;
+import kong.unirest.core.Unirest;
+import kong.unirest.core.json.JSONArray;
+import kong.unirest.core.json.JSONObject;
+import org.junit.jupiter.api.*;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class ReservationSystemIT {
+    private static Javalin app;
+    private static String baseUrl;
+    private static ObjectMapper mapper;
+
+    @BeforeAll
+    public static void setup() {
+        System.setProperty("DB_URL", "jdbc:postgresql://localhost:5432/pousada_test");
+        System.setProperty("DB_USER", "postgres");
+        System.setProperty("DB_PASSWORD", "postgres");
+        System.setProperty("HOTEL_TEST_MODE", "false");
+        System.setProperty("PORT", "7071");
+
+        app = Configuration.createApplication();
+        app.start(7071);
+        baseUrl = "http://localhost:7071";
+
+        mapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
+    @AfterAll
+    public static void cleanup() {
+        if (app != null) {
+            app.stop();
+        }
+    }
+
+    @Test
+    @Order(1)
+    public void shouldListRooms() {
+        HttpResponse<JsonNode> response = Unirest.get(baseUrl + "/rooms").asJson();
+
+        assertEquals(200, response.getStatus());
+        JSONArray rooms = response.getBody().getArray();
+        assertEquals(5, rooms.length());
+
+        JSONObject room101 = rooms.getJSONObject(0);
+        assertEquals("101", room101.getString("number"));
+        assertEquals("STANDARD", room101.getString("type"));
+        assertEquals(2, room101.getInt("capacity"));
+        assertEquals(249.90, room101.getDouble("nightlyRate"), 0.01);
+    }
+
+    @Test
+    @Order(2)
+    public void shouldCreateReservation() {
+        Map<String, Object> request = Map.of(
+            "roomNumber", "101",
+            "guestName", "Ana Silva",
+            "guestEmail", "ana@example.com",
+            "guestCpf", "12345678901",
+            "checkIn", "2027-03-10",
+            "checkOut", "2027-03-12",
+            "guests", 2,
+            "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<JsonNode> response = Unirest.post(baseUrl + "/reservations")
+            .header("Content-Type", "application/json")
+            .body(request)
+            .asJson();
+
+        assertEquals(201, response.getStatus());
+        JSONObject reservation = response.getBody().getObject();
+
+        assertEquals("101", reservation.getString("roomNumber"));
+        assertEquals("Ana Silva", reservation.getString("guestName"));
+        assertEquals("PENDING", reservation.getString("status"));
+        assertEquals(2, reservation.getInt("nights"));
+        assertEquals(499.80, reservation.getDouble("subtotal"), 0.01);
+        assertEquals(0.0, reservation.getDouble("discount"), 0.01);
+        assertEquals(499.80, reservation.getDouble("total"), 0.01);
+    }
+
+    @Test
+    @Order(3)
+    public void shouldCalculateHighSeasonPrices() {
+        Map<String, Object> request = Map.of(
+            "roomNumber", "101",
+            "guestName", "João Santos",
+            "guestEmail", "joao@example.com",
+            "guestCpf", "98765432109",
+            "checkIn", "2027-07-10",
+            "checkOut", "2027-07-12",
+            "guests", 2,
+            "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<JsonNode> response = Unirest.post(baseUrl + "/reservations")
+            .header("Content-Type", "application/json")
+            .body(request)
+            .asJson();
+
+        assertEquals(201, response.getStatus());
+        JSONObject reservation = response.getBody().getObject();
+
+        assertEquals(599.76, reservation.getDouble("subtotal"), 0.01);
+    }
+
+    @Test
+    @Order(4)
+    public void shouldApplyNonRefundableDiscount() {
+        Map<String, Object> request = Map.of(
+            "roomNumber", "201",
+            "guestName", "Maria Costa",
+            "guestEmail", "maria@example.com",
+            "guestCpf", "11122233344",
+            "checkIn", "2027-03-10",
+            "checkOut", "2027-03-12",
+            "guests", 2,
+            "ratePlan", "NON_REFUNDABLE"
+        );
+
+        HttpResponse<JsonNode> response = Unirest.post(baseUrl + "/reservations")
+            .header("Content-Type", "application/json")
+            .body(request)
+            .asJson();
+
+        assertEquals(201, response.getStatus());
+        JSONObject reservation = response.getBody().getObject();
+
+        assertEquals(779.80, reservation.getDouble("subtotal"), 0.01);
+        assertEquals(116.97, reservation.getDouble("discount"), 0.01);
+        assertEquals(662.83, reservation.getDouble("total"), 0.01);
+    }
+
+    @Test
+    @Order(5)
+    public void shouldBlockInvalidEmail() {
+        Map<String, Object> request = Map.of(
+            "roomNumber", "102",
+            "guestName", "Pedro Lima",
+            "guestEmail", "pedro.gmail.com",
+            "guestCpf", "55566677788",
+            "checkIn", "2027-04-10",
+            "checkOut", "2027-04-11",
+            "guests", 1,
+            "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<JsonNode> response = Unirest.post(baseUrl + "/reservations")
+            .header("Content-Type", "application/json")
+            .body(request)
+            .asJson();
+
+        assertEquals(201, response.getStatus());
+
+        long reservationId = response.getBody().getObject().getLong("id");
+
+        HttpResponse<JsonNode> confirmResponse = Unirest.post(baseUrl + "/reservations/" + reservationId + "/confirmation")
+            .asJson();
+
+        assertEquals(200, confirmResponse.getStatus());
+
+        HttpResponse<JsonNode> messagesResponse = Unirest.get(baseUrl + "/messages").asJson();
+        assertEquals(200, messagesResponse.getStatus());
+
+        JSONArray messages = messagesResponse.getBody().getArray();
+        assertTrue(messages.length() > 0);
+
+        JSONObject lastMessage = messages.getJSONObject(messages.length() - 1);
+        assertEquals("BLOCKED", lastMessage.getString("status"));
+        assertEquals("pedro.gmail.com", lastMessage.getString("to"));
+    }
+
+    @Test
+    @Order(6)
+    public void shouldSendConfirmationAndArchiveCopy() {
+        Map<String, Object> request = Map.of(
+            "roomNumber", "201",
+            "guestName", "Carla Dias",
+            "guestEmail", "carla@example.com",
+            "guestCpf", "11122233344",
+            "checkIn", "2027-03-10",
+            "checkOut", "2027-03-12",
+            "guests", 2,
+            "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<JsonNode> createResponse = Unirest.post(baseUrl + "/reservations")
+            .header("Content-Type", "application/json")
+            .body(request)
+            .asJson();
+
+        assertEquals(201, createResponse.getStatus());
+        long reservationId = createResponse.getBody().getObject().getLong("id");
+
+        int messagesBefore = Unirest.get(baseUrl + "/messages").asJson().getBody().getArray().length();
+
+        HttpResponse<JsonNode> confirmResponse = Unirest.post(baseUrl + "/reservations/" + reservationId + "/confirmation")
+            .asJson();
+
+        assertEquals(200, confirmResponse.getStatus());
+
+        HttpResponse<JsonNode> messagesResponse = Unirest.get(baseUrl + "/messages").asJson();
+        JSONArray messages = messagesResponse.getBody().getArray();
+
+        assertEquals(messagesBefore + 2, messages.length());
+
+        JSONObject originalMessage = messages.getJSONObject(messages.length() - 2);
+        assertEquals("SENT", originalMessage.getString("status"));
+        assertEquals("carla@example.com", originalMessage.getString("to"));
+        assertTrue(originalMessage.getString("subject").contains("Reserva confirmada"));
+
+        JSONObject archiveCopy = messages.getJSONObject(messages.length() - 1);
+        assertEquals("SENT", archiveCopy.getString("status"));
+        assertEquals("arquivo@pousadamarealta.com.br", archiveCopy.getString("to"));
+        assertTrue(archiveCopy.getString("subject").startsWith("[Cópia] "));
+    }
+
+    @Test
+    @Order(7)
+    public void shouldRejectRoomUnavailable() {
+        Map<String, Object> request = Map.of(
+            "roomNumber", "301",
+            "guestName", "User 1",
+            "guestEmail", "user1@example.com",
+            "guestCpf", "11111111111",
+            "checkIn", "2027-05-10",
+            "checkOut", "2027-05-15",
+            "guests", 2,
+            "ratePlan", "STANDARD"
+        );
+
+        Unirest.post(baseUrl + "/reservations")
+            .header("Content-Type", "application/json")
+            .body(request)
+            .asJson();
+
+        Map<String, Object> conflictRequest = Map.of(
+            "roomNumber", "301",
+            "guestName", "User 2",
+            "guestEmail", "user2@example.com",
+            "guestCpf", "22222222222",
+            "checkIn", "2027-05-12",
+            "checkOut", "2027-05-17",
+            "guests", 2,
+            "ratePlan", "STANDARD"
+        );
+
+        HttpResponse<JsonNode> response = Unirest.post(baseUrl + "/reservations")
+            .header("Content-Type", "application/json")
+            .body(conflictRequest)
+            .asJson();
+
+        assertEquals(409, response.getStatus());
+        assertEquals("ROOM_UNAVAILABLE", response.getBody().getObject().getString("error"));
+    }
+}
