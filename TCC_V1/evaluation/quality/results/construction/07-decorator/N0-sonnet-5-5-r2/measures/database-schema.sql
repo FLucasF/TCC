@@ -1,0 +1,189 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict m337d3idN4g2R5QfSPN2F0NCcX1XlLCREBelXUqDBScsGegvWpqbZJA4hupwcMF
+
+-- Dumped from database version 18.6
+-- Dumped by pg_dump version 18.6 (Ubuntu 18.6-1.pgdg24.04+2)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.messages (
+    id bigint NOT NULL,
+    channel text NOT NULL,
+    recipient text NOT NULL,
+    subject text NOT NULL,
+    body text NOT NULL,
+    status text NOT NULL,
+    guest_key text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: messages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.messages_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.messages_id_seq OWNED BY public.messages.id;
+
+
+--
+-- Name: reservations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reservations (
+    id bigint NOT NULL,
+    room_number integer NOT NULL,
+    guest_name text NOT NULL,
+    guest_email text NOT NULL,
+    guest_cpf text NOT NULL,
+    check_in date NOT NULL,
+    check_out date NOT NULL,
+    guests integer NOT NULL,
+    rate_plan text NOT NULL,
+    nights integer NOT NULL,
+    subtotal numeric(12,2) NOT NULL,
+    discount numeric(12,2) NOT NULL,
+    total numeric(12,2) NOT NULL,
+    status text NOT NULL,
+    amount_paid numeric(12,2) DEFAULT 0 NOT NULL,
+    refund numeric(12,2),
+    CONSTRAINT reservations_check CHECK ((check_out > check_in))
+);
+
+
+--
+-- Name: reservations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.reservations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: reservations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.reservations_id_seq OWNED BY public.reservations.id;
+
+
+--
+-- Name: rooms; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rooms (
+    number integer NOT NULL,
+    type text NOT NULL,
+    capacity integer NOT NULL,
+    nightly_rate numeric(12,2) NOT NULL
+);
+
+
+--
+-- Name: messages id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messages ALTER COLUMN id SET DEFAULT nextval('public.messages_id_seq'::regclass);
+
+
+--
+-- Name: reservations id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations ALTER COLUMN id SET DEFAULT nextval('public.reservations_id_seq'::regclass);
+
+
+--
+-- Name: messages messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rooms rooms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rooms
+    ADD CONSTRAINT rooms_pkey PRIMARY KEY (number);
+
+
+--
+-- Name: messages_guest_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX messages_guest_idx ON public.messages USING btree (guest_key, created_at);
+
+
+--
+-- Name: reservations_check_in_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reservations_check_in_idx ON public.reservations USING btree (check_in);
+
+
+--
+-- Name: reservations_room_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reservations_room_idx ON public.reservations USING btree (room_number, check_in, check_out);
+
+
+--
+-- Name: reservations reservations_room_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_room_number_fkey FOREIGN KEY (room_number) REFERENCES public.rooms(number);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict m337d3idN4g2R5QfSPN2F0NCcX1XlLCREBelXUqDBScsGegvWpqbZJA4hupwcMF
+

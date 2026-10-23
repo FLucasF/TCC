@@ -1,0 +1,148 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict 8UGGfMHeTtZ1Jn6u2d5cnBW0bTPfSWJyGvgMwjHUTSLpBrFv697mMWGT2K198de
+
+-- Dumped from database version 18.6
+-- Dumped by pg_dump version 18.6 (Ubuntu 18.6-1.pgdg24.04+2)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: counters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.counters (
+    name text NOT NULL,
+    value bigint NOT NULL
+);
+
+
+--
+-- Name: messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.messages (
+    id bigint NOT NULL,
+    channel text NOT NULL,
+    to_addr text NOT NULL,
+    subject text NOT NULL,
+    body text NOT NULL,
+    status text NOT NULL,
+    original_to text NOT NULL,
+    copy boolean NOT NULL,
+    sent_on date NOT NULL
+);
+
+
+--
+-- Name: reservations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reservations (
+    id bigint NOT NULL,
+    room_number integer NOT NULL,
+    guest_name text NOT NULL,
+    guest_email text NOT NULL,
+    guest_cpf text NOT NULL,
+    check_in date NOT NULL,
+    check_out date NOT NULL,
+    guests integer NOT NULL,
+    rate_plan text NOT NULL,
+    nights integer NOT NULL,
+    subtotal numeric(12,2) NOT NULL,
+    discount numeric(12,2) NOT NULL,
+    total numeric(12,2) NOT NULL,
+    status text NOT NULL,
+    amount_paid numeric(12,2) NOT NULL,
+    refund numeric(12,2)
+);
+
+
+--
+-- Name: rooms; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rooms (
+    number integer NOT NULL,
+    type text NOT NULL,
+    capacity integer NOT NULL,
+    nightly_rate numeric(12,2) NOT NULL
+);
+
+
+--
+-- Name: counters counters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.counters
+    ADD CONSTRAINT counters_pkey PRIMARY KEY (name);
+
+
+--
+-- Name: messages messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rooms rooms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rooms
+    ADD CONSTRAINT rooms_pkey PRIMARY KEY (number);
+
+
+--
+-- Name: messages_limit_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX messages_limit_idx ON public.messages USING btree (original_to, sent_on);
+
+
+--
+-- Name: reservations_room_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reservations_room_idx ON public.reservations USING btree (room_number, check_in);
+
+
+--
+-- Name: reservations reservations_room_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_room_number_fkey FOREIGN KEY (room_number) REFERENCES public.rooms(number);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict 8UGGfMHeTtZ1Jn6u2d5cnBW0bTPfSWJyGvgMwjHUTSLpBrFv697mMWGT2K198de
+
