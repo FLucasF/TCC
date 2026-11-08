@@ -171,8 +171,8 @@ Ampatzoglou et al. (2026) estudaram a refatoração para *patterns* e princípio
 cruzamento com dez desenvolvedores júniores. O uso do LLM aumentou a correção da implementação, enquanto os
 participantes sem o LLM foram superiores na identificação do problema; na escolha da prática, não houve diferença. Neste
 trabalho, não há uma pessoa conduzindo o modelo: um agente executa a tarefa sozinho, e avalia-se se a configuração o
-leva a reconhecer a necessidade do *pattern*. Há ainda um ponto em que o *pattern* seria exagero, situação ausente
-naquele estudo.
+leva a reconhecer a necessidade do *pattern*. No estudo principal, há ainda um ponto em que o *pattern* seria exagero,
+situação ausente naquele estudo.
 
 Os arquivos de contexto, como o `CLAUDE.md`, foram caracterizados por Chatlatanagulchai et al. (2026), em 2.303 arquivos
 de 1.925 repositórios. O estudo descreve o que os desenvolvedores escrevem nesses arquivos, mas não mede, em experimento
@@ -187,9 +187,9 @@ sem variar o modelo, que a capacidade do LLM pesa mais que a orquestração. Aqu
 agentes, mas o conteúdo de projeto das orientações, avaliado em vários modelos de uma mesma família.
 
 Em conjunto, nenhum dos trabalhos lidos mede o efeito de orientações persistentes sobre a decisão de aplicar um
-*pattern* não nomeado no pedido. Este trabalho faz essa medida com um controle negativo para o exagero, com pré-registro
-no estudo principal (220 execuções de 11 modelos) e com uma extensão a cinco *patterns*, na construção e na manutenção
-(450 execuções).
+*pattern* não nomeado no pedido. Este trabalho faz essa medida em um estudo principal com pré-registro e com um controle
+negativo para o exagero (220 execuções de 11 modelos), e em uma extensão a cinco *patterns*, na construção e na
+manutenção, sem controle negativo (450 execuções).
 
 ## 4. Estudo principal: o Strategy com pré-registro
 
@@ -369,7 +369,8 @@ construção e de 11 a 25 na manutenção; o Sonnet 4.5, de 14 a 22 e de 5 a 20;
 Construindo, 59 das 225 execuções deixaram o mesmo quarto ser reservado duas vezes quando dois pedidos chegam juntos, e
 16 não chegaram a esse teste; mantendo, nenhuma das 225 deixou, e todas aplicaram as migrações. O Sonnet 5.5 teve o
 comportamento bom nas 150 execuções; o Haiku 4.5, construindo, não teve em nenhuma das 75, com a nota ruim em 71. O
-exagero foi de 4, 5 e 9 execuções em 75 na construção (N0, N1 e N2) e de 0, 1 e 2 na manutenção. O resultado da primeira
+exagero no restante do código, já que a extensão não tem cenário de controle, foi de 4, 5 e 9 execuções em 75 na
+construção (N0, N1 e N2) e de 0, 1 e 2 na manutenção. O resultado da primeira
 rodada (pattern certo ou não) se repetiu em 294 das 360 rodadas novas (82%), e 54 das 90 combinações deram o mesmo
 resultado nas cinco rodadas.
 
@@ -477,8 +478,9 @@ pattern, de modo que não serve sozinho para dizer se o pattern foi aplicado.
 **A trajetória do estudo.** O desenho mudou várias vezes, e cada mudança tem data e motivo registrados antes de ver os
 resultados que ela afetaria. O lote descartado (o V4) foi descartado antes de qualquer análise; as mudanças da extensão
 vieram de problemas de método (o teto, o *framework* que entregava o pattern pronto, a *skill* que travava o agente), e
-não da direção dos resultados. E a conclusão principal, de que a orientação aumenta o pattern certo sem exagero, se
-manteve em todas as fases, com enunciados, correções e modelos diferentes.
+não da direção dos resultados. O aumento do *pattern* certo apareceu na mesma direção nos dois estudos, com enunciados,
+correções e modelos diferentes; a ausência de aumento do exagero, porém, foi verificada apenas no estudo principal, o
+único com controle negativo.
 
 ## 7. Limitações
 
