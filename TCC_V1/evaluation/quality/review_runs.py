@@ -13,11 +13,13 @@ Usage (from TCC_V1):
     python evaluation/quality/review_runs.py summary
 
 Options: --model claude-opus-5-5 (default), --effort high (default), --workers N (default 1), --resume (review
-again only the ones without a review.md), --dry-run (assemble the work folders and show the commands, run nothing).
+again only the ones without a review.md), --dry-run (assemble the work folders and show the commands, run nothing),
+--second-verifier (with `review`: a second, independent review of a run, kept apart from the official verdicts).
 
 Output, one folder per review, with review.md (the reviewer's text), review.json (the grades read from it),
 measures/ (what the scripts wrote), the transcript and meta.json:
     evaluation/quality/results/<study>/<scenario>-<pattern>/<arm>-<model>/      (the runs)
+    evaluation/quality/second-verifier/<model>-<effort>/<study>/<scenario>-<pattern>/<arm>-<model>/   (second reviews)
     evaluation/quality/calibration/<model>-<effort>/<study>/<case>/               (the calibration)
 `summary` writes evaluation/quality/results/summary.md (one line per run, and the counts per study, arm and column);
 `calibrate` writes calibration/<model>-<effort>/summary.md (expected and given, per case and column).
@@ -59,6 +61,7 @@ MAINTENANCE = TCC_V1 / "maintenance"
 BASE = MAINTENANCE / "experiment" / "base" / "hotel"
 CALIBRATION_CASES = REPOSITORY_ROOT / "maintenance-v1" / "evaluation" / "solutions-postgres"
 RESULTS = QUALITY / "results"
+SECOND_VERIFIER = QUALITY / "second-verifier"
 CALIBRATION = QUALITY / "calibration"
 ENV_FILE = REPOSITORY_ROOT / "construction-v5" / ".env"   # the same subscription token as the runs (never printed)
 IMAGE = "tcc-v1-reviewer:1"
@@ -404,7 +407,7 @@ def run_all(reviews: list[Review], model: str, effort: str, workers: int, dry_ru
 
 # ---------------------------------------------------------------------------------------------- the runs and cases
 
-def run_reviews(run_folders: list[Path], model: str, effort: str) -> list[Review]:
+def run_reviews(run_folders: list[Path], model: str, effort: str, results: Path = RESULTS) -> list[Review]:
     reviews = []
     for folder in run_folders:
         folder = folder if folder.is_absolute() else (TCC_V1 / folder)
@@ -415,7 +418,7 @@ def run_reviews(run_folders: list[Path], model: str, effort: str) -> list[Review
         if study not in STUDIES:
             die(f"{folder} is not under construction/runs or maintenance/runs")
         scenario = folder.parent.name[:2]
-        output = RESULTS / study / folder.parent.name / folder.name
+        output = results / study / folder.parent.name / folder.name
         container = f"tcc-v1-review-{study[:5]}-{scenario}-{folder.name}-{short(model, effort)}"
         reviews.append(Review(study, scenario, output, container, run_folder=folder))
     return reviews
@@ -518,9 +521,11 @@ def main() -> None:
     arguments = sys.argv[1:]
     dry_run = "--dry-run" in arguments
     resume = "--resume" in arguments
-    arguments = [argument for argument in arguments if argument not in ("--dry-run", "--resume")]
+    second_verifier = "--second-verifier" in arguments
+    arguments = [argument for argument in arguments if argument not in ("--dry-run", "--resume", "--second-verifier")]
     model = option(arguments, "--model", "claude-opus-5-5")
     effort = option(arguments, "--effort", "high")
+    results = SECOND_VERIFIER / short(model, effort) if second_verifier else RESULTS
     workers = int(option(arguments, "--workers", "1"))
     scenario = option(arguments, "--scenario", "") or None
     arm = option(arguments, "--arm", "") or None
@@ -528,8 +533,8 @@ def main() -> None:
         die(__doc__ or "")
     command, rest = arguments[0], arguments[1:]
     if command == "review" and rest:
-        run_all(run_reviews([Path(folder) for folder in rest], model, effort), model, effort, workers, dry_run,
-                resume)
+        run_all(run_reviews([Path(folder) for folder in rest], model, effort, results), model, effort, workers,
+                dry_run, resume)
     elif command == "review-all" and len(rest) == 1 and rest[0] in STUDIES:
         folders = all_runs(rest[0], scenario, arm)
         if not folders:

@@ -47,6 +47,10 @@ nada. A saída de cada revisão vai para `results/<pesquisa>/<cenário>/<braço>
 dele (`review.json`), as medidas (`measures/`), a transcrição e o `meta.json`; o `summary` junta tudo em
 `results/summary.md`.
 
+Com `--second-verifier`, o `review` guarda a revisão em `second-verifier/<modelo>-<effort>/`, separada dos vereditos oficiais.
+`second_verifier.py` diz quais execuções entram na amostra (`sample <N>`, com semente fixa) e quanto as notas concordam com as oficiais
+(`agreement <modelo>-<effort>`). `rounds_report.py` junta as cinco rodadas, e a saída dele é o `../../../docs/rodadas-cinco-patterns.md`.
+
 ## A calibração
 
 ```bash

@@ -1,0 +1,10 @@
+# A revisão
+
+- **Pesquisa:** construção.
+- **Cenário:** 03; o texto pede, sem dizer o nome, o Observer (a referência em `.claude/skills/review-design/references/observer.md`).
+- **O texto que o agente recebeu:** `enunciado.md`.
+- **O projeto:** `projeto/`, construído do zero pelo agente.
+- **Os scripts:** rode cada um com `projeto` (por exemplo, `bash .claude/skills/review-tests/measure_tests.sh projeto`).
+- **O roteiro do comportamento:** `.claude/skills/review-behavior/check_03.sh projeto`.
+
+Escreva a revisão em `review.md`, no formato do agente `quality-reviewer`.
