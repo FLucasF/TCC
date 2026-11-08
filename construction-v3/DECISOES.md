@@ -1531,3 +1531,31 @@ e os 3 braços: 4 rodadas novas (144 execuções), revisadas pelo mesmo verifica
 `--replica N`, que grava a rodada repetida em `<braço>-<modelo>-rN/`; a primeira rodada é a pasta sem sufixo. *Por
 quê:* com uma execução por combinação, não dá para saber se o erro é constante ou acaso; os dois extremos mostram as
 duas pontas da variação com o custo de 2 cenários em vez de 5.
+
+**01/11: as 5 rodadas passam a valer também para o Strategy (01), o Observer (03) e o Template Method (09), nas duas
+pesquisas, com os 3 modelos e os 3 braços: mais 216 execuções, com as revisões do mesmo verificador e o mesmo CK.** *Por
+quê:* o Lucas pediu para rodar os patterns que ainda tinham uma execução por combinação, para saber também neles se o
+erro é constante ou acaso; com isso, os 5 patterns ficam com o mesmo desenho, 450 execuções por 5 rodadas. *O que muda
+na leitura:* as 144 rodadas de 22/10 escolheram os dois extremos do piloto; estas três completam o desenho, e a comparação
+entre os patterns passa a poder usar as 5 rodadas de todos.
+
+**02/11: as referências do artigo final vêm só de revistas e eventos importantes e respeitados.** *Por quê:* o Lucas pediu
+assim; o artigo vai descrever todo o experimento, e o `docs/artigo-v5-e-extensao.md` é um resumo para o professor.
+Preprints e *workshops* só entram se ele decidir, um a um.
+
+**02/11: o experimento fica só com modelos da Anthropic, e o artigo declara isso como limitação, por restrição de custo. Depois das
+revisões, o Fable 5.1 é testado em poucas execuções como segundo verificador; se funcionar, roda em uma parte delas, e os vereditos do
+Opus 5.5 continuam sendo os oficiais.** *Por quê:* o Lucas só tem orçamento para o Claude. O Sonnet 5.5 não serve de segundo verificador
+porque é testado na extensão e julgaria o próprio código.
+
+**03/11: o segundo verificador é o Fable 5.1, com o mesmo agente, as mesmas skills e o esforço high, em 30 execuções sorteadas (uma rodada
+por combinação, semente fixa, em `TCC_V1/evaluation/quality/second_verifier.py`), às cegas e guardadas em `second-verifier/`, fora dos
+vereditos oficiais.** *Por quê:* no teste de 3 execuções funcionou, mas cada revisão custa cerca de US$ 3 (3,5 vezes o Opus 5.5) e uns 6 pontos
+da janela de 5 horas, o que torna caras as 90 combinações; 30 execuções dão 210 notas para comparar e cabem na cota.
+
+**03/11: preprints ficam de fora do artigo, inclusive o Gloaguen, e as correções do texto só vêm de textos publicados.** *Por quê:* o Lucas
+considera que um preprint não tem confirmação de que os dados são confiáveis.
+
+**03/11: no artigo, *harness* é o software em volta do modelo, como em Galster et al. (AIware 2026), e a variável estudada é a configuração do
+*harness*; o N0 é o Claude Code sem configuração.** *Por quê:* no sentido antigo, "N0 sem *harness*" ficava errado, porque o Claude Code sem
+configuração já tem um. O pré-registro do V5 continua como está, por estar congelado, e o artigo avisa a diferença.
