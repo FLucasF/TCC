@@ -1,0 +1,453 @@
+package com.pousadamarealta;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.pousadamarealta.api.ApiController;
+import com.pousadamarealta.repository.Database;
+import com.pousadamarealta.repository.MessageRepository;
+import com.pousadamarealta.repository.ReservationRepository;
+import com.pousadamarealta.repository.RoomRepository;
+import com.pousadamarealta.service.PricingService;
+import com.pousadamarealta.service.ReportService;
+import com.pousadamarealta.service.ReservationService;
+import io.javalin.Javalin;
+import io.javalin.json.JavalinJackson;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import org.junit.jupiter.api.*;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.math.BigDecimal;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
+
+@Testcontainers
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class ReservationSystemIT {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18")
+        .withDatabaseName("pousada")
+        .withUsername("test")
+        .withPassword("test");
+
+    private static Javalin app;
+    private static final int TEST_PORT = 7071;
+
+    @BeforeAll
+    static void setup() {
+        Database database = new Database(
+            postgres.getJdbcUrl(),
+            postgres.getUsername(),
+            postgres.getPassword()
+        );
+        database.initialize();
+
+        RoomRepository roomRepository = new RoomRepository(database);
+        ReservationRepository reservationRepository = new ReservationRepository(database);
+        MessageRepository messageRepository = new MessageRepository(database);
+
+        PricingService pricingService = new PricingService();
+        ReservationService reservationService = new ReservationService(
+            reservationRepository,
+            roomRepository,
+            messageRepository,
+            pricingService
+        );
+        ReportService reportService = new ReportService(reservationRepository);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        app = Javalin.create(config -> {
+            config.jsonMapper(new JavalinJackson(objectMapper, false));
+        });
+
+        ApiController controller = new ApiController(
+            roomRepository,
+            reservationService,
+            messageRepository,
+            reportService
+        );
+        controller.registerRoutes(app);
+
+        app.start(TEST_PORT);
+        RestAssured.port = TEST_PORT;
+    }
+
+    @AfterAll
+    static void teardown() {
+        if (app != null) {
+            app.stop();
+        }
+    }
+
+    @Test
+    @Order(1)
+    void testGetRooms() {
+        given()
+            .when()
+            .get("/rooms")
+            .then()
+            .statusCode(200)
+            .body("size()", is(5))
+            .body("[0].number", is("101"))
+            .body("[0].type", is("STANDARD"))
+            .body("[0].capacity", is(2))
+            .body("[0].nightlyRate", is(249.90f));
+    }
+
+    @Test
+    @Order(2)
+    void testCreateStandardReservation() {
+        String json = """
+            {
+                "roomNumber": "201",
+                "guestName": "Carla Dias",
+                "guestEmail": "carla@email.com",
+                "guestCpf": "11122233344",
+                "checkIn": "2027-03-10",
+                "checkOut": "2027-03-12",
+                "guests": 2,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(201)
+            .body("id", is(1))
+            .body("status", is("PENDING"))
+            .body("nights", is(2))
+            .body("subtotal", is(779.80f))
+            .body("discount", is(0.00f))
+            .body("total", is(779.80f))
+            .body("amountPaid", is(0.00f));
+    }
+
+    @Test
+    @Order(3)
+    void testConfirmReservation() {
+        given()
+            .when()
+            .post("/reservations/1/confirmation")
+            .then()
+            .statusCode(200)
+            .body("status", is("CONFIRMED"))
+            .body("amountPaid", is(779.80f));
+
+        given()
+            .when()
+            .get("/messages")
+            .then()
+            .statusCode(200)
+            .body("size()", is(1))
+            .body("[0].channel", is("EMAIL"))
+            .body("[0].to", is("carla@email.com"))
+            .body("[0].subject", is("Reserva confirmada - Pousada Maré Alta"));
+    }
+
+    @Test
+    @Order(4)
+    void testCreateHighSeasonReservation() {
+        String json = """
+            {
+                "roomNumber": "101",
+                "guestName": "João Silva",
+                "guestEmail": "joao@email.com",
+                "guestCpf": "12345678900",
+                "checkIn": "2027-07-10",
+                "checkOut": "2027-07-12",
+                "guests": 2,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(201)
+            .body("nights", is(2))
+            .body("subtotal", is(599.76f))
+            .body("total", is(599.76f));
+    }
+
+    @Test
+    @Order(5)
+    void testNonRefundableReservation() {
+        String json = """
+            {
+                "roomNumber": "102",
+                "guestName": "Maria Santos",
+                "guestEmail": "maria@email.com",
+                "guestCpf": "98765432100",
+                "checkIn": "2027-03-15",
+                "checkOut": "2027-03-17",
+                "guests": 1,
+                "ratePlan": "NON_REFUNDABLE"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(201)
+            .body("subtotal", is(499.80f))
+            .body("discount", is(74.97f))
+            .body("total", is(424.83f));
+    }
+
+    @Test
+    @Order(6)
+    void testCorporateReservation() {
+        String json = """
+            {
+                "roomNumber": "202",
+                "guestName": "Pedro Oliveira",
+                "guestEmail": "pedro@email.com",
+                "guestCpf": "11111111111",
+                "checkIn": "2027-03-10",
+                "checkOut": "2027-03-12",
+                "guests": 2,
+                "ratePlan": "CORPORATE",
+                "companyCode": "TECNOSUL"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(201)
+            .body("subtotal", is(779.80f))
+            .body("discount", is(93.58f))
+            .body("total", is(686.22f));
+    }
+
+    @Test
+    @Order(7)
+    void testWeekendPackage() {
+        String json = """
+            {
+                "roomNumber": "201",
+                "guestName": "Ana Costa",
+                "guestEmail": "ana@email.com",
+                "guestCpf": "22222222222",
+                "checkIn": "2027-03-12",
+                "checkOut": "2027-03-14",
+                "guests": 2,
+                "ratePlan": "WEEKEND_PACKAGE"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(201)
+            .body("nights", is(2))
+            .body("subtotal", is(820.00f))
+            .body("discount", is(0.00f))
+            .body("total", is(820.00f));
+    }
+
+    @Test
+    @Order(8)
+    void testLongStay() {
+        String json = """
+            {
+                "roomNumber": "301",
+                "guestName": "Carlos Mendes",
+                "guestEmail": "carlos@email.com",
+                "guestCpf": "33333333333",
+                "checkIn": "2027-03-01",
+                "checkOut": "2027-03-08",
+                "guests": 3,
+                "ratePlan": "LONG_STAY"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(201)
+            .body("nights", is(7))
+            .body("subtotal", is(4059.30f))
+            .body("discount", is(405.93f))
+            .body("total", is(3653.37f));
+    }
+
+    @Test
+    @Order(9)
+    void testRoomUnavailable() {
+        String json = """
+            {
+                "roomNumber": "201",
+                "guestName": "Test User",
+                "guestEmail": "test@email.com",
+                "guestCpf": "44444444444",
+                "checkIn": "2027-03-10",
+                "checkOut": "2027-03-11",
+                "guests": 2,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(409)
+            .body("error", is("ROOM_UNAVAILABLE"));
+    }
+
+    @Test
+    @Order(10)
+    void testCapacityExceeded() {
+        String json = """
+            {
+                "roomNumber": "101",
+                "guestName": "Test User",
+                "guestEmail": "test@email.com",
+                "guestCpf": "44444444444",
+                "checkIn": "2027-04-01",
+                "checkOut": "2027-04-02",
+                "guests": 5,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(422)
+            .body("error", is("CAPACITY_EXCEEDED"));
+    }
+
+    @Test
+    @Order(11)
+    void testInvalidCompanyCode() {
+        String json = """
+            {
+                "roomNumber": "102",
+                "guestName": "Test User",
+                "guestEmail": "test@email.com",
+                "guestCpf": "44444444444",
+                "checkIn": "2027-04-01",
+                "checkOut": "2027-04-02",
+                "guests": 1,
+                "ratePlan": "CORPORATE",
+                "companyCode": "INVALID"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(json)
+            .when()
+            .post("/reservations")
+            .then()
+            .statusCode(400)
+            .body("error", is("INVALID_REQUEST"));
+    }
+
+    @Test
+    @Order(12)
+    void testWeekendPackageCancellationRefund() {
+        given()
+            .when()
+            .post("/reservations/5/confirmation")
+            .then()
+            .statusCode(200);
+
+        given()
+            .when()
+            .post("/reservations/5/cancellation")
+            .then()
+            .statusCode(200)
+            .body("status", is("CANCELLED"))
+            .body("refund", is(410.00f));
+    }
+
+    @Test
+    @Order(13)
+    void testCheckInCheckOut() {
+        given()
+            .when()
+            .post("/reservations/4/confirmation")
+            .then()
+            .statusCode(200);
+
+        given()
+            .when()
+            .post("/reservations/4/check-in")
+            .then()
+            .statusCode(200)
+            .body("status", is("CHECKED_IN"));
+
+        given()
+            .when()
+            .post("/reservations/4/check-out")
+            .then()
+            .statusCode(200)
+            .body("title", is("Comprovante de reserva"))
+            .body("reservationId", is(4))
+            .body("roomType", is("DELUXE"));
+    }
+
+    @Test
+    @Order(14)
+    void testOccupancyReport() {
+        given()
+            .queryParam("date", "2027-03-10")
+            .when()
+            .get("/reports/occupancy")
+            .then()
+            .statusCode(200)
+            .contentType("text/csv; charset=utf-8")
+            .body(containsString("room,type,reservation,check_in,check_out"))
+            .body(containsString("201,DELUXE,1,2027-03-10,2027-03-12"))
+            .body(containsString("202,DELUXE,4,2027-03-10,2027-03-12"));
+    }
+
+    @Test
+    @Order(15)
+    void testRevenueReport() {
+        given()
+            .queryParam("month", "2027-03")
+            .when()
+            .get("/reports/revenue")
+            .then()
+            .statusCode(200)
+            .contentType("text/csv; charset=utf-8")
+            .body(containsString("reservation,room,check_in,check_out,status,amount"))
+            .body(containsString("total,"));
+    }
+}

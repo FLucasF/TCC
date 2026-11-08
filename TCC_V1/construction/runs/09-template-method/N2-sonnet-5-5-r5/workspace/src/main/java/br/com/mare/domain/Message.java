@@ -1,0 +1,15 @@
+package br.com.mare.domain;
+
+/** Mensagem enviada ao hóspede; por enquanto só fica guardada na lista de enviadas. */
+public record Message(Long id, Channel channel, String to, String subject, String body) {
+
+    public static Message reservationConfirmed(Reservation reservation, Receipt receipt) {
+        String body = "Olá, " + reservation.guestName() + "!\n\n"
+                + "Sua reserva na Pousada Maré Alta está confirmada. Estes são os dados dela:\n\n"
+                + receipt.text() + "\n\n"
+                + "A entrada é a partir das 14h, e a saída, até as 12h.\n"
+                + "Até breve!";
+        return new Message(null, Channel.EMAIL, reservation.guestEmail(),
+                "Reserva confirmada - Pousada Maré Alta", body);
+    }
+}

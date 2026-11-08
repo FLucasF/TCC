@@ -1,0 +1,719 @@
+diff --git a/src/main/java/hotel/reservations/NewReservation.java b/src/main/java/hotel/reservations/NewReservation.java
+index 34ba368..5f25919 100644
+--- a/src/main/java/hotel/reservations/NewReservation.java
++++ b/src/main/java/hotel/reservations/NewReservation.java
+@@ -3,5 +3,11 @@ package hotel.reservations;
+ import java.time.LocalDate;
+ 
+ public record NewReservation(
+-        int roomNumber, Guest guest, LocalDate checkIn, LocalDate checkOut, int guests, RatePlan ratePlan) {
++        int roomNumber,
++        Guest guest,
++        LocalDate checkIn,
++        LocalDate checkOut,
++        int guests,
++        RatePlan ratePlan,
++        String companyCode) {
+ }
+diff --git a/src/main/java/hotel/reservations/PriceCalculator.java b/src/main/java/hotel/reservations/PriceCalculator.java
+index bd53dba..b428197 100644
+--- a/src/main/java/hotel/reservations/PriceCalculator.java
++++ b/src/main/java/hotel/reservations/PriceCalculator.java
+@@ -1,10 +1,13 @@
+ package hotel.reservations;
+ 
+ import hotel.rooms.Room;
++import hotel.rooms.RoomType;
+ import java.math.BigDecimal;
+ import java.math.RoundingMode;
++import java.time.DayOfWeek;
+ import java.time.LocalDate;
+ import java.time.Month;
++import java.util.Map;
+ 
+ /**
+  * The price of a stay: every night costs the room's nightly rate, plus the high-season surcharge on
+@@ -15,8 +18,30 @@ public final class PriceCalculator {
+ 
+     static final BigDecimal HIGH_SEASON_SURCHARGE = new BigDecimal("0.20");
+     static final BigDecimal NON_REFUNDABLE_DISCOUNT = new BigDecimal("0.15");
++    static final BigDecimal LONG_STAY_DISCOUNT = new BigDecimal("0.10");
+ 
+-    public Price calculate(Room room, LocalDate checkIn, LocalDate checkOut, RatePlan ratePlan) {
++    static final Map<String, BigDecimal> CORPORATE_DISCOUNTS = Map.of(
++            "TECNOSUL", new BigDecimal("0.12"),
++            "AGROVALE", new BigDecimal("0.18"),
++            "FARMAVIDA", new BigDecimal("0.25"));
++
++    static final Map<RoomType, BigDecimal> WEEKEND_PACKAGE_PRICES = Map.of(
++            RoomType.STANDARD, new BigDecimal("520.00"),
++            RoomType.DELUXE, new BigDecimal("820.00"),
++            RoomType.SUITE, new BigDecimal("1200.00"));
++
++    public Price calculate(
++            Room room, LocalDate checkIn, LocalDate checkOut, RatePlan ratePlan, String companyCode) {
++        return switch (ratePlan) {
++            case WEEKEND_PACKAGE -> calculateWeekendPackage(room, checkIn, checkOut);
++            case CORPORATE -> calculateCorporate(room, checkIn, checkOut, companyCode);
++            case LONG_STAY -> calculateLongStay(room, checkIn, checkOut);
++            default -> calculateStandardOrNonRefundable(room, checkIn, checkOut, ratePlan);
++        };
++    }
++
++    private Price calculateStandardOrNonRefundable(
++            Room room, LocalDate checkIn, LocalDate checkOut, RatePlan ratePlan) {
+         int nights = 0;
+         BigDecimal subtotal = cents(BigDecimal.ZERO);
+         for (LocalDate night = checkIn; night.isBefore(checkOut); night = night.plusDays(1)) {
+@@ -26,10 +51,55 @@ public final class PriceCalculator {
+         BigDecimal discount = switch (ratePlan) {
+             case STANDARD -> cents(BigDecimal.ZERO);
+             case NON_REFUNDABLE -> cents(subtotal.multiply(NON_REFUNDABLE_DISCOUNT));
++            default -> cents(BigDecimal.ZERO);
+         };
+         return new Price(nights, subtotal, discount, subtotal.subtract(discount));
+     }
+ 
++    private Price calculateCorporate(Room room, LocalDate checkIn, LocalDate checkOut, String companyCode) {
++        if (companyCode == null || !CORPORATE_DISCOUNTS.containsKey(companyCode)) {
++            throw new HotelException(
++                    ErrorCode.INVALID_REQUEST,
++                    "corporate rate plan requires a valid company code: TECNOSUL, AGROVALE, or FARMAVIDA");
++        }
++        int nights = 0;
++        BigDecimal subtotal = cents(BigDecimal.ZERO);
++        for (LocalDate night = checkIn; night.isBefore(checkOut); night = night.plusDays(1)) {
++            subtotal = subtotal.add(nightPrice(room, night));
++            nights++;
++        }
++        BigDecimal discountRate = CORPORATE_DISCOUNTS.get(companyCode);
++        BigDecimal discount = cents(subtotal.multiply(discountRate));
++        return new Price(nights, subtotal, discount, subtotal.subtract(discount));
++    }
++
++    private Price calculateWeekendPackage(Room room, LocalDate checkIn, LocalDate checkOut) {
++        if (checkIn.getDayOfWeek() != DayOfWeek.FRIDAY || checkOut.getDayOfWeek() != DayOfWeek.SUNDAY) {
++            throw new HotelException(
++                    ErrorCode.INVALID_REQUEST, "weekend package must be Friday check-in and Sunday check-out");
++        }
++        long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
++        if (nights != 2) {
++            throw new HotelException(ErrorCode.INVALID_REQUEST, "weekend package must be exactly 2 nights");
++        }
++        BigDecimal packagePrice = WEEKEND_PACKAGE_PRICES.get(room.type());
++        return new Price(2, packagePrice, cents(BigDecimal.ZERO), packagePrice);
++    }
++
++    private Price calculateLongStay(Room room, LocalDate checkIn, LocalDate checkOut) {
++        int nights = 0;
++        BigDecimal subtotal = cents(BigDecimal.ZERO);
++        for (LocalDate night = checkIn; night.isBefore(checkOut); night = night.plusDays(1)) {
++            subtotal = subtotal.add(nightPrice(room, night));
++            nights++;
++        }
++        if (nights < 7) {
++            throw new HotelException(ErrorCode.INVALID_REQUEST, "long stay rate plan requires at least 7 nights");
++        }
++        BigDecimal discount = cents(subtotal.multiply(LONG_STAY_DISCOUNT));
++        return new Price(nights, subtotal, discount, subtotal.subtract(discount));
++    }
++
+     BigDecimal nightPrice(Room room, LocalDate night) {
+         BigDecimal nightlyRate = room.nightlyRate();
+         if (isHighSeason(night)) {
+diff --git a/src/main/java/hotel/reservations/RatePlan.java b/src/main/java/hotel/reservations/RatePlan.java
+index 5c0e217..e85abb6 100644
+--- a/src/main/java/hotel/reservations/RatePlan.java
++++ b/src/main/java/hotel/reservations/RatePlan.java
+@@ -4,5 +4,11 @@ public enum RatePlan {
+     /** Full price; the guest gets everything back when cancelling a confirmed reservation. */
+     STANDARD,
+     /** 15% off, but nothing comes back on cancellation. */
+-    NON_REFUNDABLE
++    NON_REFUNDABLE,
++    /** Corporate discount for partner companies; full refund on cancellation. */
++    CORPORATE,
++    /** Weekend package (Friday to Sunday) at fixed price; 50% refund on cancellation. */
++    WEEKEND_PACKAGE,
++    /** 10% off for stays of 7+ nights; full refund on cancellation. */
++    LONG_STAY
+ }
+diff --git a/src/main/java/hotel/reservations/Reservation.java b/src/main/java/hotel/reservations/Reservation.java
+index 0983b27..34462e2 100644
+--- a/src/main/java/hotel/reservations/Reservation.java
++++ b/src/main/java/hotel/reservations/Reservation.java
+@@ -12,6 +12,7 @@ public final class Reservation {
+     private final LocalDate checkOut;
+     private final int guests;
+     private final RatePlan ratePlan;
++    private final String companyCode;
+     private final Price price;
+     private ReservationStatus status;
+     private BigDecimal amountPaid;
+@@ -35,6 +36,7 @@ public final class Reservation {
+         this.checkOut = request.checkOut();
+         this.guests = request.guests();
+         this.ratePlan = request.ratePlan();
++        this.companyCode = request.companyCode();
+         this.price = price;
+         this.status = status;
+         this.amountPaid = amountPaid;
+@@ -69,6 +71,10 @@ public final class Reservation {
+         return ratePlan;
+     }
+ 
++    public String companyCode() {
++        return companyCode;
++    }
++
+     public Price price() {
+         return price;
+     }
+diff --git a/src/main/java/hotel/reservations/ReservationService.java b/src/main/java/hotel/reservations/ReservationService.java
+index 31325f7..f5ce949 100644
+--- a/src/main/java/hotel/reservations/ReservationService.java
++++ b/src/main/java/hotel/reservations/ReservationService.java
+@@ -43,7 +43,8 @@ public final class ReservationService {
+             throw new HotelException(
+                     ErrorCode.ROOM_UNAVAILABLE, "room " + room.number() + " is taken on some of those nights");
+         }
+-        Price price = priceCalculator.calculate(room, request.checkIn(), request.checkOut(), request.ratePlan());
++        Price price =
++                priceCalculator.calculate(room, request.checkIn(), request.checkOut(), request.ratePlan(), request.companyCode());
+         return store.add(request, price);
+     }
+ 
+@@ -80,8 +81,9 @@ public final class ReservationService {
+             throw notAllowed(reservation, "cancel");
+         }
+         BigDecimal refund = switch (reservation.ratePlan()) {
+-            case STANDARD -> reservation.amountPaid();
++            case STANDARD, CORPORATE, LONG_STAY -> reservation.amountPaid();
+             case NON_REFUNDABLE -> PriceCalculator.cents(BigDecimal.ZERO);
++            case WEEKEND_PACKAGE -> PriceCalculator.cents(reservation.amountPaid().divide(new BigDecimal("2")));
+         };
+         reservation.cancel(refund);
+         store.update(reservation);
+diff --git a/src/main/java/hotel/reservations/ReservationStore.java b/src/main/java/hotel/reservations/ReservationStore.java
+index 5cef92a..532551c 100644
+--- a/src/main/java/hotel/reservations/ReservationStore.java
++++ b/src/main/java/hotel/reservations/ReservationStore.java
+@@ -16,7 +16,7 @@ import javax.sql.DataSource;
+ public final class ReservationStore {
+ 
+     private static final String COLUMNS = "id, room_number, guest_name, guest_email, guest_cpf, check_in, check_out, "
+-            + "guests, rate_plan, nights, subtotal, discount, total, status, amount_paid, refund";
++            + "guests, rate_plan, company_code, nights, subtotal, discount, total, status, amount_paid, refund";
+     /** PostgreSQL's code for a broken exclusion constraint: here, the room was already booked on one of the nights. */
+     private static final String EXCLUSION_VIOLATION = "23P01";
+ 
+@@ -29,8 +29,8 @@ public final class ReservationStore {
+     /** Saves a new reservation; the database numbers it. */
+     Reservation add(NewReservation request, Price price) {
+         String insert = "INSERT INTO reservations (room_number, guest_name, guest_email, guest_cpf, check_in, "
+-                + "check_out, guests, rate_plan, nights, subtotal, discount, total, status, amount_paid) "
+-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id";
++                + "check_out, guests, rate_plan, company_code, nights, subtotal, discount, total, status, amount_paid) "
++                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id";
+         try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(insert)) {
+             statement.setInt(1, request.roomNumber());
+@@ -41,12 +41,13 @@ public final class ReservationStore {
+             statement.setDate(6, Date.valueOf(request.checkOut()));
+             statement.setInt(7, request.guests());
+             statement.setString(8, request.ratePlan().name());
+-            statement.setInt(9, price.nights());
+-            statement.setBigDecimal(10, price.subtotal());
+-            statement.setBigDecimal(11, price.discount());
+-            statement.setBigDecimal(12, price.total());
+-            statement.setString(13, ReservationStatus.PENDING.name());
+-            statement.setBigDecimal(14, PriceCalculator.cents(BigDecimal.ZERO));
++            statement.setString(9, request.companyCode());
++            statement.setInt(10, price.nights());
++            statement.setBigDecimal(11, price.subtotal());
++            statement.setBigDecimal(12, price.discount());
++            statement.setBigDecimal(13, price.total());
++            statement.setString(14, ReservationStatus.PENDING.name());
++            statement.setBigDecimal(15, PriceCalculator.cents(BigDecimal.ZERO));
+             try (ResultSet generated = statement.executeQuery()) {
+                 generated.next();
+                 return new Reservation(generated.getLong("id"), request, price);
+@@ -128,7 +129,8 @@ public final class ReservationStore {
+                 row.getDate("check_in").toLocalDate(),
+                 row.getDate("check_out").toLocalDate(),
+                 row.getInt("guests"),
+-                RatePlan.valueOf(row.getString("rate_plan")));
++                RatePlan.valueOf(row.getString("rate_plan")),
++                row.getString("company_code"));
+         Price price = new Price(
+                 row.getInt("nights"), row.getBigDecimal("subtotal"), row.getBigDecimal("discount"),
+                 row.getBigDecimal("total"));
+diff --git a/src/main/java/hotel/web/CreateReservationRequest.java b/src/main/java/hotel/web/CreateReservationRequest.java
+index 8849daf..2c534b2 100644
+--- a/src/main/java/hotel/web/CreateReservationRequest.java
++++ b/src/main/java/hotel/web/CreateReservationRequest.java
+@@ -3,7 +3,7 @@ package hotel.web;
+ import hotel.reservations.RatePlan;
+ import java.time.LocalDate;
+ 
+-/** The JSON body of POST /reservations. Every field is required. */
++/** The JSON body of POST /reservations. Every field is required except companyCode. */
+ public record CreateReservationRequest(
+         Integer roomNumber,
+         String guestName,
+@@ -12,5 +12,6 @@ public record CreateReservationRequest(
+         LocalDate checkIn,
+         LocalDate checkOut,
+         Integer guests,
+-        RatePlan ratePlan) {
++        RatePlan ratePlan,
++        String companyCode) {
+ }
+diff --git a/src/main/java/hotel/web/HttpApi.java b/src/main/java/hotel/web/HttpApi.java
+index f2a3b77..94bb7b3 100644
+--- a/src/main/java/hotel/web/HttpApi.java
++++ b/src/main/java/hotel/web/HttpApi.java
+@@ -126,7 +126,13 @@ public final class HttpApi {
+         }
+         Guest guest = new Guest(body.guestName(), body.guestEmail(), body.guestCpf());
+         return new NewReservation(
+-                body.roomNumber(), guest, body.checkIn(), body.checkOut(), body.guests(), body.ratePlan());
++                body.roomNumber(),
++                guest,
++                body.checkIn(),
++                body.checkOut(),
++                body.guests(),
++                body.ratePlan(),
++                body.companyCode());
+     }
+ 
+     private static long reservationId(Context ctx) {
+diff --git a/src/main/resources/db/migration/V2__add_company_code.sql b/src/main/resources/db/migration/V2__add_company_code.sql
+new file mode 100644
+index 0000000..7d76dee
+--- /dev/null
++++ b/src/main/resources/db/migration/V2__add_company_code.sql
+@@ -0,0 +1,2 @@
++-- Corporate rate plan needs to track which company's discount is being used
++ALTER TABLE reservations ADD COLUMN company_code text;
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index c5b419f..bc2e808 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -30,7 +30,7 @@ class ReportsTest {
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+         Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
+         return service.create(new NewReservation(
+-                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan));
++                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan, null));
+     }
+ 
+     @AfterEach
+diff --git a/src/test/java/hotel/reservations/PriceCalculatorTest.java b/src/test/java/hotel/reservations/PriceCalculatorTest.java
+index 2c43e72..c886522 100644
+--- a/src/test/java/hotel/reservations/PriceCalculatorTest.java
++++ b/src/test/java/hotel/reservations/PriceCalculatorTest.java
+@@ -2,6 +2,7 @@ package hotel.reservations;
+ 
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertThrows;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ import hotel.rooms.Room;
+@@ -14,12 +15,13 @@ class PriceCalculatorTest {
+ 
+     private final PriceCalculator calculator = new PriceCalculator();
+     private final Room standardRoom = new Room(101, RoomType.STANDARD, 2, new BigDecimal("249.90"));
++    private final Room deluxeRoom = new Room(201, RoomType.DELUXE, 3, new BigDecimal("389.90"));
+     private final Room suite = new Room(301, RoomType.SUITE, 4, new BigDecimal("579.90"));
+ 
+     @Test
+     void lowSeasonNightsCostTheNightlyRate() {
+         Price price = calculator.calculate(
+-                standardRoom, LocalDate.of(2027, 3, 10), LocalDate.of(2027, 3, 13), RatePlan.STANDARD);
++                standardRoom, LocalDate.of(2027, 3, 10), LocalDate.of(2027, 3, 13), RatePlan.STANDARD, null);
+ 
+         assertEquals(3, price.nights());
+         assertEquals(new BigDecimal("749.70"), price.subtotal());
+@@ -30,7 +32,7 @@ class PriceCalculatorTest {
+     @Test
+     void highSeasonStartsOnDecember15() {
+         Price price = calculator.calculate(
+-                standardRoom, LocalDate.of(2027, 12, 14), LocalDate.of(2027, 12, 16), RatePlan.STANDARD);
++                standardRoom, LocalDate.of(2027, 12, 14), LocalDate.of(2027, 12, 16), RatePlan.STANDARD, null);
+ 
+         // December 14: 249.90; December 15: 249.90 + 20% = 299.88
+         assertEquals(new BigDecimal("549.78"), price.total());
+@@ -39,7 +41,7 @@ class PriceCalculatorTest {
+     @Test
+     void highSeasonEndsWithFebruary() {
+         Price price = calculator.calculate(
+-                standardRoom, LocalDate.of(2028, 2, 29), LocalDate.of(2028, 3, 2), RatePlan.STANDARD);
++                standardRoom, LocalDate.of(2028, 2, 29), LocalDate.of(2028, 3, 2), RatePlan.STANDARD, null);
+ 
+         // February 29 (leap year): 299.88; March 1: 249.90
+         assertEquals(new BigDecimal("549.78"), price.total());
+@@ -56,7 +58,7 @@ class PriceCalculatorTest {
+     @Test
+     void nonRefundableTakes15PercentOffRoundingHalfEven() {
+         Price price = calculator.calculate(
+-                standardRoom, LocalDate.of(2027, 3, 10), LocalDate.of(2027, 3, 11), RatePlan.NON_REFUNDABLE);
++                standardRoom, LocalDate.of(2027, 3, 10), LocalDate.of(2027, 3, 11), RatePlan.NON_REFUNDABLE, null);
+ 
+         // 15% of 249.90 = 37.485, which rounds half-even to 37.48 (half-up would give 37.49)
+         assertEquals(new BigDecimal("37.48"), price.discount());
+@@ -66,11 +68,181 @@ class PriceCalculatorTest {
+     @Test
+     void nonRefundableDiscountIsOnTheHighSeasonPrice() {
+         Price price = calculator.calculate(
+-                suite, LocalDate.of(2027, 1, 5), LocalDate.of(2027, 1, 9), RatePlan.NON_REFUNDABLE);
++                suite, LocalDate.of(2027, 1, 5), LocalDate.of(2027, 1, 9), RatePlan.NON_REFUNDABLE, null);
+ 
+         // 4 nights of 579.90 + 20% = 695.88 each
+         assertEquals(new BigDecimal("2783.52"), price.subtotal());
+         assertEquals(new BigDecimal("417.53"), price.discount());
+         assertEquals(new BigDecimal("2365.99"), price.total());
+     }
++
++    @Test
++    void corporateTecnosulDeluxeApplies12PercentDiscount() {
++        Price price = calculator.calculate(
++                deluxeRoom,
++                LocalDate.of(2027, 3, 10),
++                LocalDate.of(2027, 3, 12),
++                RatePlan.CORPORATE,
++                "TECNOSUL");
++
++        // 2 nights of 389.90 = 779.80; 12% discount = 93.58; total = 686.22
++        assertEquals(2, price.nights());
++        assertEquals(new BigDecimal("779.80"), price.subtotal());
++        assertEquals(new BigDecimal("93.58"), price.discount());
++        assertEquals(new BigDecimal("686.22"), price.total());
++    }
++
++    @Test
++    void corporateAgrovaleApplies18PercentDiscount() {
++        Price price = calculator.calculate(
++                standardRoom,
++                LocalDate.of(2027, 3, 10),
++                LocalDate.of(2027, 3, 11),
++                RatePlan.CORPORATE,
++                "AGROVALE");
++
++        // 1 night of 249.90; 18% discount = 44.98; total = 204.92
++        assertEquals(1, price.nights());
++        assertEquals(new BigDecimal("249.90"), price.subtotal());
++        assertEquals(new BigDecimal("44.98"), price.discount());
++        assertEquals(new BigDecimal("204.92"), price.total());
++    }
++
++    @Test
++    void corporateFarmavidaApplies25PercentDiscount() {
++        Price price = calculator.calculate(
++                standardRoom,
++                LocalDate.of(2027, 3, 10),
++                LocalDate.of(2027, 3, 11),
++                RatePlan.CORPORATE,
++                "FARMAVIDA");
++
++        // 1 night of 249.90; 25% discount = 62.48; total = 187.42
++        assertEquals(1, price.nights());
++        assertEquals(new BigDecimal("249.90"), price.subtotal());
++        assertEquals(new BigDecimal("62.48"), price.discount());
++        assertEquals(new BigDecimal("187.42"), price.total());
++    }
++
++    @Test
++    void corporateRequiresValidCompanyCode() {
++        Exception exception = assertThrows(HotelException.class, () -> {
++            calculator.calculate(
++                    standardRoom, LocalDate.of(2027, 3, 10), LocalDate.of(2027, 3, 11), RatePlan.CORPORATE, null);
++        });
++        assertEquals(ErrorCode.INVALID_REQUEST, ((HotelException) exception).errorCode());
++    }
++
++    @Test
++    void corporateRejectsInvalidCompanyCode() {
++        Exception exception = assertThrows(HotelException.class, () -> {
++            calculator.calculate(
++                    standardRoom,
++                    LocalDate.of(2027, 3, 10),
++                    LocalDate.of(2027, 3, 11),
++                    RatePlan.CORPORATE,
++                    "INVALID");
++        });
++        assertEquals(ErrorCode.INVALID_REQUEST, ((HotelException) exception).errorCode());
++    }
++
++    @Test
++    void weekendPackageDeluxeIsFixedPrice() {
++        Price price = calculator.calculate(
++                deluxeRoom,
++                LocalDate.of(2027, 3, 12),
++                LocalDate.of(2027, 3, 14),
++                RatePlan.WEEKEND_PACKAGE,
++                null);
++
++        // Friday 2027-03-12 to Sunday 2027-03-14; fixed price 820.00
++        assertEquals(2, price.nights());
++        assertEquals(new BigDecimal("820.00"), price.subtotal());
++        assertEquals(new BigDecimal("0.00"), price.discount());
++        assertEquals(new BigDecimal("820.00"), price.total());
++    }
++
++    @Test
++    void weekendPackageStandardFixedPrice() {
++        Price price = calculator.calculate(
++                standardRoom,
++                LocalDate.of(2027, 3, 12),
++                LocalDate.of(2027, 3, 14),
++                RatePlan.WEEKEND_PACKAGE,
++                null);
++
++        assertEquals(new BigDecimal("520.00"), price.total());
++    }
++
++    @Test
++    void weekendPackageSuiteFixedPrice() {
++        Price price = calculator.calculate(
++                suite, LocalDate.of(2027, 3, 12), LocalDate.of(2027, 3, 14), RatePlan.WEEKEND_PACKAGE, null);
++
++        assertEquals(new BigDecimal("1200.00"), price.total());
++    }
++
++    @Test
++    void weekendPackageRequiresFridayCheckIn() {
++        Exception exception = assertThrows(HotelException.class, () -> {
++            calculator.calculate(
++                    standardRoom,
++                    LocalDate.of(2027, 3, 13),
++                    LocalDate.of(2027, 3, 15),
++                    RatePlan.WEEKEND_PACKAGE,
++                    null);
++        });
++        assertEquals(ErrorCode.INVALID_REQUEST, ((HotelException) exception).errorCode());
++    }
++
++    @Test
++    void weekendPackageRequiresSundayCheckOut() {
++        Exception exception = assertThrows(HotelException.class, () -> {
++            calculator.calculate(
++                    standardRoom,
++                    LocalDate.of(2027, 3, 12),
++                    LocalDate.of(2027, 3, 13),
++                    RatePlan.WEEKEND_PACKAGE,
++                    null);
++        });
++        assertEquals(ErrorCode.INVALID_REQUEST, ((HotelException) exception).errorCode());
++    }
++
++    @Test
++    void longStayApplies10PercentDiscountFor7Nights() {
++        Price price = calculator.calculate(
++                standardRoom,
++                LocalDate.of(2027, 3, 1),
++                LocalDate.of(2027, 3, 8),
++                RatePlan.LONG_STAY,
++                null);
++
++        // 7 nights of 249.90 = 1749.30; 10% discount = 174.93; total = 1574.37
++        assertEquals(7, price.nights());
++        assertEquals(new BigDecimal("1749.30"), price.subtotal());
++        assertEquals(new BigDecimal("174.93"), price.discount());
++        assertEquals(new BigDecimal("1574.37"), price.total());
++    }
++
++    @Test
++    void longStayRequiresAtLeast7Nights() {
++        Exception exception = assertThrows(HotelException.class, () -> {
++            calculator.calculate(
++                    standardRoom, LocalDate.of(2027, 3, 1), LocalDate.of(2027, 3, 7), RatePlan.LONG_STAY, null);
++        });
++        assertEquals(ErrorCode.INVALID_REQUEST, ((HotelException) exception).errorCode());
++    }
++
++    @Test
++    void longStayAppliesHighSeasonSurchargeBeforeDiscount() {
++        Price price = calculator.calculate(
++                standardRoom, LocalDate.of(2027, 1, 1), LocalDate.of(2027, 1, 8), RatePlan.LONG_STAY, null);
++
++        // 7 nights in high season: 7 * (249.90 * 1.20) = 7 * 299.88 = 2099.16
++        // 10% discount = 209.92; total = 1889.24
++        assertEquals(7, price.nights());
++        assertEquals(new BigDecimal("2099.16"), price.subtotal());
++        assertEquals(new BigDecimal("209.92"), price.discount());
++        assertEquals(new BigDecimal("1889.24"), price.total());
++    }
+ }
+diff --git a/src/test/java/hotel/reservations/ReservationServiceTest.java b/src/test/java/hotel/reservations/ReservationServiceTest.java
+index ec517d7..b3f01f8 100644
+--- a/src/test/java/hotel/reservations/ReservationServiceTest.java
++++ b/src/test/java/hotel/reservations/ReservationServiceTest.java
+@@ -33,7 +33,7 @@ class ReservationServiceTest {
+     private static NewReservation stay(int roomNumber, String checkIn, String checkOut, int guests, RatePlan plan) {
+         Guest guest = new Guest("Ana Souza", "ana@example.com", "123.456.789-09");
+         return new NewReservation(
+-                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), guests, plan);
++                roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), guests, plan, null);
+     }
+ 
+     private static ErrorCode errorOf(Runnable action) {
+@@ -159,4 +159,63 @@ class ReservationServiceTest {
+     void anUnknownReservationIsNotFound() {
+         assertEquals(ErrorCode.RESERVATION_NOT_FOUND, errorOf(() -> service.find(42)));
+     }
++
++    @Test
++    void corporateRatePlanGivesFullRefundOnCancellation() {
++        Guest guest = new Guest("Carlos Silva", "carlos@example.com", "111.222.333-44");
++        Reservation reservation = service.create(new NewReservation(
++                101,
++                guest,
++                LocalDate.parse("2027-03-10"),
++                LocalDate.parse("2027-03-11"),
++                1,
++                RatePlan.CORPORATE,
++                "TECNOSUL"));
++        service.confirm(reservation.id());
++
++        Reservation cancelled = service.cancel(reservation.id());
++
++        assertEquals(cancelled.amountPaid(), cancelled.refund());
++        assertEquals(new BigDecimal("0.00"), cancelled.amountKept());
++    }
++
++    @Test
++    void weekendPackageGivesHalfRefundOnCancellation() {
++        Guest guest = new Guest("Diana Costa", "diana@example.com", "222.333.444-55");
++        Reservation reservation = service.create(new NewReservation(
++                201,
++                guest,
++                LocalDate.parse("2027-03-12"),
++                LocalDate.parse("2027-03-14"),
++                2,
++                RatePlan.WEEKEND_PACKAGE,
++                null));
++        service.confirm(reservation.id());
++
++        Reservation cancelled = service.cancel(reservation.id());
++
++        // Deluxe weekend package is 820.00; half refund is 410.00
++        assertEquals(new BigDecimal("820.00"), cancelled.amountPaid());
++        assertEquals(new BigDecimal("410.00"), cancelled.refund());
++        assertEquals(new BigDecimal("410.00"), cancelled.amountKept());
++    }
++
++    @Test
++    void longStayGivesFullRefundOnCancellation() {
++        Guest guest = new Guest("Eduardo Lima", "eduardo@example.com", "333.444.555-66");
++        Reservation reservation = service.create(new NewReservation(
++                101,
++                guest,
++                LocalDate.parse("2027-03-01"),
++                LocalDate.parse("2027-03-08"),
++                1,
++                RatePlan.LONG_STAY,
++                null));
++        service.confirm(reservation.id());
++
++        Reservation cancelled = service.cancel(reservation.id());
++
++        assertEquals(cancelled.amountPaid(), cancelled.refund());
++        assertEquals(new BigDecimal("0.00"), cancelled.amountKept());
++    }
+ }
+diff --git a/src/test/java/hotel/web/HttpApiTest.java b/src/test/java/hotel/web/HttpApiTest.java
+index f9a3f6f..b251a2b 100644
+--- a/src/test/java/hotel/web/HttpApiTest.java
++++ b/src/test/java/hotel/web/HttpApiTest.java
+@@ -119,4 +119,89 @@ class HttpApiTest {
+         assertEquals(400, get("/reports/revenue?month=july").statusCode());
+         assertEquals(400, get("/reports/occupancy").statusCode());
+     }
++
++    @Test
++    void corporateRatePlanWithValidCompanyCode() throws Exception {
++        String corporateJson = """
++                {"roomNumber": 201, "guestName": "Ana Silva", "guestEmail": "ana@tecnosul.com",
++                 "guestCpf": "222.333.444-55", "checkIn": "2027-03-10", "checkOut": "2027-03-12",
++                 "guests": 2, "ratePlan": "CORPORATE", "companyCode": "TECNOSUL"}
++                """;
++
++        HttpResponse<String> response = post("/reservations", corporateJson);
++        assertEquals(201, response.statusCode());
++        JsonNode reservation = json.readTree(response.body());
++        assertEquals(779.80, reservation.get("subtotal").asDouble());
++        assertEquals(93.58, reservation.get("discount").asDouble());
++        assertEquals(686.22, reservation.get("total").asDouble());
++    }
++
++    @Test
++    void corporateRatePlanRejectsInvalidCompanyCode() throws Exception {
++        String invalidCorporate = """
++                {"roomNumber": 201, "guestName": "Ana Silva", "guestEmail": "ana@example.com",
++                 "guestCpf": "222.333.444-55", "checkIn": "2027-03-10", "checkOut": "2027-03-12",
++                 "guests": 2, "ratePlan": "CORPORATE", "companyCode": "INVALID"}
++                """;
++
++        HttpResponse<String> response = post("/reservations", invalidCorporate);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
++
++    @Test
++    void weekendPackageWithFixedPrice() throws Exception {
++        String weekendJson = """
++                {"roomNumber": 201, "guestName": "Bruno Costa", "guestEmail": "bruno@example.com",
++                 "guestCpf": "333.444.555-66", "checkIn": "2027-03-12", "checkOut": "2027-03-14",
++                 "guests": 2, "ratePlan": "WEEKEND_PACKAGE"}
++                """;
++
++        HttpResponse<String> response = post("/reservations", weekendJson);
++        assertEquals(201, response.statusCode());
++        JsonNode reservation = json.readTree(response.body());
++        assertEquals(820.00, reservation.get("total").asDouble());
++    }
++
++    @Test
++    void weekendPackageRejectsNonWeekendDates() throws Exception {
++        String invalidWeekend = """
++                {"roomNumber": 201, "guestName": "Bruno Costa", "guestEmail": "bruno@example.com",
++                 "guestCpf": "333.444.555-66", "checkIn": "2027-03-10", "checkOut": "2027-03-12",
++                 "guests": 2, "ratePlan": "WEEKEND_PACKAGE"}
++                """;
++
++        HttpResponse<String> response = post("/reservations", invalidWeekend);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
++
++    @Test
++    void longStayWithMinimum7Nights() throws Exception {
++        String longStayJson = """
++                {"roomNumber": 101, "guestName": "Carlos Lima", "guestEmail": "carlos@example.com",
++                 "guestCpf": "444.555.666-77", "checkIn": "2027-03-01", "checkOut": "2027-03-08",
++                 "guests": 1, "ratePlan": "LONG_STAY"}
++                """;
++
++        HttpResponse<String> response = post("/reservations", longStayJson);
++        assertEquals(201, response.statusCode());
++        JsonNode reservation = json.readTree(response.body());
++        assertEquals(1749.30, reservation.get("subtotal").asDouble());
++        assertEquals(174.93, reservation.get("discount").asDouble());
++        assertEquals(1574.37, reservation.get("total").asDouble());
++    }
++
++    @Test
++    void longStayRejectsLessThan7Nights() throws Exception {
++        String shortStay = """
++                {"roomNumber": 101, "guestName": "Carlos Lima", "guestEmail": "carlos@example.com",
++                 "guestCpf": "444.555.666-77", "checkIn": "2027-03-01", "checkOut": "2027-03-07",
++                 "guests": 1, "ratePlan": "LONG_STAY"}
++                """;
++
++        HttpResponse<String> response = post("/reservations", shortStay);
++        assertEquals(400, response.statusCode());
++        assertEquals("INVALID_REQUEST", json.readTree(response.body()).get("error").asText());
++    }
+ }

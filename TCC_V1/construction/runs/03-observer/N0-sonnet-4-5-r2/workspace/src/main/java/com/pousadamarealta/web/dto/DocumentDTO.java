@@ -1,0 +1,139 @@
+package com.pousadamarealta.web.dto;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class DocumentDTO {
+    @JsonProperty("title")
+    private String title;
+
+    @JsonProperty("reservationId")
+    private Long reservationId;
+
+    @JsonProperty("guestName")
+    private String guestName;
+
+    @JsonProperty("guestCpf")
+    private String guestCpf;
+
+    @JsonProperty("roomNumber")
+    private String roomNumber;
+
+    @JsonProperty("roomType")
+    private String roomType;
+
+    @JsonProperty("checkIn")
+    private String checkIn;
+
+    @JsonProperty("checkOut")
+    private String checkOut;
+
+    @JsonProperty("nights")
+    private int nights;
+
+    @JsonProperty("subtotal")
+    private double subtotal;
+
+    @JsonProperty("discount")
+    private double discount;
+
+    @JsonProperty("total")
+    private double total;
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public Long getReservationId() {
+        return reservationId;
+    }
+
+    public void setReservationId(Long reservationId) {
+        this.reservationId = reservationId;
+    }
+
+    public String getGuestName() {
+        return guestName;
+    }
+
+    public void setGuestName(String guestName) {
+        this.guestName = guestName;
+    }
+
+    public String getGuestCpf() {
+        return guestCpf;
+    }
+
+    public void setGuestCpf(String guestCpf) {
+        this.guestCpf = guestCpf;
+    }
+
+    public String getRoomNumber() {
+        return roomNumber;
+    }
+
+    public void setRoomNumber(String roomNumber) {
+        this.roomNumber = roomNumber;
+    }
+
+    public String getRoomType() {
+        return roomType;
+    }
+
+    public void setRoomType(String roomType) {
+        this.roomType = roomType;
+    }
+
+    public String getCheckIn() {
+        return checkIn;
+    }
+
+    public void setCheckIn(String checkIn) {
+        this.checkIn = checkIn;
+    }
+
+    public String getCheckOut() {
+        return checkOut;
+    }
+
+    public void setCheckOut(String checkOut) {
+        this.checkOut = checkOut;
+    }
+
+    public int getNights() {
+        return nights;
+    }
+
+    public void setNights(int nights) {
+        this.nights = nights;
+    }
+
+    public double getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(double subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public double getDiscount() {
+        return discount;
+    }
+
+    public void setDiscount(double discount) {
+        this.discount = discount;
+    }
+
+    public double getTotal() {
+        return total;
+    }
+
+    public void setTotal(double total) {
+        this.total = total;
+    }
+}

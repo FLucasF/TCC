@@ -1,0 +1,400 @@
+package com.pousadamarealta;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.pousadamarealta.application.notification.*;
+import com.pousadamarealta.application.service.ReportService;
+import com.pousadamarealta.application.service.ReservationService;
+import com.pousadamarealta.domain.event.EventPublisher;
+import com.pousadamarealta.domain.event.ReservationCancelledEvent;
+import com.pousadamarealta.domain.event.ReservationConfirmedEvent;
+import com.pousadamarealta.domain.repository.MessageRepository;
+import com.pousadamarealta.domain.repository.ReservationRepository;
+import com.pousadamarealta.domain.repository.RoomRepository;
+import com.pousadamarealta.infrastructure.http.ReservationController;
+import com.pousadamarealta.infrastructure.http.dto.*;
+import com.pousadamarealta.infrastructure.persistence.DatabaseInitializer;
+import com.pousadamarealta.infrastructure.persistence.InMemoryRoomRepository;
+import com.pousadamarealta.infrastructure.persistence.PostgresMessageRepository;
+import com.pousadamarealta.infrastructure.persistence.PostgresReservationRepository;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import io.javalin.Javalin;
+import io.javalin.json.JavalinJackson;
+import io.javalin.testtools.JavalinTest;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import javax.sql.DataSource;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@Testcontainers
+class IntegrationTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18")
+        .withDatabaseName("pousada")
+        .withUsername("test")
+        .withPassword("test");
+
+    static Javalin app;
+    static ObjectMapper objectMapper;
+
+    @BeforeAll
+    static void setup() {
+        DataSource dataSource = createDataSource();
+        DatabaseInitializer.initialize(dataSource);
+
+        RoomRepository roomRepository = new InMemoryRoomRepository();
+        ReservationRepository reservationRepository = new PostgresReservationRepository(dataSource);
+        MessageRepository messageRepository = new PostgresMessageRepository(dataSource);
+
+        EventPublisher eventPublisher = new EventPublisher();
+        NotificationService notificationService = new NotificationService(messageRepository);
+
+        eventPublisher.subscribe(ReservationConfirmedEvent.class,
+            new GuestNotificationListener(notificationService, roomRepository));
+        eventPublisher.subscribe(ReservationConfirmedEvent.class,
+            new HousekeepingNotificationListener(notificationService));
+        eventPublisher.subscribe(ReservationConfirmedEvent.class,
+            new FinanceNotificationListener(notificationService));
+        eventPublisher.subscribe(ReservationCancelledEvent.class,
+            new HousekeepingCancellationListener(notificationService));
+        eventPublisher.subscribe(ReservationCancelledEvent.class,
+            new FinanceCancellationListener(notificationService));
+
+        ReservationService reservationService = new ReservationService(
+            reservationRepository, roomRepository, eventPublisher);
+        ReportService reportService = new ReportService(reservationRepository, roomRepository);
+
+        ReservationController controller = new ReservationController(
+            reservationService, reportService, roomRepository, messageRepository);
+
+        objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        app = Javalin.create(config -> {
+            config.jsonMapper(new JavalinJackson(objectMapper, true));
+        });
+
+        controller.registerRoutes(app);
+    }
+
+    @AfterAll
+    static void teardown() {
+        if (app != null) {
+            app.stop();
+        }
+    }
+
+    static DataSource createDataSource() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(postgres.getJdbcUrl());
+        config.setUsername(postgres.getUsername());
+        config.setPassword(postgres.getPassword());
+        config.setMaximumPoolSize(10);
+        return new HikariDataSource(config);
+    }
+
+    @Test
+    void testGetRooms() {
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.get("/rooms");
+            assertEquals(200, response.code());
+
+            List<RoomResponse> rooms = objectMapper.readValue(
+                response.body().string(), new TypeReference<>() {});
+
+            assertEquals(5, rooms.size());
+
+            RoomResponse room101 = rooms.stream()
+                .filter(r -> r.number().equals("101"))
+                .findFirst()
+                .orElseThrow();
+
+            assertEquals("STANDARD", room101.type());
+            assertEquals(2, room101.capacity());
+            assertEquals(new BigDecimal("249.90"), room101.nightlyRate());
+        });
+    }
+
+    @Test
+    void testCreateAndConfirmReservation() {
+        JavalinTest.test(app, (server, client) -> {
+            var createRequest = Map.of(
+                "roomNumber", "101",
+                "guestName", "João Silva",
+                "guestEmail", "joao@example.com",
+                "guestCpf", "12345678901",
+                "checkIn", "2027-03-10",
+                "checkOut", "2027-03-12",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+            );
+
+            var createResponse = client.post("/reservations",
+                objectMapper.writeValueAsString(createRequest));
+            assertEquals(201, createResponse.code());
+
+            ReservationResponse reservation = objectMapper.readValue(
+                createResponse.body().string(), ReservationResponse.class);
+
+            assertEquals(1, reservation.id());
+            assertEquals("PENDING", reservation.status());
+            assertEquals(new BigDecimal("0.00"), reservation.amountPaid());
+            assertEquals(new BigDecimal("499.80"), reservation.total());
+
+            var confirmResponse = client.post("/reservations/1/confirmation");
+            assertEquals(200, confirmResponse.code());
+
+            ReservationResponse confirmed = objectMapper.readValue(
+                confirmResponse.body().string(), ReservationResponse.class);
+
+            assertEquals("CONFIRMED", confirmed.status());
+            assertEquals(new BigDecimal("499.80"), confirmed.amountPaid());
+
+            var messagesResponse = client.get("/messages");
+            List<MessageResponse> messages = objectMapper.readValue(
+                messagesResponse.body().string(), new TypeReference<>() {});
+
+            assertEquals(3, messages.size());
+
+            assertTrue(messages.stream().anyMatch(m ->
+                m.to().equals("joao@example.com") &&
+                m.subject().equals("Reserva confirmada - Pousada Maré Alta")));
+
+            assertTrue(messages.stream().anyMatch(m ->
+                m.to().equals("governanca@pousadamarealta.com.br") &&
+                m.subject().equals("Reserva confirmada - quarto 101")));
+
+            assertTrue(messages.stream().anyMatch(m ->
+                m.to().equals("financeiro@pousadamarealta.com.br") &&
+                m.subject().equals("Pagamento recebido - reserva 1")));
+        });
+    }
+
+    @Test
+    void testCancelConfirmedReservationWithRefund() {
+        JavalinTest.test(app, (server, client) -> {
+            var createRequest = Map.of(
+                "roomNumber", "201",
+                "guestName", "Maria Santos",
+                "guestEmail", "maria@example.com",
+                "guestCpf", "98765432109",
+                "checkIn", "2027-04-10",
+                "checkOut", "2027-04-12",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+            );
+
+            client.post("/reservations", objectMapper.writeValueAsString(createRequest));
+            client.post("/reservations/1/confirmation");
+
+            var cancelResponse = client.post("/reservations/1/cancellation");
+            assertEquals(200, cancelResponse.code());
+
+            ReservationResponse cancelled = objectMapper.readValue(
+                cancelResponse.body().string(), ReservationResponse.class);
+
+            assertEquals("CANCELLED", cancelled.status());
+            assertEquals(cancelled.amountPaid(), cancelled.refund());
+
+            var messagesResponse = client.get("/messages");
+            List<MessageResponse> messages = objectMapper.readValue(
+                messagesResponse.body().string(), new TypeReference<>() {});
+
+            assertTrue(messages.stream().anyMatch(m ->
+                m.to().equals("governanca@pousadamarealta.com.br") &&
+                m.subject().equals("Reserva cancelada - quarto 201")));
+
+            assertTrue(messages.stream().anyMatch(m ->
+                m.to().equals("financeiro@pousadamarealta.com.br") &&
+                m.subject().contains("Reembolso")));
+        });
+    }
+
+    @Test
+    void testCancelNonRefundableReservation() {
+        JavalinTest.test(app, (server, client) -> {
+            var createRequest = Map.of(
+                "roomNumber", "301",
+                "guestName", "Pedro Costa",
+                "guestEmail", "pedro@example.com",
+                "guestCpf", "11122233344",
+                "checkIn", "2027-05-10",
+                "checkOut", "2027-05-12",
+                "guests", 2,
+                "ratePlan", "NON_REFUNDABLE"
+            );
+
+            client.post("/reservations", objectMapper.writeValueAsString(createRequest));
+            client.post("/reservations/1/confirmation");
+
+            int messageCountBefore = objectMapper.readValue(
+                client.get("/messages").body().string(),
+                new TypeReference<List<MessageResponse>>() {}).size();
+
+            client.post("/reservations/1/cancellation");
+
+            var messagesResponse = client.get("/messages");
+            List<MessageResponse> messages = objectMapper.readValue(
+                messagesResponse.body().string(), new TypeReference<>() {});
+
+            long financeRefundMessages = messages.stream()
+                .filter(m -> m.to().equals("financeiro@pousadamarealta.com.br") &&
+                           m.subject().contains("Reembolso"))
+                .count();
+
+            assertEquals(0, financeRefundMessages);
+        });
+    }
+
+    @Test
+    void testHighSeasonPricing() {
+        JavalinTest.test(app, (server, client) -> {
+            var createRequest = Map.of(
+                "roomNumber", "101",
+                "guestName", "Ana Lima",
+                "guestEmail", "ana@example.com",
+                "guestCpf", "55544433322",
+                "checkIn", "2027-07-10",
+                "checkOut", "2027-07-12",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+            );
+
+            var response = client.post("/reservations",
+                objectMapper.writeValueAsString(createRequest));
+
+            ReservationResponse reservation = objectMapper.readValue(
+                response.body().string(), ReservationResponse.class);
+
+            assertEquals(new BigDecimal("599.76"), reservation.subtotal());
+            assertEquals(new BigDecimal("599.76"), reservation.total());
+        });
+    }
+
+    @Test
+    void testOccupancyReport() {
+        JavalinTest.test(app, (server, client) -> {
+            var request1 = Map.of(
+                "roomNumber", "101",
+                "guestName", "Test 1",
+                "guestEmail", "test1@example.com",
+                "guestCpf", "11111111111",
+                "checkIn", "2027-06-10",
+                "checkOut", "2027-06-12",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+            );
+
+            client.post("/reservations", objectMapper.writeValueAsString(request1));
+            client.post("/reservations/1/confirmation");
+
+            var reportResponse = client.get("/reports/occupancy?date=2027-06-10");
+            assertEquals(200, reportResponse.code());
+
+            String csv = reportResponse.body().string();
+            assertTrue(csv.contains("101,STANDARD,1,2027-06-10,2027-06-12"));
+            assertTrue(csv.contains("total,1/5"));
+        });
+    }
+
+    @Test
+    void testRevenueReport() {
+        JavalinTest.test(app, (server, client) -> {
+            var request1 = Map.of(
+                "roomNumber", "201",
+                "guestName", "Revenue Test",
+                "guestEmail", "revenue@example.com",
+                "guestCpf", "22222222222",
+                "checkIn", "2027-08-10",
+                "checkOut", "2027-08-12",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+            );
+
+            client.post("/reservations", objectMapper.writeValueAsString(request1));
+            client.post("/reservations/1/confirmation");
+
+            var reportResponse = client.get("/reports/revenue?month=2027-08");
+            assertEquals(200, reportResponse.code());
+
+            String csv = reportResponse.body().string();
+            assertTrue(csv.contains("1,201,2027-08-10,2027-08-12,CONFIRMED"));
+            assertTrue(csv.contains("total,779.80"));
+        });
+    }
+
+    @Test
+    void testRoomUnavailable() {
+        JavalinTest.test(app, (server, client) -> {
+            var request1 = Map.of(
+                "roomNumber", "101",
+                "guestName", "First Guest",
+                "guestEmail", "first@example.com",
+                "guestCpf", "33333333333",
+                "checkIn", "2027-09-10",
+                "checkOut", "2027-09-12",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+            );
+
+            client.post("/reservations", objectMapper.writeValueAsString(request1));
+
+            var request2 = Map.of(
+                "roomNumber", "101",
+                "guestName", "Second Guest",
+                "guestEmail", "second@example.com",
+                "guestCpf", "44444444444",
+                "checkIn", "2027-09-11",
+                "checkOut", "2027-09-13",
+                "guests", 2,
+                "ratePlan", "STANDARD"
+            );
+
+            var response = client.post("/reservations",
+                objectMapper.writeValueAsString(request2));
+            assertEquals(409, response.code());
+
+            Map<String, String> error = objectMapper.readValue(
+                response.body().string(), new TypeReference<>() {});
+            assertEquals("ROOM_UNAVAILABLE", error.get("error"));
+        });
+    }
+
+    @Test
+    void testCapacityExceeded() {
+        JavalinTest.test(app, (server, client) -> {
+            var request = Map.of(
+                "roomNumber", "101",
+                "guestName", "Too Many Guests",
+                "guestEmail", "toomany@example.com",
+                "guestCpf", "55555555555",
+                "checkIn", "2027-10-10",
+                "checkOut", "2027-10-12",
+                "guests", 5,
+                "ratePlan", "STANDARD"
+            );
+
+            var response = client.post("/reservations",
+                objectMapper.writeValueAsString(request));
+            assertEquals(422, response.code());
+
+            Map<String, String> error = objectMapper.readValue(
+                response.body().string(), new TypeReference<>() {});
+            assertEquals("CAPACITY_EXCEEDED", error.get("error"));
+        });
+    }
+}

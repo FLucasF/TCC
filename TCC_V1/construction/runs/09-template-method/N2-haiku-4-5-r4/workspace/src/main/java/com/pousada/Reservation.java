@@ -1,0 +1,42 @@
+package com.pousada;
+
+public class Reservation {
+    public int id;
+    public int roomNumber;
+    public String guestName;
+    public String guestEmail;
+    public String guestCpf;
+    public String checkIn;
+    public String checkOut;
+    public int guests;
+    public String ratePlan;
+    public int nights;
+    public double subtotal;
+    public double discount;
+    public double total;
+    public String status;
+    public double amountPaid;
+    public Double refund;
+
+    public Reservation(int id, int roomNumber, String guestName, String guestEmail, String guestCpf,
+                      String checkIn, String checkOut, int guests, String ratePlan,
+                      int nights, double subtotal, double discount, double total,
+                      String status, double amountPaid, Double refund) {
+        this.id = id;
+        this.roomNumber = roomNumber;
+        this.guestName = guestName;
+        this.guestEmail = guestEmail;
+        this.guestCpf = guestCpf;
+        this.checkIn = checkIn;
+        this.checkOut = checkOut;
+        this.guests = guests;
+        this.ratePlan = ratePlan;
+        this.nights = nights;
+        this.subtotal = subtotal;
+        this.discount = discount;
+        this.total = total;
+        this.status = status;
+        this.amountPaid = amountPaid;
+        this.refund = refund;
+    }
+}

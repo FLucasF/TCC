@@ -1,0 +1,534 @@
+================================================================================
+       SISTEMA DE RESERVAS - POUSADA MARÉ ALTA
+================================================================================
+
+STATUS: ✅ CONCLUÍDO E PRONTO PARA USO
+
+================================================================================
+RESUMO
+================================================================================
+
+Sistema completo de gerenciamento de reservas desenvolvido em Java 21 com
+Javalin 6.7.0 e PostgreSQL 18, incluindo:
+
+✅ Gerenciamento completo de reservas (5 estados)
+✅ Cálculo automático de preços com alta temporada
+✅ Sistema de notificações extensível para múltiplos departamentos
+✅ Comprovantes de reserva
+✅ Relatórios em CSV (ocupação e financeiro)
+✅ Banco de dados com persistência
+✅ API REST completa (11 endpoints)
+✅ Testes unitários passando
+✅ Documentação completa
+
+================================================================================
+ARQUIVOS ENTREGUES
+================================================================================
+
+Código-fonte: 31 arquivos Java
+├── App.java (principais endpoints)
+├── Models (4 classes)
+├── Enums (4 tipos)
+├── Services (2 classes)
+├── Repositories (3 classes)
+├── Database (conexão e schema)
+├── Notificadores (3 classes)
+├── Utilitários (3 classes)
+├── API Requests/Responses (5 classes)
+├── Testes (2 suites com 14 testes)
+
+Configuração: 2 arquivos
+├── pom.xml (Maven com todas as dependências)
+├── .gitignore
+
+Documentação: 5 arquivos
+├── README.md (documentação completa)
+├── QUICK_START.md (guia de início rápido)
+├── ARCHITECTURE.md (detalhes de arquitetura)
+├── SETUP.md (instruções de compilação)
+├── ENTREGA.md (este documento)
+
+Testes: 1 arquivo
+├── test.sh (script de teste de API)
+
+Total: 40 arquivos
+Tamanho do JAR: 9.5 MB
+
+================================================================================
+TECNOLOGIAS UTILIZADAS
+================================================================================
+
+Backend:
+- Java 21 (compilação)
+- Javalin 6.7.0 (framework web)
+- Jetty 11.0.25 (servidor HTTP)
+- Maven 3.9+ (build)
+
+Banco de Dados:
+- PostgreSQL 18
+- HikariCP (pool de conexões)
+- JDBC (acesso aos dados)
+
+JSON/Serialização:
+- Gson 2.10.1 (parsing JSON)
+- Jackson 2.17.2 (mapeamento de objetos)
+
+Logging:
+- SLF4J 2.0.16 (fachada de logging)
+- slf4j-simple (implementação)
+
+Testes:
+- JUnit 4.13.2
+
+================================================================================
+COMO COMPILAR
+================================================================================
+
+1. Verifique os pré-requisitos:
+   - Java 21+: java -version
+   - Maven 3.8+: mvn -v
+
+2. Compile o projeto:
+   cd /workspace
+   mvn clean package
+
+3. Resultado: target/mare-alta-reservas-1.0.0.jar
+
+================================================================================
+COMO EXECUTAR
+================================================================================
+
+1. Prepare o banco de dados:
+   psql -U postgres -c "CREATE DATABASE mare_alta;"
+
+2. Defina as variáveis de ambiente:
+   export DB_URL="jdbc:postgresql://localhost:5432/mare_alta"
+   export DB_USER="postgres"
+   export DB_PASSWORD="sua_senha"
+   export PORT=7070
+
+3. Execute:
+   java -jar target/mare-alta-reservas-1.0.0.jar
+
+4. Teste:
+   curl http://localhost:7070/rooms
+
+================================================================================
+API ENDPOINTS
+================================================================================
+
+GET /rooms
+  Lista todos os quartos com número, tipo, capacidade e tarifa.
+
+POST /reservations
+  Cria nova reserva (estado PENDING).
+  
+GET /reservations/{id}
+  Obtém detalhes da reserva.
+
+POST /reservations/{id}/confirmation
+  Confirma reserva (estado CONFIRMED).
+  Dispara notificações para hóspede, governança e financeiro.
+
+POST /reservations/{id}/cancellation
+  Cancela reserva (estado CANCELLED).
+  Processa reembolso conforme plano de tarifa.
+
+POST /reservations/{id}/check-in
+  Faz check-in (estado CHECKED_IN).
+
+POST /reservations/{id}/check-out
+  Faz check-out (estado CHECKED_OUT).
+  Retorna comprovante.
+
+GET /reservations/{id}/document
+  Obtém segunda via do comprovante.
+
+GET /messages
+  Lista todas as mensagens enviadas.
+
+GET /reports/occupancy?date=2027-07-10
+  Relatório de ocupação (CSV).
+
+GET /reports/revenue?month=2027-07
+  Relatório financeiro (CSV).
+
+================================================================================
+CÁLCULO DE PREÇOS
+================================================================================
+
+Exemplo: Quarto 201 (DELUXE, R$ 389,90) de 10/07 a 12/07, 2 hóspedes
+
+Passo 1: Contar noites
+  12 - 10 = 2 noites
+
+Passo 2: Tarifa por noite (com alta temporada se aplicável)
+  10/07: julh = alta temporada → R$ 389,90 × 1,20 = R$ 467,88
+  11/07: julho = alta temporada → R$ 389,90 × 1,20 = R$ 467,88
+
+Passo 3: Subtotal
+  R$ 467,88 + R$ 467,88 = R$ 935,76
+
+Passo 4: Aplicar desconto do plano
+  STANDARD: sem desconto
+  NON_REFUNDABLE: R$ 935,76 × 0,15 = R$ 140,36
+
+Passo 5: Total
+  STANDARD: R$ 935,76
+  NON_REFUNDABLE: R$ 935,76 - R$ 140,36 = R$ 795,40
+
+Arredondamento "meio para par" em cada passo.
+
+================================================================================
+SISTEMA DE NOTIFICAÇÕES
+================================================================================
+
+Quando uma reserva é CONFIRMADA, automaticamente:
+
+1. HÓSPEDE recebe email com:
+   - Assunto: "Reserva confirmada - Pousada Maré Alta"
+   - Comprovante com todos os dados
+
+2. GOVERNANÇA (governanca@pousadamarealta.com.br) recebe:
+   - Assunto: "Reserva confirmada - quarto 201"
+   - Datas de entrada/saída e número de hóspedes
+
+3. FINANCEIRO (financeiro@pousadamarealta.com.br) recebe:
+   - Assunto: "Pagamento recebido - reserva 7"
+   - Valor pago
+
+Quando uma reserva CONFIRMADA é CANCELADA:
+
+1. GOVERNANÇA recebe:
+   - Assunto: "Reserva cancelada - quarto 201"
+   - Datas que ficaram livres
+
+2. FINANCEIRO recebe (só se houver reembolso):
+   - Assunto: "Reembolso - reserva 7"
+   - Valor a devolver
+
+ADICIONAR NOVO DEPARTAMENTO é fácil:
+1. Criar classe em notification/notifiers/ implementando ReservationNotifier
+2. Registrar em App.initializeNotifiers()
+3. Recompilar
+
+Exemplo: Restaurante quer ser notificado de confirmações para preparar café.
+Basta criar RestaurantNotifier e registrar.
+
+================================================================================
+QUARTOS PRÉ-CONFIGURADOS
+================================================================================
+
+101  STANDARD  Até 2 pessoas  R$ 249,90/noite  → R$ 299,88 em alta temp
+102  STANDARD  Até 2 pessoas  R$ 249,90/noite  → R$ 299,88 em alta temp
+201  DELUXE    Até 3 pessoas  R$ 389,90/noite  → R$ 467,88 em alta temp
+202  DELUXE    Até 3 pessoas  R$ 389,90/noite  → R$ 467,88 em alta temp
+301  SUITE     Até 4 pessoas  R$ 579,90/noite  → R$ 695,88 em alta temp
+
+Alta temporada: 15/12 a 28/02 e julho (20% acréscimo)
+
+================================================================================
+PLANOS DE TARIFA
+================================================================================
+
+STANDARD:
+- Tarifa normal
+- Reembolso total em caso de cancelamento (se CONFIRMED)
+- Sem desconto
+
+NON_REFUNDABLE:
+- 15% de desconto no total
+- Sem reembolso em caso de cancelamento
+- Ideal para comprometimento
+
+================================================================================
+ESTADOS DE RESERVA
+================================================================================
+
+PENDING (pendente)
+  ↓ confirmação
+CONFIRMED (confirmada com pagamento)
+  ├─ cancelamento → CANCELLED (com possível reembolso)
+  └─ check-in
+    CHECKED_IN
+      ↓ check-out
+    CHECKED_OUT
+
+CANCELLED (cancelada)
+  Estado terminal - sem volta
+
+Transições não permitidas geram erro 409 OPERATION_NOT_ALLOWED
+
+================================================================================
+VALIDAÇÕES
+================================================================================
+
+Ao criar reserva:
+  ✓ Quarto existe?
+  ✓ Data válida (checkout > checkin)?
+  ✓ Hóspedes >= 1?
+  ✓ Hóspedes <= capacidade do quarto?
+  ✓ Quarto disponível (sem conflitos)?
+
+Ao confirmar:
+  ✓ Reserva existe?
+  ✓ Status é PENDING?
+
+Ao cancelar:
+  ✓ Reserva existe?
+  ✓ Status é PENDING ou CONFIRMED?
+
+Ao fazer check-in:
+  ✓ Reserva existe?
+  ✓ Status é CONFIRMED?
+
+Ao fazer check-out:
+  ✓ Reserva existe?
+  ✓ Status é CHECKED_IN?
+
+================================================================================
+CÓDIGOS DE ERRO
+================================================================================
+
+400 INVALID_REQUEST
+  - Falta campo obrigatório
+  - JSON mal formatado
+  - Data/mês fora do formato
+  - Menos de 1 hóspede
+  - Saída antes de entrada
+
+404 ROOM_NOT_FOUND
+  - Quarto não existe
+
+404 RESERVATION_NOT_FOUND
+  - Reserva não existe
+
+409 ROOM_UNAVAILABLE
+  - Quarto já tem outra reserva no mesmo período
+
+409 OPERATION_NOT_ALLOWED
+  - Operação não permitida para este estado da reserva
+  - Ex: confirmar uma reserva já confirmada
+
+422 CAPACITY_EXCEEDED
+  - Número de hóspedes excede a capacidade do quarto
+
+================================================================================
+TESTES
+================================================================================
+
+Executar:
+  mvn verify
+
+Resultado esperado:
+  [INFO] Tests run: 14, Failures: 0, Errors: 0
+  [INFO] BUILD SUCCESS
+
+Testes cobrem:
+  - Cálculo de preços (normal e alta temporada)
+  - Arredondamento "meio para par"
+  - Desconto NON_REFUNDABLE
+  - Contagem de noites
+  - Formatação de datas e dinheiro
+
+================================================================================
+BANCO DE DADOS
+================================================================================
+
+Conexão: jdbc:postgresql://localhost:5432/mare_alta
+Criação: Automática (executada na primeira inicialização)
+
+Tabelas:
+
+rooms
+  number: PK, número do quarto (101, 102, 201, 202, 301)
+  type: STANDARD, DELUXE, SUITE
+  capacity: 2, 3 ou 4
+  nightly_rate: preço base da diária
+
+reservations
+  id: PK, auto-incremento
+  room_number: FK para rooms
+  guest_name, guest_email, guest_cpf: dados do hóspede
+  check_in, check_out: datas (FORMAT DATE)
+  guests: número de hóspedes
+  rate_plan: STANDARD ou NON_REFUNDABLE
+  nights: número de noites
+  subtotal, discount, total: valores monetários
+  status: PENDING, CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED
+  amount_paid: quanto foi pago
+  refund: quanto foi reembolsado (null até cancelamento)
+
+messages
+  id: PK, auto-incremento
+  channel: EMAIL
+  to: endereço de email
+  subject: assunto da mensagem
+  body: corpo da mensagem
+
+================================================================================
+DOCUMENTAÇÃO
+================================================================================
+
+README.md
+  Documentação completa da API, características, estrutura do projeto,
+  exemplos de requisição, tratamento de erros.
+
+QUICK_START.md
+  Guia passo a passo de como instalar, compilar, executar e testar.
+  Includes troubleshooting.
+
+ARCHITECTURE.md
+  Detalhes de arquitetura, padrões de design, fluxos de dados,
+  estrutura de camadas, como adicionar funcionalidades.
+
+SETUP.md
+  Instruções de compilação e configuração.
+
+ENTREGA.md
+  Este documento com sumário do que foi desenvolvido.
+
+================================================================================
+PRÓXIMAS EVOLUÇÕES (FÁCEIS)
+================================================================================
+
+Novo quarto:
+  INSERT INTO rooms VALUES (302, 'DELUXE', 3, 389.90);
+
+Novo departamento notificado (ex: restaurante):
+  1. Criar RestaurantNotifier implementando ReservationNotifier
+  2. Registrar em App.initializeNotifiers()
+  3. mvn package
+
+Novo relatório:
+  1. Adicionar método em ReportService
+  2. Adicionar endpoint em App.java
+  3. mvn package
+
+Novo status de reserva:
+  1. Adicionar em enum ReservationStatus
+  2. Adicionar método em ReservationService
+  3. Adicionar endpoint em App.java
+  4. Atualizar validações de transição de estado
+  5. mvn package
+
+================================================================================
+ESTRUTURA DE DIRETÓRIOS
+================================================================================
+
+/workspace/
+├── pom.xml (configuração Maven)
+├── .gitignore
+├── README.md (documentação principal)
+├── QUICK_START.md (guia rápido)
+├── ARCHITECTURE.md (arquitetura)
+├── SETUP.md (setup)
+├── ENTREGA.md (sumário de entrega)
+├── test.sh (script de teste)
+│
+├── src/main/java/com/pousada/marealta/
+│   ├── App.java (aplicação principal, endpoints)
+│   ├── api/
+│   │   ├── ApiError.java
+│   │   ├── request/CreateReservationRequest.java
+│   │   └── response/
+│   │       ├── ReservationResponse.java
+│   │       ├── DocumentResponse.java
+│   │       └── MessageResponse.java
+│   ├── db/
+│   │   ├── Database.java (inicialização, schema)
+│   │   ├── RoomRepository.java
+│   │   ├── ReservationRepository.java
+│   │   └── MessageRepository.java
+│   ├── model/
+│   │   ├── Room.java
+│   │   ├── Reservation.java
+│   │   ├── Message.java
+│   │   └── Document.java
+│   ├── enums/
+│   │   ├── RoomType.java
+│   │   ├── ReservationStatus.java
+│   │   ├── RatePlan.java
+│   │   └── MessageChannel.java
+│   ├── service/
+│   │   ├── ReservationService.java (lógica)
+│   │   └── ReportService.java (relatórios)
+│   ├── notification/
+│   │   ├── ReservationEvent.java
+│   │   ├── ReservationNotifier.java (interface)
+│   │   ├── NotificationManager.java
+│   │   └── notifiers/
+│   │       ├── GuestNotifier.java
+│   │       ├── HousekeepingNotifier.java
+│   │       └── FinanceNotifier.java
+│   └── util/
+│       ├── PricingCalculator.java
+│       ├── Formatter.java
+│       └── DocumentGenerator.java
+│
+├── src/test/java/com/pousada/marealta/
+│   ├── PricingCalculatorTest.java (testes de cálculo)
+│   └── FormatterTest.java (testes de formatação)
+│
+└── target/
+    └── mare-alta-reservas-1.0.0.jar (JAR final, 9.5 MB)
+
+================================================================================
+CHECKLIST FINAL
+================================================================================
+
+✅ Projeto criado do zero
+✅ Compilação com Maven: mvn clean package (sucesso)
+✅ Testes: mvn verify (14 testes passando)
+✅ 31 arquivos Java implementados
+✅ 5 quartos configurados
+✅ Cálculo de preços com alta temporada
+✅ 2 planos de tarifa
+✅ Estados de reserva implementados
+✅ API REST completa (11 endpoints)
+✅ Banco de dados PostgreSQL
+✅ Pool de conexões HikariCP
+✅ Sistema de notificações extensível
+✅ 3 departamentos notificados (hóspede, gov, fin)
+✅ Comprovantes de reserva
+✅ Relatórios em CSV
+✅ Documentação completa
+✅ Script de teste incluído
+✅ Validações robustas
+✅ Tratamento de erros
+✅ Código limpo e bem organizado
+
+================================================================================
+COMO COMEÇAR
+================================================================================
+
+1. Compilar:
+   mvn clean package
+
+2. Criar banco de dados:
+   psql -U postgres -c "CREATE DATABASE mare_alta;"
+
+3. Executar:
+   export DB_URL="jdbc:postgresql://localhost:5432/mare_alta"
+   export DB_USER="postgres"
+   export DB_PASSWORD="sua_senha"
+   java -jar target/mare-alta-reservas-1.0.0.jar
+
+4. Testar:
+   curl http://localhost:7070/rooms | jq
+
+5. Ler documentação:
+   README.md - para entender toda a API
+   QUICK_START.md - para um passo a passo
+   ARCHITECTURE.md - para entender o design
+
+================================================================================
+FIM
+================================================================================
+
+Sistema de Reservas da Pousada Maré Alta
+Desenvolvido com Java 21, Javalin 6.7.0 e PostgreSQL 18
+
+Status: ✅ COMPLETO E PRONTO PARA USO
+
+================================================================================

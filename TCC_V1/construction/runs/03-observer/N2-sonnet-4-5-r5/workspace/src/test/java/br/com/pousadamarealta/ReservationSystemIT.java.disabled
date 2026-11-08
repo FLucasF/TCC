@@ -1,0 +1,386 @@
+package br.com.pousadamarealta;
+
+import br.com.pousadamarealta.api.ApiHandler;
+import br.com.pousadamarealta.domain.events.ReservationEventListener;
+import br.com.pousadamarealta.listeners.FinanceNotifier;
+import br.com.pousadamarealta.listeners.GuestNotifier;
+import br.com.pousadamarealta.listeners.HousekeepingNotifier;
+import br.com.pousadamarealta.repository.MessageRepository;
+import br.com.pousadamarealta.repository.ReservationRepository;
+import br.com.pousadamarealta.repository.RoomRepository;
+import br.com.pousadamarealta.repository.postgres.Database;
+import br.com.pousadamarealta.repository.postgres.PostgresMessageRepository;
+import br.com.pousadamarealta.repository.postgres.PostgresReservationRepository;
+import br.com.pousadamarealta.repository.postgres.PostgresRoomRepository;
+import br.com.pousadamarealta.service.ReportService;
+import br.com.pousadamarealta.service.ReservationService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.javalin.Javalin;
+import io.javalin.json.JavalinJackson;
+import org.junit.jupiter.api.*;
+import org.postgresql.ds.PGSimpleDataSource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@Testcontainers
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class ReservationSystemIT {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18")
+        .withDatabaseName("test")
+        .withUsername("test")
+        .withPassword("test");
+
+    private static Javalin app;
+    private static HttpClient client;
+    private static ObjectMapper objectMapper;
+    private static String baseUrl;
+    private static MessageRepository messageRepository;
+
+    @BeforeAll
+    static void setUp() {
+        PGSimpleDataSource dataSource = new PGSimpleDataSource();
+        dataSource.setUrl(postgres.getJdbcUrl());
+        dataSource.setUser(postgres.getUsername());
+        dataSource.setPassword(postgres.getPassword());
+
+        Database database = new Database(dataSource);
+
+        RoomRepository roomRepository = new PostgresRoomRepository(database);
+        ReservationRepository reservationRepository = new PostgresReservationRepository(database);
+        messageRepository = new PostgresMessageRepository(database);
+
+        List<ReservationEventListener> listeners = List.of(
+            new GuestNotifier(messageRepository),
+            new HousekeepingNotifier(messageRepository),
+            new FinanceNotifier(messageRepository)
+        );
+
+        ReservationService reservationService = new ReservationService(
+            roomRepository,
+            reservationRepository,
+            listeners
+        );
+
+        ReportService reportService = new ReportService(roomRepository, reservationRepository);
+
+        ApiHandler apiHandler = new ApiHandler(
+            roomRepository,
+            reservationService,
+            reportService,
+            messageRepository
+        );
+
+        objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        app = Javalin.create(config -> {
+            config.jsonMapper(new JavalinJackson(objectMapper, true));
+        }).start(0);
+
+        int port = app.port();
+        baseUrl = "http://localhost:" + port;
+
+        app.get("/rooms", apiHandler::getRooms);
+        app.post("/reservations", apiHandler::createReservation);
+        app.get("/reservations/{id}", apiHandler::getReservation);
+        app.post("/reservations/{id}/confirmation", apiHandler::confirmReservation);
+        app.post("/reservations/{id}/cancellation", apiHandler::cancelReservation);
+        app.post("/reservations/{id}/check-in", apiHandler::checkIn);
+        app.post("/reservations/{id}/check-out", apiHandler::checkOut);
+        app.get("/reservations/{id}/document", apiHandler::getDocument);
+        app.get("/messages", apiHandler::getMessages);
+        app.get("/reports/occupancy", apiHandler::getOccupancyReport);
+        app.get("/reports/revenue", apiHandler::getRevenueReport);
+
+        client = HttpClient.newHttpClient();
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (app != null) {
+            app.stop();
+        }
+    }
+
+    @Test
+    @Order(1)
+    void shouldListRooms() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/rooms"))
+            .GET()
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        JsonNode rooms = objectMapper.readTree(response.body());
+        assertEquals(5, rooms.size());
+        assertEquals("101", rooms.get(0).get("number").asText());
+        assertEquals("STANDARD", rooms.get(0).get("type").asText());
+        assertEquals(2, rooms.get(0).get("capacity").asInt());
+        assertEquals(new BigDecimal("249.90"), new BigDecimal(rooms.get(0).get("nightlyRate").asText()));
+    }
+
+    @Test
+    @Order(2)
+    void shouldCreateReservation() throws Exception {
+        String json = """
+            {
+                "roomNumber": "201",
+                "guestName": "Carla Dias",
+                "guestEmail": "carla@example.com",
+                "guestCpf": "11122233344",
+                "checkIn": "2027-03-10",
+                "checkOut": "2027-03-12",
+                "guests": 2,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(201, response.statusCode());
+        JsonNode reservation = objectMapper.readTree(response.body());
+        assertEquals(1, reservation.get("id").asLong());
+        assertEquals("201", reservation.get("roomNumber").asText());
+        assertEquals("PENDING", reservation.get("status").asText());
+        assertEquals(2, reservation.get("nights").asInt());
+        assertEquals(new BigDecimal("779.80"), new BigDecimal(reservation.get("subtotal").asText()));
+        assertEquals(new BigDecimal("0.00"), new BigDecimal(reservation.get("discount").asText()));
+        assertEquals(new BigDecimal("779.80"), new BigDecimal(reservation.get("total").asText()));
+    }
+
+    @Test
+    @Order(3)
+    void shouldConfirmReservationAndSendNotifications() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations/1/confirmation"))
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        JsonNode reservation = objectMapper.readTree(response.body());
+        assertEquals("CONFIRMED", reservation.get("status").asText());
+        assertEquals(new BigDecimal("779.80"), new BigDecimal(reservation.get("amountPaid").asText()));
+
+        var messages = messageRepository.findAll();
+        assertEquals(3, messages.size());
+
+        assertTrue(messages.stream().anyMatch(m ->
+            m.to().equals("carla@example.com") &&
+            m.subject().equals("Reserva confirmada - Pousada Maré Alta")));
+
+        assertTrue(messages.stream().anyMatch(m ->
+            m.to().equals("governanca@pousadamarealta.com.br") &&
+            m.subject().equals("Reserva confirmada - quarto 201")));
+
+        assertTrue(messages.stream().anyMatch(m ->
+            m.to().equals("financeiro@pousadamarealta.com.br") &&
+            m.subject().equals("Pagamento recebido - reserva 1")));
+    }
+
+    @Test
+    @Order(4)
+    void shouldCalculateHighSeasonPrice() throws Exception {
+        String json = """
+            {
+                "roomNumber": "101",
+                "guestName": "João Silva",
+                "guestEmail": "joao@example.com",
+                "guestCpf": "12345678901",
+                "checkIn": "2027-07-10",
+                "checkOut": "2027-07-12",
+                "guests": 2,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(201, response.statusCode());
+        JsonNode reservation = objectMapper.readTree(response.body());
+        assertEquals(new BigDecimal("599.76"), new BigDecimal(reservation.get("subtotal").asText()));
+    }
+
+    @Test
+    @Order(5)
+    void shouldApplyNonRefundableDiscount() throws Exception {
+        String json = """
+            {
+                "roomNumber": "102",
+                "guestName": "Maria Santos",
+                "guestEmail": "maria@example.com",
+                "guestCpf": "98765432109",
+                "checkIn": "2027-03-15",
+                "checkOut": "2027-03-17",
+                "guests": 1,
+                "ratePlan": "NON_REFUNDABLE"
+            }
+            """;
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(201, response.statusCode());
+        JsonNode reservation = objectMapper.readTree(response.body());
+        BigDecimal subtotal = new BigDecimal(reservation.get("subtotal").asText());
+        BigDecimal discount = new BigDecimal(reservation.get("discount").asText());
+        BigDecimal expectedDiscount = subtotal.multiply(new BigDecimal("0.15")).setScale(2, java.math.RoundingMode.HALF_EVEN);
+        assertEquals(expectedDiscount, discount);
+    }
+
+    @Test
+    @Order(6)
+    void shouldRejectRoomUnavailable() throws Exception {
+        String json = """
+            {
+                "roomNumber": "201",
+                "guestName": "Pedro Souza",
+                "guestEmail": "pedro@example.com",
+                "guestCpf": "11111111111",
+                "checkIn": "2027-03-10",
+                "checkOut": "2027-03-12",
+                "guests": 2,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(409, response.statusCode());
+        JsonNode error = objectMapper.readTree(response.body());
+        assertEquals("ROOM_UNAVAILABLE", error.get("error").asText());
+    }
+
+    @Test
+    @Order(7)
+    void shouldCancelConfirmedReservationWithRefund() throws Exception {
+        String json = """
+            {
+                "roomNumber": "202",
+                "guestName": "Ana Costa",
+                "guestEmail": "ana@example.com",
+                "guestCpf": "22222222222",
+                "checkIn": "2027-04-01",
+                "checkOut": "2027-04-03",
+                "guests": 2,
+                "ratePlan": "STANDARD"
+            }
+            """;
+
+        HttpRequest createRequest = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+
+        HttpResponse<String> createResponse = client.send(createRequest, HttpResponse.BodyHandlers.ofString());
+        JsonNode reservation = objectMapper.readTree(createResponse.body());
+        long reservationId = reservation.get("id").asLong();
+
+        HttpRequest confirmRequest = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations/" + reservationId + "/confirmation"))
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+        client.send(confirmRequest, HttpResponse.BodyHandlers.ofString());
+
+        int messageCountBefore = messageRepository.findAll().size();
+
+        HttpRequest cancelRequest = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reservations/" + reservationId + "/cancellation"))
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+
+        HttpResponse<String> cancelResponse = client.send(cancelRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, cancelResponse.statusCode());
+        JsonNode cancelled = objectMapper.readTree(cancelResponse.body());
+        assertEquals("CANCELLED", cancelled.get("status").asText());
+        assertTrue(cancelled.get("refund").asDouble() > 0);
+
+        var messages = messageRepository.findAll();
+        assertEquals(messageCountBefore + 2, messages.size());
+
+        assertTrue(messages.stream().anyMatch(m ->
+            m.to().equals("governanca@pousadamarealta.com.br") &&
+            m.subject().contains("Reserva cancelada")));
+
+        assertTrue(messages.stream().anyMatch(m ->
+            m.to().equals("financeiro@pousadamarealta.com.br") &&
+            m.subject().contains("Reembolso")));
+    }
+
+    @Test
+    @Order(8)
+    void shouldGenerateOccupancyReport() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reports/occupancy?date=2027-03-10"))
+            .GET()
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.headers().firstValue("Content-Type").orElse("").contains("text/csv"));
+        String csv = response.body();
+        assertTrue(csv.contains("room,type,reservation,check_in,check_out"));
+        assertTrue(csv.contains("201,DELUXE,1,2027-03-10,2027-03-12"));
+        assertTrue(csv.contains("total,1/5"));
+    }
+
+    @Test
+    @Order(9)
+    void shouldGenerateRevenueReport() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/reports/revenue?month=2027-03"))
+            .GET()
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        String csv = response.body();
+        assertTrue(csv.contains("reservation,room,check_in,check_out,status,amount"));
+        assertTrue(csv.contains("total,"));
+    }
+}
