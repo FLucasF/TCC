@@ -55,3 +55,42 @@ Cada versão é o artigo inteiro, com uma correção a mais que a anterior e, no
 - **v51:** Seção 4.3: a frase das hipóteses dizia que o CLAUDE.md 'teve' o maior saldo. Quem teve foi o Opus 4.7.
 - **v52:** Acrescenta o controle negativo da manutenção, rodado em 09/11: 90 execuções em duas rodadas, 88 com a mudança pequena. Muda o Resumo, a Seção 3, o método e os resultados da extensão (nova Tabela 7), a Discussão, as Limitações e a Conclusão, que antes tratavam esse controle como inexistente.
 - **v53:** Reescreve as seções 4 a 7 em prosa acadêmica: voz impessoal, parágrafos encadeados, sem rótulos em negrito nem listas, e com cada tabela apresentada no texto. Os números, as tabelas, as figuras e as citações não mudaram (conferido por script).
+- **v54:** Revisão (item 1): o efeito maior na manutenção compara textos diferentes do CLAUDE.md. O método agora descreve a diferença, e o Resumo, a Discussão, as Limitações e a Conclusão reduzem a afirmação; só com o arquivo, os ganhos são +14 e +12.
+- **v55:** Revisão (item 2): os ganhos do N1 se concentram no Decorator e no Template Method (+18, contra +8 dos outros três), os cenários que as precisões do CLAUDE.md favorecem. A Discussão e as Limitações agora dão esses números.
+- **v56:** Revisão (item 3): as nove das dez combinações valem de N0 a N2, e a exceção do Strategy na construção não é explicada pelo teto (sem o Sonnet 5.5, 4, 2 e 4 em 10).
+- **v57:** Revisão (item 4): a Tabela 1 passa a relatar também os pontos de frete, cupom e pagamento, como medidas secundárias sem conferência humana, e a Conclusão diz que os 67% e 93% são do ponto mais difícil.
+- **v58:** Revisão (item 5): o controle negativo com afirmação mais estreita. A Discussão separa o N0, informa a abertura da skill e diz que o próprio CLAUDE.md orienta a mudança simples; a Conclusão passa a dizer o que não se observou.
+- **v59:** Revisão (item 6): o Resumo diz em que casos o verificador foi calibrado.
+- **v60:** Revisão (item 7): o comportamento não oscila sem direção na manutenção, onde cai de 61 para 54. A P6 agora relata essa queda.
+- **v61:** Revisão (item 8): a skill pública do estudo principal não foi avaliada, porque nunca foi aberta. A P4 diz isso e informa a taxa de abertura da skill na extensão.
+- **v62:** Revisão (item 9): a maior parte do efeito ser do CLAUDE.md vale só para o estudo principal e depende da ordem dos níveis; na manutenção, a skill acrescenta mais.
+- **v63:** Revisão (item 10): o commit permite conferir o conteúdo registrado, mas não prova a data.
+- **v64:** Revisão (item 11): no Resumo e na Conclusão, as métricas são compatíveis com um mecanismo, que em parte redescreve a mudança de desenho.
+- **v65:** Revisão (item 12): o aumento da duplicação entra nos resultados do estudo principal.
+- **v66:** Revisão (item 13): a Figura 2 passa a mostrar planos com regras diferentes, e não só um multiplicador, caso que a Seção 4.1 chama de exagero.
+- **v67:** Revisão (falso alarme 1): a Seção 4.3 diz qual é a medida da correção na hipótese, diferente da suíte inteira da Tabela 1.
+- **v68:** Revisão (falso alarme 2): a Seção 7 esclarece que o ensaio que escolheu a complexidade cognitiva é de uma fase anterior ao V4.
+- **v69:** Revisão (decisão C): o critério numérico da regra de alteração, conferido no OBJETIVO.md, entra no método; o exagero passa a 'sem alteração detectada' no Resumo e na Conclusão.
+- **v70:** Revisão (decisão C): a Seção 4.1 indica onde estão os textos do CLAUDE.md e das skills no repositório público.
+- **v71:** Revisão (decisão C): retira o RFC, que era definido e nunca relatado.
+- **v72:** Revisão da v71 (item 1): define alternativa equivalente e informa que, no Decorator, todos os resultados certos sem a skill são dessa classe, que a calibração não testou.
+- **v73:** Revisão da v71 (item 2): o ponto do clube é o mais complexo, e não o de menor acerto; na Tabela 1, pagamento e cupom têm menos acertos no N0.
+- **v74:** Revisão da v71 (item 3): 'na mesma direção nos dois estudos' contradizia a P1; agora cita a exceção do Strategy na construção.
+- **v75:** Revisão da v71 (item 4): corrige a frase da Conclusão sobre os controles negativos; o exagero foi raro, mas houve duas execuções a mais no N2.
+- **v76:** Revisão da v71 (item 5): a P2 deixa de dizer que a skill não altera o exagero, já que ela não foi aberta no estudo principal.
+- **v77:** Revisão da v71 (item 6): o Resumo e a Conclusão informam a piora do Haiku 4.5 na correção.
+- **v78:** Revisão da v71 (item 7): o aumento na manutenção considera o ponto de partida; a manutenção começa em 19 e chega perto da construção no N2.
+- **v79:** Revisão da v71 (item 8): o ganho nos seis modelos fora do teto é esperado, porque só eles tinham espaço para melhorar.
+- **v80:** Revisão da v71 (item 9): a autoria das orientações por quem conhece o critério passa a valer para os dois estudos.
+- **v81:** Revisão da v71 (item 10): a frase acrescentada aos enunciados pode reforçar o efeito da orientação.
+- **v82:** Revisão da v71 (item 11): CBO e LCOM são pré-registradas, então as métricas são 'em sua maioria' descritivas.
+- **v83:** Revisão da v71 (item 12): na construção, o Sonnet 4.5 também não teve comportamento bom em nenhuma das 75 execuções.
+- **v84:** Revisão da v71 (item 13): os ganhos aparecem no pattern e no design do restante do código, e não na arquitetura.
+- **v85:** Revisão da v71 (item 14): os objetivos da Introdução passam a incluir o controle negativo da extensão.
+- **v86:** Revisão da v71 (item 15): nomeia as cinco hipóteses principais.
+- **v87:** Revisão da v71 (item 16): diz que o termo exagero designa três medidas.
+- **v88:** Revisão da v71 (item 17): corrige a ordem alfabética de Aniche e Anthropic nas referências.
+- **v89:** Revisão da v71 (esclarecimento): a mudança da linha da skill veio antes das execuções relatadas, e as 75 do N2 da manutenção têm a mesma configuração.
+- **v90:** Revisão da v71 (esclarecimento): a queda do exagero no N3 segue a regra direcional, e não a de pares não empatados.
+- **v91:** Revisão da v71 (esclarecimento): as quatro perguntas conferidas por humano são dos pontos do clube e do seguro.
+- **v92:** Revisão da v71 (esclarecimento): a regra de desempate é anterior ao ensaio com os dados do V4.

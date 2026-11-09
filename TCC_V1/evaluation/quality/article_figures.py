@@ -133,9 +133,9 @@ def conditional_versus_strategy() -> str:
         '  if (plano.equals("normal"))',
         "    return diaria * noites;",
         '  if (plano.equals("fimDeSemana"))',
-        "    return diaria * noites * 1.2;",
+        "    return diaria * noites + 30;",
         '  if (plano.equals("pacote"))',
-        "    return diaria * noites * 0.9;",
+        "    return diaria * (noites - 1);",
         "  throw new IllegalArgumentException();",
         "}",
     ]
