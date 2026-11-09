@@ -54,3 +54,4 @@ Cada versão é o artigo inteiro, com uma correção a mais que a anterior e, no
 - **v50:** Seção 5.3: o Sonnet 5.5 tem 5 execuções por nível, e não 15. O total de 15 soma os três níveis.
 - **v51:** Seção 4.3: a frase das hipóteses dizia que o CLAUDE.md 'teve' o maior saldo. Quem teve foi o Opus 4.7.
 - **v52:** Acrescenta o controle negativo da manutenção, rodado em 09/11: 90 execuções em duas rodadas, 88 com a mudança pequena. Muda o Resumo, a Seção 3, o método e os resultados da extensão (nova Tabela 7), a Discussão, as Limitações e a Conclusão, que antes tratavam esse controle como inexistente.
+- **v53:** Reescreve as seções 4 a 7 em prosa acadêmica: voz impessoal, parágrafos encadeados, sem rótulos em negrito nem listas, e com cada tabela apresentada no texto. Os números, as tabelas, as figuras e as citações não mudaram (conferido por script).
