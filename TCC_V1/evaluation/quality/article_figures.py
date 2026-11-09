@@ -108,7 +108,7 @@ def harness_layers() -> str:
         card(212, 8, 248, 286, SOFT),
         band(212, 8, 248, 44, "#3B4A5C"),
         text(336, 27, "Harness (Claude Code)", 12, "middle", "bold", color=WHITE),
-        text(336, 43, "o software em volta do modelo", 11, "middle", color=WHITE),
+        text(336, 43, "o software em torno do modelo", 11, "middle", color=WHITE),
         *lines(336, 74, ["conduz o ciclo do agente, monta a", "entrada e oferece as ferramentas"], 11, step=14),
         card(262, 112, 148, 68, DEEP, DEEP),
         text(336, 142, "Modelo (LLM)", 14, "middle", "bold", color=WHITE),
