@@ -1,0 +1,68 @@
+diff --git a/src/main/java/hotel/messages/EmailSender.java b/src/main/java/hotel/messages/EmailSender.java
+index 3eee255..6f02ae5 100644
+--- a/src/main/java/hotel/messages/EmailSender.java
++++ b/src/main/java/hotel/messages/EmailSender.java
+@@ -1,8 +1,13 @@
+ package hotel.messages;
+ 
+-/** Sends e-mails to guests. Every e-mail sent is kept in the list of sent messages. */
++/**
++ * Sends e-mails to guests, each one ending with the inn's signature. Every e-mail sent is kept in the list
++ * of sent messages.
++ */
+ public final class EmailSender {
+ 
++    static final String SIGNATURE = "--\nPousada Maré Alta\n(79) 3200-0000 | @pousadamarealta\n";
++
+     private final SentMessages sentMessages;
+ 
+     public EmailSender(SentMessages sentMessages) {
+@@ -10,6 +15,6 @@ public final class EmailSender {
+     }
+ 
+     public Message send(String to, String subject, String body) {
+-        return sentMessages.add("EMAIL", to, subject, body);
++        return sentMessages.add("EMAIL", to, subject, body.stripTrailing() + "\n\n" + SIGNATURE);
+     }
+ }
+diff --git a/src/test/java/hotel/messages/EmailSenderTest.java b/src/test/java/hotel/messages/EmailSenderTest.java
+new file mode 100644
+index 0000000..c08b78f
+--- /dev/null
++++ b/src/test/java/hotel/messages/EmailSenderTest.java
+@@ -0,0 +1,35 @@
++package hotel.messages;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++
++import hotel.EmptyDatabase;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.Test;
++
++class EmailSenderTest {
++
++    private final EmptyDatabase database = new EmptyDatabase();
++    private final EmailSender sender = new EmailSender(new SentMessages(database.dataSource()));
++
++    @AfterEach
++    void closeDatabase() {
++        database.close();
++    }
++
++    @Test
++    void everyMessageEndsWithTheSignatureAfterABlankLine() {
++        Message message = sender.send("ana@example.com", "Assunto", "Olá!\n");
++
++        assertEquals("Olá!\n\n--\nPousada Maré Alta\n(79) 3200-0000 | @pousadamarealta\n", message.body());
++        assertEquals(message.body(), sender.send("ana@example.com", "Assunto", "Olá!").body());
++    }
++
++    @Test
++    void theKeptMessageHasTheSignatureToo() {
++        sender.send("ana@example.com", "Assunto", "Olá!");
++
++        assertEquals(
++                "Olá!\n\n--\nPousada Maré Alta\n(79) 3200-0000 | @pousadamarealta\n",
++                new SentMessages(database.dataSource()).all().get(0).body());
++    }
++}

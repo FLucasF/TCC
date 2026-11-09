@@ -1,0 +1,69 @@
+diff --git a/src/main/java/hotel/reports/OccupancyReport.java b/src/main/java/hotel/reports/OccupancyReport.java
+index bf87b70..939ead3 100644
+--- a/src/main/java/hotel/reports/OccupancyReport.java
++++ b/src/main/java/hotel/reports/OccupancyReport.java
+@@ -31,12 +31,13 @@ public final class OccupancyReport {
+         occupying.sort(Comparator.comparingInt(Reservation::roomNumber));
+ 
+         StringBuilder csv = new StringBuilder();
+-        csv.append("room,type,reservation,check_in,check_out\n");
++        csv.append("room,type,reservation,guest,check_in,check_out\n");
+         for (Reservation reservation : occupying) {
+             Room room = rooms.find(reservation.roomNumber()).orElseThrow();
+             csv.append(room.number()).append(',')
+                     .append(room.type()).append(',')
+                     .append(reservation.id()).append(',')
++                    .append(reservation.guest().name().replace(',', ' ')).append(',')
+                     .append(reservation.checkIn()).append(',')
+                     .append(reservation.checkOut()).append('\n');
+         }
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index c5b419f..a664a2a 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -28,7 +28,11 @@ class ReportsTest {
+             rooms, store, new PriceCalculator(), new EmailSender(new SentMessages(database.dataSource())));
+ 
+     private Reservation book(int roomNumber, String checkIn, String checkOut, RatePlan plan) {
+-        Guest guest = new Guest("Bruno Lima", "bruno@example.com", "987.654.321-00");
++        return book("Bruno Lima", roomNumber, checkIn, checkOut, plan);
++    }
++
++    private Reservation book(String name, int roomNumber, String checkIn, String checkOut, RatePlan plan) {
++        Guest guest = new Guest(name,"bruno@example.com", "987.654.321-00");
+         return service.create(new NewReservation(
+                 roomNumber, guest, LocalDate.parse(checkIn), LocalDate.parse(checkOut), 1, plan));
+     }
+@@ -42,7 +46,7 @@ class ReportsTest {
+     void someReservations() {
+         Reservation april = book(201, "2027-04-01", "2027-04-03", RatePlan.STANDARD);
+         Reservation lateMarch = book(101, "2027-03-30", "2027-04-02", RatePlan.NON_REFUNDABLE);
+-        Reservation suite = book(301, "2027-04-02", "2027-04-04", RatePlan.STANDARD);
++        Reservation suite = book("Lima, Bruno", 301, "2027-04-02", "2027-04-04", RatePlan.STANDARD);
+         book(102, "2027-04-01", "2027-04-05", RatePlan.STANDARD); // never paid
+         Reservation cancelled = book(202, "2027-04-01", "2027-04-02", RatePlan.STANDARD);
+         service.confirm(april.id());
+@@ -58,9 +62,9 @@ class ReportsTest {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 1));
+ 
+         assertEquals("""
+-                room,type,reservation,check_in,check_out
+-                101,STANDARD,2,2027-03-30,2027-04-02
+-                201,DELUXE,1,2027-04-01,2027-04-03
++                room,type,reservation,guest,check_in,check_out
++                101,STANDARD,2,Bruno Lima,2027-03-30,2027-04-02
++                201,DELUXE,1,Bruno Lima,2027-04-01,2027-04-03
+                 total,2/5
+                 """, csv);
+     }
+@@ -70,8 +74,8 @@ class ReportsTest {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 3));
+ 
+         assertEquals("""
+-                room,type,reservation,check_in,check_out
+-                301,SUITE,3,2027-04-02,2027-04-04
++                room,type,reservation,guest,check_in,check_out
++                301,SUITE,3,Lima  Bruno,2027-04-02,2027-04-04
+                 total,1/5
+                 """, csv);
+     }

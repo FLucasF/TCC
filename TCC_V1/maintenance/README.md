@@ -6,9 +6,9 @@ o harness do braço e o pedido de mudança de **um** cenário, na voz do dono. A
 | pasta | o que tem |
 |---|---|
 | `experiment/base/` | a base (`hotel/`: `mvn verify`; `java -jar target/hotel.jar`; os dados num PostgreSQL, com o esquema em migrações do Flyway) e o roteiro dela (`ROTEIRO-DA-BASE.md`) |
-| `experiment/scenarios/` | a moldura comum (`frame.md`) e os 5 pedidos |
+| `experiment/scenarios/` | a moldura comum (`frame.md`) e os 10 pedidos (5 que pedem um pattern e 5 controles negativos) |
 | `experiment/harnesses/` | o `N1/` (o `CLAUDE.md`) e o `N2/` (o `CLAUDE.md` com a linha da skill, e a skill `design-patterns`) |
 | `infra/scripts/run_one_scenario.py` | roda uma execução, com um PostgreSQL só dela; a saída vai para `runs/<cenário>-<pattern>/<braço>-<modelo>/`, com o `changes.patch` contra a base e a foto do esquema (`database-schema.sql`) |
 | `runs-2026-10-21-sem-banco/` | as 45 execuções da rodada de 21/10/2026, ainda sem banco (os dados em memória), como registro |
 
-Uma execução por modelo, cenário e braço: com 3 modelos, 5 × 3 × 3 = 45.
+Uma execução por modelo, cenário e braço: com 3 modelos, 5 × 3 × 3 = 45 por rodada, tanto nos cenários com pattern (5 rodadas) quanto nos controles negativos (2 rodadas).

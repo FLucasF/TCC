@@ -1,0 +1,82 @@
+diff --git a/README.md b/README.md
+index 4b51a4f..708e082 100644
+--- a/README.md
++++ b/README.md
+@@ -37,7 +37,7 @@ somem, e a numeração volta a 1.
+ - **Cancelamento:** só antes do check-in. No plano `STANDARD`, o hóspede recebe de volta o que pagou;
+   no `NON_REFUNDABLE`, não recebe nada.
+ - **Mensagens:** os e-mails enviados ficam guardados, e a recepção os consulta em `/messages`.
+-- **Relatórios (CSV):** a ocupação de uma noite, para a recepção, e o dinheiro que ficou com a pousada
++- **Relatórios (CSV):** a ocupação de uma noite, para a recepção (com o nome do hóspede; vírgulas no nome viram espaços), e o dinheiro que ficou com a pousada
+   das reservas que começam num mês, para o contador.
+ 
+ ## A API
+diff --git a/src/main/java/hotel/reports/OccupancyReport.java b/src/main/java/hotel/reports/OccupancyReport.java
+index bf87b70..939ead3 100644
+--- a/src/main/java/hotel/reports/OccupancyReport.java
++++ b/src/main/java/hotel/reports/OccupancyReport.java
+@@ -31,12 +31,13 @@ public final class OccupancyReport {
+         occupying.sort(Comparator.comparingInt(Reservation::roomNumber));
+ 
+         StringBuilder csv = new StringBuilder();
+-        csv.append("room,type,reservation,check_in,check_out\n");
++        csv.append("room,type,reservation,guest,check_in,check_out\n");
+         for (Reservation reservation : occupying) {
+             Room room = rooms.find(reservation.roomNumber()).orElseThrow();
+             csv.append(room.number()).append(',')
+                     .append(room.type()).append(',')
+                     .append(reservation.id()).append(',')
++                    .append(reservation.guest().name().replace(',', ' ')).append(',')
+                     .append(reservation.checkIn()).append(',')
+                     .append(reservation.checkOut()).append('\n');
+         }
+diff --git a/src/test/java/hotel/reports/ReportsTest.java b/src/test/java/hotel/reports/ReportsTest.java
+index c5b419f..f9018b4 100644
+--- a/src/test/java/hotel/reports/ReportsTest.java
++++ b/src/test/java/hotel/reports/ReportsTest.java
+@@ -1,6 +1,7 @@
+ package hotel.reports;
+ 
+ import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ import hotel.EmptyDatabase;
+ import hotel.messages.EmailSender;
+@@ -58,20 +59,32 @@ class ReportsTest {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 1));
+ 
+         assertEquals("""
+-                room,type,reservation,check_in,check_out
+-                101,STANDARD,2,2027-03-30,2027-04-02
+-                201,DELUXE,1,2027-04-01,2027-04-03
++                room,type,reservation,guest,check_in,check_out
++                101,STANDARD,2,Bruno Lima,2027-03-30,2027-04-02
++                201,DELUXE,1,Bruno Lima,2027-04-01,2027-04-03
+                 total,2/5
+                 """, csv);
+     }
+ 
++    @Test
++    void commasInTheGuestNameBecomeSpaces() {
++        Guest guest = new Guest("Lima, Bruno", "bruno@example.com", "987.654.321-00");
++        Reservation reservation = service.create(new NewReservation(
++                201, guest, LocalDate.parse("2027-08-01"), LocalDate.parse("2027-08-02"), 1, RatePlan.STANDARD));
++        service.confirm(reservation.id());
++
++        String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 8, 1));
++
++        assertTrue(csv.contains(",Lima  Bruno,"), csv);
++    }
++
+     @Test
+     void theCheckOutNightIsNotOccupied() {
+         String csv = new OccupancyReport(rooms, store).generate(LocalDate.of(2027, 4, 3));
+ 
+         assertEquals("""
+-                room,type,reservation,check_in,check_out
+-                301,SUITE,3,2027-04-02,2027-04-04
++                room,type,reservation,guest,check_in,check_out
++                301,SUITE,3,Bruno Lima,2027-04-02,2027-04-04
+                 total,1/5
+                 """, csv);
+     }

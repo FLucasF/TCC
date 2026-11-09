@@ -1,0 +1,20 @@
+package hotel.messages;
+
+/**
+ * Sends e-mails to guests, each one ending with the inn's signature. Every e-mail sent is kept in the list
+ * of sent messages.
+ */
+public final class EmailSender {
+
+    static final String SIGNATURE = "--\nPousada Maré Alta\n(79) 3200-0000 | @pousadamarealta\n";
+
+    private final SentMessages sentMessages;
+
+    public EmailSender(SentMessages sentMessages) {
+        this.sentMessages = sentMessages;
+    }
+
+    public Message send(String to, String subject, String body) {
+        return sentMessages.add("EMAIL", to, subject, body.stripTrailing() + "\n\n" + SIGNATURE);
+    }
+}

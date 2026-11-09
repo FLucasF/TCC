@@ -2,8 +2,7 @@
 
 *Rascunho de 23/10/2026, com as cinco rodadas dos cinco patterns em 03/11/2026: o V5 como estudo principal e o TCC_V1
 como extensão. Os números vêm dos
-relatórios e do `DECISOES.md` de cada fase; os das cinco rodadas, de `rodadas-cinco-patterns.md`. Corrigido em 03/11/2026
-com a leitura de textos publicados; preprints ficam de fora.*
+relatórios e do `DECISOES.md` de cada fase; os das cinco rodadas, de `rodadas-cinco-patterns.md`. Corrigido em 03/11/2026 com a leitura de textos publicados; preprints ficam de fora. Controles negativos da extensão acrescentados em 09/11/2026, de `controles-negativos.md`.*
 
 ## Resumo
 
@@ -14,7 +13,7 @@ serviço de *checkout* em quatro níveis de orientação, com cinco réplicas (2
 levou o ponto mais difícil do padrão Strategy de 67% para 93% das execuções corretas, sem aumentar o exagero, sem piorar a correção e com menor complexidade cognitiva, em parte decorrente da própria troca de condicionais; o efeito veio dos seis modelos que não acertavam sozinhos. Uma extensão
 exploratória, com cinco patterns, construção e manutenção, banco de dados e um verificador de qualidade calibrado (450
 execuções), mostrou a mesma direção em nove das dez combinações de pattern e tarefa, e um efeito mais forte quando o
-agente muda um código pronto (de 19 para 58 acertos em 75 com o arquivo e uma *skill* escrita para o estudo, contra 41 para 60 na construção; só com o arquivo, de 19 para 33, contra 41 para 53). As métricas de orientação a objetos, descritivas e analisadas depois dos resultados, sugerem o mecanismo: com
+agente muda um código pronto (de 19 para 58 acertos em 75 com o arquivo e uma *skill* escrita para o estudo, contra 41 para 60 na construção; só com o arquivo, de 19 para 33, contra 41 para 53). Em 90 execuções adicionais de controle negativo na manutenção, em que o *pattern* não se justifica, a mudança ficou pequena em 88 (30 de 30 sem orientação, 30 de 30 com o arquivo e 28 de 30 com o arquivo e a *skill*). As métricas de orientação a objetos, descritivas e analisadas depois dos resultados, sugerem o mecanismo: com
 a orientação, o código troca condicionais por polimorfismo (mais interfaces e métodos abstratos), e o acoplamento médio
 muda pouco.
 
@@ -185,7 +184,7 @@ agentes, mas o conteúdo de projeto das orientações, avaliado em vários model
 Em conjunto, nenhum dos trabalhos lidos mede o efeito de orientações persistentes sobre a decisão de aplicar um
 *pattern* não nomeado no pedido. Este trabalho faz essa medida em um estudo principal com pré-registro e com um controle
 negativo para o exagero (220 execuções de 11 modelos), e em uma extensão a cinco *patterns*, na construção e na
-manutenção, sem controle negativo (450 execuções).
+manutenção (450 execuções), à qual se acrescenta um controle negativo na manutenção (90 execuções).
 
 ## 4. Estudo principal: o Strategy com pré-registro
 
@@ -313,6 +312,8 @@ piloto (90), depois as repetições do pattern que mais errou (Decorator) e do q
 por fim as dos outros três (216). Fora da revisão, o mesmo CK do estudo principal (a mesma versão, conferida pelo
 *hash*, com as mesmas regras de resumo) mediu as 449 execuções com código, como descrição.
 
+**O controle negativo.** Na manutenção, foram acrescentados cinco cenários em que o *pattern* não se justifica, um para cada *pattern* estudado. Cada pedido toca a mesma parte do código que o cenário positivo correspondente, limita-se a uma mudança pontual (um percentual e um período, um texto, um campo, uma assinatura, uma coluna) e termina com uma frase vaga sobre o futuro, como "talvez um dia a gente mande essa confirmação por WhatsApp também, mas por enquanto é só o e-mail". A frase é proposital: ela oferece ao agente um motivo para construir a estrutura que ninguém pediu. Os textos vêm da fase intermediária, com dois ajustes de redação feitos antes das execuções. Os mesmos três modelos e os mesmos três níveis rodaram em duas rodadas (5 cenários, 3 modelos, 3 níveis e 2 rodadas, 90 execuções), em 09/11/2026, depois de concluídas as cinco rodadas dos cenários com *pattern*. Quatro execuções foram refeitas porque o repositório de dependências recusou os downloads por excesso de pedidos; as originais foram guardadas. O verificador, o mesmo da extensão, informado de que o cenário é um controle e às cegas quanto ao modelo e ao nível, classificou cada execução em **contenção** (a mudança pequena, no lugar onde o código já mora) ou **exagero** (uma estrutura criada para a variação não pedida, como uma interface, uma fábrica ou um embrulho), com critérios por cenário definidos na fase intermediária. Cada cenário ganhou um roteiro de chamadas à API. O verificador foi calibrado em seis soluções de referência (quatro contidas e duas com exagero), e as 12 notas esperadas conferiram.
+
 ### 5.3 Resultados
 
 **Tabela 3.** Execuções boas por dimensão, tarefa e nível (cinco rodadas, 75 por nível; no pattern, acerto ou
@@ -398,6 +399,19 @@ métricas acompanham a leitura do verificador: os projetos com omissão quase n�
 de acerto usam métodos abstratos; os de alternativa equivalente, que resolvem a variação com uma lista de regras (no Decorator) ou com um escritor genérico que recebe as partes que variam (no Template Method), usam
 interfaces e quase nenhum método abstrato. O CBO médio não separa as classes (fica entre 3,0 e 3,5 em todas).
 
+**O controle negativo.** A Tabela 7 mostra que a mudança ficou pequena em 88 das 90 execuções: 30 de 30 no N0, 30 de 30 no N1 e 28 de 30 no N2. As duas exceções são do Sonnet 5.5 com a *skill*, nas duas rodadas do cenário da temporada: o agente criou uma interface `Season`, com métodos de fábrica, e passou para ela também os períodos que a base já tinha, embora o acréscimo tenha continuado único. O `mvn verify` passou nas 90 execuções, e o comportamento recebeu a nota bom em 87; as outras três são do Haiku 4.5, nos cenários das crianças e da assinatura. A *skill* foi aberta nas 20 execuções do N2 dos dois modelos Sonnet e em nenhuma das 10 do Haiku 4.5.
+
+**Tabela 7.** Execuções com a mudança pequena nos controles negativos (duas rodadas; 6 execuções por cenário e nível).
+
+| cenário | N0 | N1 | N2 |
+|---|---|---|---|
+| temporada e Páscoa (Strategy) | 6 | 6 | 4 |
+| texto do e-mail (Observer) | 6 | 6 | 6 |
+| crianças na reserva (Factory Method) | 6 | 6 | 6 |
+| assinatura das mensagens (Decorator) | 6 | 6 | 6 |
+| coluna do hóspede (Template Method) | 6 | 6 | 6 |
+| **total (de 30)** | **30** | **30** | **28** |
+
 ## 6. Discussão
 
 Cada resposta diz de onde vem a evidência: do estudo principal, com pré-registro, ou da extensão, exploratória.
@@ -450,8 +464,9 @@ aumentou o acoplamento médio, e a coesão média também não mudou de forma co
 total de dependências cresce: multiplicando o CBO médio pelos tipos, conta aproximada, o aumento em relação ao N0 fica entre cerca de 22% e 46% no estudo principal e entre cerca de 3% e 27% na extensão. O CBO médio, portanto, não basta para dizer que a estrutura nova não é exagero, e também não distingue as classes do
 pattern, de modo que não serve sozinho para dizer se o pattern foi aplicado.
 
-**A trajetória do estudo.** O desenho mudou várias vezes, e cada mudança tem data e motivo registrados; parte delas foi feita depois de observar resultados da fase anterior. O V4 foi descartado antes da análise confirmatória; as mudanças da extensão vieram de problemas de método (o teto, o *framework* que entregava o pattern pronto, a *skill* que travava o agente) e também de resultados observados antes: as precisões do `CLAUDE.md`, a frase de três enunciados e a linha da *skill* no N2 da manutenção responderam a execuções anteriores, e a escolha dos *patterns* repetidos primeiro seguiu os acertos do piloto. O aumento do *pattern* certo apareceu na mesma direção nos dois estudos, com enunciados e correções diferentes e um subconjunto de três dos 11 modelos; a ausência de aumento do exagero, porém, foi verificada apenas no estudo principal, o
-único com controle negativo.
+**O controle negativo da extensão.** Na manutenção, as mesmas orientações que levaram o *pattern* certo de 19 para 58 execuções em 75 quase não produziram estrutura onde ela não cabia: 88 das 90 execuções mantiveram a mudança pequena. Esse resultado afasta a explicação de que os agentes orientados passaram a aplicar *pattern* em qualquer situação, ao menos nestes pedidos. As duas exceções, ambas com a *skill* e no mesmo modelo e cenário, são coerentes com o risco que a própria construção indica, onde o exagero também sobe com a *skill*. O N0 e o N1 já estão no teto, de modo que o controle só poderia revelar piora; ele não mostra que a orientação melhora a contenção.
+
+**A trajetória do estudo.** O desenho mudou várias vezes, e cada mudança tem data e motivo registrados; parte delas foi feita depois de observar resultados da fase anterior. O V4 foi descartado antes da análise confirmatória; as mudanças da extensão vieram de problemas de método (o teto, o *framework* que entregava o pattern pronto, a *skill* que travava o agente) e também de resultados observados antes: as precisões do `CLAUDE.md`, a frase de três enunciados e a linha da *skill* no N2 da manutenção responderam a execuções anteriores, e a escolha dos *patterns* repetidos primeiro seguiu os acertos do piloto. O aumento do *pattern* certo apareceu na mesma direção nos dois estudos, com enunciados e correções diferentes e um subconjunto de três dos 11 modelos; a contenção em pedidos que não justificam o *pattern* foi testada no estudo principal e na manutenção da extensão, mas não na construção da extensão.
 
 ## 7. Limitações
 
@@ -472,9 +487,8 @@ pattern, de modo que não serve sozinho para dizer se o pattern foi aplicado.
 - As orientações e três enunciados foram ajustados depois de observar a fase intermediária, e as duas precisões acrescentadas ao `CLAUDE.md` chegam mais perto de dois cenários (o Decorator e o Template Method) do que os princípios anteriores, o que tende a favorecer os níveis com orientação nesses cenários. A frase acrescentada aos
   enunciados reforça que a variação vai crescer e pode ter aumentado os acertos; como vale para os três níveis, ela não
   favorece nenhum deles, mas os números absolutos não se comparam com os da fase intermediária.
-- Não há controle negativo na extensão: os cinco cenários pedem um *pattern*. O exagero foi medido apenas no restante
-  do código, e não em um cenário em que o *pattern* não se justifica. Por isso, a extensão não mostra se a configuração
-  leva o agente a se conter quando o *pattern* não cabe, ponto que só o estudo principal testa.
+- O controle negativo da extensão existe só na manutenção; na construção, o exagero foi medido apenas no restante do código. Ele teve duas rodadas, contra cinco dos cenários com *pattern*, e foi executado depois deles, em outra data. Como os cenários ficaram no teto no N0 e no N1, o controle não tem como mostrar melhora, e as duas exceções do N2 não bastam para estimar o risco da *skill*.
+- A calibração do controle usou seis das dez soluções de referência, as que ainda se aplicavam à base com banco, e nenhuma do cenário das crianças; cobriu quatro casos de contenção e dois de exagero. O verificador sabe que o cenário é um controle, e dois roteiros de comportamento foram corrigidos depois de testados em execuções reais, antes das revisões. Os dois ajustes de redação dos enunciados e a decisão de rodar duas rodadas foram tomados no último dia de execução, depois de ver os resultados dos cenários com *pattern*.
 - O trabalho mede se o agente aplica o *pattern* esperado, e não se ele facilita as mudanças seguintes. Esse ganho, como registrado na Introdução, varia conforme o *pattern* e a tarefa [Prechelt et al. 2001; Vokáč et al. 2004; Zhang e Budgen 2012].
 - A correção é feita por uma IA; foi calibrada (52 de 52, depois de uma primeira rodada com 50 de 52, após a qual os testes de duas soluções foram completados e entrou a regra de que cada defeito pesa em uma só coluna), mas a nota resume uma leitura, e a calibração não cobriu o design do resto do código nem o exagero; na classe do *pattern*, testou apenas acerto e omissão, sem malfeito nem alternativa equivalente, e, no comportamento, apenas casos com a nota bom. Um segundo modelo da mesma
   empresa (Claude Fable 5.1), com o mesmo agente e as mesmas *skills*, revisou às cegas 30 execuções sorteadas, e
@@ -506,11 +520,10 @@ O estudo principal, com pré-registro, mostra que um arquivo de princípios aume
 (de 67% para 93%), sem aumentar o exagero, sem piorar a correção e com menor complexidade cognitiva, em parte decorrente da própria troca de condicionais, e que o efeito vem dos
 modelos que não acertam sozinhos. A extensão, com cinco rodadas, mostra a mesma direção em nove das dez combinações de
 pattern e tarefa, com a exceção do Strategy na construção; o efeito é mais forte quando o agente muda um código pronto,
-e nas outras dimensões de qualidade o modelo e o ponto de partida pesam mais que a orientação. Na construção com a
-*skill*, o exagero sobe de 4 para 9 execuções em 75. As métricas de orientação a objetos, descritivas e analisadas depois dos resultados, sugerem o mecanismo: a
+e nas outras dimensões de qualidade o modelo e o ponto de partida pesam mais que a orientação. Na construção com a *skill*, o exagero sobe de 4 para 9 execuções em 75. Na manutenção, os controles negativos indicam que a orientação não leva o agente a aplicar *pattern* onde ele não cabe: 88 de 90 execuções mantiveram a mudança pequena. As métricas de orientação a objetos, descritivas e analisadas depois dos resultados, sugerem o mecanismo: a
 orientação troca condicionais por polimorfismo e distribui a complexidade por mais classes, com pouca mudança no
 acoplamento médio. Como trabalhos futuros, ficam outras famílias de modelos e de agentes; a leitura humana das notas do
-verificador; cenários de controle negativo na extensão; e a medida do ganho do *pattern*, pedindo um novo caso sobre o
+verificador; o controle negativo também na construção e com mais rodadas; e a medida do ganho do *pattern*, pedindo um novo caso sobre o
 código gerado e contando quantos lugares precisam mudar e quantos comportamentos antigos se quebram.
 
 ## Referências
