@@ -1,0 +1,55 @@
+# Versões do artigo
+
+Cada versão é o artigo inteiro, com uma correção a mais que a anterior e, no começo, o que foi feito.
+
+- **v1:** Correções da seção 4: contradição sobre o V4 (texto e Figura 3), Java 21 e Spring Boot, versão do Claude Code, o Fable como modelo excluído, 'ponto do clube' e 'ponto do seguro' no lugar de P4 e P5, repositório público do pré-registro, 17 versões defeituosas, saldo de pares explicado, regra de saída do Semgrep e o tamanho do efeito do N3 no exagero.
+- **v2:** Seção 5.1: o framework. O DECISOES.md mostra que a troca de Spring Boot para Javalin aconteceu durante a fase intermediária (15/10 na manutenção e 18/10 na construção). O texto agora diz isso, e fica coerente com a Figura 3.
+- **v3:** Seção 7: a limitação falava em separar o efeito do harness do par Claude e Claude Code, o que não faz sentido com a definição adotada, em que o harness é o próprio Claude Code. Agora fala em configuração.
+- **v4:** Seção 6, P1: o cabeçalho dizia 'confirmado na extensão', mas a extensão é exploratória e o próprio parágrafo diz que ela não reproduz o efeito no Strategy. Agora diz 'na mesma direção'.
+- **v5:** Seção 6, P2: o pronome agora concorda com 'a configuração', como na Introdução.
+- **v6:** Seção 2: o texto dizia que a resposta com pattern 'é melhor', o que contradiz a ideia de exagero e Zhang e Budgen (2012). Agora diz que ela é a esperada quando a variação vai crescer.
+- **v7:** Seção 5.2: define o que o verificador dá por execução (sete notas, incluindo a classe do pattern, o design do resto do código e o exagero). Os resultados usavam 'design do resto' e 'exagero' sem definição. Conferido na skill review-design.
+- **v8:** Seção 5.2: explica as 52 notas da calibração, conferidas no summary.md: 20 da classe do pattern, 20 do comportamento e 4 de arquitetura, testes e banco. Em 7, declara que o design do resto do código e o exagero não foram calibrados.
+- **v9:** Seção 6, P6: dizia que as outras dimensões 'quase não mudam', mas a Tabela 3 mostra o design do resto do código subindo de 14 para 25 na manutenção. Agora o texto separa o que acompanha a orientação do que oscila.
+- **v10:** Resumo e Conclusão: 'menos complexidade' agora é 'menor complexidade cognitiva, em parte decorrente da troca de condicionais', coerente com a limitação da seção 7.
+- **v11:** Seção 7: acrescenta a ameaça de memorização, de Sallou et al. (2024): os patterns estão no treino dos modelos, e o controle negativo do estudo principal só a reduz em parte. A referência entrou na lista.
+- **v12:** Seção 7: declara que as rodadas do Factory Method e do Decorator são de 22/10 e as dos outros três de 01 e 02/11, conferido no meta.json. Isso atrapalha comparar patterns entre si, mas não os níveis. Declara também que a ordem das rodadas foi decidida depois do piloto, e que cinco rodadas ficam abaixo do piso de dez de Arcuri e Briand.
+- **v13:** Seção 6, trajetória: dizia que nenhuma mudança veio dos resultados, mas o DECISOES.md mostra que as precisões do CLAUDE.md, a frase de três enunciados, a linha da skill na manutenção e a escolha dos patterns repetidos primeiro responderam a resultados anteriores.
+- **v14:** Seção 4: a hipótese do modelo estava mais forte que o veredito. O maior saldo foi do Opus 4.7 (+5); o Haiku 4.5 teve +1. O método agora cita a regra própria dessa hipótese.
+- **v15:** Seções 6: dizia que os modelos da extensão são 'outros', mas os três fazem parte dos 11 do estudo principal.
+- **v16:** Seção 6, P3: 'um modelo forte no resto' não tem base. O Opus 4.7 acertava 0 de 5 no N0, empatado com o Haiku 4.5, e ficou abaixo de vários modelos na suíte e na complexidade.
+- **v17:** Seção 5.3: os métodos abstratos não vêm do Decorator. Pelo CSV do CK, a média no N2 é de 0,33 e 0 no Decorator, contra 4,87 e 3,60 no Template Method e 4,20 e 2,13 no Factory Method.
+- **v18:** Seção 6, P8: o intervalo de 15% a 30% não valia para todos os níveis. Recalculado com as Tabelas 2 e 5: de 22% a 46% no estudo principal e de 3% a 27% na extensão.
+- **v19:** Seção 6, P2: 'o exagero não muda' contradizia o resultado do N3, em que a queda foi apoiada.
+- **v20:** Seção 6, P2: acrescenta o que o resultado do estudo principal mostra sobre tamanho e duplicação. A hipótese de mais arquivos ficou inconclusiva, a de não repetir o comum foi contrariada, e a duplicação sobe de 1,2% para 2,5%.
+- **v21:** Seção 6, P8: 'mais preparado para o caso novo' não foi medido, como o próprio OBJETIVO.md e as limitações dizem.
+- **v22:** Seção 4.2: as 62 execuções da bancada são a contagem até 06/10; a pasta construction-v3 tem 119 execuções anteriores ao V5.
+- **v23:** Seção 4: os degraus N2 e N3 quase não tinham modelos fora do teto. O texto agora diz isso, e o 'teto' é definido pelo nível de baixo de cada comparação.
+- **v24:** Seções 4.3 e 6, P8: a cauda de LCOM diminuiu, mas não desapareceu. O metricas.csv mostra seis projetos com LCOM média de 37,2 ou mais no N0, um no N2 e nenhum no N1 e no N3.
+- **v25:** Seções 5.1 e 6, P4: a parada com a skill ocorreu na fase intermediária, com a skill pública, e o motivo da troca foi também o catálogo extenso, segundo o relatório da construction-v7 e o DECISOES.md.
+- **v26:** Seção 5.2: o design não tem script de medição, e o verificador recebe o pattern esperado. Ele é cego ao modelo e ao nível, não a tudo.
+- **v27:** Introdução: a P6 agora lista o design do resto do código, coerente com a resposta da seção 6.
+- **v28:** Seção 6, P3: 'nenhum modelo piorou' só vale para o ponto do clube. Na correção, o Haiku 4.5 piorou nos cinco pares (saldo -5), segundo o arquivo de hipóteses do V5.
+- **v29:** Seção 7: detalha os limites da calibração, segundo o README e o summary.md: primeira rodada com 50 de 52, e, na classe do pattern, só acerto e omissão; no comportamento, só a nota bom.
+- **v30:** Seção 7: o DECISOES.md manda declarar que as duas precisões do CLAUDE.md chegam mais perto de dois cenários (Decorator e Template Method). Agora o artigo declara.
+- **v31:** Seção 6, P4: alinha o texto com o resultado: a skill ficou inconclusiva com dez modelos no teto, e o efeito do N3 no desenho veio de um só modelo.
+- **v32:** Resumo: o aumento de 19 para 58 é com arquivo e skill. O texto agora separa isso do efeito só do arquivo (19 para 33) e dá a comparação com a construção.
+- **v33:** Seção 7: declara, como pede o OBJETIVO.md do V5, que a complexidade cognitiva virou hipótese principal depois de um ensaio anterior.
+- **v34:** Seção 6, P4: 'ajudou nos patterns menos óbvios' não tem base. O ganho do N1 para o N2 aparece sobretudo na manutenção, e o Decorator na construção fica em 10 de 15 nos dois níveis.
+- **v35:** Resumo e Conclusão: as métricas de orientação a objetos são descritivas e analisadas depois dos resultados. Agora 'sugerem' o mecanismo, em vez de 'mostram'.
+- **v36:** Introdução: Vaswani e Brown não sustentam geração de código. A frase agora cita Hou et al. (2024) para isso e deixa Vaswani e Brown para a arquitetura Transformer.
+- **v37:** Seção 7: Sallou et al. tratam de vazamento de dados de treino, não de patterns. A frase agora separa o que vem deles da inferência deste trabalho.
+- **v38:** Seção 5.3: a alternativa equivalente não é só lista de regras. Também é um escritor genérico, no Template Method, segundo as referências do verificador.
+- **v39:** Introdução: a P8 prometia coesão nos dois estudos, mas ela só é relatada no estudo principal.
+- **v40:** Seção 3: Zisa et al. (2026) também usam modelos de duas empresas (Gemini e GPT-4o), o que a comparação não dizia.
+- **v41:** Seção 4.3: corrige um artigo que sobrou da troca para 'a configuração'.
+- **v42:** Seção 6, trajetória: tira a repetição 'lote descartado foi descartado'.
+- **v43:** Seção 4.3: precisa onde está a regra de empate da hipótese do modelo. Ela não está no OBJETIVO, mas no código de análise e no DECISOES.md de 09/10, ambos anteriores às execuções do V5.
+- **v44:** Seção 5.2: são 26 revisões de 16 casos (dez soluções revisadas nas duas tarefas e seis exemplos), e não 26 casos.
+- **v45:** Seção 4.3: o Haiku 4.5 empata com o Opus 4.7 no N0, e é o mais fraco só no conjunto dos níveis (6 de 20).
+- **v46:** Tabela 2: recalculado no metricas.csv, tipos com nome no N1 é 27,9, e DIT máximo no N2 é 3,7.
+- **v47:** Seção 5.3: separa em duas a frase que tinha dois dois-pontos encadeados.
+- **v48:** Seção 7: tira a frase quase igual à da Introdução.
+- **v49:** Seção 7: o maior intervalo entre os níveis foi de 10,1 horas, então o texto agora diz 'cerca de 10 horas'.
+- **v50:** Seção 5.3: o Sonnet 5.5 tem 5 execuções por nível, e não 15. O total de 15 soma os três níveis.
+- **v51:** Seção 4.3: a frase das hipóteses dizia que o CLAUDE.md 'teve' o maior saldo. Quem teve foi o Opus 4.7.

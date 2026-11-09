@@ -179,7 +179,7 @@ def phases() -> str:
         (
             "Lote descartado",
             "construction-v4",
-            ["Lote pré-registrado, descartado antes", "de qualquer análise."],
+            ["Lote pré-registrado, descartado antes da análise", "confirmatória; serviu de ensaio da análise."],
             False,
         ),
         (
