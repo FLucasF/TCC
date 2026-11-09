@@ -1559,3 +1559,5 @@ considera que um preprint não tem confirmação de que os dados são confiávei
 **03/11: no artigo, *harness* é o software em volta do modelo, como em Galster et al. (AIware 2026), e a variável estudada é a configuração do
 *harness*; o N0 é o Claude Code sem configuração.** *Por quê:* no sentido antigo, "N0 sem *harness*" ficava errado, porque o Claude Code sem
 configuração já tem um. O pré-registro do V5 continua como está, por estar congelado, e o artigo avisa a diferença.
+
+**09/11: o controle negativo da manutenção do TCC_V1 roda em uma rodada só (5 cenários, 3 modelos, N0 a N2, 45 execuções), com os textos da `maintenance-v1`, dois ajustes propostos na revisão do Fable (o 02 limita a Páscoa aos dois anos dados; o 06 diz que `guests` continua com o nome e conta os adultos) e os critérios do gabarito de 18/10 passados para o verificador.** *Por quê:* a assinatura termina hoje e só resta cota semanal para uma rodada; o Lucas autorizou rodar e delegou as escolhas, sem revisar os dois ajustes. Uma rodada só dá indício, e o artigo diz isso. A calibração do verificador usa as 6 soluções de referência (de 10) que ainda se aplicam à base com banco.

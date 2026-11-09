@@ -11,6 +11,12 @@ FAILED=0
 STATUS=""
 CONTENT_TYPE=""
 RESPONSE=""
+# what the common part expects; a control scenario that changes one of these values sets it before common_checks
+TWO_HIGH_NIGHTS="599.76"
+ONE_HIGH_NIGHT="299.88"
+CONFIRMATION_SUBJECT="Reserva confirmada - Pousada Maré Alta"
+OCCUPANCY_HEADER="room,type,reservation,check_in,check_out"
+OCCUPANCY_GUEST=""   # the guest's column in the occupancy line ("Carla Dias,"), when the scenario adds it
 
 # builds and starts the project; returns 1 (with the reason in the result file) when it cannot
 behavior_begin() {
@@ -191,7 +197,7 @@ common_checks() {
     expect "criar uma reserva responde 201" "201" "$STATUS"
     expect "a reserva nasce PENDING" "PENDING" "$(field '.status')"
     expect "STANDARD de 10 a 12/07 (alta temporada): 2 noites" "2" "$(field '.nights')"
-    expect "STANDARD de 10 a 12/07: total 599.76" "599.76" "$(money "$(field '.total')")"
+    expect "STANDARD de 10 a 12/07: total $TWO_HIGH_NIGHTS" "$TWO_HIGH_NIGHTS" "$(money "$(field '.total')")"
     expect "nada pago antes da confirmação (amountPaid 0.00)" "0.00" "$(money "$(field '.amountPaid')")"
     expect "refund null antes do cancelamento" "null" "$(field '.refund')"
     if grep -qE '"amountPaid"[[:space:]]*:[[:space:]]*0\.00\b' <<< "$RESPONSE"; then
@@ -232,15 +238,15 @@ common_checks() {
 
     request POST "/reservations/$first/confirmation"
     expect "confirmar responde 200 com CONFIRMED" "200 CONFIRMED" "$STATUS $(field '.status')"
-    expect "o pago é o total (599.76)" "599.76" "$(money "$(field '.amountPaid')")"
+    expect "o pago é o total ($TWO_HIGH_NIGHTS)" "$TWO_HIGH_NIGHTS" "$(money "$(field '.amountPaid')")"
     request POST "/reservations/$first/confirmation"
     expect_error "confirmar de novo: 409 OPERATION_NOT_ALLOWED" 409 OPERATION_NOT_ALLOWED
 
     local guest_messages
     guest_messages="$(messages_to carla@example.com)"
-    expect "o hóspede recebe o e-mail \"Reserva confirmada - Pousada Maré Alta\"" "1" \
-        "$(jq '[.[] | select(.subject == "Reserva confirmada - Pousada Maré Alta")] | length' <<< "$guest_messages" 2>/dev/null)"
-    expect_contains "o e-mail traz o comprovante (\"Total: R\$ 599,76\")" "Total: R\$ 599,76" \
+    expect "o hóspede recebe o e-mail \"$CONFIRMATION_SUBJECT\"" "1" \
+        "$(jq --arg subject "$CONFIRMATION_SUBJECT" '[.[] | select(.subject == $subject)] | length' <<< "$guest_messages" 2>/dev/null)"
+    expect_contains "o e-mail traz o comprovante (\"Total: R\$ ${TWO_HIGH_NIGHTS/./,}\")" "Total: R\$ ${TWO_HIGH_NIGHTS/./,}" \
         "$(jq -r '.[0].body // ""' <<< "$guest_messages" 2>/dev/null)"
 
     request GET "/reservations/$first/document"
@@ -260,7 +266,7 @@ common_checks() {
     local standard="$RID"
     request POST "/reservations/$standard/confirmation"
     request POST "/reservations/$standard/cancellation"
-    expect "cancelar STANDARD confirmada devolve o pago (299.88)" "CANCELLED 299.88" \
+    expect "cancelar STANDARD confirmada devolve o pago ($ONE_HIGH_NIGHT)" "CANCELLED $ONE_HIGH_NIGHT" \
         "$(field '.status') $(money "$(field '.refund')")"
     request POST "/reservations/$non_refundable/confirmation"
     request POST "/reservations/$non_refundable/cancellation"
@@ -273,13 +279,14 @@ common_checks() {
 
     request GET "/reports/occupancy?date=2029-07-10"
     expect "o relatório de ocupação responde 200 em text/csv" "200 text/csv" "$STATUS ${CONTENT_TYPE%%;*}"
-    expect_line "ocupação: o cabeçalho" "room,type,reservation,check_in,check_out"
-    expect_line "ocupação: a reserva com check-out conta na noite de entrada" "101,STANDARD,$first,2029-07-10,2029-07-12"
+    expect_line "ocupação: o cabeçalho" "$OCCUPANCY_HEADER"
+    expect_line "ocupação: a reserva com check-out conta na noite de entrada" \
+        "101,STANDARD,$first,${OCCUPANCY_GUEST}2029-07-10,2029-07-12"
     expect_line "ocupação: o total" "total,1/5"
     request GET "/reports/revenue?month=2029-07"
     expect_line "financeiro: o cabeçalho" "reservation,room,check_in,check_out,status,amount"
-    expect_line "financeiro: a reserva paga" "$first,101,2029-07-10,2029-07-12,CHECKED_OUT,599.76"
-    expect_line "financeiro: o total (a cancelada com devolução não conta)" "total,599.76"
+    expect_line "financeiro: a reserva paga" "$first,101,2029-07-10,2029-07-12,CHECKED_OUT,$TWO_HIGH_NIGHTS"
+    expect_line "financeiro: o total (a cancelada com devolução não conta)" "total,$TWO_HIGH_NIGHTS"
     request GET "/reports/revenue?month=2029-03"
     expect_line "financeiro: a NON_REFUNDABLE cancelada continua contando" \
         "$non_refundable,101,2029-03-10,2029-03-11,CANCELLED,212.42"

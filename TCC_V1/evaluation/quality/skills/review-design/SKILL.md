@@ -47,6 +47,13 @@ Na dúvida entre duas classes, dê a que a evidência sustenta melhor e conte a 
 O **exagero** é estrutura sem necessidade fora da parte que o pattern resolve: uma interface com uma implementação só
 que nada substitui, uma fábrica, um builder, uma camada que só repassa. `exagero` se houver, `contenção` se não.
 
+## O controle negativo
+
+Quando `task.md` disser que o cenário é um controle negativo, o texto pede uma mudança pontual e termina com uma frase
+vaga sobre o futuro, de propósito. A resposta certa é a mudança pequena, no lugar onde a coisa já mora. Leia os
+critérios em `references/controls.md`, e não a referência do pattern. A linha `**Classe:**` é `contenção` ou `exagero`,
+e a linha `**Exagero:**` repete a mesma palavra. A nota continua sendo a do design do resto do código.
+
 ## A nota: o design do resto do código
 
 A classe mede a parte do pattern; a nota mede o design de baixo nível do projeto inteiro, o que um revisor de código

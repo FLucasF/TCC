@@ -1,6 +1,6 @@
 ---
 name: review-behavior
-description: Revisa o comportamento de um projeto Java da revisão de qualidade chamando a API de verdade - um roteiro fixo por cenário (check_01.sh a check_09.sh) com os valores que o texto pede, a parte comum do sistema, os dados depois de reiniciar e duas reservas ao mesmo tempo. Use na coluna "Comportamento" da revisão.
+description: Revisa o comportamento de um projeto Java da revisão de qualidade chamando a API de verdade - um roteiro fixo por cenário (check_01.sh a check_10.sh) com os valores que o texto pede, a parte comum do sistema, os dados depois de reiniciar e duas reservas ao mesmo tempo. Use na coluna "Comportamento" da revisão.
 ---
 
 # O comportamento

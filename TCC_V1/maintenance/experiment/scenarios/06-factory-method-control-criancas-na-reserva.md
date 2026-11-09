@@ -4,4 +4,4 @@ Criança não paga diária, mas ocupa lugar no quarto, então adultos e criança
 
 A gente já pensou em cobrar alguma coisa das crianças maiores no futuro, mas por enquanto criança não paga.
 
-O pessoal do site pediu que o número de crianças venha no campo `children`, que é opcional quando se cria a reserva e aparece na reserva quando eles consultam.
+O pessoal do site pediu que o número de crianças venha no campo `children`, que é opcional quando se cria a reserva e aparece na reserva quando eles consultam. O campo `guests` continua com o mesmo nome e passa a contar só os adultos.

@@ -110,5 +110,5 @@ O que a evidência não decidiu, ou "nenhuma".
 ```
 
 Palavras permitidas: **Nota:** `bom`, `com problemas` ou `ruim`; **Classe:** `acerto`, `alternativa equivalente`,
-`malfeito` ou `omissão`; **Exagero:** `contenção` ou `exagero`. Se o agente não entregou nada (a pasta vazia, ou
+`malfeito` ou `omissão` (no controle negativo, `contenção` ou `exagero`); **Exagero:** `contenção` ou `exagero`. Se o agente não entregou nada (a pasta vazia, ou
 nenhuma linha mudada), diga isso com todas as letras e dê `ruim` onde não houver o que avaliar.

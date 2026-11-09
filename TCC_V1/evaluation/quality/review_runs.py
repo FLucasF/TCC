@@ -70,7 +70,9 @@ LINE_BREAK = "\n"
 STUDIES = ("construction", "maintenance")
 STUDY_NAMES = {"construction": "construção", "maintenance": "manutenção"}
 PATTERN_BY_SCENARIO = {"01": "strategy", "03": "observer", "05": "factory-method", "07": "decorator",
-                       "09": "template-method"}
+                       "09": "template-method", "02": "strategy", "04": "observer", "06": "factory-method",
+                       "08": "decorator", "10": "template-method"}
+CONTROL_SCENARIOS = ("02", "04", "06", "08", "10")   # the negative controls: the right answer is the small change
 PATTERN_NAMES = {"strategy": "Strategy", "observer": "Observer", "factory-method": "Factory Method",
                  "decorator": "Decorator", "template-method": "Template Method"}
 # the scripts each skill carries; project.sh (lib/) goes next to them
@@ -79,7 +81,7 @@ SCRIPTED_SKILLS = ("review-architecture", "review-tests", "review-database", "re
 COLUMNS = {"arquitetura": "architecture", "design de baixo nível": "design", "testes": "tests", "banco": "database",
            "comportamento": "behavior"}
 GRADES = ("bom", "com problemas", "ruim")
-CLASSES = ("acerto", "alternativa equivalente", "malfeito", "omissão")
+CLASSES = ("acerto", "alternativa equivalente", "malfeito", "omissão", "contenção", "exagero")
 OVERENGINEERING = ("contenção", "exagero")
 
 REVIEWER_COMMAND = """
@@ -148,6 +150,13 @@ def task_text(review: Review) -> str:
         f"- **Pesquisa:** {STUDY_NAMES[review.study]}.",
         f"- **Cenário:** {review.scenario}; o texto pede, sem dizer o nome, o {PATTERN_NAMES[review.pattern]} "
         f"(a referência em `.claude/skills/review-design/references/{review.pattern}.md`).",
+    ] if review.scenario not in CONTROL_SCENARIOS else [
+        "# A revisão",
+        "",
+        f"- **Pesquisa:** {STUDY_NAMES[review.study]}.",
+        f"- **Cenário:** {review.scenario}; é um **controle negativo**: o texto pede uma mudança pontual, e a resposta "
+        "certa é a mudança pequena, sem estrutura nova (os critérios em "
+        "`.claude/skills/review-design/references/controls.md`, na parte deste cenário).",
     ]
     if review.study == "construction":
         lines += [
@@ -453,6 +462,7 @@ def calibration_reviews(names: list[str], model: str, effort: str) -> list[Revie
 
 
 def calibration_summary(reviews: list[Review], model: str, effort: str) -> None:
+    only_controls = all(review.scenario in CONTROL_SCENARIOS for review in reviews)
     lines = [f"# A calibração do revisor de qualidade: {model}, effort {effort}", "",
              "| pesquisa | caso | coluna | esperado | revisor | confere |", "|---|---|---|---|---|---|"]
     right = total = 0
@@ -471,7 +481,8 @@ def calibration_summary(reviews: list[Review], model: str, effort: str) -> None:
                          f"{'sim' if given == expected else 'NÃO'} |")
     lines += ["", f"**{right} de {total}** conferem. Custo: US$ {sum(costs):.2f}."]
     text = LINE_BREAK.join(lines) + LINE_BREAK
-    (CALIBRATION / short(model, effort) / "summary.md").write_text(text, encoding="utf-8")
+    name = "summary-controls.md" if only_controls else "summary.md"   # the 21/10 summary is kept
+    (CALIBRATION / short(model, effort) / name).write_text(text, encoding="utf-8")
     print(text)
 
 
@@ -480,6 +491,8 @@ def summary() -> None:
     rows = []
     for meta_file in sorted(RESULTS.glob("*/*/*/meta.json")):
         meta = json.loads(meta_file.read_text(encoding="utf-8"))
+        if meta["scenario"] in CONTROL_SCENARIOS:   # the controls have a report of their own
+            continue
         arm, model = meta_file.parent.name.split("-", 1)
         rows.append((meta["study"], meta["scenario"], arm, model, meta.get("grades", {}),
                      meta.get("scripts_skipped_by_reviewer", [])))

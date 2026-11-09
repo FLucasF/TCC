@@ -17,18 +17,21 @@ from pathlib import Path
 TCC_V1 = Path(__file__).resolve().parents[1]
 STOP_FILE = TCC_V1 / "infra" / "stop-rounds"
 LABELS = {"01": "01-strategy", "03": "03-observer", "05": "05-factory-method", "07": "07-decorator",
-          "09": "09-template-method"}
+          "09": "09-template-method", "02": "02-strategy-control", "04": "04-observer-control",
+          "06": "06-factory-method-control", "08": "08-decorator-control", "10": "10-template-method-control"}
 ARMS = ("N0", "N1", "N2")
 
 
 def run(study: str, scenario: str, arm: str, model: str, replica: str) -> tuple[str, float]:
-    folder = TCC_V1 / study / "runs" / LABELS[scenario] / f"{arm}-{model.removeprefix('claude-')}-r{replica}"
+    suffix = "" if replica == "1" else f"-r{replica}"   # the first round is the folder without a suffix
+    folder = TCC_V1 / study / "runs" / LABELS[scenario] / f"{arm}-{model.removeprefix('claude-')}{suffix}"
     if (folder / "meta.json").is_file():
         return f"{study} {scenario} {folder.name}: already done", 0.0
     if STOP_FILE.exists():
         return f"{study} {scenario} {folder.name}: not started (stop file)", 0.0
     script = TCC_V1 / study / "infra" / "scripts" / "run_one_scenario.py"
-    done = subprocess.run([sys.executable, str(script), scenario, arm, model, "medium", "--replica", replica],
+    replica_arguments = [] if replica == "1" else ["--replica", replica]
+    done = subprocess.run([sys.executable, str(script), scenario, arm, model, "medium", *replica_arguments],
                           cwd=TCC_V1 / study, capture_output=True, text=True, encoding="utf-8", errors="replace",
                           check=False)
     if not (folder / "meta.json").is_file():
