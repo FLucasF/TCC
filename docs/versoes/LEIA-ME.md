@@ -94,3 +94,25 @@ Cada versão é o artigo inteiro, com uma correção a mais que a anterior e, no
 - **v90:** Revisão da v71 (esclarecimento): a queda do exagero no N3 segue a regra direcional, e não a de pares não empatados.
 - **v91:** Revisão da v71 (esclarecimento): as quatro perguntas conferidas por humano são dos pontos do clube e do seguro.
 - **v92:** Revisão da v71 (esclarecimento): a regra de desempate é anterior ao ensaio com os dados do V4.
+- **v93:** Citação (Wang et al. 2025): a fonte só dá dados nessa linha na sumarização de código; a frase agora diz isso.
+- **v94:** Citação (Muñoz Barón et al. 2020): o estudo não avalia se o código está correto.
+- **v95:** Citação (Zhang e Budgen 2012, Seção 7): a revisão não conclui que o ganho varia por pattern e tarefa; também dá referente à frase.
+- **v96:** Citação (Zhang e Budgen 2012, Seção 1): o juízo é de uma revisão de 2012, e não do presente.
+- **v97:** Citação (Arcuri e Briand 2014): dez repetições é o mínimo admitido com muitos artefatos, e a recomendação geral é de um número muito alto.
+- **v98:** Citação (Galster et al. 2026): os percentuais se referem a 2.853 repositórios que já usam ferramentas de agente.
+- **v99:** Citação (Hou et al. 2024): 0,92% é a parcela das tarefas registradas, 4 de 436, e não dos artigos.
+- **v100:** Citação (Kim 2026): além da implementação, uma tarefa gera a suíte de testes.
+- **v101:** Citação (Gamma et al. 1995): no Template Method, a variação fica em subclasses, e não em um objeto próprio.
+- **v102:** Citação (Martin 2003): Martin credita o princípio a Meyer e o realiza por abstrações.
+- **v103:** Tira do arquivo final o parágrafo de rascunho.
+- **v104:** Novo Resumo, com cerca de 9,4 linhas; os detalhes por tarefa ficam no corpo do artigo.
+- **v105:** Reescreve a Conclusão em prosa acadêmica, sem informação nova.
+- **v106:** Citações: seis casos repetiam o autor no texto e entre colchetes.
+- **v107:** Português, Seção 1: emendas mal encaixadas, regência, tom informal e perguntas de pesquisa nomeadas.
+- **v108:** Português, Seção 2: tira os rótulos em negrito, expande as siglas e corrige o tom informal.
+- **v109:** Português, Seções 3 e 4: decalques, plural, hífen, regência, emendas e nome da métrica na Tabela 2.
+- **v110:** Português, Seção 5: concordância, tempos verbais, frase truncada e numerais.
+- **v111:** Português, Seções 6 e 7: hífen, sinal de menos, jargão e tom informal.
+- **v112:** Referências: formato uniforme de periódicos e eventos, autores de Galster, DOIs e páginas conferidos no Crossref, e a entrada da Anthropic em três.
+- **v113:** Uniformidade: pattern e design sempre em itálico, e pattern no lugar de padrão ao nomear os patterns.
+- **v114:** Figura 1 com 'em torno do modelo'; o itálico agora aparece nas legendas do arquivo final.
