@@ -34,14 +34,15 @@ expect_error "número negativo: 400 INVALID_REQUEST" 400 INVALID_REQUEST
 section "Cenário 06: o comprovante"
 create 301 2027-05-10 2027-05-11 2 STANDARD '{"children": 2}'
 two="$RID"
+# the receipt's text goes out in the confirmation e-mail
 request POST "/reservations/$two/confirmation"
-request GET "/reservations/$two/document"
-expect "a linha \"Crianças: 2\" logo depois da linha do quarto" "Crianças: 2" \
-    "$(field '.text // ""' | grep -A1 '^Quarto:' | tail -1)"
 request POST "/reservations/$plain/confirmation"
-request GET "/reservations/$plain/document"
-if [[ "$(field '.text // ""')" == *"Crianças"* ]]; then
-    bad "sem criança, o comprovante fica como está" "sem a linha" "$(field '.text // ""')"
+emails="$(messages_to carla@example.com)"
+expect "a linha \"Crianças: 2\" logo depois da linha do quarto" "Crianças: 2" \
+    "$(jq -r '.[0].body // ""' <<< "$emails" 2>/dev/null | grep -A1 '^Quarto:' | tail -1)"
+second_email="$(jq -r '.[1].body // ""' <<< "$emails" 2>/dev/null)"
+if [[ "$second_email" == *"Crianças"* ]]; then
+    bad "sem criança, o comprovante fica como está" "sem a linha" "$second_email"
 else
     ok "sem criança, o comprovante fica como está"
 fi

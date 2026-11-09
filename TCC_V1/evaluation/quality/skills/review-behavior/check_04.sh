@@ -25,9 +25,9 @@ expect_contains "a saudação continua" "Olá, Carla Dias!" "$body"
 expect_contains "o comprovante continua" "Total: R\$ 249,90" "$body"
 new_lines='Entrada a partir das 14h e saída até as 12h.
 Café da manhã das 7h às 10h, incluído na diária.
-Qualquer dúvida, fale com a recepção: (79) 3200-0000.
-Até breve!'
-expect_contains "as três linhas novas, em ordem, e o \"Até breve!\" depois delas" "$new_lines" "$body"
+Qualquer dúvida, fale com a recepção: (79) 3200-0000.'
+expect_contains "as três linhas novas, em ordem" "$new_lines" "$body"
+expect "o \"Até breve!\" continua no fim" "Até breve!" "$(tail -1 <<< "$body")"
 if [[ "$body" == *"A entrada é a partir das 14h"* ]]; then
     bad "a linha antiga saiu" "sem a linha antiga" "$body"
 else

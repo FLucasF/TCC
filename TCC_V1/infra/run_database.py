@@ -34,7 +34,9 @@ def environment() -> dict[str, str]:
 
 def docker_arguments(run_id: str) -> list[str]:
     """The `docker run` arguments that put a container in the execution's network, with the database variables."""
-    arguments = ["--network", network_name(run_id)]
+    settings = Path(__file__).resolve().parent / "maven-settings.xml"
+    arguments = ["--network", network_name(run_id),
+                 "--mount", f"type=bind,source={settings},target=/home/experimento/.m2/settings.xml,readonly"]
     for key, value in environment().items():
         arguments += ["-e", f"{key}={value}"]
     return arguments
