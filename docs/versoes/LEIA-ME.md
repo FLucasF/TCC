@@ -137,3 +137,4 @@ Cada versão é o artigo inteiro, com uma correção a mais que a anterior e, no
 - **v133:** Parecer do professor: papéis do autor e do orientador, conforme o registro de decisões do repositório. A atuação dos agentes de IA fica para a seção de uso de IA, por decisão do autor.
 - **v134:** Parecer do professor: o que a IA fez em cada etapa, com modelo e nível de esforço (nova Tabela 3), e como o autor supervisionou. Tabelas seguintes renumeradas.
 - **v135:** Tira da Tabela 3 a linha de apoio à redação do artigo, que fica para a seção de uso de IA.
+- **v136:** Versão do Docs do autor: nota de rodapé de identificação do TCC, definição de IA com Poole e Mackworth (2023), Figura 1 com o fluxo do pedido e a escolha da skill, Figura 2 em duas caixas com o código em texto, links de ferramentas e do repositório em notas de rodapé.

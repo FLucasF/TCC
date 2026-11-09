@@ -1,10 +1,14 @@
 # Orientações de projeto e *design patterns* em agentes de programação: um estudo com pré-registro e sua extensão à manutenção
 
-Lucas Felipe Gomes Pedrosa (autor), Rodrigo Rebouças de Almeida (orientador)
+**Lucas Felipe Gomes Pedrosa**^[Trabalho de conclusão de curso, sob orientação do professor Rodrigo Rebouças de Almeida, submetido ao Curso de Licenciatura em Ciência da Computação do Centro de Ciências Aplicadas e Educação (CCAE) da Universidade Federal da Paraíba, como parte dos requisitos necessários para obtenção do grau de Licenciado em Ciência da Computação.]
 
-Licenciatura em Ciência da Computação, Departamento de Ciências Exatas, Centro de Ciências Aplicadas e Educação, Universidade Federal da Paraíba
+Departamento de Ciências Exatas (DCX)
 
-lucas.gomes@ufpb.dcx.br, rodrigor@dcx.ufpb.br
+Universidade Federal da Paraíba (UFPB) – Campus IV
+
+CEP 58297-000 – Rio Tinto – PB – Brasil
+
+`lucas.gomes@dcx.ufpb.br`
 
 ## Resumo
 
@@ -16,14 +20,14 @@ This work investigates how persistent guidance, in project files and skills, cha
 
 ## 1. Introdução
 
-Entre os sistemas de Inteligência Artificial (IA) usados no desenvolvimento de software, destacam-se os Grandes Modelos de Linguagem (*Large Language Models*, LLMs), modelos baseados na arquitetura Transformer [Vaswani et al. 2017; Brown et al. 2020], treinados com grandes volumes de texto e capazes de gerar texto, inclusive código-fonte, a partir de uma entrada chamada *prompt* [Hou et al. 2024]. Uma característica desses modelos é executar tarefas novas especificadas apenas por texto, sem ajuste de seus
+A Inteligência Artificial (IA) é o campo que estuda a síntese e a análise de agentes computacionais que agem de modo inteligente [Poole e Mackworth 2023]. Entre os sistemas de IA usados no desenvolvimento de software, destacam-se os Grandes Modelos de Linguagem (*Large Language Models*, LLMs), modelos baseados na arquitetura Transformer [Vaswani et al. 2017; Brown et al. 2020], treinados com grandes volumes de texto e capazes de gerar texto, inclusive código-fonte, a partir de uma entrada chamada *prompt* [Hou et al. 2024]. Uma característica desses modelos é executar tarefas novas especificadas apenas por texto, sem ajuste de seus
 parâmetros internos [Brown et al. 2020]. Assim, o que é escrito na entrada influencia o resultado produzido, e é nesse ponto que este trabalho se concentra.
 
 Quando um LLM passa a agir sobre um ambiente, surge a figura do agente: uma entidade que percebe o ambiente, toma
 decisões e executa ações [Xi et al. 2025], em um ciclo de raciocinar, agir e observar o resultado [Yao et al. 2023]. Os
 agentes de programação aplicam esse ciclo ao desenvolvimento de software: leem arquivos, escrevem código, executam
 testes e usam o retorno obtido para decidir o passo seguinte. Esse laço iterativo com retorno do ambiente é o que os
-distingue de um LLM usado de forma isolada [Liu et al. 2026]. O agente empregado neste trabalho é o Claude Code,
+distingue de um LLM usado de forma isolada [Liu et al. 2026]. O agente empregado neste trabalho é o Claude Code^[https://code.claude.com/docs],
 ferramenta da empresa Anthropic que recebe um pedido em linguagem natural e altera o projeto com autonomia [Anthropic 2026a].
 
 O modelo, contudo, não opera sozinho. As camadas de software em torno dele, que conduzem o ciclo do agente, montam a
@@ -38,11 +42,11 @@ contexto próprio, ao qual o agente principal delega uma tarefa [Anthropic 2026c
 porque acompanham o projeto e valem para todos os pedidos, ao contrário do *prompt*, que vale para um único pedido. Em 2.853 repositórios públicos que já usam ferramentas de agente, os arquivos de contexto predominam, enquanto *skills* (5,5%) e subagentes (4,6%) ainda são pouco
 adotados [Galster et al. 2026].
 
-A Figura 1 mostra que a configuração estudada é parte do *harness*, o software em torno do modelo.
+A Figura 1 mostra o caminho de um pedido, do *prompt* à resposta, e os pontos em que a configuração estudada atua no *harness*, o *software* em torno do modelo. O *harness* junta o *prompt*, o `CLAUDE.md` e as descrições das *skills* e envia o conjunto ao modelo. A cada passo, o modelo decide se abre uma *skill*, delega a um subagente ou usa uma ferramenta, e o resultado volta a ele até a conclusão da tarefa. A escolha da *skill* cabe ao próprio modelo, a partir da descrição de cada uma [Anthropic 2026b].
 
-![Figura 1](figuras/fig-harness.png)
+![Figura 1|491](figuras/fig-fluxo-prompt.png)
 
-**Figura 1.** O modelo, o *harness* e a configuração estudada. Fonte: elaboração própria.
+**Figura 1.** O fluxo de um pedido no agente, a escolha da *skill* e os pontos em que a configuração estudada atua. Fonte: elaboração própria.
 
 Essas orientações podem tratar de como o código deve ser organizado, e os padrões de projeto (*design patterns*, aqui
 chamados de *patterns*) oferecem um caso propício para observar esse efeito. Um *pattern* é uma solução conhecida e
@@ -60,7 +64,7 @@ sistema. Na manutenção, entendida como a modificação de um software existent
 segunda, já existe um código que o agente pode apenas estender.
 
 O tema é relevante porque o uso dessas ferramentas tem consequências observáveis sobre a qualidade do código. Em 806
-repositórios que adotaram o Cursor, outra ferramenta de programação com IA, o ganho de velocidade durou cerca de dois
+repositórios que adotaram o Cursor^[https://cursor.com/], outra ferramenta de programação com IA, o ganho de velocidade durou cerca de dois
 meses, enquanto o aumento de alertas de análise estática e da complexidade cognitiva persistiu [He et al. 2026]. Ao
 mesmo tempo, o projeto de software recebe pouca atenção: em uma revisão de 395 artigos sobre LLMs em engenharia de
 software, essa atividade responde por apenas 0,92% das tarefas registradas, 4 de 436 [Hou et al. 2024]. Quanto às orientações persistentes, o efeito das regras
@@ -108,10 +112,11 @@ interface (ou classe abstrata) com uma implementação por caso.
 
 A Figura 2 ilustra essa diferença com um exemplo simplificado, em que o preço de uma reserva depende do plano de tarifa.
 
-Sem *pattern*: condicional
-
-```
-double preco(String plano, double diaria, int noites) {
+:::colunas
+Sem *pattern*: condicional | Com o *pattern* Strategy
+---
+double preco(String plano,
+             double diaria, int noites) {
   if (plano.equals("normal"))
     return diaria * noites;
   if (plano.equals("fimDeSemana"))
@@ -120,15 +125,10 @@ double preco(String plano, double diaria, int noites) {
     return diaria * (noites - 1);
   throw new IllegalArgumentException();
 }
-```
-
-Cada plano novo obriga a alterar este método.
-
-Com o *pattern* Strategy
-
-```
+---
 interface PlanoTarifa {
-  double preco(double diaria, int noites);
+  double preco(double diaria,
+               int noites);
 }
 
 class Normal implements PlanoTarifa {
@@ -137,9 +137,9 @@ class Normal implements PlanoTarifa {
   }
 }
 // FimDeSemana e Pacote: uma classe cada
-```
-
-Cada plano novo é uma classe nova, e o código existente não muda.
+---
+Cada plano novo obriga a alterar este método. | Cada plano novo é uma classe nova, e o código existente não muda.
+:::
 
 **Figura 2.** A mesma regra com uma condicional e com o *pattern* Strategy (exemplo simplificado). Fonte: elaboração própria.
 
@@ -209,7 +209,7 @@ A Figura 4 compara o desenho experimental dos dois estudos; os blocos escuros in
 
 **Figura 4.** O desenho experimental do estudo principal e o da extensão. Fonte: elaboração própria.
 
-Todo o material do trabalho está em um repositório público (https://github.com/FLucasF/TCC), que reúne o código da bancada, os enunciados, os arquivos de orientação e as *skills*, os dados brutos das execuções, os scripts de análise e o pré-registro do estudo principal.
+Todo o material do trabalho está em um repositório público^[https://github.com/FLucasF/TCC], que reúne o código da bancada, os enunciados, os arquivos de orientação e as *skills*, os dados brutos das execuções, os scripts de análise e o pré-registro do estudo principal.
 
 O autor definiu o desenho experimental, as hipóteses e as decisões registradas no repositório, e os enunciados, os arquivos de orientação e a *skill* própria são de sua responsabilidade. O orientador, Rodrigo Rebouças de Almeida, propôs a sequência de níveis de configuração e orientou escolhas metodológicas, como a redação dos enunciados em linguagem não técnica e o uso de um teste de tendência. O único leitor humano foi o autor, que conferiu a classificação do Semgrep em 44 pacotes sorteados com semente registrada, um por modelo e nível, às cegas: as cópias vieram sem comentários e sem README, com códigos anonimizados, e o leitor não teve acesso ao resultado do Semgrep.
 
@@ -244,7 +244,7 @@ A Tabela 1 mostra o que cada nível de configuração contém em cada estudo e t
 
 Fonte: elaboração própria.
 
-A Tabela 2 reúne as tecnologias empregadas, com a versão e o papel de cada uma.
+A Tabela 2 reúne as tecnologias empregadas, com a versão e o papel de cada uma^[Java: https://openjdk.org/projects/jdk/21/; Spring Boot: https://spring.io/projects/spring-boot; Javalin: https://javalin.io; PostgreSQL: https://www.postgresql.org; Flyway: https://github.com/flyway/flyway; Maven: https://maven.apache.org; Docker: https://www.docker.com; jdeps: https://docs.oracle.com/en/java/javase/21/docs/specs/man/jdeps.html; pg_dump: https://www.postgresql.org/docs/18/app-pgdump.html].
 
 **Tabela 2.** Tecnologias usadas nos dois estudos.
 
@@ -274,7 +274,7 @@ Cada execução ocorreu em um contêiner próprio, criado a partir de uma mesma 
 
 Em cada execução, o agente recebeu uma pasta vazia e o enunciado de um serviço de *checkout* de uma loja virtual, a ser construído em Java 21 e Spring Boot 4.1.1, tecnologias fixadas pelo enunciado. O enunciado foi redigido na voz do proprietário do negócio, que conhece apenas o básico de programação, e descreve as regras de negócio e, em anexo, o contrato da interface de programação (*Application Programming Interface*, API) em linguagem simples, sem termos de arquitetura. O texto contém quatro pontos em que a variação pede o *pattern* Strategy: o frete, o cupom, a forma de pagamento e o nível do clube de fidelidade. Este último é o mais complexo, porque um mesmo caso afeta três regras, e é denominado neste trabalho ponto do clube. O enunciado contém, ainda, um controle negativo, o seguro por região, em que apenas a porcentagem varia e a aplicação do *pattern* constituiria exagero, denominado ponto do seguro.
 
-A variável estudada é a configuração, organizada em quatro níveis cumulativos. O nível N0 corresponde ao Claude Code sem configuração; o N1 acrescenta um arquivo `CLAUDE.md` com princípios gerais, sem nomear *patterns*; o N2 acrescenta ao N1 uma *skill* pública de *patterns* [Grndlvl 2026]; e o N3 acrescenta ao N2 um processo, composto de um plano curto de *design* anterior ao código e de um subagente revisor do mesmo modelo. Os princípios do `CLAUDE.md` deste estudo orientam o agente a levantar o que muda de caso para caso, a manter o comportamento de cada caso em um lugar próprio, sem uma sequência de condições para escolher entre eles, a definir a assinatura considerando todos os casos e a tratar assim apenas o que o enunciado descreve como variando. No N3, o arquivo pede ainda o registro de um plano curto de *design* antes do código e uma revisão antes do término. No pré-registro, que está congelado, essa configuração é denominada *harness*, ao passo que este artigo emprega o termo no sentido técnico definido na Introdução. Os textos do `CLAUDE.md` e das *skills* dos dois estudos estão no repositório público indicado na Seção 4, em `construction-v5/experiment/harnesses`, `TCC_V1/construction/experiment/harnesses` e `TCC_V1/maintenance/experiment/harnesses`.
+A variável estudada é a configuração, organizada em quatro níveis cumulativos. O nível N0 corresponde ao Claude Code sem configuração; o N1 acrescenta um arquivo `CLAUDE.md` com princípios gerais, sem nomear *patterns*; o N2 acrescenta ao N1 uma *skill* pública de *patterns* [Grndlvl 2026]; e o N3 acrescenta ao N2 um processo, composto de um plano curto de *design* anterior ao código e de um subagente revisor do mesmo modelo. Os princípios do `CLAUDE.md` deste estudo orientam o agente a levantar o que muda de caso para caso, a manter o comportamento de cada caso em um lugar próprio, sem uma sequência de condições para escolher entre eles, a definir a assinatura considerando todos os casos e a tratar assim apenas o que o enunciado descreve como variando. No N3, o arquivo pede ainda o registro de um plano curto de *design* antes do código e uma revisão antes do término. No pré-registro, que está congelado, essa configuração é denominada *harness*, ao passo que este artigo emprega o termo no sentido técnico definido na Introdução. Os textos do `CLAUDE.md` e das *skills* dos dois estudos estão no repositório público^[https://github.com/FLucasF/TCC], em `construction-v5/experiment/harnesses`, `TCC_V1/construction/experiment/harnesses` e `TCC_V1/maintenance/experiment/harnesses`.
 
 Participaram do estudo os 11 modelos Claude disponíveis no Claude Code em 10/10/2026: Haiku 4.5 e 5.5; Sonnet 4.5, 4.6, 5 e 5.5; e Opus 4.6, 4.7, 4.8, 5 e 5.5. O Fable foi excluído em razão do custo e da expectativa de que já acertasse sem orientação. Para cada modelo, os quatro níveis foram executados ao mesmo tempo, formando um quarteto, de modo que o horário e a carga do servidor fossem os mesmos nas comparações entre níveis. Cada quarteto foi repetido em cinco rodadas, e a ordem dos 55 quartetos foi sorteada com semente registrada, o que totaliza 220 execuções e 55 pares em cada comparação entre níveis vizinhos. O Claude Code, na versão 2.1.288, igual para todos os modelos, foi executado sem alterações, com esforço *medium*, parâmetro do Claude Code que regula o grau de raciocínio do modelo, em um contêiner.
 
@@ -321,7 +321,7 @@ Fonte: elaboração própria.
 
 ### 5.2 Proteção contra decisões posteriores aos dados
 
-Antes da medição, a bancada de testes acumulou 119 execuções (62 até 06/10), que serviram para identificar defeitos no enunciado, na suíte e na análise. Uma primeira versão do lote (V4 no repositório) foi executada e descartada antes da análise confirmatória, porque seu pré-registro separava os modelos em dois lotes em decorrência de um mal-entendido sobre quais entrariam nas conclusões; reescrevê-lo posteriormente falsearia a data do registro. O pré-registro do estudo principal foi congelado em 10/10, antes da primeira execução, com o *hash* de cada arquivo do instrumento (122 arquivos) gravado em um repositório público (https://github.com/FLucasF/TCC, *commit* 54e13fc9), o que permite conferir o conteúdo registrado, embora a data de um *commit* seja declarada por quem o realiza. Antes do congelamento, os dados do lote descartado serviram apenas de ensaio geral da análise, para testar o fluxo. O ensaio revelou um defeito real no Semgrep, em que projetos situados em uma subpasta não eram lidos, corrigido antes do congelamento. O agente de IA que operou o ensaio teve acesso aos resultados; o autor viu apenas informações operacionais, sem a direção de nenhum efeito.
+Antes da medição, a bancada de testes acumulou 119 execuções (62 até 06/10), que serviram para identificar defeitos no enunciado, na suíte e na análise. Uma primeira versão do lote (V4 no repositório) foi executada e descartada antes da análise confirmatória, porque seu pré-registro separava os modelos em dois lotes em decorrência de um mal-entendido sobre quais entrariam nas conclusões; reescrevê-lo posteriormente falsearia a data do registro. O pré-registro do estudo principal foi congelado em 10/10, antes da primeira execução, com o *hash* de cada arquivo do instrumento (122 arquivos) gravado no mesmo repositório (*commit* 54e13fc9), o que permite conferir o conteúdo registrado, embora a data de um *commit* seja declarada por quem o realiza. Antes do congelamento, os dados do lote descartado serviram apenas de ensaio geral da análise, para testar o fluxo. O ensaio revelou um defeito real no Semgrep, em que projetos situados em uma subpasta não eram lidos, corrigido antes do congelamento. O agente de IA que operou o ensaio teve acesso aos resultados; o autor viu apenas informações operacionais, sem a direção de nenhum efeito.
 
 ### 5.3 Resultados
 
@@ -663,6 +663,8 @@ Martin, R. C. (2003). *Agile Software Development: Principles, Patterns, and Pra
 Meyer, B. (1997). *Object-Oriented Software Construction*. 2. ed. Prentice Hall.
 
 Muñoz Barón, M.; Wyrich, M. e Wagner, S. (2020). An Empirical Validation of Cognitive Complexity as a Measure of Source Code Understandability. *ESEM '20*, 1-12. doi:10.1145/3382494.3410636
+
+Poole, D. L. e Mackworth, A. K. (2023). *Artificial Intelligence: Foundations of Computational Agents*. 3. ed. Cambridge University Press. https://artint.info/3e/html/ArtInt3e.html. Acesso em 09/11/2026.
 
 Prechelt, L.; Unger, B.; Tichy, W. F.; Brössler, P. e Votta, L. G. (2001). A controlled experiment in maintenance: comparing design patterns to simpler solutions. *IEEE Transactions on Software Engineering*, 27(12), 1134-1144. doi:10.1109/32.988711
 
