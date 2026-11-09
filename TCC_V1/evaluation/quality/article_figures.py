@@ -200,7 +200,7 @@ def phases() -> str:
             [
                 "Cinco patterns, com PostgreSQL; construção e",
                 "manutenção, 3 modelos, N0 a N2, 5 rodadas,",
-                "450 execuções.",
+                "450 execuções e 90 de controle negativo.",
             ],
             True,
         ),
@@ -237,7 +237,7 @@ def phases() -> str:
         f'<circle cx="20" cy="{top + 10}" r="7" fill="{ACCENT}"/>',
         text(33, top + 14, "traz os resultados do artigo", 11, color=MUTED),
         f'<circle cx="222" cy="{top + 10}" r="7" fill="{WHITE}" stroke="{MUTED}" stroke-width="1.5"/>',
-        text(235, top + 14, "caminho até o desenho", 11, color=MUTED),
+        text(235, top + 14, "caminho até o desenho experimental", 11, color=MUTED),
     ]
     return svg(top + 24, parts)
 
@@ -250,7 +250,7 @@ def experiment_design() -> str:
             [
                 ["Enunciado", "checkout, pasta", "vazia, sem nomear", "o pattern"],
                 ["Configuração", "N0, N1, N2 e N3"],
-                ["Agente", "11 modelos Claude,", "5 réplicas"],
+                ["Agente", "11 modelos Claude,", "5 rodadas"],
                 ["Avaliação", "suíte de aceitação,", "Semgrep, SonarQube", "e CK"],
             ],
         ),
@@ -260,8 +260,8 @@ def experiment_design() -> str:
             [
                 ["Enunciado", "pousada: construir", "ou manter, sem", "nomear o pattern"],
                 ["Configuração", "N0, N1 e N2"],
-                ["Agente", "3 modelos Claude,", "5 rodadas"],
-                ["Avaliação", "verificador de IA,", "às cegas, e CK"],
+                ["Agente", "3 modelos Claude,", "5 rodadas; controles", "negativos, 2 rodadas"],
+                ["Avaliação", "verificador de IA,", "cego a modelo e", "nível, e CK"],
             ],
         ),
     ]

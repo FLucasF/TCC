@@ -1,14 +1,22 @@
 # Orientações de projeto e *design patterns* em agentes de programação: um estudo com pré-registro e sua extensão à manutenção
 
+Lucas Felipe Gomes Pedrosa (autor), Rodrigo Rebouças de Almeida (orientador)
+
+Licenciatura em Ciência da Computação, Departamento de Ciências Exatas, Centro de Ciências Aplicadas e Educação, Universidade Federal da Paraíba
+
+lucas.gomes@ufpb.dcx.br, rodrigor@dcx.ufpb.br
+
 ## Resumo
 
-Este trabalho investiga como orientações persistentes, em arquivos de projeto e *skills*, alteram o uso de *design patterns* por agentes de programação baseados em LLMs. Em estudo pré-registrado, 11 modelos Claude construíram o mesmo serviço em quatro níveis de orientação (220 execuções): um arquivo de princípios elevou de 67% para 93% o acerto no ponto mais complexo do Strategy, sem alteração detectada no exagero e sem piora da correção no conjunto, embora o Haiku 4.5 tenha piorado. Em extensão exploratória (450 execuções), o uso correto aumentou, do nível sem orientação ao mais orientado, em nove de dez combinações de cinco *patterns* e duas tarefas, com exceção do Strategy na construção. Em 90 controles negativos na manutenção, 88 execuções mantiveram a mudança pequena. O ganho concentrou-se nos modelos que não acertavam sem orientação.
+Este trabalho investiga como orientações persistentes, em arquivos de projeto e *skills*, alteram o uso de *design patterns* por agentes de programação baseados em LLMs. Em estudo pré-registrado, 11 modelos Claude construíram o mesmo serviço em quatro níveis de orientação (220 execuções): um arquivo de princípios elevou de 67% para 93% as execuções que aplicaram o Strategy no ponto mais complexo do enunciado, sem alteração detectada no uso do *pattern* onde ele não se justificava (exagero) e sem piora da corretude no conjunto, embora o Haiku 4.5 tenha piorado. Em extensão exploratória (450 execuções), o uso correto aumentou, do nível sem orientação ao mais orientado, em nove de dez combinações de cinco *patterns* e duas tarefas, com exceção do Strategy na construção. Em 90 controles negativos na manutenção, 88 execuções mantiveram a mudança pequena. O ganho concentrou-se nos modelos que não acertavam sem orientação.
+
+## Abstract
+
+This work investigates how persistent guidance, in project files and skills, changes the use of design patterns by LLM-based coding agents. In a preregistered study, 11 Claude models built the same service at four guidance levels (220 runs): a file of principles raised from 67% to 93% the runs that applied Strategy at the most complex point of the task, with no detected change in the use of the pattern where it was not justified (overengineering) and no loss of correctness overall, although Haiku 4.5 got worse. In an exploratory extension (450 runs), correct use increased, from the unguided level to the most guided one, in nine of ten combinations of five patterns and two tasks, except for Strategy in construction. In 90 negative controls in maintenance, 88 runs kept the change small. The gain was concentrated in the models that did not succeed without guidance.
 
 ## 1. Introdução
 
-A Inteligência Artificial (IA) é a área da Computação dedicada a construir sistemas capazes de realizar tarefas que, em
-geral, exigiriam inteligência humana [CITAR: definição de IA, fonte ainda não lida]. Entre esses sistemas, destacam-se
-os Grandes Modelos de Linguagem (*Large Language Models*, LLMs), modelos baseados na arquitetura Transformer [Vaswani et al. 2017; Brown et al. 2020], treinados com grandes volumes de texto e capazes de gerar texto, inclusive código-fonte, a partir de uma entrada chamada *prompt* [Hou et al. 2024]. Uma característica desses modelos é executar tarefas novas especificadas apenas por texto, sem ajuste de seus
+Entre os sistemas de Inteligência Artificial (IA) usados no desenvolvimento de software, destacam-se os Grandes Modelos de Linguagem (*Large Language Models*, LLMs), modelos baseados na arquitetura Transformer [Vaswani et al. 2017; Brown et al. 2020], treinados com grandes volumes de texto e capazes de gerar texto, inclusive código-fonte, a partir de uma entrada chamada *prompt* [Hou et al. 2024]. Uma característica desses modelos é executar tarefas novas especificadas apenas por texto, sem ajuste de seus
 parâmetros internos [Brown et al. 2020]. Assim, o que é escrito na entrada influencia o resultado produzido, e é nesse ponto que este trabalho se concentra.
 
 Quando um LLM passa a agir sobre um ambiente, surge a figura do agente: uma entidade que percebe o ambiente, toma
@@ -25,12 +33,12 @@ configuração a variável estudada neste trabalho. Três mecanismos são consid
 um texto com orientações do projeto que o Claude Code carrega a cada sessão, tratado como contexto, e não como regra
 imposta [Anthropic 2026a]. O segundo é a *skill*, um conjunto de instruções sobre um assunto; sua descrição fica sempre
 disponível ao agente, enquanto o conteúdo só é carregado quando ela é usada [Anthropic 2026b]. O terceiro é o processo,
-aqui composto por um desenho breve anterior ao código e por um subagente revisor, isto é, um agente separado, com
+aqui composto por um plano breve de *design* anterior ao código e por um subagente revisor, isto é, um agente separado, com
 contexto próprio, ao qual o agente principal delega uma tarefa [Anthropic 2026c]. Essas orientações são persistentes
 porque acompanham o projeto e valem para todos os pedidos, ao contrário do *prompt*, que vale para um único pedido. Em 2.853 repositórios públicos que já usam ferramentas de agente, os arquivos de contexto predominam, enquanto *skills* (5,5%) e subagentes (4,6%) ainda são pouco
 adotados [Galster et al. 2026].
 
-A Figura 1 resume a relação entre o modelo, o *harness* e a configuração estudada.
+A Figura 1 mostra que a configuração estudada é parte do *harness*, o software em torno do modelo.
 
 ![Figura 1](figuras/fig-harness.png)
 
@@ -62,16 +70,15 @@ sobre a contribuição de configurações mais ricas [Galster et al. 2026].
 Diante desse cenário, este trabalho parte do seguinte problema de pesquisa: como a configuração do *harness* de um
 agente de programação muda a forma como ele aplica *design patterns* quando o pedido não os menciona? Para responder a
 essa pergunta, o objetivo geral é avaliar experimentalmente o efeito de orientações persistentes sobre a decisão do
-agente de aplicar um *pattern*, tanto na construção quanto na manutenção. Foram realizados dois estudos. O estudo
+agente de aplicar um *pattern*, tanto na construção quanto na manutenção. O trabalho foi desenvolvido como Trabalho de Conclusão de Curso da Licenciatura em Ciência da Computação da Universidade Federal da Paraíba, e foram realizados dois estudos. O estudo
 principal conta com pré-registro, isto é, com o protocolo e as regras de decisão fixados antes da coleta dos dados
 [Ernst e Baldassarre 2023]. Nele, 11 modelos da família Claude construíram o mesmo serviço de *checkout* em quatro
 níveis de configuração, em 220 execuções, e o enunciado incluiu um controle negativo, ou seja, um ponto em que aplicar o
 *pattern* seria exagero. A extensão, de caráter exploratório, abrange cinco *patterns*, três modelos e as tarefas de
-construção e manutenção, em 450 execuções avaliadas por um verificador de IA calibrado.
+construção e manutenção, em 450 execuções, mais 90 de controle negativo na manutenção, avaliadas por um verificador de IA calibrado.
 
 Os objetivos específicos, formulados como perguntas de pesquisa (P1 a P8), são os seguintes. No estudo principal, busca-se verificar como a configuração muda o uso do
-*pattern* esperado (P1), o exagero e a correção do código (P2), como o efeito varia entre os modelos (P3) e como cada
-componente da configuração contribui para ele (P4). Na extensão, busca-se verificar como o tipo de tarefa muda o efeito
+*pattern* esperado (P1), o exagero e a corretude do código (P2), como o efeito varia entre os modelos (P3) e como cada componente da configuração contribui para ele, e a que custo (P4). Na extensão, busca-se verificar como o tipo de tarefa muda o efeito
 em cinco *patterns* (P5), como respondem as demais dimensões de qualidade, a saber, o *design* do restante do código, a arquitetura, os testes, o banco de dados e o comportamento (P6), e quão estáveis são os resultados quando a mesma tarefa se repete (P7). Nos dois estudos,
 descreve-se ainda como muda a estrutura orientada a objetos do código, em polimorfismo, tamanho das classes, acoplamento e, só no estudo principal, coesão (P8). Na manutenção, a extensão inclui também um controle negativo, que verifica se o agente mantém a mudança pequena quando o *pattern* não se justifica, tratado em conjunto com a P2.
 
@@ -82,14 +89,13 @@ cinco rodadas. Do ponto de vista prático, os resultados informam quem escreve o
 sobre o que esperar delas, e sobre o custo que podem trazer.
 
 O restante deste artigo está organizado da seguinte forma: a Seção 2 apresenta os conceitos de orientação a objetos
-usados para ler os resultados; a Seção 3 discute os trabalhos relacionados; a Seção 4 descreve o estudo principal; a
-Seção 5 descreve a extensão; a Seção 6 responde às perguntas de pesquisa; a Seção 7 apresenta as limitações; e a Seção 8
+usados para ler os resultados; a Seção 3 discute os trabalhos relacionados; a Seção 4 apresenta uma visão geral do processo; a Seção 5 descreve o estudo principal; a
+Seção 6 descreve a extensão; a Seção 7 responde às perguntas de pesquisa; a Seção 8 apresenta as limitações; e a Seção 9
 conclui o trabalho.
 
 ## 2. Fundamentação: orientação a objetos e *design patterns*
 
-Os cinco *patterns* estudados resolvem o mesmo problema de fundo: uma regra que muda conforme o caso (o plano de tarifa,
-o tipo de hóspede, o interessado em um aviso) e que receberá novos casos. A resposta sem *pattern* é uma condicional
+O estudo principal trata do *pattern* Strategy, e a extensão, de cinco *patterns*. Todos resolvem o mesmo problema de fundo: uma regra que muda conforme o caso (por exemplo, o plano de tarifa ou o tipo de cliente) e que receberá novos casos. A resposta sem *pattern* é uma condicional
 (`if` ou `switch`) que pergunta qual é o caso em cada lugar onde a regra aparece; cada caso novo obriga a alterar todos esses trechos. Os conceitos de orientação a objetos apresentados a seguir explicam por que a resposta com *pattern* é a esperada quando a variação vai crescer, e dão as
 medidas usadas nos dois estudos.
 
@@ -98,12 +104,42 @@ Factory Method, a criação; o Observer, o conjunto dos interessados em um aviso
 Template Method, os passos que mudam dentro de uma sequência fixa.
 
 O segundo conceito é a substituição da condicional por polimorfismo: em vez de verificar qual é o caso, o código chama um método, e cada caso responde à sua maneira [Fowler 2018]. O mecanismo em Java é uma
-interface (ou classe abstrata) com uma implementação por caso. Por isso, as classes da correção têm leitura direta em
-orientação a objetos: acerto é a variação inteira atrás de uma interface, escolhida em um só lugar; omissão é a condicional sobre o caso; malfeito é a interface que existe, mas convive com condicionais sobre o caso.
+interface (ou classe abstrata) com uma implementação por caso. 
 
 A Figura 2 ilustra essa diferença com um exemplo simplificado, em que o preço de uma reserva depende do plano de tarifa.
 
-![Figura 2](figuras/fig-strategy.png)
+Sem *pattern*: condicional
+
+```
+double preco(String plano, double diaria, int noites) {
+  if (plano.equals("normal"))
+    return diaria * noites;
+  if (plano.equals("fimDeSemana"))
+    return diaria * noites + 30;
+  if (plano.equals("pacote"))
+    return diaria * (noites - 1);
+  throw new IllegalArgumentException();
+}
+```
+
+Cada plano novo obriga a alterar este método.
+
+Com o *pattern* Strategy
+
+```
+interface PlanoTarifa {
+  double preco(double diaria, int noites);
+}
+
+class Normal implements PlanoTarifa {
+  public double preco(double d, int n) {
+    return d * n;
+  }
+}
+// FimDeSemana e Pacote: uma classe cada
+```
+
+Cada plano novo é uma classe nova, e o código existente não muda.
 
 **Figura 2.** A mesma regra com uma condicional e com o *pattern* Strategy (exemplo simplificado). Fonte: elaboração própria.
 
@@ -133,10 +169,10 @@ orientação persistente. O presente trabalho difere desses estudos em dois pont
 de configuração, e não menciona o *pattern* no pedido, de modo que mede a decisão de usá-lo, e não apenas a qualidade da
 implementação quando ele é solicitado. Em contrapartida, Kim (2025), Kjellberg et al. (2026) e Zisa et al. (2026) cobrem modelos de mais de
 uma empresa, o que este trabalho não faz, e o critério por propriedades de Kim (2025) mostra qual parte do *pattern*
-falhou, com uma resolução que as classes aqui adotadas não têm.
+falhou, com uma resolução que as categorias aqui adotadas não têm.
 
 Ampatzoglou et al. (2026) estudaram a refatoração para *patterns* e princípios de projeto em um experimento em
-cruzamento com dez desenvolvedores juniores. O uso do LLM aumentou a correção da implementação, enquanto os
+cruzamento com dez desenvolvedores juniores. O uso do LLM aumentou a corretude da implementação, enquanto os
 participantes sem o LLM foram superiores na identificação do problema; na escolha da prática, não houve diferença. Neste
 trabalho, não há uma pessoa conduzindo o modelo: um agente executa a tarefa sozinho, e avalia-se se a configuração o
 leva a reconhecer a necessidade do *pattern*. No estudo principal, há ainda um ponto em que o *pattern* seria exagero,
@@ -159,39 +195,139 @@ Em conjunto, nenhum dos trabalhos lidos mede o efeito de orientações persisten
 negativo para o exagero (220 execuções de 11 modelos), e em uma extensão a cinco *patterns*, na construção e na
 manutenção (450 execuções), à qual se acrescenta um controle negativo na manutenção (90 execuções).
 
-## 4. Estudo principal: o Strategy com pré-registro
+## 4. Visão geral do processo
 
-A investigação percorreu diversas fases até chegar aos dois estudos cujos resultados são relatados neste artigo. Conforme a Figura 3, as bancadas de testes e o lote descartado prepararam o estudo principal, ao passo que a fase intermediária preparou a extensão. Os números dessas fases não são somados aos dos dois estudos, uma vez que o enunciado, o *framework*, o uso de banco de dados e a forma de correção se alteraram entre elas. A Figura 4 compara o desenho dos dois estudos.
+A investigação percorreu diversas fases até chegar aos dois estudos cujos resultados são relatados neste artigo. A Figura 3 apresenta essas fases em ordem: as bancadas de testes ajustaram o enunciado e a medição; o lote descartado serviu de ensaio da análise; o estudo principal, pré-registrado, mediu o efeito da configuração no *pattern* Strategy; a fase intermediária introduziu cinco *patterns*, um novo domínio e a tarefa de manutenção; e a extensão produziu 450 execuções e, depois delas, 90 execuções de controle negativo. Os números das fases preparatórias não são somados aos dos dois estudos, uma vez que o enunciado, o *framework*, o uso de banco de dados e a forma de avaliação se alteraram entre elas. Os nomes indicados em cada fase da figura são os das pastas do repositório do trabalho.
 
 ![Figura 3](figuras/fig-fases.png)
 
-**Figura 3.** As fases do trabalho, até os dois estudos que trazem os resultados. Fonte: elaboração própria.
+**Figura 3.** As fases do trabalho, até os dois estudos que trazem os resultados; sob cada fase, o nome da pasta no repositório. Fonte: elaboração própria.
+
+A Figura 4 compara o desenho experimental dos dois estudos; os blocos escuros indicam o que varia em cada um deles, isto é, a configuração.
 
 ![Figura 4](figuras/fig-desenho.png)
 
-**Figura 4.** O desenho do estudo principal e o da extensão. Fonte: elaboração própria.
+**Figura 4.** O desenho experimental do estudo principal e o da extensão. Fonte: elaboração própria.
 
-### 4.1 Método
+Todo o material do trabalho está em um repositório público (https://github.com/FLucasF/TCC), que reúne o código da bancada, os enunciados, os arquivos de orientação e as *skills*, os dados brutos das execuções, os scripts de análise e o pré-registro do estudo principal.
 
-Em cada execução, o agente recebeu uma pasta vazia e o enunciado de um serviço de *checkout* de uma loja virtual, a ser construído em Java 21 e Spring Boot 4.1.1. O enunciado foi redigido na voz do proprietário do negócio, que conhece apenas o básico de programação, e descreve as regras de negócio e, em anexo, o contrato da interface de programação (*Application Programming Interface*, API) em linguagem simples, sem termos de arquitetura. O texto contém quatro pontos em que a variação pede o *pattern* Strategy: o frete, o cupom, a forma de pagamento e o nível do clube de fidelidade. Este último é o mais complexo, porque um mesmo caso afeta três regras, e é denominado neste trabalho ponto do clube. O enunciado contém, ainda, um controle negativo, o seguro por região, em que apenas a porcentagem varia e a aplicação do *pattern* constituiria exagero, denominado ponto do seguro.
+O autor definiu o desenho experimental, as hipóteses e as decisões registradas no repositório, e os enunciados, os arquivos de orientação e a *skill* própria são de sua responsabilidade. O orientador, Rodrigo Rebouças de Almeida, propôs a sequência de níveis de configuração e orientou escolhas metodológicas, como a redação dos enunciados em linguagem não técnica e o uso de um teste de tendência. O único leitor humano foi o autor, que conferiu a classificação do Semgrep em 44 pacotes sorteados com semente registrada, um por modelo e nível, às cegas: as cópias vieram sem comentários e sem README, com códigos anonimizados, e o leitor não teve acesso ao resultado do Semgrep.
 
-A variável estudada é a configuração, organizada em quatro níveis cumulativos. O nível N0 corresponde ao Claude Code sem configuração; o N1 acrescenta um arquivo `CLAUDE.md` com princípios gerais, sem nomear *patterns*; o N2 acrescenta ao N1 uma *skill* pública de *patterns* [Grndlvl 2026]; e o N3 acrescenta ao N2 um processo, composto de um desenho curto anterior ao código e de um subagente revisor do mesmo modelo. No pré-registro, que está congelado, essa configuração é denominada *harness*. Os textos do `CLAUDE.md` e das *skills* dos dois estudos estão no repositório público indicado na Seção 4.2, em `construction-v5/experiment/harnesses`, `TCC_V1/construction/experiment/harnesses` e `TCC_V1/maintenance/experiment/harnesses`.
+Agentes de IA também participaram do trabalho, e a Tabela 3 informa o modelo e o nível de esforço de cada etapa. Um modelo da mesma família dos agentes estudados ajudou a desenhar os instrumentos, operou, por meio do Claude Code, o disparo das execuções e a coleta dos dados e conduziu o ensaio da análise com os dados do lote descartado, no qual simulou a leitura humana, sem valor de conferência. No estudo principal, nenhum modelo avaliou o código; na extensão, a avaliação coube ao verificador de IA descrito na Seção 6.2. O autor supervisionou essas etapas por meio do congelamento do pré-registro antes da primeira execução, da autorização das rodadas, do registro das decisões no repositório, das conferências automáticas de cada lote, como o *script* `verify.mjs`, que recusa execuções interrompidas ou fora do desenho experimental, e da leitura humana que conferiu o Semgrep.
 
-Participaram do estudo os 11 modelos Claude disponíveis no Claude Code em 10/10/2026: Haiku 4.5 e 5.5; Sonnet 4.5, 4.6, 5 e 5.5; e Opus 4.6, 4.7, 4.8, 5 e 5.5. O Fable foi excluído em razão do custo e da expectativa de que já acertasse sem orientação. Cada modelo executou os quatro níveis simultaneamente, em um quarteto, de modo que o horário e a carga do servidor fossem iguais dentro de cada par. Os quartetos se repetiram cinco vezes, em ordem sorteada, o que totaliza 220 execuções e 55 pares em cada comparação entre níveis vizinhos. O Claude Code, na versão 2.1.288, igual para todos os modelos, foi executado sem alterações, com esforço *medium*, em um contêiner.
+**Tabela 3.** Modelo e nível de esforço usados em cada etapa em que houve IA.
 
-Foram consideradas medidas de correção, desenho, qualidade e custo. A correção foi aferida por uma suíte de aceitação pela API, com 21 casos (12 de cálculo e 9 de recusa), cuja capacidade de detecção foi verificada, por decisão do desenho do estudo, com 17 versões defeituosas escritas manualmente, todas reprovadas por ela. O desenho foi classificado pelo Semgrep [Semgrep 2026], segundo dois critérios: cada caso isolado e nenhuma condição sobre o caso no cálculo. Essa classificação foi conferida por um leitor humano, às cegas, em 44 pacotes. A qualidade foi medida pela complexidade cognitiva, pelas linhas, pelas classes e pela duplicação, obtidas com o SonarQube [SonarSource 2026], e por CBO, LCOM, WMC e DIT, obtidas com o CK. O custo foi medido pelos *tokens* e pelo tempo. Das métricas de orientação a objetos, apenas o CBO e a LCOM integram as hipóteses do pré-registro, que indagam se a configuração altera o acoplamento e a coesão; as demais são descritivas.
+| etapa | modelo | esforço |
+|---|---|---|
+| agentes estudados, estudo principal (220 execuções) | Haiku 4.5 e 5.5; Sonnet 4.5, 4.6, 5 e 5.5; Opus 4.6, 4.7, 4.8, 5 e 5.5 | *medium* |
+| subagente revisor do N3 | o mesmo modelo do agente | o mesmo do agente |
+| agentes estudados, extensão e controles negativos (540 execuções) | Haiku 4.5, Sonnet 4.5 e Sonnet 5.5 | *medium* |
+| apoio ao desenho dos instrumentos e às bancadas | Opus 5 e Opus 5.5 | *high* e *xhigh* |
+| disparo, coleta e ensaio da análise, estudo principal | Opus 5.5 | *high* e *xhigh* |
+| disparo e coleta, extensão e controles negativos | Opus 5.5 | *high* |
+| verificador de qualidade (540 revisões e 32 de calibração) | Opus 5.5 | *high* |
+| segundo verificador (30 revisões) | Fable 5.1 | *high* |
 
-Cada hipótese recebeu, antes das execuções, uma regra de decisão de um entre quatro tipos: direcional, em que a maioria dos modelos fora do teto melhora e nenhum piora; de não inferioridade, em que o número de pares piores menos o de melhores não passa de 7 em 55; de alteração, sem direção, em que, nas medidas contínuas, ao menos 36 dos 55 pares vão na mesma direção e, nas medidas binárias, há ao menos 5 pares não empatados, com o lado maior no mínimo estipulado no pré-registro; ou, na hipótese do modelo, de comparação entre modelos, em que o que menos acerta no N0 deve ter o maior saldo de pares. Considera-se "teto" o modelo que já acerta nas cinco réplicas no nível inferior da comparação (o N0, quando se compara o N1 com o N0), situação em que a orientação só pode empatar ou piorar.
 
-### 4.2 Proteção contra decisões posteriores aos dados
+Fonte: elaboração própria. 
 
-Antes da medição, a bancada de testes acumulou 119 execuções (62 até 06/10), que serviram para identificar defeitos no enunciado, na suíte e na análise. Uma primeira versão do lote, o V4, foi executada e descartada antes da análise confirmatória, porque seu pré-registro separava os modelos em dois lotes em decorrência de um mal-entendido sobre quais entrariam nas conclusões; reescrevê-lo posteriormente falsearia a data do registro. O pré-registro do estudo principal (V5) foi congelado em 10/10, antes da primeira execução, com o *hash* de cada arquivo do instrumento (122 arquivos) gravado em um repositório público (https://github.com/FLucasF/TCC, *commit* 54e13fc9), o que permite conferir o conteúdo registrado, embora a data de um *commit* seja declarada por quem o realiza. Antes do congelamento, os dados do V4 serviram apenas de ensaio geral da análise, para testar o fluxo. O ensaio revelou um defeito real no Semgrep, em que projetos situados em uma subpasta não eram lidos, corrigido antes do congelamento. O agente de IA que operou o ensaio teve acesso aos resultados; o autor viu apenas informações operacionais, sem a direção de nenhum efeito.
+A Tabela 1 mostra o que cada nível de configuração contém em cada estudo e tarefa. Os rótulos são os mesmos, mas o N1 e o N2 não correspondem ao mesmo tratamento nos dois estudos.
 
-### 4.3 Resultados
+**Tabela 1.** Conteúdo de cada nível de configuração, por estudo e tarefa (N1 e N2 não são o mesmo tratamento nos dois estudos).
 
-A Tabela 1 sintetiza os resultados por nível. Os pontos de frete, cupom e pagamento são medidas secundárias, cuja classificação não teve conferência humana.
+| nível | estudo principal (construção) | extensão, construção | extensão, manutenção |
+|---|---|---|---|
+| N0 | Claude Code sem configuração | Claude Code sem configuração | Claude Code sem configuração |
+| N1 | `CLAUDE.md` com princípios sobre o que varia | `CLAUDE.md` próprio da construção | `CLAUDE.md` próprio da manutenção, que orienta a reorganizar antes da mudança |
+| N2 | N1 e *skill* pública, sem instrução de uso | `CLAUDE.md` com a instrução de usar a *skill* no último item, e *skill* escrita para o trabalho | `CLAUDE.md` com a instrução de usar a *skill* no primeiro item, e *skill* escrita para o trabalho |
+| N3 | N2, plano curto de *design* e subagente revisor | não avaliado | não avaliado |
 
-**Tabela 1.** O estudo principal por nível (55 execuções em cada).
+Fonte: elaboração própria.
+
+A Tabela 2 reúne as tecnologias empregadas, com a versão e o papel de cada uma.
+
+**Tabela 2.** Tecnologias usadas nos dois estudos.
+
+| tecnologia | versão | papel | estudo |
+|---|---|---|---|
+| Claude Code | 2.1.288 | agente de programação | ambos |
+| Java | 21 | linguagem fixada pelos enunciados | ambos |
+| Spring Boot | 4.1.1 | *framework* fixado pelo enunciado | principal |
+| Javalin | 6.7.0 | *framework* fixado pelo enunciado | extensão |
+| PostgreSQL | 18.6 | banco de dados de cada execução | extensão |
+| Flyway | 12.4.0 | migrações do sistema da manutenção | extensão |
+| Maven | 3.9.16 | compilação e testes | ambos |
+| Docker | 29.7.2 (versão instalada em 09/11/2026) | isolamento de cada execução | ambos |
+| Semgrep | 1.95.0 | classificação do *design* | principal |
+| SonarQube | 26.9.0.129388 Community | complexidade, linhas, classes e duplicação | principal |
+| CK | *commit* 8a1ef916 | métricas de orientação a objetos | ambos |
+| JaCoCo | 0.8.14 | cobertura de testes | extensão |
+| jdeps e `pg_dump` | JDK 21 e PostgreSQL 18 | dependências entre pacotes e esquema do banco | extensão |
+
+Fonte: elaboração própria.
+
+Cada execução ocorreu em um contêiner próprio, criado a partir de uma mesma imagem, sem acesso às demais execuções, aos critérios de avaliação ou às soluções de referência. O enunciado é entregue ao Claude Code em modo não interativo, e a transcrição gerada registra os *tokens*, o custo e o tempo, resumidos em um arquivo de metadados por execução. No estudo principal, os *scripts* `run-levels.sh` e `run-one.sh` disparam os quartetos, e `extract-meta.mjs`, `acceptance.sh`, `aggregate.mjs` e `verify.mjs` coletam e conferem os resultados. Na extensão, `run_rounds.py` e `run_one_scenario.py` disparam as execuções, e `run_database.py` cria, para cada uma, um banco PostgreSQL em uma rede Docker exclusiva; a compilação final roda em outro contêiner, sem a credencial do agente. Os *scripts* estão nas pastas `construction-v5/infra/scripts` e `TCC_V1` do repositório.
+
+## 5. Estudo principal: o Strategy com pré-registro
+
+### 5.1 Método
+
+Em cada execução, o agente recebeu uma pasta vazia e o enunciado de um serviço de *checkout* de uma loja virtual, a ser construído em Java 21 e Spring Boot 4.1.1, tecnologias fixadas pelo enunciado. O enunciado foi redigido na voz do proprietário do negócio, que conhece apenas o básico de programação, e descreve as regras de negócio e, em anexo, o contrato da interface de programação (*Application Programming Interface*, API) em linguagem simples, sem termos de arquitetura. O texto contém quatro pontos em que a variação pede o *pattern* Strategy: o frete, o cupom, a forma de pagamento e o nível do clube de fidelidade. Este último é o mais complexo, porque um mesmo caso afeta três regras, e é denominado neste trabalho ponto do clube. O enunciado contém, ainda, um controle negativo, o seguro por região, em que apenas a porcentagem varia e a aplicação do *pattern* constituiria exagero, denominado ponto do seguro.
+
+A variável estudada é a configuração, organizada em quatro níveis cumulativos. O nível N0 corresponde ao Claude Code sem configuração; o N1 acrescenta um arquivo `CLAUDE.md` com princípios gerais, sem nomear *patterns*; o N2 acrescenta ao N1 uma *skill* pública de *patterns* [Grndlvl 2026]; e o N3 acrescenta ao N2 um processo, composto de um plano curto de *design* anterior ao código e de um subagente revisor do mesmo modelo. Os princípios do `CLAUDE.md` deste estudo orientam o agente a levantar o que muda de caso para caso, a manter o comportamento de cada caso em um lugar próprio, sem uma sequência de condições para escolher entre eles, a definir a assinatura considerando todos os casos e a tratar assim apenas o que o enunciado descreve como variando. No N3, o arquivo pede ainda o registro de um plano curto de *design* antes do código e uma revisão antes do término. No pré-registro, que está congelado, essa configuração é denominada *harness*, ao passo que este artigo emprega o termo no sentido técnico definido na Introdução. Os textos do `CLAUDE.md` e das *skills* dos dois estudos estão no repositório público indicado na Seção 4, em `construction-v5/experiment/harnesses`, `TCC_V1/construction/experiment/harnesses` e `TCC_V1/maintenance/experiment/harnesses`.
+
+Participaram do estudo os 11 modelos Claude disponíveis no Claude Code em 10/10/2026: Haiku 4.5 e 5.5; Sonnet 4.5, 4.6, 5 e 5.5; e Opus 4.6, 4.7, 4.8, 5 e 5.5. O Fable foi excluído em razão do custo e da expectativa de que já acertasse sem orientação. Para cada modelo, os quatro níveis foram executados ao mesmo tempo, formando um quarteto, de modo que o horário e a carga do servidor fossem os mesmos nas comparações entre níveis. Cada quarteto foi repetido em cinco rodadas, e a ordem dos 55 quartetos foi sorteada com semente registrada, o que totaliza 220 execuções e 55 pares em cada comparação entre níveis vizinhos. O Claude Code, na versão 2.1.288, igual para todos os modelos, foi executado sem alterações, com esforço *medium*, parâmetro do Claude Code que regula o grau de raciocínio do modelo, em um contêiner.
+
+Foram consideradas medidas de corretude, *design*, qualidade e custo. A corretude foi aferida por uma suíte de aceitação pela API, com 21 casos (12 de cálculo e 9 de recusa), cuja capacidade de detecção foi verificada com 17 versões defeituosas escritas manualmente, todas reprovadas por ela. O *design* foi classificado pelo Semgrep [Semgrep 2026], segundo dois critérios: cada caso isolado e nenhuma condição sobre o caso no cálculo. Essa classificação foi conferida por um leitor humano, às cegas, em 44 pacotes. A qualidade foi medida pela complexidade cognitiva, pelas linhas, pelas classes e pela duplicação, obtidas com o SonarQube [SonarSource 2026], e por CBO, LCOM, WMC e DIT, obtidas com o CK. O custo foi medido pelos *tokens* e pelo tempo. Das métricas de orientação a objetos, apenas o CBO e a LCOM integram as hipóteses do pré-registro, que indagam se a configuração altera o acoplamento e a coesão; as demais são descritivas.
+
+As comparações são feitas em pares: cada par reúne duas execuções do mesmo modelo, na mesma rodada, em níveis vizinhos. O saldo de uma comparação é o número de pares melhores menos o de pares piores. Cada hipótese recebeu, antes das execuções, uma de quatro regras de decisão. Na regra direcional, a hipótese é apoiada quando a maioria dos modelos fora do teto melhora e nenhum piora. Na de não inferioridade, é apoiada quando o saldo não é inferior a −7 em 55 pares, limite de 13% dos pares fixado no pré-registro, porque, mesmo sem efeito da configuração, alguns pares diferem por acaso. Na de alteração, sem direção prevista, é apoiada, nas medidas contínuas, quando ao menos 36 dos 55 pares vão na mesma direção e, nas medidas binárias, quando há ao menos 5 pares não empatados e o lado maior atinge o mínimo estipulado no pré-registro. Na hipótese do modelo, é apoiada quando o modelo que menos acerta no N0 tem o maior saldo de pares. Considera-se "teto" o modelo que já acerta nas cinco rodadas no nível inferior da comparação (o N0, quando se compara o N1 com o N0), situação em que a orientação só pode empatar ou piorar.
+
+A Tabela 4 lista as 28 hipóteses com regra de decisão; as cinco primeiras são as principais. Outras quatro questões registradas são apenas descritivas: a semelhança entre rodadas, a mudança do sinal do custo por modelo e o uso efetivo da *skill* e do revisor. O pré-registro chama de contrariada a hipótese que atinge a condição de rejeição; nas hipóteses de alteração, isso significa que a alteração prevista não apareceu, e este artigo usa, nesses casos, a expressão não apoiada. A tendência de N0 a N3 foi examinada pelo teste de Page, um teste de tendência para dados pareados, apenas a título informativo, sem decidir nenhuma hipótese.
+
+**Tabela 4.** Hipóteses pré-registradas do estudo principal: comparação, medida, regra de decisão e resultado.
+
+| código | hipótese | comparação | medida | regra | resultado |
+|---|---|---|---|---|---|
+| H1 | isola cada caso no ponto do clube | N1 × N0 | acerto no ponto do clube | direcional | apoiada |
+| H2 | altera o exagero no ponto do seguro | N1 × N0 | exagero no ponto do seguro | alteração | não apoiada |
+| H3 | não piora a corretude | N1 × N0 | casos da suíte aprovados | não inferioridade | apoiada |
+| H4 | reduz a complexidade | N1 × N0 | complexidade cognitiva | direcional | apoiada |
+| H5 | o maior efeito é do modelo que menos acerta | N1 × N0 | saldo de pares no ponto do clube | comparação entre modelos | apoiada |
+| H6 | isola cada caso em frete, cupom e pagamento | N1 × N0 | acertos nos três pontos | direcional | apoiada |
+| H7 | não repete o que é comum | N1 × N0 | duplicação | direcional | contrariada |
+| H8 | gera mais arquivos | N1 × N0 | número de classes | direcional | inconclusiva |
+| H9 | altera o acoplamento | N1 × N0 | CBO médio | alteração | não apoiada |
+| H10 | altera a coesão | N1 × N0 | LCOM média | alteração | não apoiada |
+| H11 | não piora os cálculos | N1 × N0 | casos de cálculo | não inferioridade | apoiada |
+| H12 | não piora as recusas | N1 × N0 | casos de recusa | não inferioridade | apoiada |
+| H13 | não quebra o *build* | N1 × N0 | *build* | não inferioridade | apoiada |
+| H14 | não piora os casos de borda | N1 × N0 | casos de borda | não inferioridade | apoiada |
+| H15 | reduz os *code smells* | N1 × N0 | *code smells* | direcional | inconclusiva |
+| H16 | altera os *tokens* de entrada | N1 × N0 | *tokens* de entrada | alteração | inconclusiva |
+| H17 | altera o tempo de API | N1 × N0 | tempo de API | alteração | não apoiada |
+| H18 | altera o número de turnos | N1 × N0 | turnos | alteração | não apoiada |
+| H19 | no teto, não piora o *design* | N1 × N0 | acerto no ponto do clube | não inferioridade | apoiada |
+| H20 | no teto, não piora a corretude | N1 × N0 | casos da suíte aprovados | não inferioridade | apoiada |
+| H21 | a *skill* aumenta o acerto | N2 × N1 | acerto no ponto do clube | direcional | inconclusiva |
+| H22 | a *skill* aumenta os *tokens* | N2 × N1 | *tokens* de entrada | direcional | contrariada |
+| H23 | a *skill* altera o exagero | N2 × N1 | exagero no ponto do seguro | alteração | não apoiada |
+| H24 | o processo aumenta a corretude | N3 × N2 | casos da suíte aprovados | direcional | inconclusiva |
+| H25 | o processo aumenta o acerto | N3 × N2 | acerto no ponto do clube | direcional | apoiada |
+| H26 | o processo reduz o exagero | N3 × N2 | exagero no ponto do seguro | direcional | apoiada |
+| H27 | o processo aumenta os *tokens* | N3 × N2 | *tokens* de entrada | direcional | inconclusiva |
+| H28 | o processo aumenta o tempo | N3 × N2 | tempo de API | direcional | inconclusiva |
+
+Fonte: elaboração própria.
+
+### 5.2 Proteção contra decisões posteriores aos dados
+
+Antes da medição, a bancada de testes acumulou 119 execuções (62 até 06/10), que serviram para identificar defeitos no enunciado, na suíte e na análise. Uma primeira versão do lote (V4 no repositório) foi executada e descartada antes da análise confirmatória, porque seu pré-registro separava os modelos em dois lotes em decorrência de um mal-entendido sobre quais entrariam nas conclusões; reescrevê-lo posteriormente falsearia a data do registro. O pré-registro do estudo principal foi congelado em 10/10, antes da primeira execução, com o *hash* de cada arquivo do instrumento (122 arquivos) gravado em um repositório público (https://github.com/FLucasF/TCC, *commit* 54e13fc9), o que permite conferir o conteúdo registrado, embora a data de um *commit* seja declarada por quem o realiza. Antes do congelamento, os dados do lote descartado serviram apenas de ensaio geral da análise, para testar o fluxo. O ensaio revelou um defeito real no Semgrep, em que projetos situados em uma subpasta não eram lidos, corrigido antes do congelamento. O agente de IA que operou o ensaio teve acesso aos resultados; o autor viu apenas informações operacionais, sem a direção de nenhum efeito.
+
+### 5.3 Resultados
+
+A Tabela 5 sintetiza os resultados por nível. Os pontos de frete, cupom e pagamento são medidas secundárias, cuja classificação não teve conferência humana.
+
+**Tabela 5.** O estudo principal por nível (55 execuções em cada).
 
 | medida | N0 | N1 | N2 | N3 |
 |---|---|---|---|---|
@@ -205,13 +341,15 @@ A Tabela 1 sintetiza os resultados por nível. Os pontos de frete, cupom e pagam
 | linhas de código (média) | 519 | 584 | 614 | 571 |
 | custo médio por execução (US$) | 1,32 | 1,52 | 1,47 | 1,98 |
 
-A conferência humana concordou com o Semgrep em 174 de 176 respostas, e as quatro perguntas de desenho, referentes aos pontos do clube e do seguro, atenderam à regra de saída do pré-registro (ao menos 40 de 44 respostas iguais), de modo que a classificação do Semgrep foi adotada para os 220 pacotes. Das cinco hipóteses principais, que comparam o N1 com o N0 (desenho, correção, qualidade, modelo e exagero), quatro foram apoiadas. O `CLAUDE.md` isola os casos do ponto do clube, não piora a correção, medida pelos casos da suíte aprovados em cada par (10 pares melhoraram e 7 pioraram, saldo de +3 em 55, dentro do limite pré-registrado; essa medida difere da proporção de execuções que passam em toda a suíte, apresentada na Tabela 1) e reduz a complexidade. Na hipótese do modelo, o maior saldo de pares melhores foi do Opus 4.7 (+5), um dos dois modelos que menos acertavam no N0; o outro, o Haiku 4.5, teve saldo +1, e a regra de análise fixada no código e no registro de decisões de 09/10, antes do ensaio com os dados do V4, exige, em caso de empate entre os mais fracos, que o maior saldo seja de um deles. A hipótese do exagero foi contrariada, no sentido de que a configuração não o altera, pois apenas 1 par em 55 apresentou diferença.
+Fonte: elaboração própria.
 
-O ganho concentrou-se nos modelos fora do teto, os únicos com espaço para melhorar. Cinco modelos (Sonnet 5.5 e Opus 4.6, 4.8, 5 e 5.5) acertavam o ponto do clube nas cinco réplicas sem orientação. Nos outros seis, o N1 teve 14 pares melhores e nenhum pior. O Opus 4.7 passou de 0 para 5 acertos em 5, e o Haiku 4.5, empatado com ele no N0 e o mais fraco no conjunto dos quatro níveis (6 acertos em 20), passou de 0 no N0 para 1 no N1 e 4 no N3. Na tendência de N0 a N3, publicada a título informativo e sem decidir nenhuma hipótese, o acerto do ponto do clube subiu (teste de Page, p = 0,007) e a complexidade caiu (p < 0,001). A comparação da *skill* (N2 contra N1) ficou inconclusiva, pois dez dos 11 modelos já estavam no teto no N1, e a *skill* não foi aberta espontaneamente em nenhuma das 110 execuções que a tinham. O processo (N3 contra N2) teve efeito apoiado no desenho, decidido por um único modelo fora do teto (o Haiku 4.5, com 3 pares melhores em 5), e no exagero, segundo a regra direcional, embora a queda seja pequena em números absolutos, de 3 execuções em 55 para nenhuma. A duplicação subiu de 1,2% das linhas no N0 para 2,5% no N1, o que contraria a hipótese de não repetir o comum. O lote custou US$ 346 em equivalente de API.
+A conferência humana concordou com o Semgrep em 174 de 176 respostas, e as quatro perguntas de *design*, referentes aos pontos do clube e do seguro, atenderam à regra de saída do pré-registro (ao menos 40 de 44 respostas iguais), de modo que a classificação do Semgrep foi adotada para os 220 pacotes. Das cinco hipóteses principais, que comparam o N1 com o N0, quatro foram apoiadas. O `CLAUDE.md` isola os casos do ponto do clube (H1), não piora a corretude (H3), medida pelos casos da suíte aprovados em cada par (10 pares melhoraram e 7 pioraram, saldo de +3 em 55, acima do limite pré-registrado de −7; essa medida difere da proporção de execuções que passam em toda a suíte, apresentada na Tabela 5) e reduz a complexidade (H4). A hipótese do modelo (H5) previa que o modelo com menos acertos no N0 teria o maior saldo de pares no ponto do clube. No N0, o Opus 4.7 e o Haiku 4.5 empataram, sem nenhum acerto. Para esse caso, a regra fixada no código e no registro de decisões de 09/10, antes do ensaio com os dados do lote descartado, exige que o maior saldo seja de um dos empatados. O Opus 4.7 teve o maior saldo (+5), e o Haiku 4.5, +1, de modo que a hipótese foi apoiada. A hipótese de que o `CLAUDE.md` alteraria o exagero no ponto do seguro (H2) não foi apoiada: apenas 1 dos 55 pares teve resultado diferente.
 
-A Tabela 2 apresenta as métricas do CK por nível, que descrevem a estrutura orientada a objetos dos projetos.
+O ganho concentrou-se nos modelos fora do teto, os únicos com espaço para melhorar. Cinco modelos (Sonnet 5.5 e Opus 4.6, 4.8, 5 e 5.5) acertavam o ponto do clube nas cinco rodadas sem orientação. Nos outros seis, o N1 teve 14 pares melhores e nenhum pior. O Opus 4.7 passou de 0 para 5 acertos em 5, e o Haiku 4.5, empatado com ele no N0 e o mais fraco no conjunto dos quatro níveis (6 acertos em 20), passou de 0 no N0 para 1 no N1 e 4 no N3. Na tendência de N0 a N3, publicada a título informativo e sem decidir nenhuma hipótese, o acerto do ponto do clube subiu (teste de Page, p = 0,007) e a complexidade caiu (p < 0,001). A comparação da *skill* (N2 contra N1, H21) ficou inconclusiva, pois dez dos 11 modelos já estavam no teto no N1, e a *skill* não foi aberta espontaneamente em nenhuma das 110 execuções que a tinham. O processo (N3 contra N2) teve efeito apoiado no *design* (H25), decidido por um único modelo fora do teto (o Haiku 4.5, com 3 pares melhores em 5), e no exagero no ponto do seguro (H26), segundo a regra direcional, embora a queda seja pequena em números absolutos, de 3 execuções em 55 para nenhuma. A duplicação subiu de 1,2% das linhas no N0 para 2,5% no N1, o que contraria a hipótese de não repetição do que é comum (H7). O lote custou US$ 346 em equivalente de API.
 
-**Tabela 2.** Métricas de orientação a objetos no estudo principal (55 execuções por nível).
+A Tabela 6 apresenta as métricas do CK por nível, que descrevem a estrutura orientada a objetos dos projetos.
+
+**Tabela 6.** Métricas de orientação a objetos no estudo principal (55 execuções por nível).
 
 | medida | N0 | N1 | N2 | N3 |
 |---|---|---|---|---|
@@ -224,33 +362,35 @@ A Tabela 2 apresenta as métricas do CK por nível, que descrevem a estrutura or
 | LCOM média do projeto, percentil 90 | 37,2 | 11,1 | 9,1 | 4,9 |
 | DIT máximo, média | 3,8 | 3,6 | 3,7 | 3,8 |
 
-Com a configuração, os projetos apresentam mais tipos e mais interfaces, bem como mais constantes de *enum* com corpo próprio, forma do Strategy em que cada constante traz o seu comportamento. A maior classe do projeto torna-se menor (seu WMC cai de 35 para 24 na mediana), o que indica que a lógica antes concentrada em uma classe com condicionais se distribui por classes menores. O acoplamento médio não se altera, com o CBO próximo de 2,5 em todos os níveis, e tampouco a herança, com o DIT máximo próximo de 3,8. As hipóteses pré-registradas do CBO e da LCOM foram contrariadas, no sentido de que a configuração não altera o acoplamento nem a coesão médios de forma consistente entre os pares. A mediana da LCOM confirma essa leitura; o que muda é a cauda da distribuição, pois os projetos com as classes menos coesas tornam-se mais raros com orientação: o percentil 90 cai de 37,2 para 11,1 no N1, e seis projetos têm LCOM média de 37,2 ou mais no N0, um no N2 e nenhum no N1 e no N3.
+Fonte: elaboração própria.
 
-## 5. Extensão: cinco *patterns*, construção e manutenção
+Com a configuração, os projetos apresentam mais tipos e mais interfaces, bem como mais constantes de *enum* com corpo próprio, forma do Strategy em que cada constante traz o seu comportamento. A maior classe do projeto torna-se menor (seu WMC cai de 35 para 24 na mediana), o que indica que a lógica antes concentrada em uma classe com condicionais se distribui por classes menores. O acoplamento médio não se altera, com o CBO próximo de 2,5 em todos os níveis, e tampouco a herança, com o DIT máximo próximo de 3,8. As hipóteses de que a configuração alteraria o acoplamento (H9) e a coesão (H10) médios não foram apoiadas, pois não houve alteração consistente entre os pares. A mediana da LCOM confirma essa leitura; o que muda é a cauda da distribuição, pois os projetos com as classes menos coesas tornam-se mais raros com orientação: o percentil 90 cai de 37,2 para 11,1 no N1, e seis projetos têm LCOM média de 37,2 ou mais no N0, um no N2 e nenhum no N1 e no N3.
 
-### 5.1 Motivação e evolução do desenho
+## 6. Extensão: cinco *patterns*, construção e manutenção
 
-O estudo principal deixou três pontos em aberto: o teto, já que cinco dos 11 modelos não tinham o que melhorar; o exame de um único *pattern*; e a manutenção, que estava fora do recorte. Uma fase intermediária mediu cinco *patterns* (Strategy, Observer, Factory Method, Decorator e Template Method) em um domínio novo, o de uma pousada, na manutenção e na construção, com uma execução por combinação e a correção realizada por uma IA calibrada.
+### 6.1 Motivação e evolução do desenho experimental
 
-Essa fase trouxe quatro mudanças para o desenho final. A primeira foi a substituição do *framework*: o Spring Boot, usado no estudo principal, deu lugar ao Javalin ainda durante essa fase, porque o Spring entrega pronta parte dos mecanismos medidos (eventos, contêiner de objetos e aspectos). A segunda decorreu da leitura do princípio "o próximo caso num lugar só" como "num método só" no Decorator, o que levou o `CLAUDE.md` a receber duas precisões. A terceira envolveu a *skill* pública: quando a abriu passando uma pergunta como argumento, um modelo respondeu em texto e entregou a pasta vazia. A instrução passou de "consulte" para "use", e a *skill* foi substituída, também por ser um catálogo extenso que não separa *patterns* vizinhos, por outra escrita para este trabalho, com um processo de decisão curto, uma referência por *pattern* e exemplos fora do domínio da pousada. A quarta mudança consistiu em acrescentar a três dos cinco enunciados (Observer, Decorator e Template Method) uma frase, na voz do proprietário, que reforça que a variação vai crescer, sem indicar como organizar o código; os enunciados do Strategy e do Factory Method permaneceram iguais.
+O estudo principal deixou três pontos em aberto: o teto, já que cinco dos 11 modelos não tinham o que melhorar; o exame de um único *pattern*; e a manutenção, que estava fora do recorte. Uma fase intermediária mediu cinco *patterns* (Strategy, Observer, Factory Method, Decorator e Template Method) em um domínio novo, o de uma pousada, na manutenção e na construção, com uma execução por combinação e a avaliação realizada por uma IA calibrada.
 
-### 5.2 Método
+Essa fase trouxe quatro mudanças para o desenho experimental final. A primeira foi a substituição do *framework*: o Spring Boot, usado no estudo principal, deu lugar ao Javalin ainda durante essa fase, porque o Spring entrega pronta parte dos mecanismos medidos (eventos, contêiner de objetos e aspectos). A segunda decorreu da leitura do princípio "o próximo caso num lugar só" como "num método só" no Decorator, o que levou o `CLAUDE.md` a receber duas precisões. A terceira envolveu a *skill* pública: quando a abriu passando uma pergunta como argumento, um modelo respondeu em texto e entregou a pasta vazia. A instrução passou de "consulte" para "use", e a *skill* foi substituída, também por ser um catálogo extenso que não separa *patterns* vizinhos, por outra escrita para este trabalho, com um processo de decisão curto, uma referência por *pattern* e exemplos fora do domínio da pousada. A quarta mudança consistiu em acrescentar a três dos cinco enunciados (Observer, Decorator e Template Method) uma frase, na voz do proprietário, que reforça que a variação vai crescer, sem indicar como organizar o código; os enunciados do Strategy e do Factory Method permaneceram iguais.
 
-O objeto da extensão é o sistema de reservas da Pousada Maré Alta, em Java 21 com Javalin, com os dados armazenados em PostgreSQL 18. Na tarefa de construção, o agente recebe uma pasta vazia e o enunciado do sistema inteiro, na voz do proprietário, sem que os testes sejam solicitados. Na tarefa de manutenção, recebe o sistema pronto, sem nenhum *pattern*, com o esquema em migrações e 26 testes, além de um pedido de mudança. Cada um dos cinco cenários pede um *pattern* sem mencionar o nome. Os níveis são o N0, o N1 (o `CLAUDE.md`) e o N2 (o `CLAUDE.md` e a *skill*). A redação do `CLAUDE.md` difere entre as tarefas: na manutenção, ele orienta a reorganizar o código antes da mudança e afirma que a orientação vale também para os casos já existentes. Além disso, no N2 da manutenção, a instrução de usar a *skill* foi deslocada para o primeiro item do arquivo, depois de execuções preliminares, anteriores às relatadas aqui, em que o Haiku 4.5 a abriu em apenas 1 de 5 vezes; as 75 execuções do N2 da manutenção usam a mesma configuração. Os modelos são o Claude Haiku 4.5, o Sonnet 4.5 e o Sonnet 5.5, com esforço *medium* e um banco exclusivo por execução.
+### 6.2 Método
 
-Cada projeto foi revisado por um agente (Claude Opus 5.5), às cegas quanto ao modelo e ao nível: o verificador recebe o enunciado, o *pattern* esperado e o projeto, sem o `CLAUDE.md` e a pasta `.claude/`. A revisão emprega uma *skill* por dimensão e um *script* de medição em arquitetura, testes, banco e comportamento. A arquitetura é avaliada pelas dependências e pelos ciclos entre pacotes, com o jdeps; o *design* de baixo nível, pela classe do *pattern* (acerto, alternativa equivalente, malfeito ou omissão) e por uma nota para o *design* do restante do código; os testes, pela contagem e pela cobertura, com o JaCoCo [JaCoCo 2026]; o banco, pelo esquema extraído com o `pg_dump` e por conferências simples; e o comportamento, por um roteiro de chamadas à API por cenário. Considera-se alternativa equivalente outra estrutura, aceita de antemão pelos critérios do *pattern*, que também resolve a variação, como uma lista de regras no Decorator ou um escritor genérico no Template Method. Cada dimensão recebe a nota bom, com problemas ou ruim. O verificador registra ainda o exagero, isto é, a estrutura sem necessidade fora da parte que o *pattern* resolve, como uma interface com uma só implementação que nada substitui. São, portanto, sete notas por execução.
+O objeto da extensão é o sistema de reservas da Pousada Maré Alta, em Java 21 com Javalin, com os dados armazenados em PostgreSQL 18, tecnologias fixadas pelo enunciado. Na tarefa de construção, o agente recebe uma pasta vazia e o enunciado do sistema inteiro, na voz do proprietário, sem que os testes sejam solicitados. Na tarefa de manutenção, recebe o sistema pronto, sem nenhum *pattern*, com o esquema em migrações e 26 testes, além de um pedido de mudança. Cada um dos cinco cenários pede um *pattern* sem mencionar o nome. Os níveis são o N0, o N1 (o `CLAUDE.md`) e o N2 (o `CLAUDE.md`, com a instrução de usar a *skill*, e a *skill* escrita para este trabalho), conforme a Tabela 1. O `CLAUDE.md` da extensão pergunta, antes de cada parte do código, quantos lugares teriam de mudar para acrescentar o próximo caso, orienta a organizar o código para que esse caso entre em um lugar só e limita essa organização ao que o enunciado mostra variar, afirmando que uma mudança pontual (um valor, um texto, um campo) pede uma mudança simples. A redação do `CLAUDE.md` difere entre as tarefas: na manutenção, ele orienta a reorganizar o código antes da mudança e afirma que a orientação vale também para os casos já existentes. No N2 da construção, a instrução de usar a *skill* é o último item do arquivo; no N2 da manutenção, ela foi deslocada para o primeiro item, depois de execuções preliminares, anteriores às relatadas aqui, em que o Haiku 4.5 a abriu em apenas 1 de 5 vezes; as 75 execuções do N2 da manutenção usam a mesma configuração. Os modelos são o Claude Haiku 4.5, o Sonnet 4.5 e o Sonnet 5.5, com esforço *medium* e um banco exclusivo por execução.
 
-O verificador foi calibrado antes de sua utilização, em 26 revisões de casos de resposta conhecida: as dez soluções de referência, com e sem o *pattern*, revisadas nas duas tarefas, e seis exemplos deliberadamente degradados, revisados na manutenção. As 52 notas coincidiram com as esperadas, sendo 20 da classe do *pattern*, 20 do comportamento e 4 de cada uma destas dimensões: arquitetura, testes e banco. Cada combinação de tarefa, cenário, modelo e nível teve cinco rodadas, o que totaliza 450 execuções, assim distribuídas: o piloto (90), as repetições do *pattern* que mais errou, o Decorator, e do que mais acertou, o Factory Method (144), e, por fim, as dos outros três (216). De forma independente da revisão, o mesmo CK do estudo principal, na mesma versão, conferida pelo *hash*, e com as mesmas regras de resumo, mediu as 449 execuções com código, a título descritivo.
+Cada projeto foi revisado por um agente (Claude Opus 5.5), às cegas quanto ao modelo e ao nível: o verificador recebe o enunciado, o *pattern* esperado e o projeto, sem o `CLAUDE.md` e a pasta `.claude/`. A revisão emprega uma *skill* por dimensão e um *script* de medição em arquitetura, testes, banco e comportamento. A arquitetura é avaliada pelas dependências e pelos ciclos entre pacotes, com o jdeps; o *design* de baixo nível, pela categoria do *pattern* (acerto, alternativa equivalente, malfeito ou omissão) e por uma nota para o *design* do restante do código; os testes, pela contagem e pela cobertura, com o JaCoCo [JaCoCo 2026]; o banco, pelo esquema extraído com o `pg_dump` e por conferências simples; e o comportamento, por um roteiro de chamadas à API por cenário. As categorias do *pattern* são quatro: acerto, em que a variação inteira fica atrás de uma interface, escolhida em um só lugar; omissão, em que a variação fica em uma condicional sobre o caso; malfeito, em que a interface existe, mas convive com condicionais sobre o caso; e alternativa equivalente, outra estrutura, aceita de antemão pelos critérios do *pattern*, que também resolve a variação, como uma lista de regras no Decorator ou um escritor genérico no Template Method. Cada dimensão recebe a nota bom, com problemas ou ruim. O verificador registra ainda a estrutura desnecessária, isto é, a estrutura sem necessidade fora da parte que o *pattern* resolve, como uma interface com uma só implementação que nada substitui. São, portanto, sete notas por execução.
+
+O verificador foi calibrado antes de sua utilização, em 26 revisões de casos de resposta conhecida: as dez soluções de referência, com e sem o *pattern*, revisadas nas duas tarefas, e seis exemplos deliberadamente degradados, revisados na manutenção. As 52 notas coincidiram com as esperadas, sendo 20 da categoria do *pattern*, 20 do comportamento e 4 de cada uma destas dimensões: arquitetura, testes e banco. Cada combinação de tarefa, cenário, modelo e nível teve cinco rodadas, o que totaliza 450 execuções, assim distribuídas: o piloto (90), as repetições do *pattern* que mais errou, o Decorator, e do que mais acertou, o Factory Method (144), e, por fim, as dos outros três (216). De forma independente da revisão, o mesmo CK do estudo principal, na mesma versão, conferida pelo *hash*, e com as mesmas regras de resumo, mediu as 449 execuções com código, a título descritivo.
 
 Na manutenção, foram acrescentados cinco cenários de controle negativo, em que o *pattern* não se justifica, um para cada *pattern* estudado. Cada pedido toca a mesma parte do código que o cenário positivo correspondente, limita-se a uma mudança pontual (um percentual e um período, um texto, um campo, uma assinatura ou uma coluna) e termina com uma frase vaga sobre o futuro, como "talvez um dia a gente mande essa confirmação por WhatsApp também, mas por enquanto é só o e-mail". A frase é proposital, pois oferece ao agente um motivo para construir a estrutura que não foi solicitada. Os textos provêm da fase intermediária, com dois ajustes de redação feitos antes das execuções. Os mesmos três modelos e os mesmos três níveis foram executados em duas rodadas (5 cenários, 3 modelos, 3 níveis e 2 rodadas, 90 execuções), em 09/11/2026, depois de concluídas as cinco rodadas dos cenários com *pattern*. Quatro execuções foram refeitas porque o repositório de dependências recusou os *downloads* por excesso de pedidos, e as originais foram preservadas.
 
-O mesmo verificador da extensão, informado de que o cenário é um controle e às cegas quanto ao modelo e ao nível, classificou cada execução em contenção, isto é, a mudança pequena, no local em que o código já se encontra, ou em exagero, isto é, uma estrutura criada para a variação não solicitada, como uma interface, uma fábrica ou um envoltório. O termo exagero designa, portanto, três medidas neste trabalho: no estudo principal, a aplicação do *pattern* no ponto do seguro; na extensão, a estrutura desnecessária no restante do código; e, nos controles negativos, a estrutura criada para a variação não solicitada. Os critérios por cenário foram definidos na fase intermediária, e cada cenário recebeu um roteiro de chamadas à API. O verificador foi calibrado em seis soluções de referência (quatro contidas e duas com exagero), e as 12 notas coincidiram com as esperadas.
+O mesmo verificador da extensão, informado de que o cenário é um controle e às cegas quanto ao modelo e ao nível, classificou cada execução em contenção, isto é, a mudança pequena, no local em que o código já se encontra, ou em exagero, isto é, uma estrutura criada para a variação não solicitada, como uma interface, uma fábrica ou um envoltório. Para distinguir as medidas, este trabalho chama de exagero no ponto do seguro a aplicação do *pattern* nesse ponto do estudo principal; de estrutura desnecessária, a estrutura sem necessidade no restante do código da extensão; e de contenção, nos controles negativos, a mudança pequena. Os critérios por cenário foram definidos na fase intermediária, e cada cenário recebeu um roteiro de chamadas à API. O verificador foi calibrado em seis soluções de referência (quatro contidas e duas com exagero), e as 12 notas coincidiram com as esperadas.
 
-### 5.3 Resultados
+### 6.3 Resultados
 
-A Tabela 3 apresenta o número de execuções com resultado positivo em cada dimensão, por tarefa e nível.
+A Tabela 7 apresenta o número de execuções com resultado positivo em cada dimensão, por tarefa e nível.
 
-**Tabela 3.** Execuções boas por dimensão, tarefa e nível (cinco rodadas, 75 por nível; no *pattern*, acerto ou
+**Tabela 7.** Execuções boas por dimensão, tarefa e nível (cinco rodadas, 75 por nível; no *pattern*, acerto ou
 alternativa).
 
 | dimensão | Construir N0 | N1 | N2 | Manter N0 | N1 | N2 |
@@ -262,13 +402,15 @@ alternativa).
 | banco | 0 | 0 | 0 | 65 | 62 | 66 |
 | comportamento | 25 | 25 | 25 | 61 | 59 | 54 |
 
-A Figura 5 destaca a primeira linha da Tabela 3: do N0 ao N2, as execuções com o *pattern* certo sobem de 41 para 60 na construção e de 19 para 58 na manutenção. A Tabela 4 detalha esse resultado por *pattern* e tarefa.
+Fonte: elaboração própria.
+
+A Figura 5 destaca a primeira linha da Tabela 7: do N0 ao N2, as execuções com o *pattern* certo sobem de 41 para 60 na construção e de 19 para 58 na manutenção. A Tabela 8 detalha esse resultado por *pattern* e tarefa.
 
 ![Figura 5](figuras/fig-pattern-total.png)
 
 **Figura 5.** Execuções com o *pattern* certo por nível e tarefa, na extensão (75 por nível). Fonte: elaboração própria.
 
-**Tabela 4.** Execuções com o *pattern* certo em cinco rodadas.
+**Tabela 8.** Execuções com o *pattern* certo em cinco rodadas.
 
 | *pattern* | tarefa | N0 | N1 | N2 |
 |---|---|---|---|---|
@@ -283,17 +425,19 @@ A Figura 5 destaca a primeira linha da Tabela 3: do N0 ao N2, as execuções com
 | Template Method | construir | 5 de 15 | 10 de 15 | 14 de 15 |
 | Template Method | manter | 2 de 15 | 7 de 15 | 13 de 15 |
 
-Do N0 ao N2, o *pattern* certo aumenta em nove das dez combinações. A décima, o Strategy na construção, permanece igual, e o Sonnet 5.5 acerta nesse caso as cinco execuções de cada nível. Por modelo, o Sonnet 5.5 passa de 22 para 25 acertos em 25 na construção e de 11 para 25 na manutenção; o Sonnet 4.5, de 14 para 22 e de 5 para 20; e o Haiku 4.5, de 5 para 13 e de 3 para 13. A Figura 6 apresenta os dados da Tabela 4 por *pattern* e tarefa e evidencia tanto a exceção do Strategy na construção quanto o maior ganho na manutenção.
+Fonte: elaboração própria.
+
+Do N0 ao N2, o *pattern* certo aumenta em nove das dez combinações. A décima, o Strategy na construção, permanece igual, e o Sonnet 5.5 acerta nesse caso as cinco execuções de cada nível. Por modelo, o Sonnet 5.5 passa de 22 para 25 acertos em 25 na construção e de 11 para 25 na manutenção; o Sonnet 4.5, de 14 para 22 e de 5 para 20; e o Haiku 4.5, de 5 para 13 e de 3 para 13. A Figura 6 apresenta os dados da Tabela 8 por *pattern* e tarefa e evidencia tanto a exceção do Strategy na construção quanto o maior ganho na manutenção.
 
 ![Figura 6](figuras/fig-pattern-combinacao.png)
 
 **Figura 6.** Execuções com o *pattern* certo por *pattern*, nível e tarefa, na extensão (15 por combinação). Fonte: elaboração própria.
 
-Quanto ao comportamento, 59 das 225 execuções de construção permitiram que o mesmo quarto fosse reservado duas vezes quando dois pedidos chegavam simultaneamente, e 16 não chegaram a esse teste; na manutenção, nenhuma das 225 o permitiu, e todas aplicaram as migrações. O Sonnet 5.5 teve o comportamento avaliado como bom nas 150 execuções, ao passo que, na construção, nem o Haiku 4.5 nem o Sonnet 4.5 o tiveram em nenhuma das 75 execuções, com a nota ruim em 71 e 32, respectivamente. O exagero no restante do código foi de 4, 5 e 9 execuções em 75 na construção (N0, N1 e N2) e de 0, 1 e 2 na manutenção. O resultado da primeira rodada, em termos de *pattern* certo ou não, repetiu-se em 294 das 360 rodadas novas (82%), e 54 das 90 combinações apresentaram o mesmo resultado nas cinco rodadas.
+Quanto ao comportamento, 59 das 225 execuções de construção permitiram que o mesmo quarto fosse reservado duas vezes quando dois pedidos chegavam simultaneamente, e 16 não chegaram a esse teste; na manutenção, nenhuma das 225 o permitiu, e todas aplicaram as migrações. O Sonnet 5.5 teve o comportamento avaliado como bom nas 150 execuções, ao passo que, na construção, nem o Haiku 4.5 nem o Sonnet 4.5 o tiveram em nenhuma das 75 execuções, com a nota ruim em 71 e 32, respectivamente. A estrutura desnecessária no restante do código foi de 4, 5 e 9 execuções em 75 na construção (N0, N1 e N2) e de 0, 1 e 2 na manutenção. O resultado da primeira rodada, em termos de *pattern* certo ou não, repetiu-se em 294 das 360 rodadas novas (82%), e 54 das 90 combinações apresentaram o mesmo resultado nas cinco rodadas.
 
-No que se refere à estrutura orientada a objetos, a Tabela 5 mostra as métricas do CK por nível, e a Tabela 6 as cruza com a classe atribuída pelo verificador ao *pattern*, nas 449 execuções com código.
+No que se refere à estrutura orientada a objetos, a Tabela 9 mostra as métricas do CK por nível, e a Tabela 10 as cruza com a categoria atribuída pelo verificador ao *pattern*, nas 449 execuções com código.
 
-**Tabela 5.** Métricas de orientação a objetos na extensão (cinco rodadas, médias de 75 execuções por nível; 74 em
+**Tabela 9.** Métricas de orientação a objetos na extensão (cinco rodadas, médias de 75 execuções por nível; 74 em
 Construir N2, em que uma execução não escreveu código).
 
 | medida | Construir N0 | N1 | N2 | Manter N0 | N1 | N2 |
@@ -304,9 +448,11 @@ Construir N2, em que uma execução não escreveu código).
 | WMC da maior classe | 40,8 | 37,3 | 38,3 | 32,3 | 31,7 | 30,9 |
 | CBO médio do projeto | 3,27 | 3,38 | 3,48 | 3,29 | 3,30 | 3,45 |
 
-**Tabela 6.** Métricas de orientação a objetos pela classe do *pattern* (médias; cinco rodadas, 449 execuções com código).
+Fonte: elaboração própria.
 
-| tarefa | classe | execuções | interfaces | métodos abstratos | tipos com nome | WMC da maior classe | CBO médio |
+**Tabela 10.** Métricas de orientação a objetos pela categoria do *pattern* (médias; cinco rodadas, 449 execuções com código).
+
+| tarefa | categoria | execuções | interfaces | métodos abstratos | tipos com nome | WMC da maior classe | CBO médio |
 |---|---|---|---|---|---|---|---|
 | construir | acerto | 126 | 1,84 | 1,44 | 30,4 | 37,4 | 3,45 |
 | construir | alternativa equivalente | 28 | 2,43 | 0,21 | 34,8 | 33,2 | 3,29 |
@@ -317,11 +463,13 @@ Construir N2, em que uma execução não escreveu código).
 | manter | malfeito | 60 | 0,77 | 0 | 31,3 | 30,9 | 3,33 |
 | manter | omissão | 55 | 0 | 0 | 28,0 | 33,0 | 3,21 |
 
-Os métodos abstratos aumentam com a orientação nas duas tarefas, e mais com a *skill* (de 0,07 para 2,03 na construção e de 0,09 para 1,17 na manutenção). Esse aumento reflete as classes abstratas do Template Method e do Factory Method: no N2, a média é de 4,87 e 3,60 métodos abstratos no primeiro (construção e manutenção), de 4,20 e 2,13 no segundo, e de apenas 0,33 e 0 no Decorator. A maior classe torna-se um pouco menor, e o acoplamento médio aumenta pouco (cerca de 0,2 nas duas tarefas). A Tabela 6 mostra que as métricas acompanham a leitura do verificador: os projetos com omissão quase não têm interfaces nem métodos abstratos; os de acerto usam métodos abstratos; e os de alternativa equivalente, que resolvem a variação com uma lista de regras (no Decorator) ou com um escritor genérico que recebe as partes que variam (no Template Method), usam interfaces e quase nenhum método abstrato. O CBO médio não separa as classes, permanecendo entre 3,0 e 3,5 em todas.
+Fonte: elaboração própria.
 
-Nos cenários de controle negativo, a Tabela 7 mostra que a mudança permaneceu pequena em 88 das 90 execuções: 30 de 30 no N0, 30 de 30 no N1 e 28 de 30 no N2. As duas exceções são do Sonnet 5.5 com a *skill*, nas duas rodadas do cenário da temporada: o agente criou uma interface `Season`, com métodos de fábrica, e transferiu para ela também os períodos já existentes na base, embora o acréscimo tenha permanecido único. O `mvn verify` passou nas 90 execuções, e o comportamento recebeu a nota bom em 87; as outras três são do Haiku 4.5, nos cenários das crianças e da assinatura. A *skill* foi aberta nas 20 execuções do N2 dos dois modelos Sonnet e em nenhuma das dez do Haiku 4.5.
+Os métodos abstratos aumentam com a orientação nas duas tarefas, e mais com a *skill* (de 0,07 para 2,03 na construção e de 0,09 para 1,17 na manutenção). Esse aumento reflete as classes abstratas do Template Method e do Factory Method: no N2, a média é de 4,87 e 3,60 métodos abstratos no primeiro (construção e manutenção), de 4,20 e 2,13 no segundo, e de apenas 0,33 e 0 no Decorator. A maior classe torna-se um pouco menor, e o acoplamento médio aumenta pouco (cerca de 0,2 nas duas tarefas). A Tabela 10 mostra que as métricas acompanham a leitura do verificador: os projetos com omissão quase não têm interfaces nem métodos abstratos; os de acerto usam métodos abstratos; e os de alternativa equivalente, que resolvem a variação com uma lista de regras (no Decorator) ou com um escritor genérico que recebe as partes que variam (no Template Method), usam interfaces e quase nenhum método abstrato. O CBO médio não separa as categorias, permanecendo entre 3,0 e 3,5 em todas.
 
-**Tabela 7.** Execuções com a mudança pequena nos controles negativos (duas rodadas; 6 execuções por cenário e nível).
+Nos cenários de controle negativo, a Tabela 11 mostra que a mudança permaneceu pequena em 88 das 90 execuções: 30 de 30 no N0, 30 de 30 no N1 e 28 de 30 no N2. As duas exceções são do Sonnet 5.5 com a *skill*, nas duas rodadas do cenário da temporada: o agente criou uma interface `Season`, com métodos de fábrica, e transferiu para ela também os períodos já existentes na base, embora o acréscimo tenha permanecido único. O comando `mvn verify` passou nas 90 execuções, e o comportamento recebeu a nota bom em 87; as outras três são do Haiku 4.5, nos cenários das crianças e da assinatura. A *skill* foi aberta nas 20 execuções do N2 dos dois modelos Sonnet e em nenhuma das dez do Haiku 4.5.
+
+**Tabela 11.** Execuções com a mudança pequena nos controles negativos (duas rodadas; 6 execuções por cenário e nível).
 
 | cenário | N0 | N1 | N2 |
 |---|---|---|---|
@@ -332,57 +480,129 @@ Nos cenários de controle negativo, a Tabela 7 mostra que a mudança permaneceu 
 | coluna do hóspede (Template Method) | 6 | 6 | 6 |
 | **total (de 30)** | **30** | **30** | **28** |
 
-## 6. Discussão
+Fonte: elaboração própria.
+
+## 7. Discussão
 
 Esta seção retoma as perguntas de pesquisa apresentadas na Introdução e indica, para cada uma, a origem da evidência: o estudo principal, com pré-registro, ou a extensão, de caráter exploratório.
 
 A primeira pergunta (P1) indaga como a configuração do *harness* muda o uso do *pattern*. A evidência, pré-registrada no estudo principal e exploratória na extensão, aponta para o aumento do uso correto. No estudo principal, o ponto do clube passou de 67% para 93% apenas com o `CLAUDE.md`. Na extensão, de N0 a N2, a mesma direção aparece em nove das dez combinações de *pattern* e tarefa: na manutenção, de 19 para 33 e 58 acertos em 75; na construção, de 41 para 53 e 60. Só com o arquivo, o ganho concentra-se no Decorator e no Template Method (+18 acertos nas duas tarefas, contra +8 dos outros três *patterns*), justamente os cenários dos quais as precisões do `CLAUDE.md` mais se aproximam. A exceção merece registro, por tratar-se do *pattern* do estudo principal: o Strategy na construção ficou em 9, 7 e 9 acertos em 15. O teto não explica essa exceção: excluído o Sonnet 5.5, que acerta sem orientação, restam 4, 2 e 4 acertos em 10 nos outros dois modelos. O enunciado e o domínio são outros, e os três modelos são parte dos 11 do estudo principal. A extensão, portanto, não reproduz o efeito do estudo principal nesse ponto. A direção também depende do recorte: somente de N0 a N1, o Strategy vai de 15 para 14 acertos em 30, nas duas tarefas somadas.
 
-A segunda pergunta (P2) trata do exagero e da correção, com pré-registro no estudo principal e caráter exploratório na extensão. No estudo principal, o `CLAUDE.md` não altera o exagero, que ficou entre 0% e 5% em todos os níveis, e a comparação entre o N2 e o N1 não testa a *skill*, que não foi aberta; apenas a passagem do N2 para o N3 foi apoiada como queda, de 3 execuções em 55 para nenhuma. A correção não piora, e a complexidade diminui. Em contrapartida, as linhas aumentam, as classes aumentam na média, embora a hipótese correspondente tenha ficado inconclusiva, e a duplicação também sobe (de 1,2% para 2,5% das linhas, com a hipótese de não repetir o comum contrariada). O código torna-se, assim, menos complexo e maior. A extensão recomenda cautela: com a *skill*, na construção, o exagero chegou a 9 execuções em 75 (12%), contra 4 no N0, com 6 delas no Sonnet 4.5; na manutenção, foram 2 em 75. Os números são pequenos, mas a direção não é a de ausência de custo.
+A segunda pergunta (P2) trata do exagero e da corretude, com pré-registro no estudo principal e caráter exploratório na extensão. No estudo principal, o `CLAUDE.md` não altera o exagero no ponto do seguro, que ficou entre 0% e 5% em todos os níveis, e a comparação entre o N2 e o N1 não testa a *skill*, que não foi aberta; apenas a passagem do N2 para o N3 foi apoiada como queda, de 3 execuções em 55 para nenhuma. A corretude não piora, e a complexidade diminui. Em contrapartida, as linhas aumentam, as classes aumentam na média, embora a hipótese correspondente (H8) tenha ficado inconclusiva, e a duplicação também sobe (de 1,2% para 2,5% das linhas, com a hipótese H7 contrariada). O código torna-se, assim, menos complexo e maior. A extensão recomenda cautela: com a *skill*, na construção, a estrutura desnecessária chegou a 9 execuções em 75 (12%), contra 4 no N0, com 6 delas no Sonnet 4.5; na manutenção, foram 2 em 75. Os números são pequenos, mas a direção não é a de ausência de custo.
 
-O controle negativo da extensão complementa essa resposta. Na manutenção, as mesmas orientações que elevaram o *pattern* certo de 19 para 58 execuções em 75 quase não produziram estrutura onde ela não cabia: 58 das 60 execuções com orientação mantiveram a mudança pequena, assim como as 30 do N0. O resultado não sustenta a explicação de que os agentes orientados passaram a aplicar *pattern* em qualquer situação, ao menos nesses pedidos. No N2, a *skill* foi aberta em 20 das 30 execuções, 18 delas contidas, e o `CLAUDE.md` afirma que uma mudança pontual pede uma mudança simples, o que quase descreve esses cenários; nos níveis orientados, o controle avalia, portanto, a adesão a essa instrução, e não uma contenção espontânea. As duas exceções, ambas com a *skill* e no mesmo modelo e cenário, são coerentes com o risco indicado pela construção, em que o exagero também aumenta com a *skill*. Como o N0 e o N1 já estão no teto, o controle só poderia revelar piora, e não permite afirmar que a orientação melhora a contenção.
+O controle negativo da extensão complementa essa resposta. Na manutenção, as mesmas orientações que elevaram o *pattern* certo de 19 para 58 execuções em 75 quase não produziram estrutura onde ela não cabia: 58 das 60 execuções com orientação mantiveram a mudança pequena, assim como as 30 do N0. O resultado não sustenta a explicação de que os agentes orientados passaram a aplicar *pattern* em qualquer situação, ao menos nesses pedidos. No N2, a *skill* foi aberta em 20 das 30 execuções, 18 delas contidas, e o `CLAUDE.md` afirma que uma mudança pontual pede uma mudança simples, o que quase descreve esses cenários; nos níveis orientados, o controle avalia, portanto, a adesão a essa instrução, e não uma contenção espontânea. As duas exceções, ambas com a *skill* e no mesmo modelo e cenário, são coerentes com o risco indicado pela construção, em que a estrutura desnecessária também aumenta com a *skill*. Como o N0 e o N1 já estão no teto, o controle só poderia revelar piora, e não permite afirmar que a orientação melhora a contenção.
 
-A terceira pergunta (P3), pré-registrada, refere-se à variação do efeito entre os modelos. O efeito concentra-se nos modelos que não acertam sem orientação: nenhum dos seis modelos fora do teto piorou no ponto do clube, embora, na correção, o Haiku 4.5 tenha piorado nos cinco pares (saldo −5), o que a não inferioridade do conjunto não evidencia. O maior ganho foi do Opus 4.7, que, empatado com o Haiku 4.5, era o que menos acertava o ponto do clube no N0 (0 de 5), abaixo de modelos menores como o Haiku 5.5 (3 de 5). Na extensão, o modelo pesa mais que a orientação nas outras dimensões: o Sonnet 5.5 sem orientação supera o Haiku 4.5 com a *skill* em todas elas, salvo o banco na construção, em que ambos têm zero. No próprio *pattern*, porém, a orientação alcança o modelo: na manutenção, o Haiku 4.5 com a *skill* (13 em 25) supera o Sonnet 5.5 sem orientação (11 em 25).
+A terceira pergunta (P3), pré-registrada, refere-se à variação do efeito entre os modelos. O efeito concentra-se nos modelos que não acertam sem orientação: nenhum dos seis modelos fora do teto piorou no ponto do clube, embora, na corretude, o Haiku 4.5 tenha piorado nos cinco pares (saldo −5), o que a não inferioridade do conjunto não evidencia (Tabela 12). O maior ganho foi do Opus 4.7, que, empatado com o Haiku 4.5, era o que menos acertava o ponto do clube no N0 (0 de 5), abaixo de modelos menores como o Haiku 5.5 (3 de 5). Na extensão, o modelo pesa mais que a orientação nas outras dimensões: o Sonnet 5.5 sem orientação supera o Haiku 4.5 com a *skill* em todas elas, salvo o banco na construção, em que ambos têm zero (Tabela 13). No próprio *pattern*, porém, a orientação alcança o modelo: na manutenção, o Haiku 4.5 com a *skill* (13 em 25) supera o Sonnet 5.5 sem orientação (11 em 25).
 
-A quarta pergunta (P4) examina a contribuição de cada componente, com pré-registro e matizes trazidos pela extensão. No estudo principal, o `CLAUDE.md` concentra a maior parte do ganho, o que decorre também da ordem cumulativa dos níveis; na manutenção da extensão, a *skill* acrescenta mais (+25 acertos) do que o arquivo (+14). O efeito da *skill* pública não pôde ser avaliado: a hipótese ficou inconclusiva, com dez dos 11 modelos já no teto no N1, e a *skill* não foi aberta em nenhuma das 110 execuções, de modo que o tratamento não chegou a ser aplicado. O processo (N3) melhorou o desenho em um único modelo fora do teto, o Haiku 4.5, e reduziu o exagero de 3 execuções em 55 para nenhuma. Na extensão, com a instrução de usar a *skill*, ela foi aberta em 69 das 75 execuções do N2 de cada tarefa (19 de 25 no Haiku 4.5 e 25 de 25 nos dois modelos Sonnet) e acrescentou acertos sobretudo na manutenção (de 33 para 58 em 75, contra 53 para 60 na construção), sem alterar o número de acertos do Decorator na construção (10 de 15 no N1 e no N2), embora tenha modificado sua forma: a forma literal do Decorator apareceu com ela, nas dez rodadas do Sonnet 5.5 e em uma do Sonnet 4.5, e nunca sem ela. Sem a *skill*, todas as execuções consideradas certas no Decorator foram classificadas como alternativa equivalente (4 e 10 na construção, no N0 e no N1, e 3 e 5 na manutenção). Na fase intermediária, com a *skill* pública e a instrução de consultá-la, observou-se um risco: aberta com uma pergunta, ela levou um modelo, o Sonnet 4.5, a responder em texto e encerrar sem programar. O risco reapareceu nas cinco rodadas, com a *skill* escrita para este trabalho: na construção do Strategy, em uma rodada, o Haiku 4.5 abriu a *skill* com os planos de tarifa como argumento, anunciou que implementaria a solução e encerrou sem código.
+A quarta pergunta (P4) examina a contribuição de cada componente, com pré-registro e matizes trazidos pela extensão. No estudo principal, o `CLAUDE.md` concentra a maior parte do ganho, o que decorre também da ordem cumulativa dos níveis; na manutenção da extensão, a *skill* acrescenta mais (+25 acertos) do que o arquivo (+14). O efeito da *skill* pública não pôde ser avaliado: a hipótese ficou inconclusiva, com dez dos 11 modelos já no teto no N1, e a *skill* não foi aberta em nenhuma das 110 execuções, de modo que o tratamento não chegou a ser aplicado. O processo (N3) melhorou o *design* em um único modelo fora do teto, o Haiku 4.5, e reduziu o exagero de 3 execuções em 55 para nenhuma, mas é também o nível mais caro, com custo médio de US$ 1,98 por execução, contra US$ 1,47 no N2 (Tabela 5). Na extensão, com a instrução de usar a *skill*, ela foi aberta em 69 das 75 execuções do N2 de cada tarefa (19 de 25 no Haiku 4.5 e 25 de 25 nos dois modelos Sonnet) e acrescentou acertos sobretudo na manutenção (de 33 para 58 em 75, contra 53 para 60 na construção), sem alterar o número de acertos do Decorator na construção (10 de 15 no N1 e no N2), embora tenha modificado sua forma: a forma literal do Decorator apareceu com ela, nas dez rodadas do Sonnet 5.5 e em uma do Sonnet 4.5, e nunca sem ela (Tabela 14). Sem a *skill*, todas as execuções consideradas certas no Decorator foram classificadas como alternativa equivalente (4 e 10 na construção, no N0 e no N1, e 3 e 5 na manutenção). Na fase intermediária, com a *skill* pública e a instrução de consultá-la, observou-se um risco: aberta com uma pergunta, ela levou um modelo, o Sonnet 4.5, a responder em texto e encerrar sem programar. O risco reapareceu nas cinco rodadas, com a *skill* escrita para este trabalho: na construção do Strategy, em uma rodada, o Haiku 4.5 abriu a *skill* com os planos de tarifa como argumento, anunciou que implementaria a solução e encerrou sem código.
 
 A quinta pergunta (P5), exploratória, considera o tipo de tarefa. Os dados indicam aumento maior na manutenção somente quando a *skill* é acrescentada: só com o arquivo, o ganho é de 14 execuções na manutenção e de 12 na construção; com o arquivo e a *skill*, de 39 e de 19. Diante de um código que já funciona, o agente sem orientação tende a acrescentar mais uma condição (19 acertos em 75 no N0, contra 41 na construção), e a orientação reduz esse hábito, sobretudo com a *skill* (58 em 75 no N2, contra 60). A manutenção parte de um nível menor (19 contra 41 no N0) e chega perto da construção no N2 (58 contra 60), de modo que parte da diferença decorre do espaço disponível para melhorar. Como a redação do `CLAUDE.md` difere entre as tarefas, a comparação entre elas não isola o efeito da tarefa, embora a *skill* tenha sido aberta na mesma proporção nas duas (69 de 75 execuções).
 
 A sexta pergunta (P6), também exploratória, trata das demais dimensões de qualidade. O *design* do restante do código acompanha a orientação (de 14 para 25 em 75 na manutenção e de 15 para 20 ou 23 na construção), ao passo que arquitetura, testes e banco oscilam sem direção clara. O comportamento não varia na construção (25 em 75 nos três níveis) e cai na manutenção (61, 59 e 54 em 75), de modo que o ganho em *pattern* veio acompanhado de alguma perda nessa dimensão. Nessas dimensões, pesam o modelo e o ponto de partida: na manutenção, o agente conserva a arquitetura, as migrações e as restrições de banco existentes na base; na construção, nenhuma das 225 execuções aplicou migrações (uma escreveu os arquivos, e o serviço não chegou a iniciar). A configuração versa sobre estrutura, e os ganhos aparecem no *pattern* e no *design* do restante do código, mas não na arquitetura.
 
-A sétima pergunta (P7), exploratória, refere-se à estabilidade dos resultados. O resultado da primeira rodada se repetiu em 82% das repetições, o que mostra que uma execução isolada não basta. A variação acompanha o modelo (de 120 repetições, 89 no Haiku 4.5, 96 no Sonnet 4.5 e 109 no Sonnet 5.5), e não o nível (96, 103 e 95 de 120 no N0, N1 e N2). Com orientação, o Sonnet 5.5 repetiu o resultado em 19 das 20 combinações. Alguns erros são constantes: o Sonnet 5.5, na manutenção e sem orientação, não acertou o Factory Method em nenhuma das cinco rodadas, e acertou nas dez com orientação.
+A sétima pergunta (P7), exploratória, refere-se à estabilidade dos resultados. O resultado da primeira rodada se repetiu em 82% das repetições, o que mostra que uma execução isolada não basta. A variação acompanha o modelo (de 120 repetições, 89 no Haiku 4.5, 96 no Sonnet 4.5 e 109 no Sonnet 5.5), e não o nível (96, 103 e 95 de 120 no N0, N1 e N2). Com orientação, o Sonnet 5.5 repetiu o resultado em 19 das 20 combinações (Tabela 15). Alguns erros são constantes: o Sonnet 5.5, na manutenção e sem orientação, não acertou o Factory Method em nenhuma das cinco rodadas, e acertou nas dez com orientação.
 
-A oitava pergunta (P8) aborda a estrutura orientada a objetos e é descritiva, salvo quanto ao CBO e à LCOM do estudo principal. A orientação substitui a condicional pelo polimorfismo, como a Seção 2 prevê: os projetos ganham interfaces (no estudo principal), métodos abstratos (na extensão, sobretudo com a *skill*) e constantes de *enum* com comportamento próprio, ao passo que os projetos com omissão quase não têm nenhum desses mecanismos. A complexidade sai da classe que concentrava as condicionais e se distribui: a maior classe diminui, e o projeto ganha classes. No estudo principal, essa troca não aumentou o acoplamento médio, e a coesão média também não mudou de forma consistente; o que diminuiu foi a cauda de projetos com classes muito pouco coesas. Na extensão, o acoplamento médio aumenta pouco (de 3,27 para 3,48 na construção e de 3,29 para 3,45 na manutenção). Em termos do princípio aberto/fechado, o código com orientação tem a forma que o princípio prevê, com uma classe nova atrás de uma interface e pouca mudança nas dependências por classe, embora este trabalho não tenha medido o custo de acrescentar um caso novo. Como o número de classes aumenta, o total de dependências cresce: multiplicando o CBO médio pelos tipos, em conta aproximada, o aumento em relação ao N0 fica entre cerca de 22% e 46% no estudo principal e entre cerca de 3% e 27% na extensão. O CBO médio, portanto, não basta para afirmar que a estrutura nova não é exagero, e tampouco distingue as classes do *pattern*, de modo que não serve isoladamente para indicar se o *pattern* foi aplicado.
+A oitava pergunta (P8) aborda a estrutura orientada a objetos e é descritiva, salvo quanto ao CBO e à LCOM do estudo principal. A orientação substitui a condicional pelo polimorfismo, como a Seção 2 prevê: os projetos ganham interfaces (no estudo principal), métodos abstratos (na extensão, sobretudo com a *skill*) e constantes de *enum* com comportamento próprio, ao passo que os projetos com omissão quase não têm nenhum desses mecanismos. A complexidade sai da classe que concentrava as condicionais e se distribui: a maior classe diminui, e o projeto ganha classes. No estudo principal, essa troca não aumentou o acoplamento médio, e a coesão média também não mudou de forma consistente; o que diminuiu foi a cauda de projetos com classes muito pouco coesas. Na extensão, o acoplamento médio aumenta pouco (de 3,27 para 3,48 na construção e de 3,29 para 3,45 na manutenção). Em termos do princípio aberto/fechado, o código com orientação tem a forma que o princípio prevê, com uma classe nova atrás de uma interface e pouca mudança nas dependências por classe, embora este trabalho não tenha medido o custo de acrescentar um caso novo. Como o número de classes aumenta, o total de dependências cresce: multiplicando o CBO médio pelos tipos, em conta aproximada, o aumento em relação ao N0 fica entre cerca de 22% e 46% no estudo principal e entre cerca de 3% e 27% na extensão. O CBO médio, portanto, não basta para afirmar que a estrutura nova não é exagero, e tampouco distingue as categorias do *pattern*, de modo que não serve isoladamente para indicar se o *pattern* foi aplicado.
 
-Por fim, cabe considerar a trajetória do estudo. O desenho mudou diversas vezes, e cada mudança tem data e motivo registrados; parte delas foi feita depois de observar resultados da fase anterior. O V4 foi descartado antes da análise confirmatória. As mudanças da extensão decorreram de problemas de método (o teto, o *framework* que entregava o *pattern* pronto e a *skill* que interrompia o trabalho do agente) e também de resultados observados anteriormente: as precisões do `CLAUDE.md`, a frase de três enunciados e a linha da *skill* no N2 da manutenção responderam a execuções anteriores, e a escolha dos *patterns* repetidos primeiro seguiu os acertos do piloto. O aumento do *pattern* certo apareceu nos dois estudos, com enunciados e correções diferentes e um subconjunto de três dos 11 modelos, exceto no Strategy na construção, em que a extensão não reproduz o resultado do estudo principal, embora esse seja o único *pattern* comum aos dois. A contenção em pedidos que não justificam o *pattern* foi testada no estudo principal e na manutenção da extensão, mas não na construção da extensão.
+Por fim, cabe considerar a trajetória do estudo. O desenho experimental mudou diversas vezes, e cada mudança tem data e motivo registrados; parte delas foi feita depois de observar resultados da fase anterior. O lote descartado foi abandonado antes da análise confirmatória. As mudanças da extensão decorreram de problemas de método (o teto, o *framework* que entregava o *pattern* pronto e a *skill* que interrompia o trabalho do agente) e também de resultados observados anteriormente: as precisões do `CLAUDE.md`, a frase de três enunciados e a linha da *skill* no N2 da manutenção responderam a execuções anteriores, e a escolha dos *patterns* repetidos primeiro seguiu os acertos do piloto. O aumento do *pattern* certo apareceu nos dois estudos, com enunciados e avaliações diferentes e um subconjunto de três dos 11 modelos, exceto no Strategy na construção, em que a extensão não reproduz o resultado do estudo principal, embora esse seja o único *pattern* comum aos dois. A contenção em pedidos que não justificam o *pattern* foi testada no estudo principal e na manutenção da extensão, mas não na construção da extensão.
 
-## 7. Limitações
+## 8. Limitações
 
-Algumas ameaças à validade alcançam todo o experimento. O vazamento implícito de dados de treino é uma ameaça em estudos com LLMs [Sallou et al. 2024]; como os *patterns* clássicos são amplamente documentados, é provável que estejam nos dados de treino dos modelos, de modo que aplicá-los pode ser repetição de memória, e não raciocínio. O controle negativo do estudo principal reduz essa ameaça apenas em parte. Além disso, por restrição de custo, todos os modelos executores e o verificador são de um único fornecedor, a Anthropic, sem modelo aberto como linha de base, o que limita a generalização para outros fornecedores. Nos dois estudos, o `CLAUDE.md` foi escrito por quem conhece as tarefas e o critério de correção, assim como a *skill* da extensão, o que tende a favorecer os níveis com orientação.
+Algumas ameaças à validade alcançam todo o experimento. O vazamento implícito de dados de treino é uma ameaça em estudos com LLMs [Sallou et al. 2024]; como os *patterns* clássicos são amplamente documentados, é provável que estejam nos dados de treino dos modelos, de modo que aplicá-los pode ser repetição de memória, e não raciocínio. O controle negativo do estudo principal reduz essa ameaça apenas em parte. Além disso, por restrição de custo, todos os modelos executores e o verificador são de um único fornecedor, a Anthropic, sem modelo aberto como linha de base, o que limita a generalização para outros fornecedores. Os instrumentos foram desenhados com a ajuda de um modelo de IA da mesma família dos agentes estudados, e, nos dois estudos, o agente que operou as execuções é dessa família. Nos dois estudos, o `CLAUDE.md` foi definido pelo autor, que conhece as tarefas e o critério de avaliação, assim como a *skill* da extensão, o que tende a favorecer os níveis com orientação.
 
-No estudo principal, o uso de uma só família de modelos e de um só agente impede separar o efeito da configuração do efeito do par formado pelo modelo e pelo agente. Um só leitor humano conferiu o Semgrep, e a releitura prevista no pré-registro não foi realizada, desvio que está registrado. O enunciado traz o contrato da API, o que reduz o realismo em troca de uma correção igual para todos. A complexidade cognitiva foi escolhida como hipótese principal depois do ensaio de uma fase anterior ao V4, em que foi a métrica que mais mudou com a configuração; os dados do estudo principal são novos, mas a escolha da hipótese não foi independente daquele ensaio.
+No estudo principal, o uso de uma só família de modelos e de um só agente impede separar o efeito da configuração do efeito do par formado pelo modelo e pelo agente. Um só leitor humano conferiu o Semgrep, e a releitura prevista no pré-registro não foi realizada, desvio que está registrado. O enunciado traz o contrato da API, o que reduz o realismo em troca de uma avaliação igual para todos. A complexidade cognitiva foi escolhida como hipótese principal depois do ensaio de uma fase anterior ao lote descartado, em que foi a métrica que mais mudou com a configuração; os dados do estudo principal são novos, mas a escolha da hipótese não foi independente daquele ensaio.
 
 Na extensão, as orientações e três enunciados foram ajustados depois de observar a fase intermediária, e as duas precisões acrescentadas ao `CLAUDE.md` aproximam-se mais de dois cenários, o Decorator e o Template Method, do que os princípios anteriores, o que tende a favorecer os níveis com orientação nesses cenários; de N0 a N1, esses dois *patterns* somam +18 acertos, e os outros três, +8, diferença que não pode ser separada dessas precisões. A frase acrescentada aos enunciados reforça que a variação vai crescer e pode ter aumentado os acertos; como vale para os três níveis, ela não favorece diretamente nenhum deles, embora possa reforçar o efeito da orientação, e os números absolutos não se comparam com os da fase intermediária. A redação do `CLAUDE.md` também difere entre construção e manutenção, de modo que a comparação entre as duas tarefas não separa o efeito da tarefa do efeito do texto. O trabalho mede, ademais, se o agente aplica o *pattern* esperado, e não se ele facilita as mudanças seguintes. O efeito dos *patterns* sobre a facilidade de mudança, como registrado na Introdução, varia conforme o *pattern* e a tarefa [Prechelt et al. 2001; Vokáč et al. 2004], e a revisão de Zhang e Budgen (2012) encontrou apenas apoio limitado, sobretudo qualitativo, ao valor dos *patterns* na manutenção.
 
-O controle negativo da extensão existe apenas na manutenção; na construção, o exagero foi medido somente no restante do código. O controle teve duas rodadas, contra cinco dos cenários com *pattern*, e foi executado depois deles, em outra data. Como os cenários ficaram no teto no N0 e no N1, o controle não tem como mostrar melhora, e as duas exceções do N2 não bastam para estimar o risco da *skill*. O próprio `CLAUDE.md` orienta a não criar estrutura em mudanças pontuais, o que limita o que o controle pode mostrar sobre os níveis com orientação. Sua calibração usou seis das dez soluções de referência, as que ainda se aplicavam à base com banco, e nenhuma do cenário das crianças, cobrindo quatro casos de contenção e dois de exagero. O verificador sabe que o cenário é um controle, e dois roteiros de comportamento foram corrigidos depois de testados em execuções reais, antes das revisões. Os dois ajustes de redação dos enunciados e a decisão de realizar duas rodadas foram tomados no último dia de execução, depois de conhecidos os resultados dos cenários com *pattern*.
+O controle negativo da extensão existe apenas na manutenção; na construção, mediu-se apenas a estrutura desnecessária no restante do código. O controle teve duas rodadas, contra cinco dos cenários com *pattern*, e foi executado depois deles, em outra data. Como os cenários ficaram no teto no N0 e no N1, o controle não tem como mostrar melhora, e as duas exceções do N2 não bastam para estimar o risco da *skill*. O próprio `CLAUDE.md` orienta a não criar estrutura em mudanças pontuais, o que limita o que o controle pode mostrar sobre os níveis com orientação. Sua calibração usou seis das dez soluções de referência, as que ainda se aplicavam à base com banco, e nenhuma do cenário das crianças, cobrindo quatro casos de contenção e dois de exagero. O verificador sabe que o cenário é um controle, e dois roteiros de comportamento foram corrigidos depois de testados em execuções reais, antes das revisões. Os dois ajustes de redação dos enunciados e a decisão de realizar duas rodadas foram tomados no último dia de execução, depois de conhecidos os resultados dos cenários com *pattern*.
 
-A correção é realizada por uma IA. O verificador foi calibrado (52 de 52, depois de uma primeira rodada com 50 de 52, após a qual os testes de duas soluções foram completados e foi introduzida a regra de que cada defeito pesa em uma só coluna), mas a nota resume uma leitura, e a calibração não cobriu o *design* do restante do código nem o exagero. Na classe do *pattern*, testou apenas acerto e omissão, sem malfeito nem alternativa equivalente, e, no comportamento, apenas casos com a nota bom. Essa lacuna pesa sobretudo no Decorator, em que todos os resultados considerados certos sem a *skill* são alternativas equivalentes. Um segundo modelo da mesma empresa, o Claude Fable 5.1, com o mesmo agente e as mesmas *skills*, revisou às cegas 30 execuções sorteadas, e 195 de 210 notas coincidiram com as do verificador oficial. A classe do *pattern* e a arquitetura coincidiram em 30 de 30; comportamento e exagero, em 29; banco, em 27; testes, em 26; e *design*, em 24 (kappa de Cohen de 0,53, o mais baixo). Nas 15 diferenças, o segundo modelo foi sempre um degrau mais brando, de modo que as demais notas do verificador oficial podem ser um pouco mais severas do que as de outro avaliador. Essa concordância mostra que a leitura se repete, e não que está certa: em Wang et al. (2025), na sumarização de código, métodos baseados em LLMs grandes tiveram correlação maior entre si do que com as notas humanas, embora em outras tarefas se aproximassem mais delas, e substituir todos os avaliadores humanos é arriscado [Ahmed et al. 2025]. A segunda revisão não substitui um avaliador humano nem um modelo de outra empresa.
+A avaliação é realizada por uma IA. O verificador foi calibrado (52 de 52, depois de uma primeira rodada com 50 de 52, após a qual os testes de duas soluções foram completados e foi introduzida a regra de que cada defeito pesa em uma só coluna), mas a nota resume uma leitura, e a calibração não cobriu o *design* do restante do código nem a estrutura desnecessária. Na categoria do *pattern*, testou apenas acerto e omissão, sem malfeito nem alternativa equivalente, e, no comportamento, apenas casos com a nota bom. Essa lacuna pesa sobretudo no Decorator, em que todos os resultados considerados certos sem a *skill* são alternativas equivalentes. Um segundo modelo da mesma empresa, o Claude Fable 5.1, com o mesmo agente e as mesmas *skills*, revisou às cegas 30 execuções sorteadas, e 195 de 210 notas coincidiram com as do verificador oficial. A categoria do *pattern* e a arquitetura coincidiram em 30 de 30; comportamento e estrutura desnecessária, em 29; banco, em 27; testes, em 26; e *design*, em 24 (kappa de Cohen de 0,53, o mais baixo). Nas 15 diferenças, o segundo modelo foi sempre um degrau mais brando, de modo que as demais notas do verificador oficial podem ser um pouco mais severas do que as de outro avaliador. Essa concordância mostra que a leitura se repete, e não que está certa: em Wang et al. (2025), na sumarização de código, métodos baseados em LLMs grandes tiveram correlação maior entre si do que com as notas humanas, embora em outras tarefas se aproximassem mais delas, e substituir todos os avaliadores humanos é arriscado [Ahmed et al. 2025]. A segunda revisão não substitui um avaliador humano nem um modelo de outra empresa.
 
 Quanto à execução da extensão, as repetições do Factory Method e do Decorator são de 22/10, e as dos outros três *patterns*, de 01 e 02/11, com a mesma imagem de contêiner. Dentro de cada cenário e rodada, os níveis foram executados em um intervalo de cerca de 10 horas, no máximo, o que preserva a comparação entre níveis, mas dificulta a comparação entre *patterns*. A escolha de quais repetir primeiro foi feita depois de ver o piloto. O número de cinco rodadas por combinação decorreu do custo, e não de um cálculo de poder, e fica abaixo até do mínimo de dez repetições que Arcuri e Briand (2014) admitem quando há muitos artefatos, sendo a recomendação geral um número muito alto de repetições; por isso, a extensão descreve as diferenças, sem teste de significância. O ambiente não dispunha de Docker dentro do contêiner do agente, o que fez falhar os testes de integração que dependiam dele.
 
-Por fim, as métricas de orientação a objetos têm limites próprios. Apenas o CBO e a LCOM do estudo principal têm hipótese no pré-registro; as outras métricas, e todas as da extensão, foram analisadas depois de conhecidos os resultados e entram como descrição. As médias por projeto escondem a distribuição entre as classes; por isso, a LCOM é apresentada com a mediana e o percentil 90, e a maior classe é medida à parte. Na LCOM de Chidamber e Kemerer (1994), o valor zero não indica coesão máxima, e ela não teve relação significativa com falhas em Basili et al. (1996), cuja amostra é de 180 classes C++ de alunos; seus números comparam níveis e não valem como limite absoluto. A complexidade cognitiva conta as condicionais por construção [Campbell 2018], de modo que sua queda com a orientação não é evidência independente da mudança de desenho; ela se correlaciona com o tempo de compreensão e com a avaliação subjetiva, com resultados mistos no acerto das tarefas de compreensão [Muñoz Barón et al. 2020], e não mede se o código está correto.
+Por fim, as métricas de orientação a objetos têm limites próprios. Apenas o CBO e a LCOM do estudo principal têm hipótese no pré-registro; as outras métricas, e todas as da extensão, foram analisadas depois de conhecidos os resultados e entram como descrição. As médias por projeto escondem a distribuição entre as classes; por isso, a LCOM é apresentada com a mediana e o percentil 90, e a maior classe é medida à parte. Na LCOM de Chidamber e Kemerer (1994), o valor zero não indica coesão máxima, e ela não teve relação significativa com falhas em Basili et al. (1996), cuja amostra é de 180 classes C++ de alunos; seus números comparam níveis e não valem como limite absoluto. A complexidade cognitiva conta as condicionais por construção [Campbell 2018], de modo que sua queda com a orientação não é evidência independente da mudança de *design*; ela se correlaciona com o tempo de compreensão e com a avaliação subjetiva, com resultados mistos no acerto das tarefas de compreensão [Muñoz Barón et al. 2020], e não mede se o código está correto.
 
-## 8. Conclusão
+## 9. Conclusão
 
-Este trabalho avaliou experimentalmente o efeito de orientações persistentes sobre a decisão de agentes de programação de aplicar *design patterns* não nomeados no pedido. No estudo principal, com pré-registro, um arquivo de princípios aumentou o uso correto do *pattern* Strategy, de 67% para 93% no ponto mais complexo, sem alteração detectada no exagero e sem piorar a correção no conjunto, embora com piora no Haiku 4.5. A complexidade cognitiva diminuiu, em parte em decorrência da própria troca de condicionais, e o ganho apareceu nos modelos que não acertavam sem orientação, os únicos com espaço para melhorar.
+Este trabalho avaliou experimentalmente o efeito de orientações persistentes sobre a decisão de agentes de programação de aplicar *design patterns* não nomeados no pedido. No estudo principal, com pré-registro, um arquivo de princípios aumentou o uso correto do *pattern* Strategy, de 67% para 93% no ponto mais complexo, sem alteração detectada no exagero e sem piorar a corretude no conjunto, embora com piora no Haiku 4.5. A complexidade cognitiva diminuiu, em parte em decorrência da própria troca de condicionais, e o ganho apareceu nos modelos que não acertavam sem orientação, os únicos com espaço para melhorar.
 
-Na extensão, com cinco rodadas, observou-se, de N0 a N2, a mesma direção em nove das dez combinações de *pattern* e tarefa, com a exceção do Strategy na construção. O aumento foi maior na manutenção quando se somaram o arquivo e a *skill*, pois essa tarefa parte de um nível menor e se aproxima da construção; apenas com o arquivo, os aumentos foram próximos, e o texto do arquivo difere entre as tarefas. Nas demais dimensões de qualidade, o modelo e o ponto de partida pesaram mais que a orientação. Quanto aos custos, na construção com a *skill*, o exagero subiu de 4 para 9 execuções em 75, ao passo que, nos controles negativos da manutenção, a estrutura desnecessária foi rara: 88 de 90 execuções mantiveram a mudança pequena, e as duas exceções ocorreram no N2. As métricas de orientação a objetos, em sua maioria descritivas e analisadas depois dos resultados, são compatíveis com um mecanismo, que em parte apenas redescreve a mudança de desenho: a orientação troca condicionais por polimorfismo e distribui a complexidade por mais classes, com pouca mudança no acoplamento médio.
+Na extensão, com cinco rodadas, observou-se, de N0 a N2, a mesma direção em nove das dez combinações de *pattern* e tarefa, com a exceção do Strategy na construção. O aumento foi maior na manutenção quando se somaram o arquivo e a *skill*; como essa tarefa parte de um nível menor, parte da diferença decorre do espaço para melhorar. Apenas com o arquivo, os aumentos foram próximos, e o texto do arquivo difere entre as tarefas. Nas demais dimensões de qualidade, o modelo e o ponto de partida pesaram mais que a orientação. Quanto aos custos, na construção com a *skill*, a estrutura desnecessária subiu de 4 para 9 execuções em 75, ao passo que, nos controles negativos da manutenção, a estrutura desnecessária foi rara: 88 de 90 execuções mantiveram a mudança pequena, e as duas exceções ocorreram no N2. As métricas de orientação a objetos, em sua maioria descritivas e analisadas depois dos resultados, são compatíveis com um mecanismo, que em parte apenas redescreve a mudança de *design*: a orientação troca condicionais por polimorfismo e distribui a complexidade por mais classes, com pouca mudança no acoplamento médio.
 
-Como trabalhos futuros, indicam-se o estudo de outras famílias de modelos e de agentes; a leitura humana das notas do verificador; o controle negativo também na construção e com mais rodadas; e a medida do ganho do *pattern*, por meio da solicitação de um novo caso sobre o código gerado e da contagem dos lugares que precisam mudar e dos comportamentos antigos que se quebram.
+Para quem escreve orientações para agentes de programação, os resultados indicam que um arquivo curto de princípios, que descreve quando separar o que varia e quando não criar estrutura, concentrou o ganho no estudo principal, e que o acréscimo de uma *skill* pede cuidado, pois, na construção, veio acompanhado de mais estrutura desnecessária.
+
+Como trabalhos futuros, indicam-se o estudo de outras famílias de modelos e de agentes; a avaliação do nível com processo (N3) também na extensão; a investigação da ausência de efeito no Strategy na construção; a leitura humana das notas do verificador; o controle negativo também na construção e com mais rodadas; e a medida do ganho do *pattern*, por meio da solicitação de um novo caso sobre o código gerado e da contagem dos lugares que precisam mudar e dos comportamentos antigos que se quebram.
+
+## Apêndice A. Dados por modelo
+
+As tabelas a seguir apresentam os dados por modelo citados na Seção 7.
+
+**Tabela 12.** Estudo principal, por modelo: acertos no ponto do clube em cinco rodadas por nível, saldo de pares em H1 e saldo de pares em H3 (N1 contra N0; o traço indica modelo no teto, fora da comparação de H1).
+
+| modelo | N0 | N1 | N2 | N3 | saldo H1 | saldo H3 |
+|---|---|---|---|---|---|---|
+| Haiku 4.5 | 0 | 1 | 1 | 4 | +1 | −5 |
+| Haiku 5.5 | 3 | 5 | 5 | 5 | +2 | 0 |
+| Sonnet 4.5 | 2 | 5 | 5 | 5 | +3 | +2 |
+| Sonnet 4.6 | 3 | 5 | 5 | 5 | +2 | +2 |
+| Sonnet 5 | 4 | 5 | 5 | 5 | +1 | +1 |
+| Sonnet 5.5 | 5 | 5 | 5 | 5 | — | 0 |
+| Opus 4.6 | 5 | 5 | 5 | 5 | — | +1 |
+| Opus 4.7 | 0 | 5 | 5 | 5 | +5 | +2 |
+| Opus 4.8 | 5 | 5 | 5 | 5 | — | 0 |
+| Opus 5 | 5 | 5 | 5 | 5 | — | 0 |
+| Opus 5.5 | 5 | 5 | 5 | 5 | — | 0 |
+
+Fonte: elaboração própria.
+
+**Tabela 13.** Extensão, por modelo: execuções com resultado positivo em 25 (no *pattern*, acerto ou alternativa equivalente; nas demais colunas, nota bom).
+
+| tarefa | modelo | nível | *pattern* | *design* do restante | arquitetura | testes | banco | comportamento |
+|---|---|---|---|---|---|---|---|---|
+| construção | Haiku 4.5 | N0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| construção | Haiku 4.5 | N1 | 7 | 0 | 0 | 0 | 0 | 0 |
+| construção | Haiku 4.5 | N2 | 13 | 0 | 0 | 0 | 0 | 0 |
+| construção | Sonnet 4.5 | N0 | 14 | 0 | 8 | 0 | 0 | 0 |
+| construção | Sonnet 4.5 | N1 | 21 | 0 | 3 | 0 | 0 | 0 |
+| construção | Sonnet 4.5 | N2 | 22 | 0 | 4 | 0 | 0 | 0 |
+| construção | Sonnet 5.5 | N0 | 22 | 15 | 8 | 11 | 0 | 25 |
+| construção | Sonnet 5.5 | N1 | 25 | 23 | 6 | 9 | 0 | 25 |
+| construção | Sonnet 5.5 | N2 | 25 | 20 | 12 | 6 | 0 | 25 |
+| manutenção | Haiku 4.5 | N0 | 3 | 2 | 16 | 5 | 19 | 16 |
+| manutenção | Haiku 4.5 | N1 | 3 | 1 | 14 | 6 | 16 | 17 |
+| manutenção | Haiku 4.5 | N2 | 13 | 2 | 18 | 1 | 20 | 13 |
+| manutenção | Sonnet 4.5 | N0 | 5 | 2 | 20 | 8 | 23 | 20 |
+| manutenção | Sonnet 4.5 | N1 | 8 | 1 | 20 | 11 | 24 | 17 |
+| manutenção | Sonnet 4.5 | N2 | 20 | 2 | 25 | 6 | 24 | 16 |
+| manutenção | Sonnet 5.5 | N0 | 11 | 10 | 22 | 12 | 23 | 25 |
+| manutenção | Sonnet 5.5 | N1 | 22 | 23 | 23 | 20 | 22 | 25 |
+| manutenção | Sonnet 5.5 | N2 | 25 | 21 | 25 | 18 | 22 | 25 |
+
+Fonte: elaboração própria.
+
+**Tabela 14.** Decorator, por modelo: execuções na categoria acerto e na categoria alternativa equivalente, em cinco rodadas.
+
+| tarefa | modelo | N0 (acerto / alternativa) | N1 (acerto / alternativa) | N2 (acerto / alternativa) |
+|---|---|---|---|---|
+| construção | Haiku 4.5 | 0 / 0 | 0 / 0 | 0 / 0 |
+| construção | Sonnet 4.5 | 0 / 2 | 0 / 5 | 0 / 5 |
+| construção | Sonnet 5.5 | 0 / 2 | 0 / 5 | 5 / 0 |
+| manutenção | Haiku 4.5 | 0 / 0 | 0 / 0 | 0 / 1 |
+| manutenção | Sonnet 4.5 | 0 / 0 | 0 / 0 | 1 / 1 |
+| manutenção | Sonnet 5.5 | 0 / 3 | 0 / 5 | 5 / 0 |
+
+Fonte: elaboração própria.
+
+**Tabela 15.** Estabilidade por modelo e nível: repetições em que o resultado da primeira rodada se manteve (de 40) e combinações de *pattern* e tarefa com o mesmo resultado nas cinco rodadas (de 10).
+
+| modelo | N0 | N1 | N2 |
+|---|---|---|---|
+| Haiku 4.5 | 32 de 40; 5 de 10 | 34 de 40; 6 de 10 | 23 de 40; 1 de 10 |
+| Sonnet 4.5 | 33 de 40; 5 de 10 | 31 de 40; 5 de 10 | 32 de 40; 7 de 10 |
+| Sonnet 5.5 | 31 de 40; 6 de 10 | 38 de 40; 9 de 10 | 40 de 40; 10 de 10 |
+
+Fonte: elaboração própria.
 
 ## Referências
-
-[CITAR: uma definição de IA, fonte ainda não lida]
 
 Ahmed, T.; Devanbu, P.; Treude, C. e Pradel, M. (2025). Can LLMs Replace Manual Annotation of Software Engineering Artifacts? *MSR '25*, 526-538. doi:10.1109/MSR66628.2025.00086
 

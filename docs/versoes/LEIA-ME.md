@@ -116,3 +116,24 @@ Cada versão é o artigo inteiro, com uma correção a mais que a anterior e, no
 - **v112:** Referências: formato uniforme de periódicos e eventos, autores de Galster, DOIs e páginas conferidos no Crossref, e a entrada da Anthropic em três.
 - **v113:** Uniformidade: pattern e design sempre em itálico, e pattern no lugar de padrão ao nomear os patterns.
 - **v114:** Figura 1 com 'em torno do modelo'; o itálico agora aparece nas legendas do arquivo final.
+- **v115:** Parecer do professor: nova Seção 4, Visão geral do processo, com as fases, o repositório, os envolvidos (com marcadores a confirmar), os níveis por estudo (Tabela 1), as tecnologias com versão (Tabela 2) e a infraestrutura. Seções e tabelas renumeradas.
+- **v116:** Parecer do professor (obrigatórias): bloco de identificação abaixo do título, com marcadores a confirmar, e a frase sobre IA reescrita sem definição, eliminando o marcador de citação.
+- **v117:** Parecer do professor (obrigatória): regras de decisão em frases separadas, definição de par e de saldo, justificativa do limite, teste de Page no método e Tabela 3 com todas as hipóteses.
+- **v118:** Parecer do professor: resultados do estudo principal citam as hipóteses pelo código, usam uma só convenção de saldo e 'não apoiada', e a hipótese do modelo foi dividida em frases.
+- **v119:** Parecer do professor: resumo dos princípios do CLAUDE.md no método, instrução de usar a skill na extensão, quartetos, parâmetro de esforço e tecnologias fixadas pelos enunciados.
+- **v120:** Parecer do professor: a Seção 2 avisa o recorte dos estudos, usa exemplos do conceito e deixa as categorias de avaliação para o método da extensão, com o critério de cada uma.
+- **v121:** Parecer do professor (obrigatória): a Figura 2 deixa de ser imagem e passa a código em texto.
+- **v122:** Parecer do professor: Resumo explica o ponto e o exagero, Introdução soma os 90 controles, chamada da Figura 1 e comando em fonte monoespaçada.
+- **v123:** Parecer do professor: custo ligado à P4 e comentado na Discussão; Conclusão com a cautela da Discussão, consequência prática e trabalhos futuros que aproveitam o que ficou aberto.
+- **v124:** Parecer do professor: rótulos internos V4 e V5 trocados por nomes descritivos, e 'por decisão do desenho' cortado.
+- **v125:** Parecer do professor: Apêndice A com os dados por modelo citados em P3, P4 e P7 (Tabelas 11 a 14).
+- **v126:** Parecer do professor: fonte abaixo de cada tabela.
+- **v127:** Parecer do professor: um nome por conceito. 'Categoria' para a avaliação e 'classe' só para Java; 'corretude' para o código e 'avaliação' para o verificador; '*design*' para o código e 'desenho experimental' para o estudo; três nomes distintos para as medidas de exagero.
+- **v128:** Parecer do professor: Figuras 3 e 4 mostram os 90 controles negativos e o cegamento do verificador.
+- **v129:** Acrescenta o Abstract, tradução fiel do Resumo.
+- **v130:** Tabela 2: versão do Docker instalada na máquina em 09/11/2026.
+- **v131:** Parecer do professor: a Introdução informa o contexto em que o trabalho foi desenvolvido.
+- **v132:** Parecer do professor: identificação do trabalho preenchida, com autor, orientador, curso, departamento e instituição.
+- **v133:** Parecer do professor: papéis do autor e do orientador, conforme o registro de decisões do repositório. A atuação dos agentes de IA fica para a seção de uso de IA, por decisão do autor.
+- **v134:** Parecer do professor: o que a IA fez em cada etapa, com modelo e nível de esforço (nova Tabela 3), e como o autor supervisionou. Tabelas seguintes renumeradas.
+- **v135:** Tira da Tabela 3 a linha de apoio à redação do artigo, que fica para a seção de uso de IA.
