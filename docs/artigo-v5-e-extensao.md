@@ -44,7 +44,7 @@ adotados [Galster et al. 2026].
 
 A Figura 1 mostra o caminho de um pedido, do *prompt* à resposta, e os pontos em que a configuração estudada atua no *harness*, o *software* em torno do modelo. O *harness* junta o *prompt*, o `CLAUDE.md` e as descrições das *skills* e envia o conjunto ao modelo. A cada passo, o modelo decide se abre uma *skill*, delega a um subagente ou usa uma ferramenta, e o resultado volta a ele até a conclusão da tarefa. A escolha da *skill* cabe ao próprio modelo, a partir da descrição de cada uma [Anthropic 2026b].
 
-![Figura 1|491](figuras/fig-fluxo-prompt.png)
+![Figura 1](figuras/fig-fluxo-prompt.png)
 
 **Figura 1.** O fluxo de um pedido no agente, a escolha da *skill* e os pontos em que a configuração estudada atua. Fonte: elaboração própria.
 
@@ -110,36 +110,9 @@ Template Method, os passos que mudam dentro de uma sequência fixa.
 O segundo conceito é a substituição da condicional por polimorfismo: em vez de verificar qual é o caso, o código chama um método, e cada caso responde à sua maneira [Fowler 2018]. O mecanismo em Java é uma
 interface (ou classe abstrata) com uma implementação por caso. 
 
-A Figura 2 ilustra essa diferença com um exemplo simplificado, em que o preço de uma reserva depende do plano de tarifa.
+A Figura 2 ilustra essa diferença em um exemplo simplificado, no qual o preço de uma reserva varia conforme o plano de tarifa: à esquerda, a regra está em uma condicional; à direita, cada plano é uma classe que implementa o *pattern* Strategy.
 
-:::colunas
-Sem *pattern*: condicional | Com o *pattern* Strategy
----
-double preco(String plano,
-             double diaria, int noites) {
-  if (plano.equals("normal"))
-    return diaria * noites;
-  if (plano.equals("fimDeSemana"))
-    return diaria * noites + 30;
-  if (plano.equals("pacote"))
-    return diaria * (noites - 1);
-  throw new IllegalArgumentException();
-}
----
-interface PlanoTarifa {
-  double preco(double diaria,
-               int noites);
-}
-
-class Normal implements PlanoTarifa {
-  public double preco(double d, int n) {
-    return d * n;
-  }
-}
-// FimDeSemana e Pacote: uma classe cada
----
-Cada plano novo obriga a alterar este método. | Cada plano novo é uma classe nova, e o código existente não muda.
-:::
+![Figura 2](figuras/fig-strategy-intellij-escuro.png)
 
 **Figura 2.** A mesma regra com uma condicional e com o *pattern* Strategy (exemplo simplificado). Fonte: elaboração própria.
 
@@ -213,9 +186,9 @@ Todo o material do trabalho está em um repositório público^[https://github.co
 
 O autor definiu o desenho experimental, as hipóteses e as decisões registradas no repositório, e os enunciados, os arquivos de orientação e a *skill* própria são de sua responsabilidade. O orientador, Rodrigo Rebouças de Almeida, propôs a sequência de níveis de configuração e orientou escolhas metodológicas, como a redação dos enunciados em linguagem não técnica e o uso de um teste de tendência. O único leitor humano foi o autor, que conferiu a classificação do Semgrep em 44 pacotes sorteados com semente registrada, um por modelo e nível, às cegas: as cópias vieram sem comentários e sem README, com códigos anonimizados, e o leitor não teve acesso ao resultado do Semgrep.
 
-Agentes de IA também participaram do trabalho, e a Tabela 3 informa o modelo e o nível de esforço de cada etapa. Um modelo da mesma família dos agentes estudados ajudou a desenhar os instrumentos, operou, por meio do Claude Code, o disparo das execuções e a coleta dos dados e conduziu o ensaio da análise com os dados do lote descartado, no qual simulou a leitura humana, sem valor de conferência. No estudo principal, nenhum modelo avaliou o código; na extensão, a avaliação coube ao verificador de IA descrito na Seção 6.2. O autor supervisionou essas etapas por meio do congelamento do pré-registro antes da primeira execução, da autorização das rodadas, do registro das decisões no repositório, das conferências automáticas de cada lote, como o *script* `verify.mjs`, que recusa execuções interrompidas ou fora do desenho experimental, e da leitura humana que conferiu o Semgrep.
+Agentes de IA também participaram do trabalho, e a Tabela 1 informa o modelo e o nível de esforço de cada etapa. Um modelo da mesma família dos agentes estudados ajudou a desenhar os instrumentos, operou, por meio do Claude Code, o disparo das execuções e a coleta dos dados e conduziu o ensaio da análise com os dados do lote descartado, no qual simulou a leitura humana, sem valor de conferência. No estudo principal, nenhum modelo avaliou o código; na extensão, a avaliação coube ao verificador de IA descrito na Seção 6.2. O autor supervisionou essas etapas por meio do congelamento do pré-registro antes da primeira execução, da autorização das rodadas, do registro das decisões no repositório, das conferências automáticas de cada lote, como o *script* `verify.mjs`, que recusa execuções interrompidas ou fora do desenho experimental, e da leitura humana que conferiu o Semgrep.
 
-**Tabela 3.** Modelo e nível de esforço usados em cada etapa em que houve IA.
+**Tabela 1.** Modelo e nível de esforço usados em cada etapa em que houve IA.
 
 | etapa | modelo | esforço |
 |---|---|---|
@@ -231,9 +204,9 @@ Agentes de IA também participaram do trabalho, e a Tabela 3 informa o modelo e 
 
 Fonte: elaboração própria. 
 
-A Tabela 1 mostra o que cada nível de configuração contém em cada estudo e tarefa. Os rótulos são os mesmos, mas o N1 e o N2 não correspondem ao mesmo tratamento nos dois estudos.
+A Tabela 2 mostra o que cada nível de configuração contém em cada estudo e tarefa. Os rótulos são os mesmos, mas o N1 e o N2 não correspondem ao mesmo tratamento nos dois estudos.
 
-**Tabela 1.** Conteúdo de cada nível de configuração, por estudo e tarefa (N1 e N2 não são o mesmo tratamento nos dois estudos).
+**Tabela 2.** Conteúdo de cada nível de configuração, por estudo e tarefa (N1 e N2 não são o mesmo tratamento nos dois estudos).
 
 | nível | estudo principal (construção) | extensão, construção | extensão, manutenção |
 |---|---|---|---|
@@ -244,9 +217,9 @@ A Tabela 1 mostra o que cada nível de configuração contém em cada estudo e t
 
 Fonte: elaboração própria.
 
-A Tabela 2 reúne as tecnologias empregadas, com a versão e o papel de cada uma^[Java: https://openjdk.org/projects/jdk/21/; Spring Boot: https://spring.io/projects/spring-boot; Javalin: https://javalin.io; PostgreSQL: https://www.postgresql.org; Flyway: https://github.com/flyway/flyway; Maven: https://maven.apache.org; Docker: https://www.docker.com; jdeps: https://docs.oracle.com/en/java/javase/21/docs/specs/man/jdeps.html; pg_dump: https://www.postgresql.org/docs/18/app-pgdump.html].
+A Tabela 3 reúne as tecnologias empregadas, com a versão e o papel de cada uma^[Java: https://openjdk.org/projects/jdk/21/; Spring Boot: https://spring.io/projects/spring-boot; Javalin: https://javalin.io; PostgreSQL: https://www.postgresql.org; Flyway: https://github.com/flyway/flyway; Maven: https://maven.apache.org; Docker: https://www.docker.com; jdeps: https://docs.oracle.com/en/java/javase/21/docs/specs/man/jdeps.html; pg_dump: https://www.postgresql.org/docs/18/app-pgdump.html.].
 
-**Tabela 2.** Tecnologias usadas nos dois estudos.
+**Tabela 3.** Tecnologias usadas nos dois estudos.
 
 | tecnologia | versão | papel | estudo |
 |---|---|---|---|
@@ -376,7 +349,33 @@ Essa fase trouxe quatro mudanças para o desenho experimental final. A primeira 
 
 ### 6.2 Método
 
-O objeto da extensão é o sistema de reservas da Pousada Maré Alta, em Java 21 com Javalin, com os dados armazenados em PostgreSQL 18, tecnologias fixadas pelo enunciado. Na tarefa de construção, o agente recebe uma pasta vazia e o enunciado do sistema inteiro, na voz do proprietário, sem que os testes sejam solicitados. Na tarefa de manutenção, recebe o sistema pronto, sem nenhum *pattern*, com o esquema em migrações e 26 testes, além de um pedido de mudança. Cada um dos cinco cenários pede um *pattern* sem mencionar o nome. Os níveis são o N0, o N1 (o `CLAUDE.md`) e o N2 (o `CLAUDE.md`, com a instrução de usar a *skill*, e a *skill* escrita para este trabalho), conforme a Tabela 1. O `CLAUDE.md` da extensão pergunta, antes de cada parte do código, quantos lugares teriam de mudar para acrescentar o próximo caso, orienta a organizar o código para que esse caso entre em um lugar só e limita essa organização ao que o enunciado mostra variar, afirmando que uma mudança pontual (um valor, um texto, um campo) pede uma mudança simples. A redação do `CLAUDE.md` difere entre as tarefas: na manutenção, ele orienta a reorganizar o código antes da mudança e afirma que a orientação vale também para os casos já existentes. No N2 da construção, a instrução de usar a *skill* é o último item do arquivo; no N2 da manutenção, ela foi deslocada para o primeiro item, depois de execuções preliminares, anteriores às relatadas aqui, em que o Haiku 4.5 a abriu em apenas 1 de 5 vezes; as 75 execuções do N2 da manutenção usam a mesma configuração. Os modelos são o Claude Haiku 4.5, o Sonnet 4.5 e o Sonnet 5.5, com esforço *medium* e um banco exclusivo por execução.
+O objeto da extensão é o sistema de reservas da Pousada Maré Alta, em Java 21 com Javalin, com os dados armazenados em PostgreSQL 18, tecnologias fixadas pelo enunciado. Na tarefa de construção, o agente recebe uma pasta vazia e o enunciado do sistema inteiro, na voz do proprietário, sem que os testes sejam solicitados. Na tarefa de manutenção, recebe o sistema pronto, sem nenhum *pattern*, com o esquema em migrações e 26 testes, além de um pedido de mudança. Cada um dos cinco cenários pede um *pattern* sem mencionar o nome. Os níveis são o N0, o N1 (o `CLAUDE.md`) e o N2 (o `CLAUDE.md`, com a instrução de usar a *skill*, e a *skill* escrita para este trabalho), conforme a Tabela 2. O `CLAUDE.md` da extensão pergunta, antes de cada parte do código, quantos lugares teriam de mudar para acrescentar o próximo caso, orienta a organizar o código para que esse caso entre em um lugar só e limita essa organização ao que o enunciado mostra variar, afirmando que uma mudança pontual (um valor, um texto, um campo) pede uma mudança simples. A redação do `CLAUDE.md` difere entre as tarefas: na manutenção, ele orienta a reorganizar o código antes da mudança e afirma que a orientação vale também para os casos já existentes. No N2 da construção, a instrução de usar a *skill* é o último item do arquivo; no N2 da manutenção, ela foi deslocada para o primeiro item, depois de execuções preliminares, anteriores às relatadas aqui, em que o Haiku 4.5 a abriu em apenas 1 de 5 vezes; as 75 execuções do N2 da manutenção usam a mesma configuração. Os modelos são o Claude Haiku 4.5, o Sonnet 4.5 e o Sonnet 5.5, com esforço *medium* e um banco exclusivo por execução.
+
+Cada cenário corresponde a um *pattern* [Gamma et al. 1995]. O Strategy, ilustrado na Figura 2, organiza os planos de tarifa. As Figuras 5 a 8 mostram os outros quatro, com os exemplos dos cenários.
+
+O Observer estabelece uma dependência de um para muitos: quando um objeto muda de estado, os interessados são avisados, sem que o objeto dependa da classe de cada um. No cenário, a confirmação de uma reserva avisa a governança e o financeiro, e outros setores podem passar a ser avisados (Figura 5).
+
+![Figura 5](figuras/fig-codigo-observer.png)
+
+**Figura 5.** O Observer no cenário dos avisos da confirmação (exemplo simplificado). Fonte: elaboração própria.
+
+O Factory Method deixa a uma subclasse a decisão de qual objeto criar. No cenário, cada tipo de hóspede recebe um documento próprio, como comprovante, fatura ou *booking receipt* (Figura 6).
+
+![Figura 6](figuras/fig-codigo-factory-method.png)
+
+**Figura 6.** O Factory Method no cenário dos documentos por tipo de hóspede (exemplo simplificado). Fonte: elaboração própria.
+
+O Decorator envolve um objeto em outro que acrescenta um comportamento, o que permite combinar comportamentos sem alterar o objeto original. No cenário, regras de envio de e-mail, como o bloqueio de endereço inválido e a cópia para arquivo, combinam-se de formas diferentes em cada instalação (Figura 7).
+
+![Figura 7](figuras/fig-codigo-decorator.png)
+
+**Figura 7.** O Decorator no cenário das regras de envio (exemplo simplificado). Fonte: elaboração própria.
+
+O Template Method fixa em um método a sequência dos passos e deixa às subclasses os passos que mudam. No cenário, todos os relatórios têm título, cabeçalho, linhas e total, e cada um define o próprio conteúdo (Figura 8).
+
+![Figura 8](figuras/fig-codigo-template-method.png)
+
+**Figura 8.** O Template Method no cenário dos relatórios (exemplo simplificado). Fonte: elaboração própria.
 
 Cada projeto foi revisado por um agente (Claude Opus 5.5), às cegas quanto ao modelo e ao nível: o verificador recebe o enunciado, o *pattern* esperado e o projeto, sem o `CLAUDE.md` e a pasta `.claude/`. A revisão emprega uma *skill* por dimensão e um *script* de medição em arquitetura, testes, banco e comportamento. A arquitetura é avaliada pelas dependências e pelos ciclos entre pacotes, com o jdeps; o *design* de baixo nível, pela categoria do *pattern* (acerto, alternativa equivalente, malfeito ou omissão) e por uma nota para o *design* do restante do código; os testes, pela contagem e pela cobertura, com o JaCoCo [JaCoCo 2026]; o banco, pelo esquema extraído com o `pg_dump` e por conferências simples; e o comportamento, por um roteiro de chamadas à API por cenário. As categorias do *pattern* são quatro: acerto, em que a variação inteira fica atrás de uma interface, escolhida em um só lugar; omissão, em que a variação fica em uma condicional sobre o caso; malfeito, em que a interface existe, mas convive com condicionais sobre o caso; e alternativa equivalente, outra estrutura, aceita de antemão pelos critérios do *pattern*, que também resolve a variação, como uma lista de regras no Decorator ou um escritor genérico no Template Method. Cada dimensão recebe a nota bom, com problemas ou ruim. O verificador registra ainda a estrutura desnecessária, isto é, a estrutura sem necessidade fora da parte que o *pattern* resolve, como uma interface com uma só implementação que nada substitui. São, portanto, sete notas por execução.
 
@@ -404,11 +403,11 @@ alternativa).
 
 Fonte: elaboração própria.
 
-A Figura 5 destaca a primeira linha da Tabela 7: do N0 ao N2, as execuções com o *pattern* certo sobem de 41 para 60 na construção e de 19 para 58 na manutenção. A Tabela 8 detalha esse resultado por *pattern* e tarefa.
+A Figura 9 destaca a primeira linha da Tabela 7: do N0 ao N2, as execuções com o *pattern* certo sobem de 41 para 60 na construção e de 19 para 58 na manutenção. A Tabela 8 detalha esse resultado por *pattern* e tarefa.
 
-![Figura 5](figuras/fig-pattern-total.png)
+![Figura 9](figuras/fig-pattern-total.png)
 
-**Figura 5.** Execuções com o *pattern* certo por nível e tarefa, na extensão (75 por nível). Fonte: elaboração própria.
+**Figura 9.** Execuções com o *pattern* certo por nível e tarefa, na extensão (75 por nível). Fonte: elaboração própria.
 
 **Tabela 8.** Execuções com o *pattern* certo em cinco rodadas.
 
@@ -427,11 +426,11 @@ A Figura 5 destaca a primeira linha da Tabela 7: do N0 ao N2, as execuções com
 
 Fonte: elaboração própria.
 
-Do N0 ao N2, o *pattern* certo aumenta em nove das dez combinações. A décima, o Strategy na construção, permanece igual, e o Sonnet 5.5 acerta nesse caso as cinco execuções de cada nível. Por modelo, o Sonnet 5.5 passa de 22 para 25 acertos em 25 na construção e de 11 para 25 na manutenção; o Sonnet 4.5, de 14 para 22 e de 5 para 20; e o Haiku 4.5, de 5 para 13 e de 3 para 13. A Figura 6 apresenta os dados da Tabela 8 por *pattern* e tarefa e evidencia tanto a exceção do Strategy na construção quanto o maior ganho na manutenção.
+Do N0 ao N2, o *pattern* certo aumenta em nove das dez combinações. A décima, o Strategy na construção, permanece igual, e o Sonnet 5.5 acerta nesse caso as cinco execuções de cada nível. Por modelo, o Sonnet 5.5 passa de 22 para 25 acertos em 25 na construção e de 11 para 25 na manutenção; o Sonnet 4.5, de 14 para 22 e de 5 para 20; e o Haiku 4.5, de 5 para 13 e de 3 para 13. A Figura 10 apresenta os dados da Tabela 8 por *pattern* e tarefa e evidencia tanto a exceção do Strategy na construção quanto o maior ganho na manutenção.
 
-![Figura 6](figuras/fig-pattern-combinacao.png)
+![Figura 10](figuras/fig-pattern-combinacao.png)
 
-**Figura 6.** Execuções com o *pattern* certo por *pattern*, nível e tarefa, na extensão (15 por combinação). Fonte: elaboração própria.
+**Figura 10.** Execuções com o *pattern* certo por *pattern*, nível e tarefa, na extensão (15 por combinação). Fonte: elaboração própria.
 
 Quanto ao comportamento, 59 das 225 execuções de construção permitiram que o mesmo quarto fosse reservado duas vezes quando dois pedidos chegavam simultaneamente, e 16 não chegaram a esse teste; na manutenção, nenhuma das 225 o permitiu, e todas aplicaram as migrações. O Sonnet 5.5 teve o comportamento avaliado como bom nas 150 execuções, ao passo que, na construção, nem o Haiku 4.5 nem o Sonnet 4.5 o tiveram em nenhuma das 75 execuções, com a nota ruim em 71 e 32, respectivamente. A estrutura desnecessária no restante do código foi de 4, 5 e 9 execuções em 75 na construção (N0, N1 e N2) e de 0, 1 e 2 na manutenção. O resultado da primeira rodada, em termos de *pattern* certo ou não, repetiu-se em 294 das 360 rodadas novas (82%), e 54 das 90 combinações apresentaram o mesmo resultado nas cinco rodadas.
 

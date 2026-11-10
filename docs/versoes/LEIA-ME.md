@@ -138,3 +138,4 @@ Cada versão é o artigo inteiro, com uma correção a mais que a anterior e, no
 - **v134:** Parecer do professor: o que a IA fez em cada etapa, com modelo e nível de esforço (nova Tabela 3), e como o autor supervisionou. Tabelas seguintes renumeradas.
 - **v135:** Tira da Tabela 3 a linha de apoio à redação do artigo, que fica para a seção de uso de IA.
 - **v136:** Versão do Docs do autor: nota de rodapé de identificação do TCC, definição de IA com Poole e Mackworth (2023), Figura 1 com o fluxo do pedido e a escolha da skill, Figura 2 em duas caixas com o código em texto, links de ferramentas e do repositório em notas de rodapé.
+- **v137:** Versão do Docs do autor: Figura 2 em imagem, explicação e figura de código dos outros quatro patterns na Seção 6.2 (Figuras 5 a 8), figuras seguintes renumeradas e Tabelas 1 a 3 na ordem em que aparecem.
