@@ -1,4 +1,4 @@
-# Orientações de projeto e *design patterns* em agentes de programação: um estudo com pré-registro e sua extensão à manutenção
+# O *harness* importa? Orientações persistentes e o uso de *design patterns* por agentes de programação
 
 **Lucas Felipe Gomes Pedrosa**^[Trabalho de conclusão de curso, sob orientação do professor Rodrigo Rebouças de Almeida, submetido ao Curso de Licenciatura em Ciência da Computação do Centro de Ciências Aplicadas e Educação (CCAE) da Universidade Federal da Paraíba, como parte dos requisitos necessários para obtenção do grau de Licenciado em Ciência da Computação.]
 
