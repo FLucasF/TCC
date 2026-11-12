@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Defesa do TCC</title>
+<link rel="stylesheet" href="vendor/reveal/reset.min.css">
+<link rel="stylesheet" href="vendor/reveal/reveal.min.css">
+<link rel="stylesheet" href="vendor/reveal/theme/white.min.css">
+<link rel="stylesheet" href="style.css?v=20">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- ============ 1. Capa ============ -->
+<section data-chapter="" class="title-slide">
+  <h1>Orientações de projeto e <em>design patterns</em> em agentes de programação</h1>
+  <p class="sub">Um estudo com pré-registro e sua extensão à manutenção</p>
+  <p class="hook">Em uma frase: dar orientações escritas a um agente de IA muda a forma como ele organiza o código que escreve?</p>
+  <div class="who">
+    <strong>Lucas Felipe Gomes Pedrosa</strong><br>
+    Orientador: prof. Rodrigo Rebouças de Almeida<br>
+    <span class="muted">Licenciatura em Ciência da Computação · CCAE · Universidade Federal da Paraíba · 2026</span>
+  </div>
+  <aside class="notes">Apresentar-se e dizer em uma frase do que trata o trabalho: se dar orientações a um agente de programação muda a forma como ele organiza o código.</aside>
+</section>
+
+<section data-chapter="contexto">
+  <div class="kicker">para acompanhar</div>
+  <h2 style="font-size:1.2em">Os termos, em palavras simples</h2>
+  <div class="gloss">
+    <div><b>Agente de programação</b>programa que usa um LLM para ler, escrever e testar código sozinho, em várias etapas</div>
+    <div><b><em>Harness</em></b>a camada em volta do modelo que monta o que ele lê, oferece as ferramentas e conduz o ciclo; aqui, o Claude Code</div>
+    <div><b>CLAUDE.md</b>arquivo de orientações do projeto, lido pelo agente em toda conversa</div>
+    <div><b><em>Skill</em></b>conjunto de instruções sobre um assunto, que o agente abre quando precisa</div>
+    <div><b><em>Design pattern</em></b>solução conhecida e nomeada para um problema recorrente de organização do código</div>
+    <div><b>Exagero</b>usar o <em>pattern</em> onde ele não se justifica</div>
+    <div><b>Controle negativo</b>ponto ou pedido em que o certo é não usar o <em>pattern</em></div>
+    <div><b>Pré-registro</b>hipóteses e regras de decisão fixadas antes da coleta dos dados</div>
+    <div><b>Contêiner (Docker)</b>ambiente isolado e descartável; cada execução rodou num contêiner novo, criado da mesma imagem</div>
+    <div><b>Semgrep</b>ferramenta que procura formas no código com regras fixas, sem IA</div>
+    <div><b>Calibração</b>teste do verificador em casos cuja resposta certa já se sabia, antes de usá-lo nas execuções</div>
+    <div><b>Kappa de Cohen</b>medida de concordância entre dois avaliadores que desconta a concordância esperada por acaso</div>
+    <div><b>Verificador</b>a IA que deu as notas aos projetos da extensão, sem saber o modelo nem o nível</div>
+  </div>
+</section>
+
+<section data-chapter="contexto">
+  <div class="kicker">o que é um agente</div>
+  <h2>Um agente de programação não só responde: ele age no projeto</h2>
+  <div class="video-wrap">
+    <div class="video-box">
+      <!-- replay of a real Claude Code session on demo-gravacao; a screen recording can replace it -->
+      <video id="agent-video" src="media/agente.webm" controls preload="auto" data-autoplay="false">
+        <span class="ph">vídeo do Claude Code</span>
+      </video>
+    </div>
+    <div>
+      <div class="card gray fragment"><h3>No chat</h3>a pessoa pergunta, copia a resposta e cola no código</div>
+      <div class="card fragment" style="margin-top:18px"><h3>No agente</h3>ele lê os arquivos, escreve o código, roda os testes e corrige sozinho, em várias etapas</div>
+    </div>
+  </div>
+  <p class="cite" style="margin-top:8px">Reprodução de uma sessão real do Claude Code: acrescentar o plano Premium a um projeto pequeno, com testes.</p>
+  <aside class="notes">Mostrar o vídeo (clique no play). Enfatizar a diferença para o chat que todos conhecem.</aside>
+</section>
+
+<section data-chapter="contexto">
+  <div class="kicker">por que importa</div>
+  <h2>Esses agentes já estão no dia a dia, e a velocidade pode custar qualidade</h2>
+  <div class="bignums">
+    <div class="bignum"><div class="n">806</div><div class="l">repositórios que adotaram o Cursor, outra ferramenta de programação com IA</div></div>
+    <div class="bignum"><div class="n">~2<span class="u">meses</span></div><div class="l">foi quanto durou o ganho de velocidade</div></div>
+    <div class="bignum"><div class="n">↑</div><div class="l">avisos de problemas no código e código mais difícil de entender, que persistiram<span class="term">alertas de análise estática e complexidade cognitiva</span></div></div>
+  </div>
+  <p class="cite" style="margin-top:14px">He et al. (2026), MSR '26</p>
+  <p class="plainly"><span>em outras palavras</span>Escrever código mais rápido não é o mesmo que escrever código melhor.</p>
+  <aside class="notes">Claude Code, Cursor e Copilot já trabalham assim. O estudo de He et al. mostra que o ganho de velocidade passa, mas a complexidade fica.</aside>
+</section>
+
+<section data-chapter="contexto">
+  <div class="kicker">o problema</div>
+  <h2>O <em>design</em> quase não é estudado, e o efeito das orientações é uma questão em aberto</h2>
+  <div class="bignums">
+    <div class="bignum"><div class="n">0,92<span class="u">%</span></div><div class="l">das tarefas com LLMs em 395 artigos de engenharia de software tratam de <em>design</em> (4 de 436)</div><p class="cite">Hou et al. (2024)</p></div>
+    <div  style="flex:1">
+      <div class="card blue"><h3>Regras dadas aos agentes</h3>o efeito delas é uma questão em aberto<br><span class="cite">Jiang e Nam (2026)</span></div>
+      <div class="card blue" style="margin-top:16px"><h3>Configurações mais ricas</h3>faltam estudos controlados sobre a contribuição delas<br><span class="cite">Galster et al. (2026)</span></div>
+    </div>
+  </div>
+  <p class="plainly"><span>em outras palavras</span><em>Design</em> é como o código é organizado por dentro. Pouco se sabe sobre como orientar um agente a fazer isso bem.</p>
+  <aside class="notes">O design, isto é, a organização interna do código, quase não aparece nos estudos com LLMs. E o efeito das orientações ainda não foi medido de forma controlada. É essa a lacuna do trabalho.</aside>
+</section>
+
+<section data-chapter="conceitos" id="harness-slide">
+  <div class="kicker" style="margin-top:34px">como funciona por dentro</div>
+  <h2 style="margin-bottom:0">Do LLM ao <em>harness</em></h2>
+  <svg id="hx" viewBox="0 0 1200 600" width="100%" style="max-height:452px">
+    <defs>
+      <marker id="hx-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="hx-arrowhead"/></marker>
+    </defs>
+    <g class="stg" data-stage="3"><rect x="215" y="40" width="620" height="520" rx="22" class="hx-frame"/><text x="240" y="76" class="hx-frame-label">harness (Claude Code)</text></g>
+    <path class="hx-edge stg" data-stage="8" d="M170 300 H255" marker-end="url(#hx-arrow)"/>
+    <path class="hx-edge stg" data-stage="3" d="M565 190 H905" marker-end="url(#hx-arrow)"/>
+    <path class="hx-edge stg" data-stage="2" d="M990 280 C990 380, 860 440, 805 455" marker-end="url(#hx-arrow)"/>
+    <path class="hx-edge stg" data-stage="2" d="M805 485 H905" marker-end="url(#hx-arrow)"/>
+    <path class="hx-edge stg" data-stage="2" d="M905 515 H805" marker-end="url(#hx-arrow)"/>
+    <path class="hx-edge stg" data-stage="3" d="M610 500 C540 500, 470 470, 430 440" marker-end="url(#hx-arrow)"/>
+    <g id="hx-user" class="hx-box stg" data-stage="8"><rect x="20" y="250" width="150" height="100"/><text x="95" y="295" class="hx-title">Pessoa</text><text x="95" y="322" class="hx-sub">faz o pedido</text></g>
+    <g id="hx-ctx" class="hx-box stg" data-stage="3"><rect x="255" y="100" width="310" height="340"/>
+      <text x="410" y="132" class="hx-title">Contexto da chamada</text>
+      <g class="hx-chip stg" data-stage="4"><rect x="275" y="150" width="270" height="34"/><text x="410" y="173">instruções do sistema</text></g>
+      <g class="hx-chip hx-cfg hx-n1 stg" data-stage="5"><rect x="275" y="192" width="270" height="34"/><text x="410" y="215">CLAUDE.md</text></g>
+      <g class="hx-chip hx-cfg hx-n2 stg" data-stage="6"><rect x="275" y="234" width="270" height="34"/><text x="410" y="257">skill</text></g>
+      <g class="hx-chip stg" data-stage="7"><rect x="275" y="276" width="270" height="34"/><text x="410" y="299">ferramentas disponíveis</text></g>
+      <g class="stg" data-stage="8"><text x="285" y="336" class="hx-hist-label">histórico</text>
+        <text id="hx-h0" x="285" y="362" class="hx-hist"></text><text id="hx-h1" x="285" y="386" class="hx-hist"></text><text id="hx-h2" x="285" y="410" class="hx-hist"></text></g>
+    </g>
+    <g id="hx-exec" class="hx-box stg" data-stage="2"><rect x="610" y="440" width="195" height="100"/><text x="707" y="483" class="hx-title">Executa a</text><text x="707" y="510" class="hx-title">ferramenta</text></g>
+    <g id="hx-llm" class="hx-box hx-model"><rect x="905" y="120" width="270" height="160"/><text x="1040" y="190" class="hx-title big">LLM</text><text x="1040" y="222" class="hx-sub">só lê texto e responde texto</text></g>
+    <g id="hx-env" class="hx-box stg" data-stage="2"><rect x="905" y="440" width="270" height="110"/><text x="1040" y="485" class="hx-title">Projeto</text><text x="1040" y="515" class="hx-sub">arquivos · terminal · testes</text></g>
+    <circle id="hx-token" r="11" cx="95" cy="300" style="opacity:0"/>
+    <g id="hx-note"><path d="M565 225 C620 225, 650 250, 700 290" class="hx-note-line"/><text x="705" y="305" class="hx-note">o que este trabalho varia</text><text x="705" y="332" class="hx-note small">N1: CLAUDE.md · N2: + skill</text></g>
+  </svg>
+  <p id="hx-caption" class="hx-caption">&nbsp;</p>
+  <!-- 7 build clicks + 10 loop clicks + 1 highlight click; generated by the script below -->
+  <div id="hx-frags"></div>
+  <aside class="notes">Cada clique monta uma peça. Depois, cada clique avança um passo do ciclo. O último clique acende o que o trabalho varia: o CLAUDE.md (N1) e a skill (N2).</aside>
+</section>
+
+<section data-chapter="conceitos">
+  <div class="kicker">o que foi variado</div>
+  <h2>O que varia é a configuração, em níveis que se acumulam</h2>
+  <div class="levels">
+    <div class="level l0"><div class="name">N0</div><div class="what">Claude Code sem configuração</div></div>
+    <div class="level l1 fragment"><div class="name">N1</div><div class="what"><span class="plus">+</span> um arquivo de orientações, o <code>CLAUDE.md</code>: princípios sobre o que varia, sem citar o nome de nenhum <em>pattern</em> (14 linhas no estudo principal)</div></div>
+    <div class="level l2 fragment"><div class="name">N2</div><div class="what"><span class="plus">+</span> uma <em>skill</em>: um guia de <em>patterns</em> que o agente pode abrir quando precisa</div></div>
+    <div class="level l3 fragment"><div class="name">N3</div><div class="what"><span class="plus">+</span> um plano curto de <em>design</em> antes do código e um subagente revisor<br><span class="muted">só no estudo principal</span></div></div>
+  </div>
+  <p class="plainly fragment"><span>em outras palavras</span>Do agente sem nenhuma instrução ao agente com orientações escritas e um processo de revisão.</p>
+  <aside class="notes">As cores dos níveis são as mesmas em todos os gráficos daqui em diante.</aside>
+</section>
+
+<section data-chapter="conceitos">
+  <div class="kicker">o que é um design pattern</div>
+  <h2 style="font-size:1.3em">Um <em>design pattern</em> organiza o que varia <span class="banner fragment" data-fragment-index="1">novo caso: plano Premium</span></h2>
+  <div class="code-cols">
+    <div class="code-panel"><div class="head">com condicional</div>
+<pre><span class="ln">double preco(String plano, double base) {</span><span class="ln">  if (plano.equals("BASICO")) return base;</span><span class="ln">  if (plano.equals("PLUS"))   return base * 0.9;</span><span class="ln new fragment" data-fragment-index="2">  if (plano.equals("PREMIUM")) return base * 0.8;</span><span class="ln">}</span><span class="ln"> </span><span class="ln">int limite(String plano) {</span><span class="ln">  if (plano.equals("BASICO")) return 1;</span><span class="ln">  if (plano.equals("PLUS"))   return 3;</span><span class="ln new fragment" data-fragment-index="2">  if (plano.equals("PREMIUM")) return 10;</span><span class="ln">}</span></pre>
+    </div>
+    <div class="code-panel strategy"><div class="head">com Strategy</div>
+<pre><span class="ln">interface Plano {</span><span class="ln">  double preco(double base);</span><span class="ln">  int limite();</span><span class="ln">}</span><span class="ln">class Basico implements Plano { ... }</span><span class="ln">class Plus   implements Plano { ... }</span><span class="ln new fragment" data-fragment-index="3">class Premium implements Plano {</span><span class="ln new fragment" data-fragment-index="3">  double preco(double b) { return b * 0.8; }</span><span class="ln new fragment" data-fragment-index="3">  int limite() { return 10; }</span><span class="ln new fragment" data-fragment-index="3">}</span></pre>
+    </div>
+  </div>
+  <div class="verdict">
+    <div class="fragment" data-fragment-index="2">mexe em <b>todo lugar</b> que pergunta qual é o plano</div>
+    <div class="fragment" data-fragment-index="3">uma <b>classe nova</b>; o código que já funciona não muda</div>
+  </div>
+  <p class="plainly fragment" data-fragment-index="4"><span>em outras palavras</span>Um <em>design pattern</em> é uma forma conhecida de organizar o código para que o próximo caso entre sem mexer no que já funciona.</p>
+  <p class="cite">Gamma et al. (1995); Fowler (2018). Exemplo simplificado.</p>
+  <aside class="notes">Clique 1: chega um novo caso. Clique 2: na condicional, é preciso mexer em vários lugares. Clique 3: no Strategy, só entra uma classe nova.</aside>
+</section>
+
+<section data-chapter="conceitos">
+  <div class="kicker">o risco oposto</div>
+  <h2>Usar o <em>pattern</em> onde ele não se justifica também é um problema</h2>
+  <p class="small muted">Seguro por região: só a porcentagem muda de uma região para outra (valores ilustrativos).</p>
+  <div class="cards c2 big">
+    <div class="card good"><h3><span class="mark">certo</span> · um valor por região</h3><code>Norte → 2%</code> · <code>Sul → 1%</code> · <code>Sudeste → 1,5%</code><br>dados ou uma condicional simples</div>
+    <div class="card bad"><h3><span class="mark">exagero</span> · uma estrutura por região</h3><code>SeguroNorte</code>, <code>SeguroSul</code>, <code>SeguroSudeste</code>…<br>classes que nada acrescentam</div>
+  </div>
+  <p class="small" style="margin-top:28px">A flexibilidade custa indireção [Gamma et al. 1995]; Fowler (2018) chama isso de <em>generalidade especulativa</em>. Neste trabalho: <b class="accent">exagero</b>.</p>
+  <aside class="notes">O risco oposto: aplicar a técnica onde ela não é necessária. Por isso o experimento tem um ponto de controle, o seguro.</aside>
+</section>
+
+<section data-chapter="pergunta">
+  <div class="kicker">a pergunta</div>
+  <h2>Como a configuração do <em>harness</em> muda a forma como o agente aplica <em>design patterns</em> quando o pedido não os menciona?</h2>
+  <div class="cards c3">
+    <div class="card fragment"><h3>P1 a P4</h3>uso do <em>pattern</em>; exagero, corretude e qualidade; diferença entre modelos; contribuição e custo de cada componente<br><span class="muted">hipóteses registradas antes da coleta dos dados</span></div>
+    <div class="card blue fragment"><h3>P5 e P6</h3>construção × manutenção; as demais dimensões de qualidade<br><span class="muted">exploratórias, na extensão</span></div>
+    <div class="card gray fragment"><h3>P7 e P8</h3>estabilidade entre rodadas; estrutura orientada a objetos<br><span class="muted">descritivas</span></div>
+  </div>
+  <aside class="notes">Ler a pergunta devagar. As oito perguntas se dividem em três grupos; não detalhar cada uma.</aside>
+</section>
+
+<section data-chapter="pergunta">
+  <div class="kicker">como a pesquisa evoluiu</div>
+  <h2>O desenho mudou várias vezes, e cada mudança tem data e motivo registrados</h2>
+  <div class="timeline">
+    <div class="phase fragment"><h3>Bancadas</h3>ajuste do enunciado e da medição<br>119 execuções<div class="folder">construction-v3</div></div>
+    <div class="phase drop fragment"><h3>Lote descartado</h3>ensaio da análise, antes do pré-registro<div class="folder">construction-v4</div></div>
+    <div class="phase key fragment"><h3>Estudo principal</h3>pré-registrado, Strategy, 220 execuções<div class="folder">construction-v5</div></div>
+    <div class="phase fragment"><h3>Fase intermediária</h3>cinco <em>patterns</em>, novo domínio, manutenção<div class="folder">construction-v7 · maintenance-v1</div></div>
+    <div class="phase key fragment"><h3>Extensão</h3>450 execuções + 90 controles negativos<div class="folder">TCC_V1</div></div>
+  </div>
+  <p class="plainly fragment" style="margin-top:34px"><span>em outras palavras</span>Antes dos dois estudos que trazem resultados, houve ensaios para ajustar a tarefa e a forma de medir; os números dos ensaios não entram nos resultados.</p>
+  <aside class="notes">Passar rápido. O importante: os dois estudos em laranja são os que trazem resultados, e o primeiro foi registrado antes da coleta.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">onde rodou</div>
+  <h2>Tudo rodou num notebook; os modelos ficaram na nuvem</h2>
+  <div class="specs">
+    <div class="spec"><div class="k">processador</div><div class="v">Core i7-13650HX</div><div class="s">Intel, 14 núcleos e 20 threads</div></div>
+    <div class="spec"><div class="k">memória</div><div class="v">32 GB DDR5</div><div class="s">4.800 MHz; 15,5 GB para o Docker</div></div>
+    <div class="spec"><div class="k">placa de vídeo</div><div class="v">RTX 4060 Laptop</div><div class="s">NVIDIA, 8 GB; mais a Intel UHD Graphics, 128 MB</div></div>
+    <div class="spec"><div class="k">sistema</div><div class="v">Windows 11</div><div class="s">edição Home; Docker Desktop 29.7.2</div></div>
+  </div>
+  <div class="bignums sm" style="margin-top:22px">
+    <div class="bignum"><div class="n">18<span class="u">%</span></div><div class="l">uso mediano do processador durante o estudo principal (95% no pico)</div></div>
+    <div class="bignum"><div class="n">12,3<span class="u">GB</span></div><div class="l">memória livre mediana; o mínimo foi 0,9 GB</div></div>
+    <div class="bignum"><div class="n">5.836</div><div class="l">medições, uma a cada 15 segundos, durante o estudo principal</div></div>
+  </div>
+  <p class="plainly"><span>em outras palavras</span>Os modelos rodam nos servidores da Anthropic. O notebook só executa os contêineres, os testes e as análises, e também foi usado para outras coisas durante as rodadas.</p>
+  <aside class="notes">A máquina e a carga estão no registro do projeto (monitor de recursos, gravado a cada 15 segundos). A memória é DDR5 de 4.800 MHz, e a placa de vídeo não participa: os modelos rodam na nuvem e os contêineres do agente e do build não têm acesso a ela. A carga mostra que o notebook aguentou, mas teve picos de memória.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">como cada execução foi isolada</div>
+  <h2>Um contêiner novo para cada execução, sempre da mesma imagem</h2>
+  <div class="pipe">
+    <div class="step fragment"><b>Imagem única</b>Node 24, Maven 3.9.16 com Java 21 e Claude Code 2.1.288; dependências já baixadas, para o download não entrar no tempo</div>
+    <div class="step fragment"><b>Contêiner do agente</b>descartável; recebe o enunciado e a configuração do nível, numa pasta vazia e sem restrição de ferramentas</div>
+    <div class="step fragment"><b>Build final</b>outro contêiner, sem o token da assinatura, roda o <code>mvn verify</code> no que o agente deixou</div>
+    <div class="step dark fragment"><b>Registro</b>transcrição, saída do build e um resumo com modelo, tokens, custo e tempo</div>
+  </div>
+  <div class="cards c2 fragment" style="margin-top:20px">
+    <div class="card gray"><h3>Sem limite por contêiner</h3>sem limite próprio de memória ou processador; por isso os quartetos rodaram um por vez, em ordem sorteada</div>
+    <div class="card blue"><h3>Na extensão</h3>um banco PostgreSQL por execução, em rede Docker própria; o agente sem Docker; o verificador em outro contêiner</div>
+  </div>
+  <p class="plainly fragment"><span>em outras palavras</span>Cada execução começa do zero, num ambiente igual e descartável, para que nada de uma vaze para outra.</p>
+  <aside class="notes">Quartetos: as quatro execuções simultâneas de um modelo, uma por nível. A ordem dos modelos foi sorteada a cada rodada para espalhar um dia ruim por todos. O token da assinatura nunca entra no contêiner do build final.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">como as rodadas rodaram</div>
+  <h2>Cinco rodadas por estudo</h2>
+  <div class="cards c3 rulescards dense">
+    <div class="card fragment"><h3>Estudo principal</h3>
+      <p>5 rodadas de 11 quartetos, um por modelo: 55 quartetos</p>
+      <p>um quarteto são os 4 níveis do mesmo modelo, ao mesmo tempo</p>
+      <p>um quarteto por vez, em ordem sorteada com semente registrada; um quarteto cortado pela cota seria refeito inteiro</p>
+      <p>antes de cada um, conferia-se se a janela de 5 horas tinha folga de 1,5 vez o maior gasto medido do modelo, mais 5 pontos</p>
+      <p>nenhum quarteto foi cortado pela cota</p></div>
+    <div class="card blue fragment"><h3>Extensão</h3>
+      <p>5 rodadas por combinação de tarefa, cenário, modelo e nível: 450</p>
+      <p>1ª rodada: as 90 combinações</p>
+      <p>depois, o Decorator e o Factory Method, o que mais errou e o que mais acertou: 144</p>
+      <p>por fim, os outros três: 216</p>
+      <p>lotes pequenos, com a cota conferida entre um lote e outro; os níveis de um modelo ficaram a até 4 horas de distância, e os três modelos, a até 10</p></div>
+    <div class="card gray fragment"><h3>Controles negativos</h3>
+      <p>5 cenários × 3 modelos × 3 níveis × 2 rodadas: 90</p>
+      <p>previstos com uma rodada; a segunda entrou porque a primeira gastou metade do estimado, decisão tomada antes de ver o resultado</p>
+      <p>quatro execuções foram refeitas porque o repositório do Maven recusou os downloads por excesso de pedidos</p></div>
+  </div>
+  <p class="plainly fragment"><span>em outras palavras</span>Repetir a tarefa várias vezes mostra se um resultado se repete ou foi acaso.</p>
+  <aside class="notes">Na extensão, o Decorator e o Factory Method foram repetidos primeiro para conhecer as duas pontas da variação com o custo de dois cenários em vez de cinco.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">como o funcionamento foi medido</div>
+  <h2>A suíte de aceitação sobe o serviço de cada execução e faz 21 pedidos</h2>
+  <div class="pipe">
+    <div class="step fragment"><b>Compila</b>num contêiner novo, sem token e sem variáveis de ambiente</div>
+    <div class="step fragment"><b>Liga o serviço</b>na porta 18080, esperando até 90 segundos para ele responder</div>
+    <div class="step fragment"><b>21 pedidos</b>12 de cálculo e 9 de recusa, com casos de borda e de precedência</div>
+    <div class="step dark fragment"><b>Resultado</b>passou tudo, errou casos, não compilou ou não subiu: quatro situações separadas</div>
+  </div>
+  <div class="cards c3 fragment" style="margin-top:20px">
+    <div class="card"><h3>Nunca mede duas vezes</h3>uma execução já medida é pulada, para ninguém repetir até dar o resultado esperado</div>
+    <div class="card blue"><h3>Hashes no resultado</h3>cada resultado grava a identidade da suíte e do enunciado usados</div>
+    <div class="card gray"><h3>17 versões defeituosas</h3>erros plantados de propósito; a suíte reprovou todas</div>
+  </div>
+  <p class="plainly fragment"><span>em outras palavras</span>É um fiscal automático: pede ao serviço que calcule frete, cupom e pagamento e confere se a resposta e os erros estão certos.</p>
+  <aside class="notes">A pontuação: cada caso de cálculo vale 1 ou 0; cada recusa vale 1 com o código e o status certos, 0,5 com o código certo e status de sucesso. O máximo é 21.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">como o design foi lido</div>
+  <h2>O Semgrep lê o código com regras fixas, sem IA</h2>
+  <div class="pipe">
+    <div class="step fragment"><b>Cópia limpa</b>só o projeto que o build compila, sem comentários e com as linhas no mesmo lugar</div>
+    <div class="step fragment"><b>51 regras</b>10 por ponto com variação e 11 para o seguro, geradas por um script a partir dos nomes dos casos</div>
+    <div class="step fragment"><b>Classificação</b>cada ponto recebe a resposta da régua, com a linha de código que a justifica</div>
+    <div class="step dark fragment"><b>Planilha</b>uma linha por execução, com a identidade das regras e da imagem</div>
+  </div>
+  <div class="cards c3 fragment" style="margin-top:20px">
+    <div class="card"><h3>Duas perguntas por ponto</h3>algum caso aparece fora da sua unidade? A escolha consulta, usa uma condicional ou faz a conta?</div>
+    <div class="card blue"><h3>Versão travada</h3>Semgrep 1.95.0, numa imagem fixada por hash: trocar qualquer peça seria um instrumento novo</div>
+    <div class="card gray"><h3>Conferido por uma pessoa</h3>44 execuções sorteadas, lidas às cegas: 174 de 176 respostas iguais</div>
+  </div>
+  <p class="plainly fragment"><span>em outras palavras</span>O Semgrep procura no código as comparações que escolhem o caso, como “se o nível é OURO”. O mesmo código recebe sempre a mesma resposta.</p>
+  <aside class="notes">As regras foram validadas em quatro conjuntos de código antes da coleta. Um defeito achado no ensaio, em que projetos numa subpasta não eram lidos, foi corrigido antes do congelamento do pré-registro.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">as regras do Semgrep, 1 de 4</div>
+  <h2>Duas perguntas por ponto</h2>
+  <div class="cards c2" style="margin-top:16px">
+    <div class="card"><h3>1 · O código de um caso aparece fora da sua unidade?</h3>resposta: <b>isolado</b> ou <b>espalhado</b></div>
+    <div class="card blue"><h3>2 · Como a escolha do caso é feita?</h3>resposta: <b>consulta</b>, <b>condicional única</b> ou <b>condicional no cálculo</b></div>
+  </div>
+  <table class="data rules fragment">
+    <tr><th>o que o Semgrep encontra</th><th>resposta</th><th>por quê</th></tr>
+    <tr><td><code>nivel.freteGratis()</code></td><td><span class="pill ok">consulta</span></td><td>não nomeia nenhum caso: pergunta a qualquer nível, e um nível novo responde sozinho</td></tr>
+    <tr><td><code>case OURO -&gt; new NivelOuro()</code></td><td><span class="pill ok">condicional única</span></td><td>nomeia os casos num lugar só e devolve um objeto, como uma fábrica</td></tr>
+    <tr><td><code>case OURO -&gt; base * 0.05</code></td><td><span class="pill bad">condicional no cálculo</span></td><td>nomeia o caso e faz a conta ali mesmo</td></tr>
+    <tr><td><code>if (nivel == OURO)</code> numa validação</td><td><span class="pill bad">espalhado</span></td><td>o código de um nível aparece também fora da casa dele</td></tr>
+  </table>
+  <p class="plainly fragment"><span>em outras palavras</span>Nomear um caso é escrever qual ele é. Teste: se eu criar um caso parecido, essa linha precisa mudar?</p>
+  <aside class="notes">Acerto é isolado e consulta, ou isolado e condicional única. Espalhado, ou condicional no cálculo, é erro. As respostas valem para os quatro pontos com variação; o seguro tem duas perguntas próprias, a forma e a proporção.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">as regras do Semgrep, 2 de 4</div>
+  <h2>As 10 regras de cada ponto</h2>
+  <p class="small muted" style="margin:0">Cada regra procura uma forma de escrever e marca a linha; a decisão do que isso significa é de outro <em>script</em>, o classificador.</p>
+  <table class="data rules rules10">
+    <tr><th>regra</th><th>a ideia</th><th>exemplo</th><th>como entra na resposta</th></tr>
+    <tr ><td><code>cond-calc</code></td><td>uma comparação que nomeia um caso</td><td><code>nivel == OURO</code>, <code>"OURO".equals(x)</code></td><td>candidata a condicional no cálculo; sai da conta se for recusa ou fábrica</td></tr>
+    <tr ><td><code>cond-validacao</code></td><td>a mesma comparação, dentro de um <code>if</code> que recusa com <code>throw</code></td><td><code>if (nivel == OURO) throw …</code></td><td>conta como espalhado, mas não na escolha do caso</td></tr>
+    <tr ><td><code>cond-recusa</code></td><td>a mesma comparação, num <code>if</code> que devolve um erro, sem <code>throw</code></td><td><code>if (…) return erro</code></td><td>o mesmo da validação</td></tr>
+    <tr ><td><code>cond-fabrica</code></td><td>a mesma comparação, num <code>if</code> que só devolve ou guarda um objeto</td><td><code>if (…) return new Ouro()</code></td><td>condicional única</td></tr>
+    <tr ><td><code>instanceof</code></td><td><code>instanceof</code> de uma classe de caso, fora do <code>equals()</code></td><td><code>x instanceof NivelOuro</code></td><td>nomeia o caso, como a comparação</td></tr>
+    <tr ><td><code>instanceof-recusa</code></td><td>o mesmo, dentro de um <code>if</code> que recusa</td><td><code>if (x instanceof NivelOuro) throw …</code></td><td>conta como recusa</td></tr>
+    <tr ><td><code>switch-label</code></td><td>um rótulo de <code>switch</code> que nomeia um caso, inclusive com <em>pattern matching</em></td><td><code>case OURO</code>, <code>case Ouro o</code></td><td>nomeia o caso</td></tr>
+    <tr ><td><code>switch-fabrica</code></td><td>o rótulo que só devolve um objeto</td><td><code>case OURO -&gt; ouro</code></td><td>condicional única</td></tr>
+    <tr ><td><code>conjunto</code></td><td>um conjunto ou lista que cita casos</td><td><code>EnumSet.of(OURO)</code></td><td>só conta se não citar todos os casos</td></tr>
+    <tr ><td><code>nome</code></td><td>o alarme: o nome do caso aparece em algum lugar?</td><td>—</td><td>sem nenhum nome, o ponto sai indeterminado, e não isolado</td></tr>
+  </table>
+  <aside class="notes">As mesmas dez regras valem para o frete, o cupom, o pagamento e o clube; muda só a lista de nomes dos casos. Umas regras entendem o código (um if, uma comparação, um new), e outras são buscas de texto, para o que o analisador não vê bem, como o case com pattern matching.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">as regras do Semgrep, 3 de 4</div>
+  <h2>As 11 regras do seguro</h2>
+  <p class="small muted" style="margin:0">O seguro é o controle negativo: as regras procuram a forma da variação, e o classificador decide se é dado ou estrutura.</p>
+  <table class="data rules rules10">
+    <tr><th>regra</th><th>o que procura</th><th>como é lida</th></tr>
+    <tr ><td><code>enum-dados</code></td><td>constantes de região que só carregam valores</td><td><span class="pill ok">dados</span></td></tr>
+    <tr ><td><code>enum-corpo</code></td><td>constante de região com corpo próprio</td><td><span class="pill bad">estrutura</span></td></tr>
+    <tr ><td><code>classe-regiao</code></td><td>uma classe por região</td><td><span class="pill bad">estrutura</span></td></tr>
+    <tr ><td><code>mapa</code></td><td>um mapa de região para um valor</td><td><span class="pill ok">dados</span></td></tr>
+    <tr ><td><code>mapa-funcao</code></td><td>um mapa de região para uma função ou classe anônima, uma por região</td><td><span class="pill bad">estrutura</span></td></tr>
+    <tr ><td><code>config</code></td><td>uma taxa por região num arquivo de configuração</td><td><span class="pill ok">dados</span></td></tr>
+    <tr ><td><code>objeto</code></td><td>um objeto por região; o classificador separa a classe única da classe por região</td><td><span class="pill ok">dados</span> ou <span class="pill bad">estrutura</span></td></tr>
+    <tr ><td><code>switch-label</code></td><td>um rótulo ou condição que nomeia uma região</td><td><span class="pill mid">condicional</span>, se só devolve o número</td></tr>
+    <tr ><td><code>switch-fabrica</code></td><td>um <code>switch</code> de região que devolve um objeto</td><td><span class="pill bad">estrutura</span></td></tr>
+    <tr ><td><code>traducao</code></td><td>um <code>switch</code> ou <code>if</code> que só traduz o texto para a constante da região</td><td>não conta</td></tr>
+    <tr ><td><code>nome</code></td><td>o alarme: o nome da região aparece em algum lugar?</td><td>sem nenhum, é indeterminado</td></tr>
+  </table>
+  <aside class="notes">Estrutura é o exagero que o seguro mede: uma classe por região, uma constante com corpo, uma função por região, ou um switch ou mapa que devolve um objeto por região. Lista de objetos da mesma classe, só com os números, é uma tabela, ou seja, dados.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">as regras do Semgrep, 4 de 4</div>
+  <h2>O que não conta como caso, e como as regras foram testadas</h2>
+  <div class="cards c2 rulescards">
+    <div class="card fragment"><h3>O que não conta</h3>
+      <p>a recusa: um <code>if</code> que só devolve um erro</p>
+      <p>a lista de válidos: um bloco que cita todos os casos só para conferir</p>
+      <p>o registro: a classe <code>Ouro</code> dizendo que atende <code>"OURO"</code></p>
+      <p>os nomes em inglês contam como o mesmo caso: <code>GOLD</code> é <code>OURO</code></p>
+      <p>se nenhum nome aparece, a resposta é <b>indeterminado</b>, e o ponto fica fora da conta</p></div>
+    <div class="card blue fragment"><h3>Como foram testadas</h3>
+      <p>quatro conjuntos de projetos pequenos, cada um com uma só forma de escrever e a resposta escrita antes de rodar as regras</p>
+      <p>desenvolvimento: a primeira versão acertou 41 de 80; a segunda, 80 de 80</p>
+      <p>controle, com formas novas: 42 de 44 na primeira passada e 44 de 44 depois de corrigir as duas falhas previstas</p>
+      <p>em 64 projetos reais, só 3 respostas mudaram da primeira para a segunda versão, e as três foram conferidas no código</p></div>
+  </div>
+  <p class="small fragment" style="margin-top:14px">Uma forma de escrever que ninguém previu ainda pode passar; por isso uma pessoa conferiu 44 execuções, às cegas.</p>
+  <aside class="notes">Esses números são da validação das regras, feita antes da coleta, e estão no README da pasta do Semgrep. O que vale como validação final é a conferência humana: 174 de 176 respostas iguais.</aside>
+</section>
+
+<section data-chapter="metodo">
+  <div class="kicker">as outras ferramentas</div>
+  <h2>Cada medida tem uma ferramenta, com a versão fixada</h2>
+  <div class="cards c2">
+    <div class="card"><h3>SonarQube 26.9 Community</h3>servidor no Docker, com um scanner e o perfil “Sonar way” (599 regras): linhas, complexidade cognitiva, duplicação e <em>code smells</em></div>
+    <div class="card blue"><h3>CK</h3>compilado do <em>commit</em> 8a1ef916, porque a última versão publicada ignora os <em>records</em> do Java: acoplamento, coesão, complexidade e herança</div>
+    <div class="card gray"><h3>Na extensão</h3>JaCoCo para a cobertura dos testes, jdeps para as dependências entre pacotes e pg_dump para o esquema do banco</div>
+    <div class="card"><h3>Scripts próprios</h3>Node 24 na coleta e na análise do estudo principal, com o teste de Page; Python 3.12 no disparo e na revisão da extensão, com o kappa de Cohen</div>
+  </div>
+  <p class="plainly"><span>em outras palavras</span>Nenhuma dessas ferramentas julga se o design está bom: elas medem tamanho, complexidade, acoplamento e testes, que complementam a leitura do Semgrep.</p>
+  <aside class="notes">Todas as versões estão na Tabela 3 do artigo. O SonarQube e o CK entraram por orientação do orientador.</aside>
+</section>
+
+<section data-chapter="principal">
+  <div class="kicker">a tarefa</div>
+  <h2>A tarefa: um serviço de <em>checkout</em>, descrito pelo dono da loja</h2>
+  <p class="small muted">Pasta vazia · Java 21 e Spring Boot · enunciado sem termos de arquitetura</p>
+  <div class="points">
+    <div class="point fragment"><b>Frete</b>varia por modalidade</div>
+    <div class="point fragment"><b>Cupom</b>varia por tipo</div>
+    <div class="point fragment"><b>Pagamento</b>varia por forma</div>
+    <div class="point main fragment"><b>Clube de fidelidade</b>o mais complexo: um mesmo nível afeta três regras · <span class="accent">ponto do clube</span></div>
+    <div class="point ctrl fragment"><b>Seguro por região</b>só a porcentagem varia: aqui o certo é <b style="display:inline">não</b> usar o <em>pattern</em> (controle negativo) · <span style="color:var(--bad)">ponto do seguro</span></div>
+  </div>
+  <aside class="notes">O enunciado foi escrito na voz do dono da loja, sem termos técnicos. O ponto do clube é o mais difícil; o seguro é o controle.</aside>
+</section>
+
+<section data-chapter="principal">
+  <div class="kicker">o método</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span><span class="k k3">N3 <i>+ plano e revisor</i></span></div>
+  <h2 style="font-size:1.35em">11 modelos × 4 níveis × 5 rodadas = 220 execuções</h2>
+  <div class="runs">
+    <div style="display:flex; gap:10px">
+      <div class="rowlabels" id="model-labels"></div>
+      <div class="grid220">
+        <div class="lvlcol l0 always" data-dots="55"><div class="lab">N0</div></div>
+        <div class="lvlcol l1 always" data-dots="55"><div class="lab">N1</div></div>
+        <div class="lvlcol l2 always" data-dots="55"><div class="lab">N2</div></div>
+        <div class="lvlcol l3 always" data-dots="55"><div class="lab">N3</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><h3>Pré-registro</h3>hipóteses e regras de decisão congeladas em 10/10, antes da primeira execução</div>
+      <div class="card blue" style="margin-top:14px"><h3>Avaliação</h3>21 testes automáticos do funcionamento · análise automática do código (Semgrep), conferida às cegas por uma pessoa: <b>174 de 176</b> respostas iguais · métricas de qualidade (SonarQube e CK)</div>
+    </div>
+  </div>
+  <p class="plainly"><span>em outras palavras</span>Cada bolinha é o agente construindo o mesmo sistema do zero, uma vez.</p>
+  <aside class="notes">Cada ponto é uma execução. As comparações são em pares: mesmo modelo, mesma rodada, níveis vizinhos.</aside>
+</section>
+
+<section data-chapter="principal">
+  <div class="kicker">resultado principal</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span><span class="k k3">N3 <i>+ plano e revisor</i></span></div>
+  <h2>Só o <code>CLAUDE.md</code> levou o ponto do clube de 67% para 93%</h2>
+  <div class="chart" style="height:248px">
+    <div class="col l0"><div class="track"><div class="bar always" style="--h:67%"><span>67%</span></div></div><div class="xl">N0</div></div>
+    <div class="col l1"><div class="track"><div class="bar fragment rise" style="--h:93%"><span>93%</span></div></div><div class="xl">N1</div></div>
+    <div class="col l2"><div class="track"><div class="bar fragment rise" style="--h:93%"><span>93%</span></div></div><div class="xl">N2</div></div>
+    <div class="col l3"><div class="track"><div class="bar fragment rise" style="--h:98%"><span>98%</span></div></div><div class="xl">N3</div></div>
+  </div>
+  <p class="cite" style="margin-top:8px">Execuções com o ponto do clube certo, 55 por nível. Hipótese principal H1: apoiada.</p>
+  <p class="plainly fragment"><span>em outras palavras</span>Com 14 linhas de orientação, o agente organizou bem a parte mais difícil em 93% das vezes, contra 67% sem orientação.</p>
+  <aside class="notes">Este é o resultado central. As barras sobem uma a uma, no clique. Destacar: só o arquivo já levou a 93%.</aside>
+</section>
+
+<section data-chapter="principal">
+  <div class="kicker">efeitos colaterais</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span><span class="k k3">N3 <i>+ plano e revisor</i></span></div>
+  <h2>Sem mais exagero, sem piora no conjunto e com menos complexidade</h2>
+  <p class="small muted">Comparação em pares: o mesmo modelo, na mesma rodada, sem e com o <code>CLAUDE.md</code>. São 55 pares.</p>
+  <div class="bignums" style="margin-top:16px">
+    <div class="bignum"><div class="n">1<span class="u">de 55</span></div><div class="l">pares mudaram no exagero do seguro (H2 não apoiada)</div></div>
+    <div class="bignum"><div class="n">+3</div><div class="l">saldo de pares na corretude, acima do limite de −7 (H3 apoiada)</div></div>
+    <div class="bignum"><div class="n">33,7<span class="u">→ 22,9</span></div><div class="l">complexidade cognitiva média (H4 apoiada)</div></div>
+  </div>
+  <p class="small" style="margin-top:18px">Mas: o Haiku 4.5 piorou nos cinco pares na corretude, e a duplicação subiu de 1,2% para 2,5% das linhas.</p>
+  <p class="plainly"><span>em outras palavras</span>A orientação não fez o agente complicar o que era simples nem errar mais no conjunto.</p>
+  <aside class="notes">Três checagens: o exagero não aumentou, o funcionamento não piorou no conjunto e o código ficou menos complexo. Citar as duas ressalvas.</aside>
+</section>
+
+<section data-chapter="principal">
+  <div class="kicker">quem melhorou</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span><span class="k k3">N3 <i>+ plano e revisor</i></span></div>
+  <h2>O ganho veio de quem ainda não acertava sempre</h2>
+  <div class="bignums">
+    <div class="bignum"><div class="n">5<span class="u">de 11</span></div><div class="l">modelos já acertavam o ponto do clube nas cinco rodadas, sem orientação</div></div>
+    <div class="bignum"><div class="n">14 × 0</div><div class="l">pares melhores × piores nos outros seis modelos</div></div>
+    <div class="bignum"><div class="n">0<span class="u">de 110</span></div><div class="l">vezes que a <em>skill</em> pública foi aberta espontaneamente</div></div>
+  </div>
+  <p class="small" style="margin-top:18px">O processo (N3) chamou o revisor nas 55 execuções e melhorou o <em>design</em> em um só modelo, o Haiku 4.5, sendo o nível mais caro.</p>
+  <p class="plainly"><span>em outras palavras</span>A orientação ajudou quem ainda errava; quem já acertava continuou acertando.</p>
+  <aside class="notes">Cinco modelos já acertavam sempre; o ganho veio dos outros seis. A skill pública, sem instrução de uso, nunca foi aberta.</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">o segundo estudo</div>
+  <h2>A extensão: cinco <em>patterns</em>, duas tarefas e banco de dados</h2>
+  <div class="cards c3">
+    <div class="card fragment"><h3>Sistema</h3>reservas da Pousada Maré Alta<br>Java 21, Javalin e PostgreSQL</div>
+    <div class="card blue fragment"><h3>Construção × manutenção</h3>pasta vazia e enunciado inteiro × sistema pronto, com 26 testes, e um pedido de mudança</div>
+    <div class="card gray fragment"><h3>Cinco <em>patterns</em></h3>Strategy, Observer, Factory Method, Decorator e Template Method, sem dizer o nome</div>
+  </div>
+  <div class="cards c3">
+    <div class="card fragment"><h3>Três modelos</h3>Haiku 4.5 (0 de 5), Sonnet 4.5 (2 de 5) e Sonnet 5.5 (5 de 5) no N0 do estudo principal</div>
+    <div class="card blue fragment"><h3>Níveis N0 a N2</h3>com uma <em>skill</em> escrita para este trabalho</div>
+    <div class="card gray fragment"><h3>Cinco rodadas</h3>450 execuções + 90 de controle negativo na manutenção</div>
+  </div>
+  <aside class="notes">O segundo estudo amplia o primeiro: mais patterns, duas tarefas e banco de dados, com três modelos.</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">como foi avaliado</div>
+  <h2>Cada projeto passou por um verificador de IA, às cegas</h2>
+  <div class="eval">
+    <div class="box">
+      <b>Projeto</b>sem o <code>CLAUDE.md</code> e sem a pasta <code>.claude/</code>, para não revelar o nível
+    </div>
+    <div class="arrow fragment" data-fragment-index="1">→</div>
+    <div class="box verifier fragment" data-fragment-index="1"><b>Verificador</b>Claude Opus 5.5, uma <em>skill</em> por dimensão, roteiro de chamadas à API</div>
+    <div class="arrow fragment" data-fragment-index="2">→</div>
+    <div class="box grades fragment" data-fragment-index="2"><b style="text-align:center">7 notas</b>
+      <span>categoria do <em>pattern</em></span><span><em>design</em> do restante</span><span>arquitetura</span><span>testes</span><span>banco</span><span>comportamento</span><span>estrutura desnecessária</span></div>
+  </div>
+  <div class="cards c2" style="margin-top:22px">
+    <div class="card good fragment" data-fragment-index="3"><h3>Calibração: 52 de 52</h3>notas iguais às esperadas em casos de resposta conhecida</div>
+    <div class="card blue fragment" data-fragment-index="4"><h3>Segundo verificador: 195 de 210</h3>notas iguais (Claude Fable 5.1, 30 execuções)</div>
+  </div>
+  <aside class="notes">Categorias do pattern: acerto, alternativa equivalente, malfeito e omissão. "Pattern certo" = acerto + alternativa equivalente.</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">quem revisou, 1 de 2</div>
+  <h2>O verificador oficial: Claude Opus 5.5</h2>
+  <div class="cards c2 rulescards">
+    <div class="card fragment"><h3>Como revisou</h3>
+      <p>esforço <em>high</em>, às cegas quanto ao modelo e ao nível</p>
+      <p>recebeu o enunciado, o <em>pattern</em> esperado e o projeto, sem o <code>CLAUDE.md</code> e sem a pasta <code>.claude/</code></p>
+      <p>uma <em>skill</em> por dimensão e um <em>script</em> de medição: jdeps, JaCoCo, pg_dump e um roteiro de chamadas à API</p>
+      <p>deu 7 notas por execução e escreveu uma justificativa para cada uma</p>
+      <p>escolhido por ser o mais capaz disponível com custo que cabia na cota de uso</p></div>
+    <div class="card blue fragment"><h3>Como foi calibrado</h3>
+      <p>26 revisões de casos de resposta conhecida: 10 soluções de referência, duas por cenário, e 6 exemplos estragados de propósito</p>
+      <p>1ª passada: 50 de 52 notas iguais às esperadas</p>
+      <p>os testes de duas soluções foram completados, e entrou a regra de que cada defeito pesa em uma só dimensão</p>
+      <p>2ª passada: 52 de 52</p>
+      <p>a calibração não cobriu o <em>design</em> do restante do código nem a estrutura desnecessária</p></div>
+  </div>
+  <p class="plainly fragment"><span>em outras palavras</span>Antes de revisar as 450 execuções, o verificador foi testado em casos em que a resposta certa já era conhecida.</p>
+  <aside class="notes">As dez soluções de referência foram revisadas nas duas tarefas e serviram para conferir a categoria do pattern e o comportamento. Os seis exemplos estragados cobrem arquitetura, testes e banco.</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">quem revisou, 2 de 2</div>
+  <h2>O segundo verificador: Fable 5.1</h2>
+  <div class="split">
+    <div class="agree">
+      <div class="small muted" style="margin-bottom:6px">Notas iguais às do verificador oficial, em 30 execuções (7 notas cada: 195 de 210)</div>
+    <div class="arow fragment"><span class="lab">categoria do <em>pattern</em></span><span class="abar"><i class="ok" style="--w:100%"></i></span><span class="val">30 de 30</span></div>
+    <div class="arow fragment"><span class="lab">arquitetura</span><span class="abar"><i class="ok" style="--w:100%"></i></span><span class="val">30 de 30</span></div>
+    <div class="arow fragment"><span class="lab">comportamento</span><span class="abar"><i class="ok" style="--w:96.7%"></i></span><span class="val">29 de 30</span></div>
+    <div class="arow fragment"><span class="lab">estrutura desnecessária</span><span class="abar"><i class="ok" style="--w:96.7%"></i></span><span class="val">29 de 30</span></div>
+    <div class="arow fragment"><span class="lab">banco</span><span class="abar"><i class="ok" style="--w:90%"></i></span><span class="val">27 de 30</span></div>
+    <div class="arow fragment"><span class="lab">testes</span><span class="abar"><i class="mid" style="--w:86.7%"></i></span><span class="val">26 de 30</span></div>
+    <div class="arow fragment"><span class="lab"><em>design</em> do restante</span><span class="abar"><i class="low" style="--w:80%"></i></span><span class="val">24 de 30</span></div>
+    </div>
+    <div>
+      <div class="card fragment"><h3>Como revisou</h3><p>mesmas instruções, mesmas <em>skills</em>, esforço <em>high</em>, às cegas</p><p>30 execuções sorteadas com semente fixa, uma por combinação</p><p>só 30: cada revisão do Fable custou cerca de 3 vezes a do Opus</p></div>
+      <div class="card blue fragment" style="margin-top:14px"><h3>O que mostrou</h3><p>kappa de Cohen de 0,53 no <em>design</em>, o mais baixo</p><p>nas 15 diferenças, o Fable foi sempre um degrau mais brando</p></div>
+    </div>
+  </div>
+  <p class="plainly fragment"><span>em outras palavras</span>A concordância mostra que a leitura se repete, e não que está certa.</p>
+  <aside class="notes">O kappa de Cohen desconta a concordância esperada por acaso. A amostra de 30 foi o que coube na cota de uso. O segundo verificador é de outro modelo da mesma empresa, então não substitui uma leitura humana.</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">resultado</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span></div>
+  <h2>Com orientação, o <em>pattern</em> certo aumentou em 9 de 10 combinações</h2>
+  <div class="chart" style="height:244px; gap:90px; justify-content:center">
+    <div class="group"><div class="cols">
+      <div class="col l0" style="width:90px"><div class="track"><div class="bar always" style="--h:54.7%"><span>41</span></div></div></div>
+      <div class="col l1" style="width:90px"><div class="track"><div class="bar fragment rise" data-fragment-index="1" style="--h:70.7%"><span>53</span></div></div></div>
+      <div class="col l2" style="width:90px"><div class="track"><div class="bar fragment rise" data-fragment-index="2" style="--h:80%"><span>60</span></div></div></div>
+    </div><div class="gl">construção</div></div>
+    <div class="group"><div class="cols">
+      <div class="col l0" style="width:90px"><div class="track"><div class="bar always" style="--h:25.3%"><span>19</span></div></div></div>
+      <div class="col l1" style="width:90px"><div class="track"><div class="bar fragment rise" data-fragment-index="1" style="--h:44%"><span>33</span></div></div></div>
+      <div class="col l2" style="width:90px"><div class="track"><div class="bar fragment rise" data-fragment-index="2" style="--h:77.3%"><span>58</span></div></div></div>
+    </div><div class="gl">manutenção</div></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--n0)"></i>N0</span><span><i style="background:var(--n1)"></i>N1 · CLAUDE.md</span><span><i style="background:var(--n2)"></i>N2 · + skill</span><span class="muted">execuções com o <em>pattern</em> certo, de 75</span></div>
+  <p class="plainly fragment"><span>em outras palavras</span>Com orientação, o agente escolheu a organização esperada mais vezes, tanto ao construir quanto ao modificar um sistema.</p>
+  <aside class="notes">A manutenção parte de um nível menor e quase alcança a construção no N2. Só com o arquivo, os ganhos foram próximos (+14 e +12).</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">a exceção</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span></div>
+  <h2>A exceção, o Strategy na construção: a omissão virou malfeito</h2>
+  <div class="chart" style="height:228px; gap:70px; justify-content:center">
+    <div class="col" style="width:130px"><div class="track"><div class="stack always"><div class="seg ok" style="--h:60%">9</div><div class="seg half" style="--h:0%"></div><div class="seg none" style="--h:40%">6</div></div></div><div class="xl">N0</div></div>
+    <div class="col" style="width:130px"><div class="track"><div class="stack fragment"><div class="seg ok" style="--h:46.7%">7</div><div class="seg half" style="--h:46.7%">7</div><div class="seg none" style="--h:6.7%"></div></div></div><div class="xl">N1</div></div>
+    <div class="col" style="width:130px"><div class="track"><div class="stack fragment"><div class="seg ok" style="--h:60%">9</div><div class="seg half" style="--h:33.3%">5</div><div class="seg none" style="--h:6.7%"></div></div></div><div class="xl">N2</div></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--cat-ok)"></i><em>pattern</em> certo</span><span><i style="background:var(--cat-half)"></i>malfeito: começou a estrutura, mas deixou parte de fora</span><span><i style="background:var(--cat-none)"></i>omissão (6, 1 e 1): ficou na condicional</span><span class="muted">15 execuções por nível</span></div>
+  <p class="plainly fragment"><span>em outras palavras</span>Com orientação, o agente passou a começar a organização certa, mas em parte das vezes não a terminou.</p>
+  <p class="cite fragment" style="margin-top:8px">Nos 12 malfeitos, cada plano tem classe própria, mas em 11 sobra um único ponto que pergunta qual é o plano.</p>
+  <aside class="notes">A exceção: no Strategy da construção, o total de acertos não mudou, mas a omissão virou estrutura incompleta.</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">quando a técnica não cabe</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span></div>
+  <h2>Quando o <em>pattern</em> não cabia, os agentes quase sempre mantiveram a mudança pequena</h2>
+  <div class="bignums">
+    <div class="bignum fragment"><div class="n">88<span class="u">de 90</span></div><div class="l">pedidos de manutenção em que o <em>pattern</em> não cabia (controles negativos) terminaram com a mudança pequena: 30, 30 e 28 de 30</div></div>
+    <div class="bignum fragment"><div class="n" style="color:var(--bad)">4 → 9</div><div class="l">execuções de construção, em 75, com estrutura desnecessária, do N0 ao N2</div></div>
+  </div>
+  <p class="small fragment" style="margin-top:18px">As duas exceções foram do Sonnet 5.5 com a <em>skill</em>, no mesmo cenário. Nos níveis com orientação, o <code>CLAUDE.md</code> já pede mudança simples para mudança pontual.</p>
+  <p class="plainly fragment"><span>em outras palavras</span>O agente orientado não saiu aplicando a técnica em tudo; mas, ao construir do zero com a <em>skill</em>, criou estrutura à toa mais vezes.</p>
+  <aside class="notes">Quando o pedido não justificava o pattern, quase todos mantiveram a mudança pequena. O alerta é a estrutura desnecessária na construção com a skill.</aside>
+</section>
+
+<section data-chapter="extensao">
+  <div class="kicker">além do pattern</div>
+  <div class="lvlkey"><span class="k k0">N0 <i>sem orientação</i></span><span class="k k1">N1 <i>+ arquivo</i></span><span class="k k2">N2 <i>+ skill</i></span></div>
+  <h2>Nas outras dimensões, o modelo pesou mais que a orientação</h2>
+  <div class="cards c3">
+    <div class="card"><h3>Comportamento</h3>manutenção: 61 → 59 → 54 de 75<br>construção: 25 nos três níveis</div>
+    <div class="card blue"><h3>Modelo &gt; orientação</h3>o Sonnet 5.5 sem orientação supera o Haiku 4.5 com a <em>skill</em> em todas as dimensões, salvo o banco na construção</div>
+    <div class="card gray"><h3>Custo por execução</h3>construção: US$ 0,96 → 1,07<br>manutenção: US$ 0,60 → 0,72</div>
+  </div>
+  <p class="small" style="margin-top:16px">No próprio <em>pattern</em>, porém, o nível chegou a superar o modelo: na manutenção, o Haiku 4.5 com a <em>skill</em> (13 de 25) supera o Sonnet 5.5 sem orientação (11 de 25).</p>
+  <p class="plainly"><span>em outras palavras</span>A orientação melhora a organização do código; a qualidade do resto ainda depende mais de qual modelo se usa.</p>
+  <aside class="notes">Fora do pattern, o que mais pesa é o modelo. O comportamento caiu um pouco na manutenção.</aside>
+</section>
+
+<section data-chapter="conclusao">
+  <div class="kicker">limitações</div>
+  <h2>O que estes resultados não dizem</h2>
+  <ul class="plain">
+    <li >Só modelos da Anthropic e um só agente, o Claude Code.</li>
+    <li >Na extensão, as notas das 450 execuções vieram de um verificador de IA, calibrado em casos de resposta conhecida; nenhuma pessoa refez essas notas.</li>
+    <li >Cinco rodadas por combinação: a extensão descreve, sem teste de significância.</li>
+    <li >Mede se o agente aplica o <em>pattern</em>, e não se isso facilita as mudanças seguintes.</li>
+  </ul>
+  <aside class="notes">Dizer as limitações com naturalidade.</aside>
+</section>
+
+<section data-chapter="conclusao">
+  <div class="kicker">conclusão</div>
+  <h2>Para quem escreve orientações para agentes de programação</h2>
+  <ul class="plain">
+    <li >Um arquivo curto de princípios, sem nomear <em>patterns</em>, já mudou o <em>design</em> (67% → 93%).</li>
+    <li >Uma <em>skill</em> com instrução de uso acrescentou mais na manutenção; sem a instrução, não foi aberta.</li>
+    <li >Vale vigiar o exagero e as outras dimensões: a estrutura desnecessária e o comportamento também mudaram.</li>
+    <li >Uma execução isolada não basta: o resultado se repetiu em 82% das repetições.</li>
+  </ul>
+  <aside class="notes">Fechar com as quatro mensagens práticas.</aside>
+</section>
+
+<section data-chapter="conclusao">
+  <div class="kicker">próximos passos</div>
+  <h2>Próximos passos</h2>
+  <div class="cards c2 big">
+    <div class="card">outras famílias de modelos e outros agentes</div>
+    <div class="card">o nível com processo (N3) também na extensão</div>
+    <div class="card blue">avaliação por pessoas, às cegas, de uma amostra da extensão, comparada com as notas da IA</div>
+    <div class="card blue">controle negativo também na construção, com mais rodadas</div>
+    <div class="card gray" style="grid-column: 1 / -1">medir o ganho do <em>pattern</em>: pedir um caso novo e contar o que precisa mudar e o que quebra</div>
+  </div>
+  <aside class="notes">Trabalhos futuros; terminar e agradecer.</aside>
+</section>
+
+<section data-chapter="fim" class="title-slide">
+  <h1>Obrigado</h1>
+  <p class="sub">Dados, scripts e textos das orientações: github.com/FLucasF/TCC</p>
+  <div class="who"><strong>Lucas Felipe Gomes Pedrosa</strong><br><span class="muted">Orientador: prof. Rodrigo Rebouças de Almeida</span></div>
+</section>
+
+<section data-chapter="reserva" class="backup">
+  <div class="kicker">reserva · estudo principal</div>
+  <h2 style="font-size:1.2em">Hipóteses principais (N1 × N0)</h2>
+  <table class="data">
+    <tr><th>código</th><th>hipótese</th><th>regra</th><th>resultado</th></tr>
+    <tr><td>H1</td><td>isola cada caso no ponto do clube</td><td>direcional</td><td>apoiada</td></tr>
+    <tr><td>H2</td><td>altera o exagero no ponto do seguro</td><td>alteração</td><td>não apoiada</td></tr>
+    <tr><td>H3</td><td>não piora a corretude</td><td>não inferioridade</td><td>apoiada</td></tr>
+    <tr><td>H4</td><td>reduz a complexidade</td><td>direcional</td><td>apoiada</td></tr>
+    <tr><td>H5</td><td>o maior efeito é do modelo que menos acerta</td><td>comparação entre modelos</td><td>apoiada (Opus 4.7, +5; depende da regra de empate)</td></tr>
+  </table>
+  <p class="tiny muted" style="margin-top:14px">As 28 hipóteses estão na Tabela 4 do artigo.</p>
+</section>
+
+<section data-chapter="reserva" class="backup">
+  <div class="kicker">reserva · extensão</div>
+  <h2 style="font-size:1.2em">Execuções com o <em>pattern</em> certo, por <em>pattern</em> e tarefa (de 15)</h2>
+  <table class="data">
+    <tr><th><em>pattern</em></th><th>tarefa</th><th class="num">N0</th><th class="num">N1</th><th class="num">N2</th></tr>
+    <tr><td>Strategy</td><td>construção</td><td class="num">9</td><td class="num">7</td><td class="num">9</td></tr>
+    <tr><td>Strategy</td><td>manutenção</td><td class="num">6</td><td class="num">7</td><td class="num">13</td></tr>
+    <tr><td>Observer</td><td>construção</td><td class="num">11</td><td class="num">13</td><td class="num">13</td></tr>
+    <tr><td>Observer</td><td>manutenção</td><td class="num">2</td><td class="num">3</td><td class="num">10</td></tr>
+    <tr><td>Factory Method</td><td>construção</td><td class="num">12</td><td class="num">13</td><td class="num">14</td></tr>
+    <tr><td>Factory Method</td><td>manutenção</td><td class="num">6</td><td class="num">11</td><td class="num">14</td></tr>
+    <tr><td>Decorator</td><td>construção</td><td class="num">4</td><td class="num">10</td><td class="num">10</td></tr>
+    <tr><td>Decorator</td><td>manutenção</td><td class="num">3</td><td class="num">5</td><td class="num">8</td></tr>
+    <tr><td>Template Method</td><td>construção</td><td class="num">5</td><td class="num">10</td><td class="num">14</td></tr>
+    <tr><td>Template Method</td><td>manutenção</td><td class="num">2</td><td class="num">7</td><td class="num">13</td></tr>
+  </table>
+</section>
+
+<section data-chapter="reserva" class="backup">
+  <div class="kicker">reserva · extensão</div>
+  <h2 style="font-size:1.2em">Execuções boas por dimensão (de 75)</h2>
+  <table class="data">
+    <tr><th>dimensão</th><th class="num">construção N0</th><th class="num">N1</th><th class="num">N2</th><th class="num">manutenção N0</th><th class="num">N1</th><th class="num">N2</th></tr>
+    <tr><td><em>pattern</em> certo</td><td class="num">41</td><td class="num">53</td><td class="num">60</td><td class="num">19</td><td class="num">33</td><td class="num">58</td></tr>
+    <tr><td><em>design</em> do restante</td><td class="num">15</td><td class="num">23</td><td class="num">20</td><td class="num">14</td><td class="num">25</td><td class="num">25</td></tr>
+    <tr><td>arquitetura</td><td class="num">16</td><td class="num">9</td><td class="num">16</td><td class="num">58</td><td class="num">57</td><td class="num">68</td></tr>
+    <tr><td>testes</td><td class="num">11</td><td class="num">9</td><td class="num">6</td><td class="num">25</td><td class="num">37</td><td class="num">25</td></tr>
+    <tr><td>banco</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">65</td><td class="num">62</td><td class="num">66</td></tr>
+    <tr><td>comportamento</td><td class="num">25</td><td class="num">25</td><td class="num">25</td><td class="num">61</td><td class="num">59</td><td class="num">54</td></tr>
+  </table>
+</section>
+
+<div class="rail" id="rail" aria-hidden="true"></div>
+</div></div>
+
+<script src="vendor/reveal/reveal.min.js"></script>
+<script src="vendor/reveal/plugin/notes/notes.min.js"></script>
+<script>
+// ----- dot grid of the main study: built before Reveal starts -----
+(function () {
+  const models = ["Haiku 4.5", "Haiku 5.5", "Sonnet 4.5", "Sonnet 4.6", "Sonnet 5", "Sonnet 5.5", "Opus 4.6", "Opus 4.7", "Opus 4.8", "Opus 5", "Opus 5.5"];
+  const labels = document.getElementById("model-labels");
+  models.forEach((m) => { const d = document.createElement("div"); d.textContent = m; labels.appendChild(d); });
+  document.querySelectorAll(".lvlcol[data-dots]").forEach((col) => {
+    for (let i = 0; i < +col.dataset.dots; i++) { const d = document.createElement("div"); d.className = "dot"; col.appendChild(d); }
+  });
+})();
+
+// ----- harness slide: every change happens on a click -----
+const HX = (function () {
+  const P = { user: [95, 300], ctx: [410, 270], llm: [1040, 200], exec: [707, 490], env: [1040, 495] };
+  const build = [
+    { stage: 2, cap: "Para agir, o modelo precisa de ferramentas: ler e escrever arquivos, rodar testes." },
+    { stage: 3, cap: "O harness liga o modelo às ferramentas, monta o contexto de cada chamada e conduz o ciclo." },
+    { stage: 4, cap: "Instruções do sistema: o que o harness envia em toda chamada." },
+    { stage: 5, cap: "CLAUDE.md: o arquivo de orientações do projeto, lido em toda conversa." },
+    { stage: 6, cap: "Skill: instruções sobre um assunto, que o agente abre quando precisa." },
+    { stage: 7, cap: "As ferramentas disponíveis também vão no contexto." },
+    { stage: 8, cap: "A pessoa faz o pedido, e o ciclo começa." },
+  ];
+  const steps = [
+    { path: ["user", "ctx"], on: ["hx-user", "hx-ctx"], add: "pedido: plano Premium", cap: "1. O pedido entra no contexto." },
+    { path: ["ctx", "llm"], on: ["hx-ctx", "hx-llm"], cap: "2. O harness monta o contexto inteiro e chama o modelo." },
+    { path: ["llm", "exec"], on: ["hx-llm", "hx-exec"], cap: "3. O modelo não age: responde pedindo uma ação (ler Planos.java)." },
+    { path: ["exec", "env"], on: ["hx-exec", "hx-env"], cap: "4. Quem age é o harness: ele executa a ferramenta no projeto." },
+    { path: ["env", "exec", "ctx"], on: ["hx-env", "hx-ctx"], add: "lido: Planos.java", cap: "5. O resultado volta e entra no histórico." },
+    { path: ["ctx", "llm", "exec", "env"], on: ["hx-llm", "hx-exec", "hx-env"], cap: "6. Nova chamada, com o arquivo no contexto: escrever Premium.java." },
+    { path: ["env", "exec", "ctx"], on: ["hx-env", "hx-ctx"], add: "escrito: Premium.java", cap: "7. O arquivo é escrito, e o registro volta ao contexto." },
+    { path: ["ctx", "llm", "exec", "env"], on: ["hx-llm", "hx-exec", "hx-env"], cap: "8. O modelo pede para rodar os testes: mvn verify." },
+    { path: ["env", "exec", "ctx"], on: ["hx-env", "hx-ctx"], add: "testes: 27 passaram", cap: "9. O resultado dos testes também volta ao contexto." },
+    { path: ["ctx", "llm", "ctx", "user"], on: ["hx-llm", "hx-user"], cap: "10. Sem mais ações, o modelo responde em texto, e o ciclo termina." },
+  ];
+  const total = build.length + steps.length + 1;
+  const $ = (id) => document.getElementById(id);
+  const slide = $("harness-slide");
+  const holder = $("hx-frags");
+  for (let i = 0; i < total; i++) { const f = document.createElement("span"); f.className = "fragment hx-frag"; holder.appendChild(f); }
+  let shown = 0, timer = null;
+
+  function placeToken([x, y]) { $("hx-token").setAttribute("cx", x); $("hx-token").setAttribute("cy", y); }
+  function moveToken(points) {
+    clearTimeout(timer);
+    const pts = points.map((k) => P[k]), segs = pts.length - 1, ms = 650 * segs, t0 = performance.now();
+    (function tick() {
+      const k = Math.min(1, (performance.now() - t0) / ms), s = Math.min(segs - 1, Math.floor(k * segs)), u = k * segs - s;
+      const [x0, y0] = pts[s], [x1, y1] = pts[s + 1];
+      placeToken([x0 + (x1 - x0) * u, y0 + (y1 - y0) * u]);
+      if (k < 1) timer = setTimeout(tick, 16);
+    })();
+  }
+  function render(animate) {
+    const n = slide.querySelectorAll(".hx-frag.visible").length;
+    const forward = n > shown; shown = n;
+    const nb = Math.min(n, build.length), ns = Math.max(0, Math.min(n - build.length, steps.length));
+    const stage = nb === 0 ? 1 : build[nb - 1].stage;
+    slide.querySelectorAll(".stg").forEach((el) => el.classList.toggle("off", +el.dataset.stage > stage));
+    const st = ns > 0 ? steps[ns - 1] : null;
+    document.querySelectorAll("#hx .hx-box").forEach((b) => b.classList.toggle("on", !!st && st.on.includes(b.id)));
+    let cap = nb === 0 ? "Um LLM só lê texto e responde texto; sozinho, ele não muda nada." : build[nb - 1].cap;
+    if (st) cap = st.cap;
+    if (n === total) cap = "O que este trabalho varia: o CLAUDE.md (N1) e a skill (N2).";
+    $("hx-caption").textContent = cap;
+    const history = steps.slice(0, ns).filter((x) => x.add).map((x) => x.add).slice(-3);
+    for (let i = 0; i < 3; i++) $("hx-h" + i).textContent = history[i] || "";
+    clearTimeout(timer);
+    $("hx-token").style.opacity = st ? 1 : 0;
+    if (!st) placeToken(P.user);
+    else if (animate && forward && n <= build.length + steps.length) moveToken(st.path);
+    else placeToken(P[st.path[st.path.length - 1]]);
+    $("hx").classList.toggle("cfg", n === total);
+  }
+  return { slide, render };
+})();
+
+// ----- the rail: chapters of the talk and the orange dot that marks where we are -----
+const RAIL = (function () {
+  const names = { contexto: "Contexto", conceitos: "Conceitos", pergunta: "Pergunta", metodo: "Método", principal: "Estudo principal", extensao: "Extensão", conclusao: "Conclusão" };
+  const order = Object.keys(names);
+  const all = [...document.querySelectorAll(".reveal .slides > section")];
+  const main = all.filter((s) => s.dataset.chapter !== "reserva");
+  const rail = document.getElementById("rail");
+  rail.innerHTML = '<div class="rail-line"><div class="rail-fill"></div>'
+    + order.map((k, i) => `<div class="st" style="left:${(i / order.length) * 100}%"><i></i><b>${names[k]}</b></div>`).join("")
+    + '<div class="rail-dot"></div></div><div class="rail-count"></div>';
+  function update() {
+    const cur = Reveal.getCurrentSlide(), ch = cur.dataset.chapter || "", ci = order.indexOf(ch);
+    let p = 0;
+    if (ch === "fim") p = 1;
+    else if (ci >= 0) { const group = main.filter((s) => s.dataset.chapter === ch); p = (ci + group.indexOf(cur) / group.length) / order.length; }
+    rail.style.setProperty("--p", p * 100 + "%");
+    rail.classList.toggle("off", ch === "reserva");
+    rail.querySelectorAll(".st").forEach((el, i) => { el.classList.toggle("past", ch === "fim" || (ci >= 0 && i < ci)); el.classList.toggle("now", i === ci); });
+    rail.querySelector(".rail-count").textContent = ch === "reserva" ? "reserva" : String(main.indexOf(cur) + 1).padStart(2, "0") + " / " + main.length;
+  }
+  return { update };
+})();
+
+Reveal.initialize({
+  width: 1280, height: 720, margin: 0.04,
+  hash: true, slideNumber: false, transition: "fade", backgroundTransition: "none",
+  controls: true, controlsLayout: "edges", progress: false, center: false,
+  scrollActivationWidth: null,  // never switch to scroll view in a narrow window
+  autoPlayMedia: false,         // the video only plays when clicked
+  plugins: [RevealNotes],
+});
+Reveal.on("fragmentshown", (e) => { if (HX.slide.contains(e.fragment)) HX.render(true); });
+Reveal.on("fragmenthidden", (e) => { if (HX.slide.contains(e.fragment)) HX.render(false); });
+Reveal.on("slidechanged", () => { RAIL.update(); if (Reveal.getCurrentSlide() === HX.slide) HX.render(false); });
+Reveal.on("ready", () => { RAIL.update(); HX.render(false); });
+(function () {
+  const v = document.getElementById("agent-video");
+  if (!v) return;
+  function fix() {
+    if (v.duration !== Infinity) return;
+    v.addEventListener("durationchange", () => { v.currentTime = 0; }, { once: true });
+    v.currentTime = 1e6;
+  }
+  if (v.readyState >= 1) fix(); else v.addEventListener("loadedmetadata", fix, { once: true });
+})();
+</script>
+</body>
+</html>
