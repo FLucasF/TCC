@@ -38,7 +38,7 @@ Todos foram conferidos frase a frase em 11/11/2026, na versão publicada: o que 
 | Gamma1995.pdf | Gamma et al. (1995) | *Design Patterns*, Addison-Wesley |
 | Martin2003.pdf | Martin (2003) | *Agile Software Development: Principles, Patterns, and Practices*, Prentice Hall, © 2003 |
 | Meyer1997.pdf | Meyer (1997) | *Object-Oriented Software Construction*, 2. ed., Prentice Hall |
-| PooleMackworth2010-1a-edicao.pdf | Poole e Mackworth (2023) | este PDF é a 1. ed. (2010); o artigo cita a 3. ed. (2023), aberta em https://artint.info/3e/html/ArtInt3e.html |
+| ArtInt3e.pdf | Poole e Mackworth (2023) | *Artificial Intelligence: Foundations of Computational Agents*, 3. ed., Cambridge University Press; PDF do site do livro (https://artint.info/3e/ArtInt3e.pdf). A definição de IA citada está na seção 1.1 (p. 11 do PDF) |
 | YourdonConstantine1978.pdf | Yourdon e Constantine (1978) | *Structured Design*, 2. ed., Yourdon Press, © 1978 |
 
 As páginas das ferramentas (CK, Anthropic, Semgrep, SonarQube, JaCoCo, Grndlvl) são citadas pelo endereço na web e não têm PDF aqui.

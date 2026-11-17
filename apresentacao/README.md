@@ -1,6 +1,6 @@
 # Apresentação da defesa
 
-Apresentação em reveal.js, com 38 slides e 3 de reserva. A parte "Método" (slides 11 a 20) mostra onde e como o estudo rodou: a máquina, o contêiner de cada execução, as rodadas, a suíte de aceitação, o Semgrep (quatro slides, com a ideia de cada regra) e as outras ferramentas. Funciona sem internet: a biblioteca está em `vendor/reveal/` (versão 5.1.0).
+Apresentação em reveal.js, com 26 slides e 9 de reserva (o glossário, as duas perguntas do Semgrep em detalhe, a exceção do Strategy, "além do pattern" e os detalhes dos verificadores estão na reserva). Depois da lacuna vêm os trabalhos relacionados, e depois dos níveis, o texto real do `CLAUDE.md`. A parte "Método" (slides 10 a 14) mostra como a pesquisa evoluiu, onde o estudo rodou, a execução e a medida num slide só, o Semgrep (um slide, com um exemplo real do cupom) e as outras ferramentas. Depois do resultado principal há um exemplo real de código (Opus 4.7, N0 e N1). Funciona sem internet: a biblioteca está em `vendor/reveal/` (versão 5.1.0).
 
 ## Como abrir
 
